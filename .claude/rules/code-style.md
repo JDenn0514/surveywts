@@ -1,0 +1,440 @@
+# surveyweights Code Style Guide
+
+**Version:** 1.0
+**Created:** February 2025
+**Status:** Decided — do not re-litigate without updating this document
+
+---
+
+## Quick Reference
+
+| Decision | Choice |
+|----------|--------|
+| Indentation | 2 spaces |
+| Line length | 80 characters |
+| Auto-formatter | `air` (Posit's R formatter) |
+| Pipe operator | Native `\|>` only |
+| Style guide | tidyverse style (via air) |
+| Property access | Direct `@` everywhere; accessor functions for `@data` and `@metadata` only |
+| S7 method file org | Methods grouped by type in dedicated files (`04-methods-print.R`, etc.) |
+| Class membership test | `S7::S7_inherits(x, survey_taylor)` — class object, never a string |
+| Setter return values | `invisible(x)` |
+| Getter return values | Visible (no `invisible()`) |
+| Argument order | `x`/`data` first → required NSE → required scalar → optional NSE → optional scalar → `...` |
+| Internal helper placement | Inline if used in 1 file; shared utils file if used in 2+ files |
+| Dispatch rule | `S7::method()` for extending existing generics; plain function + `S7::S7_inherits()` for surveyweights-owned generics |
+| Error structure | `"x"` + `"i"` + optional `"v"` bullets; `class=` on every `cli_abort()` |
+| Warning classes | `class=` on every `cli_warn()` too |
+| Message language | Declarative for `"x"`/`"i"` bullets; imperative for `"v"` bullet |
+
+---
+
+## 1. General R Style
+
+### Indentation
+**2 spaces** per indent level. No tabs. Matches rlang, tidyselect, cli, and S7 source.
+
+```r
+# Correct
+survey_taylor <- S7::new_class(
+  "survey_taylor",
+  parent = survey_base,
+  validator = function(self) {
+    if (is.null(self@variables$weights)) {
+      cli::cli_abort("...")
+    }
+  }
+)
+
+# Wrong
+survey_taylor <- S7::new_class(
+    "survey_taylor",           # 4-space indent
+    parent = survey_base,
+```
+
+### Line length
+**80 characters** maximum. Enforced by `air` and `lintr`.
+
+For long function signatures, break after the opening `(` and align arguments:
+```r
+# Good — break after (
+as_survey <- function(
+  data,
+  ids = NULL,
+  probs = NULL,
+  weights = NULL,
+  strata = NULL,
+  fpc = NULL,
+  nest = FALSE
+) {
+
+# Also good for short signatures — keep on one line if under 80 chars
+set_var_label <- function(x, var, label) {
+```
+
+For long `cli_abort()` calls, break the named vector across lines:
+```r
+cli::cli_abort(
+  c(
+    "x" = "Weight column {.field {weights_var}} must be numeric.",
+    "i" = "Got class {.cls {class(wt_col)}}.",
+    "v" = "Use {.code as.numeric({.field {weights_var}})} to convert."
+  ),
+  class = "surveyweights_error_weights_not_numeric"
+)
+```
+
+### Auto-formatter
+Use **`air`** (Posit's R formatter) for all formatting. Run on save or before committing.
+
+```r
+# Install
+pak::pak("posit-dev/air")
+```
+
+Do not manually adjust spacing after running `air`. If `air` output looks wrong, there's a syntax problem — don't work around it.
+
+### Pipe operator
+**Native `|>` only.** `%>%` is never used. Enforced by `lintr::pipe_consistency_linter("native")`.
+
+```r
+# Correct
+survey_obj |>
+  set_var_label(age, "Age in years") |>
+  set_var_label(income, "Annual income")
+
+# Wrong
+survey_obj %>%
+  set_var_label(age, "Age in years")
+```
+
+### Assignment operator
+**`<-`** for all assignments. `=` is reserved for function arguments only.
+
+```r
+# Correct
+weights_var <- names(weights_cols)
+design <- survey_taylor(data = data, variables = variables)
+
+# Wrong
+weights_var = names(weights_cols)
+```
+
+---
+
+## 2. S7-Specific Patterns
+
+### Property access
+Use **`@` directly** everywhere in internal code. Do not create accessor functions for most properties — the class structure is part of the documented API.
+
+**Exception:** `@data` and `@metadata` have thin accessor functions to protect against raw manipulation and provide a stable name if internal structure changes:
+
+```r
+# Accessor functions (defined in 07-utils.R, exported)
+survey_data     <- function(x) x@data
+survey_metadata <- function(x) x@metadata
+
+# Internal code always uses @ directly
+wt_col <- x@data[[x@variables$weights]]
+n_labels <- length(x@metadata@variable_labels)
+```
+
+Do **not** expose `@` in user-facing documentation or examples. Show only function calls.
+
+### S7 method file organization
+Methods are **grouped by type** in dedicated files, not co-located with class definitions:
+
+| File | Contents |
+|------|----------|
+| `00-s7-classes.R` | Class definitions + S7 validators only |
+| `04-methods-print.R` | `S7::method(print, ...)` and `S7::method(summary, ...)` for all classes |
+| `05-methods-conversion.R` | `as_svydesign()`, `from_svydesign()`, `as_tbl_svy()`, `from_tbl_svy()` |
+
+Every method registration in `04-methods-print.R` and `05-methods-conversion.R` must include a comment pointing to the class definition:
+
+```r
+# Class defined in R/00-s7-classes.R
+S7::method(print, survey_taylor) <- function(x, n = 10, ...) {
+  ...
+}
+```
+
+### Class membership testing
+Always use **`S7::S7_inherits(x, ClassName)`** with the class object — never a string.
+
+```r
+# Correct — class object; rename caught at load time
+if (!S7::S7_inherits(phase1, survey_taylor)) {
+  cli::cli_abort(...)
+}
+
+# Wrong — string; rename silently breaks the check
+if (!inherits(phase1, "survey_taylor")) {
+  cli::cli_abort(...)
+}
+
+# Also wrong — S4 idiom in an S7 codebase
+if (!is(phase1, "survey_taylor")) {
+  cli::cli_abort(...)
+}
+```
+
+---
+
+## 3. Error & Warning Conventions
+
+### `cli_abort()` structure
+Standard three-bullet structure:
+
+```r
+cli::cli_abort(
+  c(
+    "x" = "What went wrong (declarative).",      # Always present
+    "i" = "Context or diagnosis.",                # Usually present
+    "v" = "How to fix it (imperative)."           # When fixable
+  ),
+  class = "surveyweights_error_{condition}"          # ALWAYS required
+)
+```
+
+- `"x"` — What is wrong. Subject is the object/argument, not the user. Active voice.
+- `"i"` — Why, or what was found. Provide actual values with `{.val}` / `{.field}` / `{.cls}`.
+- `"v"` — The fix. Imperative: `"Use {.fn as.numeric}..."`. Only include when actionable.
+
+```r
+# Good
+cli::cli_abort(
+  c(
+    "x" = "{.arg fpc} column {.field {fpc_var}} contains {sum(is.na(fpc_col))} NA value(s).",
+    "i" = "FPC must be fully observed for finite population correction.",
+    "v" = "Remove rows with missing FPC or set {.arg fpc = NULL} to omit the correction."
+  ),
+  class = "surveyweights_error_fpc_na"
+)
+
+# Bad — no class, no context
+cli::cli_abort("FPC has NAs")
+```
+
+### `cli_warn()` structure
+Same structure and same `class=` requirement:
+
+```r
+cli::cli_warn(
+  c(
+    "!" = "What triggered the warning.",
+    "i" = "Why this matters.",
+    "i" = "What to do if this is unexpected."
+  ),
+  class = "surveyweights_warning_{condition}"    # ALWAYS required
+)
+```
+
+### Error and warning classes
+`class=` is **required on every `cli_abort()` and `cli_warn()` call** — no exceptions.
+
+The canonical list of all classes is in `plans/error-messages.md`. When adding a new error or warning:
+1. Add a row to `plans/error-messages.md` first
+2. Use the class name from that table in the code
+3. Add a corresponding `expect_error(class = ...)` test
+
+Class naming convention:
+- Errors: `"surveyweights_error_{snake_case_condition}"`
+- Warnings: `"surveyweights_warning_{snake_case_condition}"`
+
+```r
+# Error class examples
+"surveyweights_error_not_data_frame"
+"surveyweights_error_weights_nonpositive"
+"surveyweights_error_subset_degenerate"
+
+# Warning class examples
+"surveyweights_warning_srs_no_weights"
+"surveyweights_warning_single_stratum"
+"surveyweights_warning_psu_multi_strata"
+```
+
+### cli inline markup
+Use the appropriate markup type consistently:
+
+| What you're showing | Markup | Renders as |
+|---------------------|--------|------------|
+| Function argument | `{.arg weights}` | `weights` |
+| Column / variable name | `{.field {var}}` | `var` |
+| Function name | `{.fn as_survey}` | `as_survey()` |
+| Code snippet | `{.code nest = TRUE}` | `nest = TRUE` |
+| A value | `{.val "brr"}` | `"brr"` |
+| A class name | `{.cls survey_taylor}` | `<survey_taylor>` |
+
+### Message language register
+- **`"x"` bullets** — declarative, object as subject: `"Weight column {.field wt} is not numeric."`
+- **`"i"` bullets** — declarative, system as subject: `"Got class {.cls {class(wt_col)}}."`
+- **`"v"` bullets** — imperative: `"Use {.fn as.numeric} to convert."` or `"Set {.arg fpc = NULL} to skip FPC."`
+- Never `"You must..."` or `"You provided..."` — the user is never addressed directly
+
+For the full inline markup reference (50+ classes, pluralization, progress bars, theming), see the `cli` skill in `.claude/skills/cli/`.
+
+---
+
+## 4. Function Design
+
+### Return value visibility
+| Function type | Return |
+|---------------|--------|
+| Setters: `set_var_label()`, `set_variable_labels()`, `update_design()` | `invisible(x)` |
+| Constructors: `as_survey()`, `as_survey_rep()` | Visible (the new object) |
+| Extractors: `extract_var_label()`, `extract_val_labels()` | Visible |
+| Print/summary: `S7::method(print, ...)` | `invisible(x)` |
+| Validators (internal): `.validate_weights()` etc. | `invisible(TRUE)` on success |
+
+```r
+# Setter — always invisible
+set_var_label.survey_base <- function(x, var, label) {
+  var_name <- rlang::as_name(rlang::enquo(var))
+  x@metadata@variable_labels[[var_name]] <- label
+  invisible(x)
+}
+
+# Getter — always visible
+extract_var_label.survey_base <- function(x, var) {
+  var_name <- rlang::as_name(rlang::enquo(var))
+  x@metadata@variable_labels[[var_name]]
+}
+```
+
+### Argument order
+**Required before optional. Object/data always first. NSE/tidy-select before scalar. `...` last.**
+
+Full precedence:
+1. `x` / `data` — the survey object or data frame (always mandatory, always first)
+2. Required NSE/tidy-select arguments (bare names the user must provide)
+3. Required scalar arguments (non-NSE arguments with no default)
+4. Optional NSE/tidy-select arguments (`ids = NULL`, `weights = NULL`, etc.)
+5. Optional scalar control arguments (`nest = FALSE`, `mse = TRUE`, `validate = TRUE`)
+6. `...`
+
+```r
+# as_survey_rep: data (1), weights (2, required), repweights (2, required),
+#                type (3, required scalar), then optional scalars
+as_survey_rep <- function(
+  data,
+  weights,
+  repweights,
+  type = c("JK1", "JK2", "JKn", "BRR", "Fay", "bootstrap", ...),
+  scale = NULL,
+  rscales = NULL,
+  fpc = NULL,
+  fpctype = c("fraction", "correction"),
+  mse = TRUE
+)
+
+# set_var_label: x (1), var (2, required NSE), label (3, required scalar)
+set_var_label <- function(x, var, label)
+```
+
+### Dispatch rule
+**One rule: who owns the generic?**
+
+| Situation | Use |
+|-----------|-----|
+| Extending an existing generic (`print`, `summary`, `format`, `rename`, `filter`, `select`, etc.) | `S7::method(generic, class) <- function(...) { }` |
+| Creating a new generic owned by surveyweights (e.g., own constructor or extractor functions) | Plain function + `S7::S7_inherits()` for type validation |
+
+**Important:** S3 dispatch does NOT work for S7 objects. S7 uses namespaced class names
+(`"surveyweights::my_class"`). `UseMethod()` would look for a method named
+`my_fn.surveyweights::my_class`, which is not a legal R function name.
+Use a plain function with explicit `S7::S7_inherits()` type checking instead.
+
+```r
+# CORRECT — extending print (existing generic)
+S7::method(print, my_class) <- function(x, ...) { ... }
+
+# CORRECT — new surveyweights-owned generic
+# Plain function; S7::S7_inherits() validates the type explicitly.
+my_fn <- function(x, ...) {
+  if (!S7::S7_inherits(x, my_class)) {
+    cli::cli_abort(
+      c("x" = "{.arg x} must be a surveyweights object."),
+      class = "surveyweights_error_not_weights_object"
+    )
+  }
+  # implementation
+}
+
+# WRONG — UseMethod() cannot find name.surveyweights::my_class methods
+my_fn <- function(x, ...) UseMethod("my_fn")
+my_fn.my_class <- function(x, ...) { ... }  # never dispatched
+
+# WRONG — S3 dispatch silently ignored for S7 objects when generic is S7-aware
+print.my_class <- function(x, ...) { ... }   # never dispatched
+summary.my_class <- function(object, ...) { ... }    # never dispatched
+```
+
+### Internal helper placement
+| Helper used in... | Lives in... |
+|-------------------|-------------|
+| Exactly 1 source file | Defined at the top of that file, before its first call site |
+| 2 or more source files | `R/07-utils.R` |
+
+All internal helpers are **not exported** and prefixed with `.`:
+
+```r
+# In R/03-constructors.R — used only by as_survey()
+.check_probs_weights_consistency <- function(probs_var, weights_var, data, tol = 1e-6) {
+  ...
+}
+
+# In R/07-utils.R — used by constructors AND update_design()
+.get_design_vars_flat <- function(design) {
+  c(
+    design@variables$ids,
+    design@variables$weights,
+    design@variables$strata,
+    design@variables$fpc
+  )
+}
+```
+
+When a single-use inline helper grows a second call site, promote it to `07-utils.R` in the same PR that adds the second call.
+
+---
+
+## 5. Tooling Configuration
+
+### `.lintr` (in package root)
+```yaml
+linters: linters_with_defaults(
+  line_length_linter(80),
+  pipe_consistency_linter("native"),
+  object_name_linter("snake_case"),
+  assignment_linter()
+)
+exclusions: list("data-raw")
+```
+
+### `.editorconfig` (in package root)
+```ini
+root = true
+
+[*.R]
+indent_style = space
+indent_size = 2
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[*.{md,yaml,yml}]
+indent_size = 2
+```
+
+### `air` setup
+```r
+# Format the entire package
+air::format_package()
+
+# Format a single file (or use the RStudio/Positron addin)
+air::format_file("R/03-constructors.R")
+```
+
+Run `air::format_package()` before opening a PR. Do not commit `air`-reformatted files in the same commit as functional changes — reformat first, then make the change.

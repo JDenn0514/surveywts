@@ -1,0 +1,30 @@
+Package: surveyweights
+Title: Tools for Survey Weighting and Calibration
+Version: 0.0.0.9000
+Authors@R:
+    person("Jacob", "Dennen", , "jdenn0514@gmail.com", role = c("aut", "cre", "cph"),
+           comment = c(ORCID = "0000-0003-3006-7364"))
+Description: TODO: Write a 2-3 sentence description. Never start with "This
+    package" or the package name. Lines over 80 chars indent by 4 spaces.
+    Wrap URLs in angle brackets like <https://example.com>.
+License: GPL (>= 3)
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Depends:
+    R (>= 4.3.0)
+Imports:
+    cli (>= 3.6.0),
+    rlang (>= 1.0.0),
+    S7 (>= 0.1.0)
+Suggests:
+    testthat (>= 3.0.0),
+    withr (>= 2.5.0),
+    covr,
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+URL: https://github.com/JDenn0514/surveyweights, https://jdenn0514.github.io/surveyweights/
+BugReports: https://github.com/JDenn0514/surveyweights/issues
+X-schema.org-keywords: survey, statistics, weights, calibration, tidyverse
+RoxygenNote: 7.3.3

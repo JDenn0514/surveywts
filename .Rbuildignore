@@ -1,0 +1,13 @@
+^\.lintr$
+^\.editorconfig$
+^\.github$
+^README\.Rmd$
+^\.claude$
+^CLAUDE\.md$
+^data-raw$
+^plans$
+^cran-comments\.md$
+^_pkgdown\.yml$
+^pkgdown$
+^LICENSE\.md$
+^docs$

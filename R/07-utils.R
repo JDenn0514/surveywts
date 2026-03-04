@@ -778,6 +778,9 @@
 # Throw surveyweights_error_calibration_not_converged on actual non-convergence.
 # context: "calibrate", "rake_survey", "rake_anesrake"
 .throw_not_converged <- function(method, context, control, max_error) {
+  # Round to 6 sig figs before embedding in the message to avoid platform-
+  # specific floating-point representation differences (macOS vs Linux).
+  max_error <- signif(max_error, 6)
   if (context == "calibrate") {
     cli::cli_abort(
       c(

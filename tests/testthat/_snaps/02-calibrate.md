@@ -155,7 +155,7 @@
     Condition
       Error in `.throw_not_converged()`:
       x Calibration did not converge after 1 iterations.
-      i Maximum calibration error: 0.000562891008766427 (tolerance: 1e-20).
+      i Maximum calibration error: 0.000562891 (tolerance: 1e-20).
       v Increase `control$maxit`, relax `control$epsilon`, or verify population totals are consistent with the sample.
 
 # calibrate() with control$maxit = 0 throws not_converged with distinct note

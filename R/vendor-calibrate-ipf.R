@@ -16,6 +16,9 @@
 #     per iteration sweep, scaled by epsilon. This is consistent with
 #     survey::rake()'s default (epsilon = 1, checked against total weight
 #     scale), and produces numerically equivalent output.
+#   - Added `cap` parameter: after each per-variable adjustment, any weight
+#     where w / mean(w) > cap is set to cap × mean(w). Applied per-variable
+#     step (not post-hoc), matching anesrake's capping behavior.
 #   - Return value is a numeric vector of adjusted weights (not a modified
 #     survey design object).
 #
@@ -44,6 +47,8 @@
 #              survey::rake() default when epsilon < 1.
 #   maxit    - integer: maximum number of full sweeps (each sweep touches
 #              every margin once). Default 50.
+#   cap      - numeric or NULL: cap on w / mean(w). Applied after each per-
+#              variable adjustment (not post-hoc). NULL = no cap.
 #   verbose  - logical: print convergence progress after each sweep.
 #
 # Returns: a list with:
@@ -59,6 +64,7 @@
   ww,
   epsilon = 1e-6,
   maxit = 50L,
+  cap = NULL,
   verbose = FALSE
 ) {
   n_margins <- length(margins)
@@ -85,6 +91,15 @@
           delta <- abs(targets_k[[lev]] - current_total)
           if (delta > max_delta) max_delta <- delta
           ww[idx] <- ww[idx] * ratio
+        }
+      }
+
+      # Apply cap after each margin variable's adjustment (per spec §VII rule 6)
+      if (!is.null(cap)) {
+        mean_w <- mean(ww)
+        if (mean_w > 0) {
+          too_large <- (ww / mean_w) > cap
+          ww[too_large] <- cap * mean_w
         }
       }
     }

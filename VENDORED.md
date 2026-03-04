@@ -71,6 +71,43 @@ tolerance in `tests/testthat/test-03-rake.R`.
 
 ---
 
+## R/vendor-rake-anesrake.R
+
+**Algorithm:** IPF raking with chi-square-based variable selection — variables
+are ranked by chi-square discrepancy and skipped if they already meet the
+chi-square p-value threshold
+
+| Field | Value |
+|-------|-------|
+| Source package | `anesrake` |
+| Source version | 0.92 |
+| Author | Josh Pasek, with assistance from Gene Routh and Alex Tahk |
+| License | GPL-2+ |
+| Source function | `anesrake::anesrake()` |
+| CRAN URL | <https://cran.r-project.org/package=anesrake> |
+
+**Adaptations:**
+
+- Extracted core IPF-with-chi-square-selection algorithm into a standalone
+  function that operates on plain numeric weight vectors, character level
+  vectors, and named target vectors. Removed all `data.frame`, `caseid`, and
+  `svydesign` dependencies.
+- Variable selection uses a chi-square p-value threshold (`pval`) rather than
+  anesrake's percentage discrepancy threshold (`pctlim`), allowing a
+  conventional hypothesis-testing interpretation.
+- Convergence is based on percentage improvement in total chi-square between
+  consecutive sweeps (`improvement` parameter), matching anesrake's `convcrit`.
+- Cap is applied after each margin adjustment step (same behavior as anesrake).
+- Variable selection order is re-computed at the start of each sweep using the
+  current weights (not pre-computed once before all sweeps).
+- Return value is a list of `$weights`, `$converged`, `$iterations`,
+  `$max_error`, and `$already_calibrated`.
+
+**Coverage:** Algorithm correctness verified by checking that calibrated weights
+produce target marginals to within 1e-4 in `tests/testthat/test-03-rake.R`.
+
+---
+
 ## adjust_nonresponse() — No Vendored File
 
 The `adjust_nonresponse()` function uses the weighting-class nonresponse

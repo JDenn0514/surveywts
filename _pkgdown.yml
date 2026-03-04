@@ -8,3 +8,4 @@ reference:
       Functions for calibrating survey weights to known population totals.
     contents:
       - calibrate
+      - rake

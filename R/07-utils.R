@@ -679,7 +679,8 @@
       margins = margins,
       ww = weights_vec,
       epsilon = control$epsilon,
-      maxit = as.integer(control$maxit)
+      maxit = as.integer(control$maxit),
+      cap = calibration_spec$cap
     )
 
     if (!result$converged) {
@@ -698,6 +699,55 @@
         iterations = result$iterations,
         max_error = result$max_error,
         tolerance = control$epsilon
+      )
+    ))
+  }
+
+  # ---- Anesrake (chi-square variable-selection raking) ----------------------
+  if (type == "anesrake") {
+    variable_data <- lapply(vars_spec, function(v) {
+      list(
+        levels  = as.character(data_df[[v$col]]),
+        targets = v$targets
+      )
+    })
+    names(variable_data) <- vapply(vars_spec, function(v) v$col, character(1))
+
+    result <- .anesrake_calibrate(
+      variable_data  = variable_data,
+      ww             = weights_vec,
+      pval           = control$pval,
+      improvement    = control$improvement,
+      min_cell_n     = as.integer(control$min_cell_n),
+      variable_select = control$variable_select,
+      maxit          = as.integer(control$maxit),
+      cap            = calibration_spec$cap
+    )
+
+    if (isTRUE(result$already_calibrated)) {
+      cli::cli_inform(
+        c("i" = paste0(
+          "Raking converged in 1 sweep: all variables already met their ",
+          "margins. Weights were not adjusted."
+        )),
+        class = "surveyweights_message_already_calibrated"
+      )
+    } else if (!result$converged) {
+      .throw_not_converged(
+        method = "anesrake",
+        context = "rake_anesrake",
+        control = control,
+        max_error = result$max_error
+      )
+    }
+
+    return(list(
+      weights = result$weights,
+      convergence = list(
+        converged  = result$converged,
+        iterations = result$iterations,
+        max_error  = result$max_error,
+        tolerance  = control$improvement
       )
     ))
   }

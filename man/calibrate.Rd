@@ -74,4 +74,8 @@ pop <- list(
 result <- calibrate(df, variables = c(age_group, sex), population = pop)
 
 }
+\seealso{
+Other calibration: 
+\code{\link{rake}()}
+}
 \concept{calibration}

@@ -105,7 +105,7 @@ Once merged, verify:
   S7 class + internal constructor + class tests
 - [x] PR 4: `feature/phase-0-utils` — All shared internal helpers in `R/07-utils.R`
 - [x] PR 5: `feature/phase-0-calibrate` — `calibrate()` + tests
-- [ ] PR 6: `feature/phase-0-rake` — `rake()` + `.parse_margins()` + tests
+- [x] PR 6: `feature/phase-0-rake` — `rake()` + `.parse_margins()` + tests
 - [ ] PR 7: `feature/phase-0-poststratify` — `poststratify()` +
   `.validate_population_cells()` + tests
 - [ ] PR 8: `feature/phase-0-nonresponse` — `adjust_nonresponse()` + tests

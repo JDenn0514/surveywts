@@ -96,7 +96,7 @@ Once merged, verify:
 
 ## PR Map
 
-- [ ] PR 1: `feature/phase-0-infra` — DESCRIPTION, vendored algorithm files,
+- [x] PR 1: `feature/phase-0-infra` — DESCRIPTION, vendored algorithm files,
   VENDORED.md, package docs
 - [ ] PR 2: `feature/phase-0-test-helpers` — Test helper file and rule stubs
 - [ ] PR 3: `feature/phase-0-classes` — `weighted_df` S3 class + `survey_calibrated`
@@ -129,22 +129,22 @@ can be worked in parallel. PRs 8 and 9 also depend only on PR 4.
 - `R/surveyweights-package.R` — replace TODO stubs with proper package docs
 
 **Acceptance criteria:**
-- [ ] All new tests confirmed failing (red) before implementation began
-- [ ] `devtools::check()` 0 errors, 0 warnings, ≤2 pre-approved notes
-- [ ] `devtools::document()` run; NAMESPACE and man/ in sync
-- [ ] `DESCRIPTION` Imports matches spec §II.b exactly: `cli (>= 3.6.0)`,
+- [x] All new tests confirmed failing (red) before implementation began
+- [x] `devtools::check()` 0 errors, 0 warnings, ≤2 pre-approved notes
+- [x] `devtools::document()` run; NAMESPACE and man/ in sync
+- [x] `DESCRIPTION` Imports matches spec §II.b exactly: `cli (>= 3.6.0)`,
   `dplyr (>= 1.1.0)`, `rlang (>= 1.1.0)`, `S7 (>= 0.2.0)`,
   `surveycore (>= 0.1.0)`, `tibble (>= 3.2.0)`; Suggests: `survey (>= 4.2-1)`,
   `testthat (>= 3.2.0)`
-- [ ] `DESCRIPTION` contains a `Remotes:` field pointing to surveycore's GitHub
+- [x] `DESCRIPTION` contains a `Remotes:` field pointing to surveycore's GitHub
   location (e.g., `surveyverse/surveycore`); update with the exact repo/ref
   once the surveycore prerequisite PR is confirmed. Remove before CRAN submission.
-- [ ] `R/vendor/calibrate-greg.R` has attribution comment block (source package,
+- [x] `R/vendor/calibrate-greg.R` has attribution comment block (source package,
   version, author: Thomas Lumley, license: GPL-2+, function URL)
-- [ ] `R/vendor/calibrate-ipf.R` has attribution comment block (same format)
-- [ ] `VENDORED.md` created at repo root; attributes both vendored files with
+- [x] `R/vendor/calibrate-ipf.R` has attribution comment block (same format)
+- [x] `VENDORED.md` created at repo root; attributes both vendored files with
   package, version, function name, license, and algorithm description
-- [ ] `R/surveyweights-package.R` updated with real description and Key Functions
+- [x] `R/surveyweights-package.R` updated with real description and Key Functions
   section listing all exported functions
 
 **Notes:**

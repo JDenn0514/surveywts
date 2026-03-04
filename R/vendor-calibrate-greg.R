@@ -63,22 +63,12 @@
 
   # Build and solve the normal equations: (X'WX) tT = (T - X'w)
   Tmat <- crossprod(mm * whalf / sqrt(sigma2))
-  tT <- tryCatch(
-    solve(Tmat, population - sample_total),
-    error = function(e) {
-      cli::cli_abort(
-        c(
-          "x" = "Calibration matrix is computationally singular.",
-          "i" = paste0(
-            "This usually means auxiliary variables are collinear ",
-            "or the calibration problem is underdetermined."
-          ),
-          "v" = "Remove redundant variables from {.arg variables}."
-        ),
-        class = "surveyweights_error_calibration_singular"
-      )
-    }
-  )
+  # Use SVD-based pseudoinverse (matches survey:::regcalibrate's use of
+  # qr.coef / MASS::ginv for rank-deficient model matrices). The full
+  # indicator matrix (all levels of each categorical variable) has rank
+  # p - (number_of_variables - 1) due to the all-ones dependence among
+  # within-variable level columns; .gram_solve() handles this transparently.
+  tT <- drop(.gram_solve(Tmat, population - sample_total))
 
   g <- drop(1 + mm %*% tT / sigma2)
   g

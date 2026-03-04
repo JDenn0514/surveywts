@@ -575,3 +575,655 @@ Options:
 **Total issues:** 8
 
 **Overall assessment:** The spec update resolved all 20 Pass 1 issues cleanly and thoroughly — argument order, dependency list, edge cases, test plan gaps, and error message accuracy are all addressed. One blocking issue remains: the missing error class for "population has a level absent from data" in calibrate() and rake() is a contract gap where the spec states a behavior ("an error") but names no class, leaving the implementer to invent one. Five required issues are internal consistency gaps — a stale threshold in the master warning table, a missing class in the poststratify() section error table, an ambiguous test plan reference in rake(), and missing explicit test items in two test plans. None require architectural rethinking. Resolving the 6 blocking/required issues is a single focused editing pass; the spec will then be ready for implementation planning.
+
+---
+
+## Spec Review: phase-0 — Pass 3 (2026-03-04)
+
+### Prior Issues (Pass 2)
+
+| # | Title | Status |
+|---|---|---|
+| 21 | Missing error class for "population has a level absent from data" in calibrate() and rake() | ✅ Resolved |
+| 22 | rake() test plan items "1–6. Same happy paths as calibrate()" includes a test that doesn't exist | ✅ Resolved |
+| 23 | Diagnostics test plan missing the `weights_not_numeric` error test | ✅ Resolved |
+| 24 | `surveyweights_error_population_totals_invalid` missing from poststratify() error table | ✅ Resolved |
+| 25 | poststratify() test plan omits explicit weight validation error tests | ✅ Resolved |
+| 26 | Master warning table for `class_near_empty` still says "fewer than 5 respondents" | ✅ Resolved |
+| 27 | survey_calibrated validator doesn't state whether it relies on survey_base's validator | ✅ Resolved |
+| 28 | Diagnostic functions have no unsupported_class protection | ✅ Resolved |
+
+All 8 Pass 2 issues were resolved.
+
+### Surveycore Source Verification (GAPs #1–3)
+
+Before reviewing new issues: the surveycore package was inspected directly. The following GAPs from the spec's §XIV are now fully resolvable:
+
+**GAP #1 — RESOLVED with surprises.** `survey_base` confirmed properties: `@data`, `@metadata`, `@variables`, `@groups`, `@call`. The spec's §V properties table omits `@groups` (character) and `@call` (ANY). More critically: surveycore already exports `survey_calibrated` as a full class with additional `@calibration` property (see Issue 29 below).
+
+**GAP #2 — RESOLVED.** `survey_weighting_history(x)` is exported from surveycore and returns `x@metadata@weighting_history`. The `weighting_history` property already exists in `survey_metadata` as a list with default `list()`. The surveycore prerequisite PR has already been merged.
+
+**GAP #3 — RESOLVED.** `@variables$weights` is confirmed to be a character scalar (column name). The `survey_taylor` validator reads `weights_var <- self@variables$weights` then accesses `self@data[[weights_var]]`, confirming it is a column name, not the weight vector.
+
+**GAP #4 — RESOLVABLE.** surveycore is already installed with all prerequisite features. The minimum version in DESCRIPTION can be set by checking the installed version.
+
+**GAP #5 — Already handled.** Hand-calculation validation is specified in test item 5b and the quality gate already requires documentation in VENDORED.md. No new spec changes needed.
+
+**GAP #6 — See Issue 39 below (SUGGESTION).**
+
+### New Issues
+
+#### Section: V (survey_calibrated — Architectural Conflict)
+
+**Issue 29: `surveycore` already defines and exports `survey_calibrated` — redefining it in `surveyweights` creates a namespace conflict**
+Severity: BLOCKING
+No rule file cited — this is a fundamental architectural discovery from the surveycore source inspection.
+
+The spec (§V, §I deliverables table, §II class hierarchy) plans to define `surveyweights::survey_calibrated` in this package. But surveycore already defines and exports `surveycore::survey_calibrated` with this structure:
+
+```
+<surveycore::survey_calibrated> class
+@ parent: <surveycore::survey_base>
+@ properties:
+  $ data       : S3<data.frame>
+  $ metadata   : <surveycore::survey_metadata>
+  $ variables  : <list>
+  $ groups     : <character>
+  $ call       : <ANY>
+  $ calibration: <ANY>    ← NOT in spec
+```
+
+surveycore also exports `as_survey_calibrated(data, weights, calibration = NULL)` which constructs it. S7 uses fully qualified class names — `surveycore::survey_calibrated` and `surveyweights::survey_calibrated` would be different classes. Defining both creates:
+- Interoperability problems: `S7::S7_inherits(x, surveycore::survey_calibrated)` returns FALSE for surveyweights-produced objects
+- Export collisions if both packages are loaded and users type `survey_calibrated`
+- Confusion: two classes named `survey_calibrated` in the ecosystem
+
+The `@calibration` property on surveycore's class suggests it was designed to hold calibration provenance. Whether surveyweights should (a) use surveycore's class directly, (b) subclass it, or (c) define its own class with a different name is an architectural decision that must be made before any implementation begins.
+
+Options:
+- **[A]** Use `surveycore::survey_calibrated` directly — surveyweights is the package that fills in `@calibration` and `@metadata@weighting_history`; no new class defined in surveyweights — Effort: medium (rewrite §V, §I deliverables, §II class hierarchy), Risk: low, Impact: single ecosystem class; no namespace conflict
+- **[B]** Define `surveyweights::survey_calibrated` as a child class of `surveycore::survey_calibrated` — extends it with surveyweights-specific properties — Effort: medium, Risk: medium (double inheritance adds complexity), Impact: distinguishable class; inherits surveycore dispatch
+- **[C]** Keep spec as-is (define `surveyweights::survey_calibrated` as a peer class extending `survey_base`) — Effort: low, Risk: high (naming collision with surveycore's class; ecosystem confusion)
+
+**Recommendation: A** — The surveyverse ecosystem should have one calibrated survey class. surveycore already owns it. surveyweights' job is to produce properly configured instances of that class, not to redefine it. The `@calibration` property can hold calibration provenance if needed, or be left NULL with history tracked in `@metadata@weighting_history` (already implemented in surveycore).
+
+---
+
+**Issue 30: `surveycore::survey_calibrated` S7 validator is more permissive than spec requires — test items 8 and 9 in §XIII will fail**
+Severity: BLOCKING
+Violates the testing contract: the spec's validator behavior tests are written for a validator that does not exist in the actual class.
+
+surveycore's `survey_calibrated` validator:
+1. Allows NA weights — checks `non_na <- wt_col[!is.na(wt_col)]` and only errors if `length(non_na) == 0` (ALL weights NA). Individual NA weights are permitted.
+2. Uses error classes `surveycore_error_*` — NOT `surveyweights_error_*`
+
+The spec's §V validator and test plan both assert:
+- Test #8: validator rejects non-positive weights → `class = "surveyweights_error_weights_nonpositive"` (actual class: `surveycore_error_weights_nonpositive`)
+- Test #9: validator rejects NA in weight column → `class = "surveyweights_error_weights_na"` (surveycore's validator does NOT reject individual NAs — it only rejects all-NA)
+
+If surveyweights uses `surveycore::survey_calibrated` (Resolution A from Issue 29), both tests are wrong: wrong error classes (surveycore's not surveyweights'), and test #9 cannot pass because the NA rejection behavior specified doesn't exist.
+
+Options:
+- **[A]** If using surveycore's class (Issue 29 option A): update test items #8 and #9 to use `surveycore_error_*` class names; remove test #9 or change it to test "all-NA weights rejected" instead of "single NA rejected"; accept that per-NA validation happens at the function call level, not the class validator — Effort: low, Risk: low, Impact: correct tests
+- **[B]** If defining a surveyweights subclass (Issue 29 option B): add a surveyweights-specific validator that enforces NA rejection and uses `surveyweights_error_*` classes — Effort: medium, Risk: low, Impact: spec's validator tests work as written
+- **[C] Do nothing** — Tests will fail; NA protection is silently absent if surveycore's class is used
+
+**Recommendation: A** — Consistent with Issue 29 recommendation. The function-level validation (`.validate_weights()`) already enforces NA rejection before any calibrated object is created; the class validator doesn't need to duplicate it.
+
+---
+
+#### Section: V / XI (Constructor Contract)
+
+**Issue 31: `.calibrate_engine()` returns `numeric vector` but calling functions need convergence metadata for history entries**
+Severity: BLOCKING
+Internal spec inconsistency: the return type stated in §XI cannot satisfy the history contract stated in §IV.
+
+§XI states: `.calibrate_engine()` "Returns: numeric vector of calibrated weights."
+
+But §IV history entry format requires:
+```r
+convergence = list(
+  converged     = TRUE,
+  iterations    = 12L,
+  max_error     = 0.0003,
+  tolerance     = 1e-6
+)
+```
+
+If `.calibrate_engine()` only returns a weight vector, the calling function (`calibrate()`, `rake()`, `poststratify()`) has no way to populate `iterations` or `max_error` — these are computed inside the engine. The calling function would have to re-run the convergence computation separately, which is wasteful and fragile.
+
+This is not a minor ambiguity — if the engine only returns weights, the history entry's `convergence` block cannot be correctly populated for iterative methods.
+
+Options:
+- **[A]** Change return type to a named list: `list(weights = numeric_vector, convergence = list(converged, iterations, max_error, tolerance))` — Effort: low (one-line spec change), Risk: low, Impact: convergence metadata available to the caller for history construction
+- **[B]** Remove convergence metadata from the history entry for non-convergence-error cases; only store `list(converged = TRUE, tolerance = control$epsilon)` without `iterations` or `max_error` — Effort: low, Risk: medium (loses diagnostic value), Impact: simpler engine, less informative history
+- **[C] Do nothing** — Caller cannot populate `iterations` and `max_error`; either lies in the history or is always NA/0
+
+**Recommendation: A** — One line of spec text to change. The convergence metadata is genuinely useful for diagnosing weighting problems.
+
+---
+
+#### Section: II.b (Package Dependencies)
+
+**Issue 32: `anesrake` not listed in DESCRIPTION `Suggests` despite test #24 requiring it**
+Severity: REQUIRED
+Violates quality gate: "`devtools::check()` passes: 0 errors, 0 warnings, ≤2 notes."
+
+§XIII rake() test plan item #24: "Numerical correctness — method = 'anesrake' matches `anesrake::anesrake()` within 1e-8 tolerance (`skip_if_not_installed("anesrake")`, inside the test block)."
+
+§II.b `Suggests` lists only: `survey (>= 4.2-1)` and `testthat (>= 3.2.0)`. `anesrake` is absent. Using `skip_if_not_installed("anesrake")` inside a test block is standard, but the package should still appear in `Suggests` per `r-package-conventions.md` — otherwise `R CMD check --as-cran` raises a NOTE about an undeclared suggested package.
+
+Also: the vendored `R/vendor/rake-anesrake.R` mentioned in the decisions log (from the `method = "anesrake"` design session) is not listed in §II.c Vendored Code. §II.c only lists `calibrate-greg.R` and `calibrate-ipf.R`. If the anesrake algorithm is also vendored, it needs an entry in §II.c, a VENDORED.md row, and GPL-2+ license compatibility confirmation.
+
+Options:
+- **[A]** Add `anesrake (>= 0.92)` to `Suggests` in §II.b; add `R/vendor/rake-anesrake.R` entry to §II.c vendored code table — Effort: low, Risk: low, Impact: complete dependency declaration and attribution
+- **[B]** Remove test #24 (don't cross-validate against anesrake) — Effort: low, Risk: medium (anesrake method loses numerical oracle), Impact: one less quality assurance test
+- **[C] Do nothing** — `R CMD check --as-cran` note; VENDORED.md incomplete
+
+**Recommendation: A** — Two lines in §II.b and one row in §II.c. Both are required for a CRAN-clean package.
+
+---
+
+#### Section: IV (Weighting History)
+
+**Issue 33: `step` increment rule not specified — implementer must guess how to determine step numbers in chained operations**
+Severity: REQUIRED
+Violates `engineering-preferences.md §5` — explicit over implicit.
+
+§IV shows `step = 1L` in the history entry example and test items say "step number increments correctly across chained calls." But no rule is stated for how `step` is determined. The implementer must know:
+
+1. Where to read the existing step count (different for `data.frame` vs `weighted_df` vs survey objects)
+2. Whether step = position in final history (1-based) or something else
+
+The rule is: `step = length(existing_history) + 1L`, where `existing_history` is:
+- `list()` for a plain `data.frame` input (no prior history)
+- `attr(data, "weighting_history")` for a `weighted_df` input
+- `data@metadata@weighting_history` for a survey object input
+
+Without this rule, an implementer reading only §IV would hardcode step = 1 or use a session counter, both of which break on chained calls.
+
+Options:
+- **[A]** Add to §IV: "The `step` value is `length(.get_history(input)) + 1L`, where `.get_history()` extracts the current history list from the input object. For plain `data.frame`: `list()` (step = 1). For `weighted_df`: `attr(data, 'weighting_history')`. For survey objects: `data@metadata@weighting_history`." — Effort: trivial, Risk: low, Impact: unambiguous step numbering
+- **[B]** Add a single sentence: "step = position of this entry in the final weighting_history list" — Effort: trivial, Risk: low (implicit about how to compute it)
+- **[C] Do nothing** — Implementer guesses; step numbers wrong in chained calls; test #19 and #20 fail unpredictably
+
+**Recommendation: A** — The rule is simple to state and critical to get right.
+
+---
+
+#### Section: X / XI (Diagnostic Functions — Weight Validation)
+
+**Issue 34: Diagnostic functions don't specify whether `.validate_weights()` is called — `weights_nonpositive` and `weights_na` absent from error table and test plan**
+Severity: REQUIRED
+Violates `engineering-preferences.md §4` — edge case behavior (NA weights, zero weights) must be explicitly specified.
+
+Section X lists these errors for `effective_sample_size()`, `weight_variability()`, `summarize_weights()`:
+- `surveyweights_error_unsupported_class`
+- `surveyweights_error_weights_required`
+- `surveyweights_error_weights_not_found`
+- `surveyweights_error_weights_not_numeric`
+
+Notably absent: `surveyweights_error_weights_nonpositive` and `surveyweights_error_weights_na`. Two scenarios are possible:
+
+1. **Diagnostics call `.validate_weights()`** → these errors ARE thrown but are missing from the error table and test plan (a spec omission)
+2. **Diagnostics do NOT call `.validate_weights()`** → NA weights would silently produce `NA` ESS/CV; nonpositive weights would produce meaningless statistics (this may be intentional for diagnostics as "inspect-any-weights" tools)
+
+Neither behavior is stated. The `summarize_weights()` use case (inspecting a broken weight column to diagnose problems) arguably benefits from NOT validating — but `effective_sample_size()` returning NA silently is a user experience problem.
+
+Options:
+- **[A]** Specify that diagnostics call `.validate_weights()` before computing; add `weights_nonpositive` and `weights_na` to the error table and test plan (7c, 7d) — Effort: low, Risk: low, Impact: consistent behavior with calibration functions; fails loudly on bad weights
+- **[B]** Specify that diagnostics do NOT validate positivity/NA; document that they return `NA` or unusual values for NA/nonpositive inputs; add edge case tests verifying this silent behavior — Effort: low, Risk: low, Impact: more permissive; useful for "diagnose a broken weight column" workflow
+- **[C] Do nothing** — Behavior undefined; implementer decides; tests don't cover the edge case
+
+**Recommendation: A** — Consistent with the package's strict validation philosophy. Users can always check a column directly without calling `effective_sample_size()`.
+
+---
+
+#### Section: VII / XII.C (rake() — Convergence Error Message)
+
+**Issue 35: `rake()` convergence error message is incorrect for `method = "anesrake"` — references `epsilon` and "margin error" instead of `improvement` and chi-square**
+Severity: REQUIRED
+Internal spec inconsistency: §VII specifies anesrake convergence criterion (chi-square improvement) but §XII.C error message references epsilon/margin-error (survey method criterion).
+
+§XII.C `surveyweights_error_calibration_not_converged` message for `rake()`:
+```
+x: Raking did not converge after {control$maxit} full sweeps.
+i: Maximum margin error: {max_error} (tolerance: {control$epsilon}).
+v: Increase {.code control$maxit}, relax {.code control$epsilon}, or verify margin totals...
+```
+
+For `method = "survey"` this is correct. For `method = "anesrake"` (the **default method**):
+- `control$epsilon` doesn't exist (triggers `surveyweights_warning_control_param_ignored` if set)
+- "Maximum margin error" is not the convergence metric — chi-square improvement is
+- `v` bullet telling users to "relax `control$epsilon`" actively misleads them
+
+The test for this error (#17 in rake() test plan) will snapshot the message. Since the default method is `"anesrake"`, the snapshot will capture a message mentioning `control$epsilon` which is inapplicable. A user reading it will be confused.
+
+Options:
+- **[A]** Make the error message method-dependent. For `method = "anesrake"`: `"i: Chi-square improvement: {improvement_pct}% (threshold: {control$improvement}%). v: Increase {.code control$maxit} or relax {.code control$improvement}."` For `method = "survey"`: keep existing message — Effort: low, Risk: low, Impact: accurate guidance per method
+- **[B]** Use a generic message that works for both methods: `"i: Calibration failed to meet the convergence criterion after {control$maxit} iterations. v: Increase {.code control$maxit} or relax the convergence threshold ({.code control$improvement} for 'anesrake', {.code control$epsilon} for 'survey')."` — Effort: low, Risk: low, Impact: correct for both methods; less specific
+- **[C] Do nothing** — Default method gives misleading error message; users misled into setting epsilon when they need improvement
+
+**Recommendation: A** — Method-dependent messages are more informative and the implementation is straightforward (check `method` before building the message).
+
+---
+
+#### Section: VII (rake() — anesrake with no variables selected)
+
+**Issue 36: `rake()` `method = "anesrake"`: behavior undefined when all variables pass the chi-square threshold in a sweep**
+Severity: REQUIRED
+Violates `engineering-preferences.md §4` — edge cases must be explicitly specified.
+
+§VII behavior rule 4 states: "Variables where the chi-square p-value exceeds `control$pval` are skipped in that sweep." But if ALL variables are skipped in a sweep, the result is: 0% chi-square improvement, which is below `control$improvement` (0.01%), so the algorithm would immediately "converge" without making any adjustments.
+
+The spec is silent on whether this counts as:
+- **Convergence (success):** weights already satisfy margins; 0 adjustments needed
+- **An error:** no variables selected is an anomalous condition
+- **A warning:** converged without doing any work
+
+In practice, if starting weights already satisfy the margins (or are close enough), immediate convergence is correct — you shouldn't require calibration when it's not needed. But this edge case has meaningful implications for the history entry (`convergence$iterations = 0` or 1?) and the `calibration_not_converged` error trigger.
+
+Also: if `control$min_cell_n > 0` excludes all variables from raking entirely (all variables have sparse cells), the same situation arises — all variables excluded, no iteration possible.
+
+Options:
+- **[A]** Specify: if all variables pass chi-square threshold in sweep 1, this is convergence (success) with `convergence$converged = TRUE, convergence$iterations = 1L, convergence$max_error = 0`. `control$maxit = 0` remains a separate error per §II.d — Effort: trivial, Risk: low, Impact: explicit behavior
+- **[B]** Specify: if no variables are selected in any sweep (either all pass chi-square OR all excluded by min_cell_n), issue `surveyweights_warning_no_variables_raked` and return weights unchanged — Effort: low, Risk: low, Impact: more defensive; warns user that nothing happened
+- **[C] Do nothing** — Edge case behavior is undefined; implementer decides
+
+**Recommendation: A** — Immediate convergence is the correct interpretation. "Already calibrated" is a valid and common state. Add to §VII behavior rules.
+
+---
+
+#### Section: IX (adjust_nonresponse() — Output Contract)
+
+**Issue 37: `adjust_nonresponse()` output does not specify whether the `response_status` column is retained in the returned object**
+Severity: REQUIRED
+Violates contract completeness — output column set is not fully specified.
+
+§IX specifies: "Output contains only rows where `response_status == 1`." But it is silent on whether `response_status` itself remains as a column in the returned `weighted_df` or survey object. After filtering to respondents-only, the `response_status` column would be all-1 (constant). Two behaviors are possible:
+
+1. **Retain** the column (all values = 1) — column is semantically meaningless post-filter but preserves round-trip fidelity
+2. **Drop** the column — cleaner output; column was only relevant for the operation
+
+This affects:
+- The `weighted_df` attribute `weight_col` (no impact, but the column set changes)
+- User code that accesses `result$responded` after the call
+- Snapshot tests if print output shows column count
+
+Options:
+- **[A]** Specify that `response_status` column is **retained** in the output — Effort: trivial, Risk: low, Impact: simpler implementation (just filter rows, don't touch columns)
+- **[B]** Specify that `response_status` column is **dropped** from the output — Effort: trivial, Risk: low, Impact: cleaner output; users can't accidentally use the all-1 column
+- **[C] Do nothing** — Implementer decides; test snapshots capture the decision implicitly but not intentionally
+
+**Recommendation: A** — Retaining is simpler to implement and avoids the problem of "silently removing a user's column." If a user wants to drop it, they can do so with `dplyr::select()` afterward.
+
+---
+
+#### Section: V / XI (Engineering Level)
+
+**Issue 38: `.update_survey_weights(output_class = "survey_calibrated")` is dead code per §V**
+Severity: SUGGESTION
+Violates `engineering-preferences.md §3` — no abstraction layer without two real call sites.
+
+§V states: "The calibration user-facing functions (calibrate(), rake(), poststratify()) call [.new_survey_calibrated()] when input is a survey object."
+
+§XI defines `.update_survey_weights(design, new_weights_vec, history_entry, output_class = c("same", "survey_calibrated"))`.
+
+The `"survey_calibrated"` value in `output_class` is never reached:
+- Calibration functions use `.new_survey_calibrated()` (§V)
+- `adjust_nonresponse()` uses `.update_survey_weights(output_class = "same")`
+- For `survey_calibrated` input to `adjust_nonresponse()`, `"same"` returns `survey_calibrated` anyway
+
+`output_class = "survey_calibrated"` exists but has no call site in the spec. This may be an artifact of an earlier design where `.update_survey_weights()` was the unified function. Keeping a dead code path adds confusion for implementers.
+
+Options:
+- **[A]** Remove `output_class` parameter from `.update_survey_weights()` — it always returns "same class"; calibration functions use `.new_survey_calibrated()` for class promotion — Effort: trivial, Risk: low, Impact: simpler contract; no dead code
+- **[B]** Keep `output_class` but add a note: "The 'survey_calibrated' value is reserved for future use" — Effort: trivial, Risk: low, Impact: documents the dead code
+- **[C] Do nothing** — Implementer may implement `output_class = "survey_calibrated"` path unnecessarily
+
+**Recommendation: A** — This is contingent on Issue 29's resolution (if surveycore's class is used directly, the `.new_survey_calibrated()` function may also be refactored, at which point the relationship between these two helpers needs a fresh look).
+
+---
+
+#### Section: XI (Engineering Level)
+
+**Issue 39: `.calibrate_engine()` `calibration_spec` format missing anesrake-specific fields**
+Severity: SUGGESTION
+Per the user's explicit goal of addressing every GAP — this is GAP #6 from §XIV.
+
+The `calibration_spec` structure shown in §XI:
+```r
+list(
+  type      = "ipf",           # or "linear", "logit", "poststratify", "anesrake"
+  variables = list(...),
+  cells     = list(...),       # for "poststratify" only
+  total_n   = 1500,
+  cap       = NULL
+)
+```
+
+For `type = "anesrake"`, the spec doesn't include:
+- `pval` (chi-square threshold for variable selection)
+- `improvement` (convergence threshold)
+- `min_cell_n` (minimum observations per cell)
+- `variable_select` ("total", "max", "average")
+
+These are anesrake-specific convergence and variable-selection parameters that the engine needs to implement the algorithm. If they're not in `calibration_spec`, the engine can't access them. They'd need to be passed through `control` instead, but the spec says `control` is a parameter alongside `calibration_spec` — it's not clear which parameters go where.
+
+Options:
+- **[A]** Add anesrake fields to the `calibration_spec` format, or document that `control` is the channel for these fields when `type = "anesrake"` — Effort: low, Risk: low, Impact: implementer can write the engine without ambiguity
+- **[B]** Note: "GAP #6 — anesrake-specific fields will be refined during implementation" and leave as-is — Effort: trivial, Impact: known uncertainty; acceptable since GAP #6 acknowledges this
+- **[C] Do nothing** — Implementer guesses which parameters go in `calibration_spec` vs `control`
+
+**Recommendation: A** — The spec acknowledges this gap. Resolving it now is trivially low effort.
+
+---
+
+#### Section: VIII (Test Plan)
+
+**Issue 40: `poststratify()` default `type = "count"` is not explicitly verified in any test**
+Severity: SUGGESTION
+Minor test coverage gap — the asymmetric default is mentioned in §VIII but not directly tested.
+
+§VIII notes: `type = c("count", "prop")` with default `"count"` and comment "(Different from other functions — most common usage)." This asymmetry is a deliberate design choice that users need to know about. If the default were accidentally changed to `"prop"` in a future refactor, no test would catch it.
+
+The happy path tests (#1–4) presumably use the default, but they don't assert `type = "count"` is being used (they just pass population with count targets). Test #13 (`# 13. Edge — type = "prop"`) tests the non-default.
+
+Options:
+- **[A]** Add a comment to happy path test #1: "Note: happy path uses default type = 'count'; population targets are counts (not proportions)." Add a test asserting the function call succeeds without specifying `type` and fails if population is proportions-formatted — Effort: trivial, Risk: low
+- **[B]** Add a dedicated test: `# 1c. Happy path — type = "count" is the default (verify by passing count targets without explicit type argument)` — Effort: trivial
+- **[C] Do nothing** — Default behavior is implicitly tested; asymmetry could regress silently
+
+**Recommendation: B** — Explicit is better than implicit, especially for an asymmetric default.
+
+---
+
+## Summary (Pass 3)
+
+| Severity | Count |
+|---|---|
+| BLOCKING | 3 |
+| REQUIRED | 7 |
+| SUGGESTION | 3 |
+
+**Total new issues:** 13
+
+**Open GAP resolutions included in this pass:**
+- GAP #1: ✅ Confirmed properties (`@data`, `@metadata`, `@variables`, `@groups`, `@call`); see Issue 29 for implications
+- GAP #2: ✅ `survey_weighting_history(x)` confirmed exported; `@metadata@weighting_history` already in surveycore
+- GAP #3: ✅ `@variables$weights` confirmed as character scalar (column name)
+- GAP #4: ✅ surveycore installed with all prerequisite features; update DESCRIPTION min version
+- GAP #5: Already handled by test item 5b and quality gate
+- GAP #6: See Issue 39 (SUGGESTION)
+
+**Overall assessment:** Three passes of intensive review have progressively tightened this spec. The most critical finding of Pass 3 is Issue 29: `surveycore` already owns `survey_calibrated` with a different structure than the spec assumes — defining a parallel class in surveyweights would create ecosystem fragmentation. Resolving this architectural question (use surveycore's class vs. define a new one) unlocks resolution of Issues 30 and 38 as well. The remaining issues are either mechanical fixes (add anesrake to Suggests, fix error message for anesrake convergence, specify step increment rule) or are needed before the spec can be considered implementation-ready. Issue 31 (engine return type) is a clean internal inconsistency with a clear fix. The spec remains excellent in breadth and detail — these are edge-of-the-design issues, not structural failures.
+
+### Resolution Status (Pass 3)
+
+| # | Title | Status |
+|---|---|---|
+| 29 | `surveycore` already defines `survey_calibrated` — namespace conflict | ✅ Resolved — use surveycore's class directly |
+| 30 | surveycore validator more permissive than spec — test items #8 and #9 wrong | ✅ Resolved — updated to `surveycore_error_*` classes; test #9 = all-NA |
+| 31 | `.calibrate_engine()` returns numeric vector but needs convergence metadata | ✅ Resolved — return type changed to `list(weights, convergence)` |
+| 32 | `anesrake` not in Suggests despite test #24 requiring it | ✅ Resolved — added to Suggests; added `rake-anesrake.R` to §II.c |
+| 33 | `step` increment rule not specified | ✅ Resolved — explicit rule added to §IV |
+| 34 | Diagnostic functions don't specify `.validate_weights()` — two error classes missing | ✅ Resolved — diagnostics call `.validate_weights()`; error table and tests updated |
+| 35 | `rake()` convergence error message incorrect for `method = "anesrake"` | ✅ Resolved — method-dependent message templates added to §XII.C |
+| 36 | `rake()` anesrake: behavior undefined when all variables pass chi-square threshold | ✅ Resolved — immediate convergence = success; `surveyweights_message_already_calibrated` emitted |
+| 37 | `adjust_nonresponse()` output doesn't specify whether `response_status` column retained | ⏸ Deferred — `adjust_nonresponse()` output contract review to its own session |
+| 38 | `.update_survey_weights(output_class = "survey_calibrated")` is dead code | ✅ Resolved — `output_class` parameter removed from spec |
+| 39 | `.calibrate_engine()` `calibration_spec` missing anesrake-specific fields | ✅ Resolved — noted that anesrake params travel through `control`, not `calibration_spec` |
+
+---
+
+## Spec Review: phase-0 — Pass 4 (2026-03-04)
+
+### Focus: Missing Edge Case Tests in §XIII
+
+This pass audits the §XIII test catalog against the spec's own behavior rules. Every item below identifies a behavior explicitly stated in §II–X that has no corresponding test item in §XIII.
+
+---
+
+#### Section: XIII / §II.d — `calibrate()` and `rake()`
+
+**Issue 40: `control$maxit = 0` has no test item in `calibrate()` or `rake()` test lists**
+Severity: BLOCKING
+§II.d explicitly states: "`control$maxit = 0` is treated as invalid: the algorithm never runs and immediately throws `surveyweights_error_calibration_not_converged` **with a note that 0 iterations means no calibration was attempted**." This is a distinct trigger with distinct message text from the ordinary non-convergence case (existing items 14 for calibrate, 17 for rake). If only the ordinary non-convergence case is tested, an implementer who handles `maxit = 0` generically (falling through to the same error path without the specific note) will pass all tests while the API contract is silently broken.
+
+Options:
+- **[A]** Add test items to both functions' §XIII test lists: `# 14b. Error — calibration_not_converged triggered by control$maxit = 0 (distinct message note)` for calibrate() and a matching item for rake() — Effort: trivial, Risk: low, Impact: contract verified; snapshot tests will catch message differences
+- **[B] Do nothing** — `maxit = 0` falls through to the generic non-convergence error; the distinct message note is never verified
+
+**Recommendation: A** — The spec explicitly calls this out as a distinct error state. The message difference is the entire point: users who pass `maxit = 0` by accident get a clearer diagnostic than users who hit the iteration limit.
+
+---
+
+#### Section: XIII / §IV — `weighted_df` class tests
+
+**Issue 41: `dplyr_reconstruct.weighted_df()` after rename has no test item**
+Severity: BLOCKING
+§IV behavior rule 3 is explicit: "Renaming the weight column is treated the same as dropping it: `dplyr_reconstruct` does not detect renames and will trigger rule 2 above." The §XIII class test list only covers `select(-weight_col)`. There is no test item for `dplyr::rename(df, new_name = weight_col)`. A correct implementation of `dplyr_reconstruct` will pass the select test regardless of whether the rename case is handled correctly.
+
+Options:
+- **[A]** Add test item `# 2b. dplyr_reconstruct — rename(weight_col → new_name) → plain tibble + warning` to the §XIII class test list — Effort: trivial, Risk: low, Impact: rename behavior is verified
+- **[B] Do nothing** — rename behavior is implicitly "covered" by the same code path as dropping; users who rely on the rename warning may find it works or not depending on implementation
+
+**Recommendation: A** — §IV explicitly specifies this behavior and it requires an explicit test.
+
+---
+
+#### Section: XIII / §IV — `weighted_df` class tests
+
+**Issue 42: `print.weighted_df()` empty-history snapshot has no test item**
+Severity: BLOCKING
+§IV states: "If `weighting_history` is empty, the history line reads: `# Weighting history: none`." The existing snapshot test (item 4) uses a verbatim 2-step history example from §IV. Item 5 only checks `is.list(attr(obj, "weighting_history"))`. No test item captures the "none" case. Since `print.weighted_df` is snapshot-tested, the "none" rendering is a testable, breakable contract with no test.
+
+Options:
+- **[A]** Add test item `# 4b. print.weighted_df — empty weighting_history renders "# Weighting history: none"` with a snapshot — Effort: trivial, Risk: low
+- **[B] Do nothing** — the "none" branch of the print method is dead code from a testing perspective
+
+**Recommendation: A** — One snapshot. The empty-history path is the first thing any new user sees when they construct a `weighted_df` directly via a calibration function before chaining.
+
+---
+
+#### Section: XIII / §IV — `weighted_df` class tests
+
+**Issue 43: `weighted_df` class preservation through `filter()` and `mutate()` has no test**
+Severity: REQUIRED
+§IV specifies `dplyr_reconstruct.weighted_df()` as the mechanism for preserving class through dplyr verbs. Items 1 and 2 only exercise it via `select()`. `filter()` and `mutate()` that don't touch the weight column must also trigger `dplyr_reconstruct` and preserve the class — but these are entirely different dplyr dispatch paths. It is entirely possible to have a correct `dplyr_reconstruct` for `select` that fails for `filter` (e.g., if the method is only registered for the `select` generic rather than as a general reconstruct hook).
+
+Options:
+- **[A]** Add test items: `# 2c. dplyr_reconstruct — filter() preserving weight col → weighted_df` and `# 2d. dplyr_reconstruct — mutate() not touching weight col → weighted_df` — Effort: trivial, Risk: low
+- **[B] Do nothing** — assumes dplyr_reconstruct is called identically for all verbs; this is true of dplyr internals but has surprised package authors before
+
+**Recommendation: A** — Two tests; these are the most common dplyr operations users will run immediately after creating a `weighted_df`.
+
+---
+
+#### Section: XIII / §VII — `rake()` tests
+
+**Issue 44: `control$variable_select = "average"` has no test item**
+Severity: REQUIRED
+§VII lists three valid values for `control$variable_select`: `"total"`, `"max"`, `"average"`. Item 23 tests `"max"` vs `"total"`. `"average"` is never tested. This is a valid code path through the vendored anesrake engine that has zero explicit coverage. If the implementation mishandles `"average"` (e.g., silently falls back to `"total"`), no test will catch it.
+
+Options:
+- **[A]** Add test item `# 23b. Happy path — control$variable_select = "average" produces valid calibrated weights (verify different variable selection order from "total")` — Effort: low, Risk: low
+- **[B] Do nothing** — `"average"` is listed in the spec but coverage relies on anesrake's own test suite
+
+**Recommendation: A** — Three valid values, only two tested. The gap is a one-liner to close.
+
+---
+
+#### Section: XIII / §II.d — Validation order
+
+**Issue 45: Validation order is an API contract but has no test**
+Severity: REQUIRED
+§II.d states: "This ordering is part of the API contract and must not vary across implementations. Snapshot tests depend on it." The four validation steps are ordered: (1) class check, (2) empty data, (3) weights, (4) function-specific. But no §XIII test item constructs a case with two simultaneous errors at different priority levels to verify ordering. If an implementer accidentally validates weights before checking for empty data, no existing test will catch it — even the snapshot tests for individual errors can't detect ordering violations (they only test one error at a time).
+
+Options:
+- **[A]** Add a shared test item to the SE block (or as a separate item in each function's test list): `# SE-8. Validation order — 0-row data WITH invalid weight column throws empty_data (not weights_not_found)` — Effort: trivial, Risk: low, Impact: ordering contract is verified
+- **[B] Do nothing** — ordering is implied; rely on code review to enforce it
+
+**Recommendation: A** — The spec explicitly calls this an API contract. A single test item that puts SE-2 and SE-4 in tension is all that is needed.
+
+---
+
+#### Section: XIII / §VII — `rake()` tests
+
+**Issue 46: `rake()` Format B input with a validation error is not tested**
+Severity: REQUIRED
+Items 15b (`population_level_missing`) and 15c (`population_level_extra`) cover level-validation errors in `rake()`. These presumably construct Format A margins. But `.parse_margins()` converts Format B → Format A before `.validate_population_marginals()` runs. The conversion path (B → A → validate) is distinct from the direct Format A path. A bug in `.parse_margins()` that produces structurally-valid-but-semantically-wrong Format A will pass all happy path tests and the Format A error tests, and only fail when Format B triggers a validation error.
+
+Options:
+- **[A]** Change one of items 15b or 15c to use Format B input (e.g., a Format B margins data frame containing a level absent from the data) — Effort: trivial, Risk: low, Impact: the B→A→validate path is exercised
+- **[B]** Add a new test item: `# 15d. Error — population_level_extra via Format B margins (verify .parse_margins() → .validate_population_marginals() path)` — Effort: trivial
+- **[C] Do nothing** — assumes .parse_margins() produces correct Format A; errors in the conversion are invisible
+
+**Recommendation: A** — Modify an existing error item rather than adding a new one. Same coverage, no additional test count.
+
+---
+
+#### Section: XIII / §IX — `adjust_nonresponse()` tests
+
+**Issue 47: Logical `response_status` has no happy path test**
+Severity: REQUIRED
+§IX states: "Must be `logical` or integer `0`/`1`. `1`/`TRUE` = respondent." `make_surveyweights_data()` generates `responded` as integer. All happy path tests will therefore use integer. The logical type is an explicitly supported path with no test item. Item 10 tests bad types (triggers `response_status_not_binary`); item 10b tests factors. But correct handling of `TRUE`/`FALSE` is assumed, never verified.
+
+Options:
+- **[A]** Add test item `# 1b. Happy path — logical response_status (TRUE/FALSE; convert integer column to logical before calling)` — Effort: trivial, Risk: low
+- **[B] Do nothing** — logical and integer 0/1 share the same condition in the implementation; coverage from integer tests is presumed sufficient
+
+**Recommendation: A** — Two lines of test setup. The spec says logical is valid; that claim requires a test.
+
+---
+
+#### Section: XIII / §IX — `adjust_nonresponse()` tests
+
+**Issue 48: Weight conservation WITH `by` grouping is not tested**
+Severity: REQUIRED
+Item 5 verifies `sum(weights_before) == sum(respondent_weights_after)` — globally, without `by`. The formula `w_new = w_i * (sum_all_h / sum_respondents_h)` guarantees conservation per cell, which implies global conservation by summation. But a global test can mask a cell-level implementation bug (e.g., using the wrong denominator in one cell but having errors cancel across cells). Conservation should also be verified cell-by-cell when `by` is non-NULL.
+
+Options:
+- **[A]** Add test item `# 5c. Weight conservation WITH by grouping — sum of weights within each by-cell is conserved` — Effort: low, Risk: low
+- **[B] Do nothing** — global conservation implies cell conservation given the formula; test redundancy is unnecessary
+
+**Recommendation: A** — The formula is simple but cell-level verification catches a different class of implementation bug than global verification. The by-grouping path is the primary use case for this function.
+
+---
+
+#### Section: XIII / §X — Diagnostics tests
+
+**Issue 49: All-equal weights edge case missing from diagnostics tests**
+Severity: REQUIRED
+When all weights are equal, ESS = n exactly and CV = 0 exactly — these are mathematical identities that validate the formula implementation. `make_surveyweights_data()` produces log-normal weights; item 1's hand-calculation test uses non-equal weights. The all-equal case verifies the formula reduces correctly at its boundary. Neither `effective_sample_size()` nor `weight_variability()` has this test.
+
+Options:
+- **[A]** Add test item `# 1b. All-equal weights — ESS = n and CV = 0 exactly (rep(1, n) or rep(k, n))` for both `effective_sample_size()` and `weight_variability()` — Effort: trivial, Risk: low
+- **[B] Do nothing** — the formula is correct if item 1 passes; boundary identity is an exercise in algebra not implementation
+
+**Recommendation: A** — Equal-weight input is the most common degenerate case in survey design (pre-weighting data). It takes one line to test.
+
+---
+
+#### Section: XIII / §X — Diagnostics tests
+
+**Issue 50: `summarize_weights()` column order is not asserted**
+Severity: REQUIRED
+§X specifies a precise column order for `summarize_weights()` output: group columns, then `n`, `n_positive`, `n_zero`, `mean`, `cv`, `min`, `p25`, `p50`, `p75`, `max`, `ess`. Item 8 only checks "all columns present." Column order is part of the API contract — downstream code can reasonably use positional indexing. An implementer who produces columns in a different order (e.g., alphabetical, or ESS before mean) passes item 8 but breaks the documented contract.
+
+Options:
+- **[A]** Strengthen item 8: `# 8. summarize_weights() output has correct columns in specified order: expect_identical(names(result), c("n", "n_positive", ...))` — Effort: trivial, Risk: low
+- **[B] Do nothing** — column order is enforced by code review; presence check is sufficient
+
+**Recommendation: A** — One `expect_identical(names(result), c(...))` assertion. The spec gives an explicit ordered list.
+
+---
+
+#### Section: XIII / §IV.5 — History tests (all functions)
+
+**Issue 51: History entry field completeness is not asserted — `convergence = NULL` for non-iterative functions unverified**
+Severity: REQUIRED
+§IV.5 defines 8 fields per history entry: `step`, `operation`, `timestamp`, `call`, `parameters`, `weight_stats`, `convergence`, `package_version`. History test items for all four functions only say "correct structure." Critically, `convergence` must be `NULL` for `poststratify()` and `adjust_nonresponse()` (non-iterative) and a populated list for `calibrate()` and `rake()`. If an implementer forgets to pass `convergence = NULL` for non-iterative functions, the history format is wrong but no test will catch it. Similarly, `package_version` being a non-empty character string is never verified.
+
+Options:
+- **[A]** Expand history structure test items to explicitly assert: (1) `convergence` is `NULL` for `poststratify()` and `adjust_nonresponse()`, (2) `convergence` is a list for `calibrate()` and `rake()`, (3) `package_version` is `as.character(packageVersion("surveyweights"))`, (4) `timestamp` is POSIXct — Effort: low, Risk: low
+- **[B] Do nothing** — "correct structure" is sufficient; `NULL` vs list is an implementation detail
+
+**Recommendation: A** — The `convergence = NULL` distinction is a spec-defined behavioral contract, not an implementation detail. The history format is the primary audit trail for the package's value proposition.
+
+---
+
+#### Section: XIII / §II.d — Output contract
+
+**Issue 52: Default weight column name `.weight` is never explicitly asserted**
+Severity: REQUIRED
+§II.d states: "When input is a plain `data.frame` and `weights = NULL`, the default weight column is named `'.weight'`. This is the authoritative definition of that default." Happy path item 1 for each calibration function tests `data.frame → weighted_df` but does not explicitly assert `attr(result, "weight_col") == ".weight"`. An implementer who names the column `"weight"` or `"wt"` will pass all happy path tests while violating the documented default.
+
+Options:
+- **[A]** Add an explicit assertion to each function's happy path item 1: `# 1. Happy path — ... (verify attr(result, 'weight_col') == ".weight" when weights = NULL and data is data.frame)` — Effort: trivial, Risk: low
+- **[B] Do nothing** — the default is implied by the spec; test item 1 is sufficient
+
+**Recommendation: A** — The spec calls this "the authoritative definition." One assertion per function (four functions). Zero ambiguity.
+
+---
+
+#### Section: XIII / §VII — `rake()` tests
+
+**Issue 53: `rake()` `min_cell_n` exclusion path to "already calibrated" is not separately tested from chi-square path**
+Severity: SUGGESTION
+Item 26b tests the "already calibrated" message when all variables pass the chi-square threshold. But §VII rule 8 specifies the same message fires when variables are "excluded by `control$min_cell_n`." These are two distinct code paths in the anesrake engine leading to the same outcome. A bug that breaks the `min_cell_n` exclusion path (e.g., it skips the variable's sweep rather than counting it as "already calibrated") would not be caught by item 26b.
+
+Options:
+- **[A]** Add test item `# 26c. Message — already_calibrated via min_cell_n exclusion: set control$min_cell_n very large so all variables are excluded; verify surveyweights_message_already_calibrated is emitted` — Effort: low, Risk: low
+- **[B] Do nothing** — items 26b is sufficient; the distinction is an internal engine detail
+
+**Recommendation: A** — Both paths lead to the same message but through different logic. Forty lines of test setup, zero risk.
+
+---
+
+#### Section: XIII / §VI — `calibrate()` tests
+
+**Issue 54: Proportions-sum tolerance boundary is never tested**
+Severity: SUGGESTION
+§VI states proportions must sum to 1.0 "within `1e-6` tolerance." Item 13 tests the clearly-failing case (proportions that don't sum to 1). But the tolerance boundary itself is never verified: (a) proportions summing to `1.0 + 9e-7` should succeed (within tolerance), (b) proportions summing to `1.0 + 2e-6` should fail (outside tolerance). Without these boundary tests, an implementer could use `1e-4` as the tolerance and pass all existing tests.
+
+Options:
+- **[A]** Add test items: `# 13c. Happy path — proportions summing to 1.0 + 9e-7 succeeds (within 1e-6 tolerance)` and `# 13d. Error — population_totals_invalid for proportions summing to 1.0 + 2e-6 (outside tolerance)` — Effort: low, Risk: low
+- **[B] Do nothing** — tolerance boundary is an implementation detail; the tolerance value is stated in the spec
+
+**Recommendation: A** — Tolerance values in specs are wrong until tested. This applies equally to `rake()`.
+
+---
+
+### Summary (Pass 4)
+
+| Severity | Count |
+|---|---|
+| BLOCKING | 3 |
+| REQUIRED | 10 |
+| SUGGESTION | 2 |
+
+**Total new issues:** 15 (Issues 40–54)
+
+**Focus of this pass:** §XIII test catalog completeness against the spec's own behavior rules. All issues above identify a behavior explicitly stated in §II–X with no corresponding test item in §XIII. No architectural issues were found in this pass.
+
+### Resolution Status (Pass 4)
+
+| # | Title | Status |
+|---|---|---|
+| 40 | `control$maxit = 0` has no test item in calibrate() or rake() | ✅ Resolved — items 14b (calibrate) and 17b (rake) added to §XIII |
+| 41 | `dplyr_reconstruct` after rename has no test item | ✅ Resolved — item 2b added to §XIII class tests |
+| 42 | `print.weighted_df` empty-history snapshot has no test item | ✅ Resolved — item 4b added to §XIII class tests |
+| 43 | `weighted_df` class preservation through filter/mutate not tested | ✅ Resolved — items 2c–2g added (filter happy/0-row, mutate happy/values/drop) |
+| 44 | `rake()` variable_select = "average" never tested | ✅ Resolved — item 23b added to §XIII rake tests |
+| 45 | Validation order API contract has no test | ✅ Resolved — SE-8 added to standard error paths block |
+| 46 | Format B + validation error code path not tested | ✅ Resolved — item 15b updated to use Format B input |
+| 47 | Logical `response_status` happy path missing | ✅ Resolved — item 1b added to §XIII adjust_nonresponse tests |
+| 48 | Weight conservation WITH by grouping not tested | ✅ Resolved — item 5d added to §XIII adjust_nonresponse tests |
+| 49 | All-equal weights edge case missing from diagnostics | ✅ Resolved — item 1b added to §XIII diagnostics tests |
+| 50 | `summarize_weights()` column order not asserted | ✅ Resolved — item 8 strengthened to assert column order |
+| 51 | History entry `convergence = NULL` for non-iterative functions not verified | ✅ Resolved — items 14 (poststratify) and 17 (nonresponse) explicitly assert convergence = NULL; items 18 (calibrate) and 19 (rake) assert convergence is list |
+| 52 | Default `.weight` column name never explicitly asserted | ✅ Resolved — added `.weight` assertion to item 1 of all four functions |
+| 53 | `rake()` min_cell_n → already_calibrated path not separately tested | ✅ Resolved — item 26c added to §XIII rake tests |
+| 54 | Proportions-sum tolerance boundary never tested | ✅ Resolved — items 13c and 13d added to §XIII calibrate tests |
+| 40 | `poststratify()` default `type = "count"` not explicitly verified | ✅ Resolved — test item 1c added |

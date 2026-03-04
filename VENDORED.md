@@ -7,7 +7,7 @@ this package's GPL-3 license.
 
 ---
 
-## R/vendor/calibrate-greg.R
+## R/vendor-calibrate-greg.R
 
 **Algorithm:** GREG (generalized regression) linear calibration and logit
 calibration via IRLS (iteratively reweighted least squares)
@@ -41,7 +41,7 @@ calibration via IRLS (iteratively reweighted least squares)
 
 ---
 
-## R/vendor/calibrate-ipf.R
+## R/vendor-calibrate-ipf.R
 
 **Algorithm:** Iterative proportional fitting (IPF / raking) — multiplicative
 weight adjustment to match known marginal population totals

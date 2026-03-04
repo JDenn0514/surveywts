@@ -103,7 +103,7 @@ Once merged, verify:
 - [x] PR 2: `feature/phase-0-test-helpers` — Test helper file and rule stubs
 - [x] PR 3: `feature/phase-0-classes` — `weighted_df` S3 class + `survey_calibrated`
   S7 class + internal constructor + class tests
-- [ ] PR 4: `feature/phase-0-utils` — All shared internal helpers in `R/07-utils.R`
+- [x] PR 4: `feature/phase-0-utils` — All shared internal helpers in `R/07-utils.R`
 - [ ] PR 5: `feature/phase-0-calibrate` — `calibrate()` + tests
 - [ ] PR 6: `feature/phase-0-rake` — `rake()` + `.parse_margins()` + tests
 - [ ] PR 7: `feature/phase-0-poststratify` — `poststratify()` +

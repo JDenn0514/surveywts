@@ -132,18 +132,20 @@ estimated (not fixed). Adjust for unit nonresponse using weighting classes.
 ### Deliverables
 
 **Sample-based calibration**
-- `calibrate_to_sample(primary_design, control_design, formula, method)` —
-  adjusts replicate weights to account for variance in estimated control totals;
-  requires `primary_design` to be a `survey_replicate`
+- `calibrate_to_survey(primary_design, control_design, formula, method)` —
+  adjusts replicate weights to account for variance in estimated control totals
+  when benchmarks come from another survey design; requires `primary_design` to
+  be a `survey_replicate`
 - `calibrate_to_estimate(design, estimate, vcov_estimate, formula)` —
   when only a point estimate + covariance of the control total is available
 
 **Nonresponse adjustment**
-- `adjust_nonresponse(svy, response_status, method = c("weighting-class", "propensity"))`
+- `adjust_nonresponse(svy, response_status, method = c("weighting-class", "propensity-cell", "propensity"))`
   - `method = "weighting-class"`: redistributes nonrespondent weights to
-    respondents within each response class proportionally
-  - `method = "propensity"`: stub error `surveyweights_error_propensity_requires_phase3`
-    (API is stable; guard is removed in Phase 3)
+    respondents within each response class proportionally (implemented Phase 0)
+  - `method = "propensity-cell"`: estimate response propensity via logistic
+    regression → sort into quintile cells → redistribute within cells
+  - `method = "propensity"`: full IPW via logistic regression
 - `redistribute_weights(svy, reduce_if, increase_if, by = NULL)` — general
   weight redistribution primitive (exported standalone)
 
@@ -153,7 +155,7 @@ All functions append to `@metadata@weighting_history`.
 
 | File | Contents |
 |------|----------|
-| `R/06-sample-calibration.R` | `calibrate_to_sample()`, `calibrate_to_estimate()` |
+| `R/06-sample-calibration.R` | `calibrate_to_survey()`, `calibrate_to_estimate()` |
 | `R/07-nonresponse.R` | `adjust_nonresponse()`, `redistribute_weights()` |
 
 ### Test References
@@ -184,8 +186,14 @@ inference. Choose estimand (ATE, ATT, ATC, overlap, matching). Unlocks
 - `add_propensity_weights(svy, formula, estimand, method)` — combined
   one-step wrapper (calls `estimate_propensity()` + `create_propensity_weights()`)
 
-**Unlock `adjust_nonresponse(method = "propensity")`**
-- Remove the Phase 2 stub error; delegate to `estimate_propensity()` +
+**Nonresponse-via-calibration**
+- `calibrate_nonresponse(data, response_status, variables, weights = NULL, method = c("linear", "logit"), control = list())` —
+  calibrates respondent weights to match full-sample (respondents + nonrespondents)
+  weighted totals on `variables`; mirrors `calibrate()` signature but computes
+  targets internally from the data rather than requiring an external `population` argument
+
+**Unlock `adjust_nonresponse(method = "propensity")` and `adjust_nonresponse(method = "propensity-cell")`**
+- Remove the Phase 2 stub errors; both delegate to `estimate_propensity()` +
   `create_propensity_weights()` internally
 
 ### Source File Map
@@ -193,6 +201,7 @@ inference. Choose estimand (ATE, ATT, ATC, overlap, matching). Unlocks
 | File | Contents |
 |------|----------|
 | `R/08-propensity.R` | `estimate_propensity()`, `create_propensity_weights()`, `add_propensity_weights()` |
+| `R/09-calibrate-nonresponse.R` | `calibrate_nonresponse()` |
 
 ### Test References
 

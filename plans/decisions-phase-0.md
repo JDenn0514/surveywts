@@ -5,6 +5,171 @@ Each entry corresponds to one planning session.
 
 ---
 
+## 2026-03-04 — `adjust_nonresponse()` Method Design and Phase Roadmap Naming
+
+### Context
+
+Design discussion covering three open questions about `adjust_nonresponse()`:
+the vendor gap (GAP #5 in the spec), whether to expand Phase 2 method support,
+and where calibration-based nonresponse adjustment should live and what it
+should be called. Also surfaced a naming collision in the Phase 2/3 roadmap.
+
+### Questions & Decisions
+
+**Q: How should the weighting-class method be implemented — vendored or native?**
+- Options considered: vendor `svrep::redistribute_weights()` (A); implement
+  natively with `svrep` as numerical oracle (B)
+- **Decision:** B — native implementation; `svrep::redistribute_weights()` as
+  oracle in tests via `skip_if_not_installed("svrep")` inside affected blocks
+- **Rationale:** The formula (`w_new = w * sum_all_h / sum_respondents_h` per cell)
+  is four lines. Vendoring a package for a four-line formula is unnecessary
+  complexity. Oracle pattern matches how `survey` is used for calibration tests.
+- **Closes GAP #5** in spec §II.c.
+
+**Q: Should Phase 2 include both `"propensity"` and `"propensity-cell"` methods?**
+- Options considered: `"propensity"` only (A); both (B)
+- **Decision:** B — Phase 2 adds both `"propensity-cell"` and `"propensity"` to
+  `adjust_nonresponse()`. Both are Phase 2 API-stable stubs in Phase 0, using the
+  same error class `surveyweights_error_propensity_requires_phase2`.
+- **Rationale:** Propensity-cell adjustment (estimate propensity → quintile cells →
+  redistribute within cells) is arguably more common in practice than pure IPW
+  (used by NHANES, for example). Including it in Phase 2 alongside `"propensity"`
+  gives users a complete set of model-based nonresponse methods in one phase.
+  Both share the same logistic-regression infrastructure; no extra phase cost.
+
+**Q: Should calibration-as-nonresponse-adjustment be `adjust_nonresponse(method = "calibration")` or a separate function?**
+- Options considered: `method = "calibration"` inside `adjust_nonresponse()` (A);
+  separate `calibrate_nonresponse()` function in Phase 3 (B)
+- **Decision:** B — separate `calibrate_nonresponse()` in Phase 3
+- **Rationale:** Option A creates method-dependent required arguments: `by` for
+  weighting-class/propensity methods, `variables` for calibration. That's a design
+  smell — required arguments should not change based on another argument's value.
+  Option B keeps `adjust_nonresponse()` as a coherent family (identify subgroups →
+  redistribute weight). Calibration-based nonresponse is conceptually distinct: it
+  uses the calibration machinery with internally-computed targets. It fits better
+  alongside `calibrate_to_survey()` and `calibrate_to_estimate()` in Phase 3.
+
+**Q: Does `calibrate_to_sample()` in Phase 2 collide with the Phase 3 nonresponse function name?**
+- **Discovery:** Phase 2 already had a function called `calibrate_to_sample()`
+  (calibrate replicate weights when benchmarks come from another survey design,
+  mirroring `svrep::calibrate_to_sample()`). If Phase 3 adds a nonresponse
+  calibration function, the names would collide.
+- **Decision:** Rename Phase 2 `calibrate_to_sample()` → `calibrate_to_survey()`;
+  Phase 3 nonresponse calibration → `calibrate_nonresponse()`
+- **Rationale:** `calibrate_to_survey()` is more precise — the benchmarks come from
+  a survey *design* object, not just "a sample". `calibrate_nonresponse()` clearly
+  signals its purpose without ambiguity. Both names are full English words,
+  consistent with the rest of the API. Eliminates any collision, including with
+  `svrep::calibrate_to_sample()`.
+
+### Outcome
+
+Changes applied to:
+- `plans/spec-phase-0.md`: §II.c vendor gap closed; §IX `adjust_nonresponse()`
+  signature updated (add `"propensity-cell"` stub), behavior rule 1 updated,
+  error table updated
+- `plans/roadmap.md`: Phase 2 `calibrate_to_sample()` → `calibrate_to_survey()`;
+  Phase 2 `adjust_nonresponse()` description updated to include `"propensity-cell"`;
+  Phase 3 `calibrate_nonresponse()` added to deliverables and source file map;
+  Phase 3 unlock updated for both propensity stubs
+- `plans/error-messages.md`: `surveyweights_error_propensity_requires_phase2`
+  condition updated to cover both `"propensity"` and `"propensity-cell"` methods
+- `plans/decisions-phase-0.md`: this entry
+
+---
+
+## 2026-03-04 — `rake()` Algorithm Design (method, cap, control)
+
+### Context
+
+Design discussion for adding multiple raking algorithm support to `rake()`.
+The spec previously described a single IPF algorithm (vendored from `survey::rake()`).
+This session designed the `method` argument and associated parameters.
+
+### Questions & Decisions
+
+**Q: Should `rake()` support multiple raking algorithms, and if so, which?**
+- Options considered: single algorithm; `method` argument; separate functions
+- **Decision:** `method = c("anesrake", "survey")` argument added to `rake()`
+- **Rationale:** The two algorithms cover all practical survey weighting use cases.
+  `"survey"`: standard IPF, fixed variable order, epsilon-based convergence —
+  matches `survey::rake()`. `"anesrake"`: IPF with variable selection by
+  chi-square discrepancy, improvement-based convergence, weight capping —
+  matches `anesrake::anesrake()`.
+
+**Q: Should weight capping be a top-level argument or buried in `control`?**
+- Options considered: top-level `cap`; in `control`; method-specific
+- **Decision:** Top-level `cap = NULL` argument applicable to both methods
+- **Rationale:** Capping is a weight constraint (modeling decision), not an
+  algorithm parameter. It is orthogonal to variable selection and convergence
+  strategy. Applies at each IPF step (not post-hoc) for both methods — this
+  differs from some implementations and must be documented in `@details`.
+
+**Q: How should the `control` argument handle method-specific parameters?**
+- Options considered: single flat `control` list; method-specific lists; no `control`
+- **Decision:** Single `control = list()` in the signature; method-appropriate
+  defaults applied internally before merging with user-supplied values:
+  - `"anesrake"` defaults: `maxit = 1000, improvement = 0.01, pval = 0.05, min_cell_n = 0L, variable_select = "total"`
+  - `"survey"` defaults: `maxit = 100, epsilon = 1e-7`
+  - Parameters from the wrong method trigger `surveyweights_warning_control_param_ignored`
+- **Rationale:** Single list keeps the signature clean. Method-dependent defaults
+  mean users don't need to override `maxit` when switching methods. Warning on
+  wrong-method params catches mistakes without being fatal.
+
+**Q: Why is `maxit` method-dependent (1000 vs 100)?**
+- **Decision:** `maxit = 1000` for `"anesrake"` (matches package default);
+  `maxit = 100` for `"survey"` (bump from survey package's 50; epsilon-based
+  convergence stops early in practice)
+- **Rationale:** The `"anesrake"` improvement criterion typically stops raking
+  before 1000 iterations; the high limit is a safety net. The `"survey"` epsilon
+  criterion stops earlier; 100 gives headroom for complex margin structures.
+
+**Q: Which method should be the default?**
+- Options considered: `"survey"` (simpler); `"anesrake"` (richer); no default
+- **Decision:** `"anesrake"` as default
+- **Rationale:** anesrake's variable selection and weight capping make it more
+  robust for typical survey weighting scenarios. It is the dominant algorithm in
+  political/opinion survey work, the primary use case for this package.
+
+**Q: Which `anesrake` package arguments should be exposed?**
+- **`pval`** → `control$pval = 0.05`; in `control` because rarely changed
+- **`nlim`** → `control$min_cell_n = 0L`; meaningful for sparse data; naming
+  parallels `min_cell` in `adjust_nonresponse()`
+- **`choosemethod`** → `control$variable_select = "total"`; in `control` because
+  "total" is almost always correct
+- **`iterate`** → skipped; edge-case behavior, adds complexity with minimal benefit
+- **`type` (anesrake)** → NOT exposed; naming collision with our `type` argument
+  (prop/count); convergence behavior captured by `control$improvement = NULL` vs numeric
+- **`cap`** → top-level argument (see above)
+- **`maxit`** → in `control` with method-dependent default
+
+**Q: How should `rake()` be documented — describe the algorithms or link out?**
+- **Decision:** Brief description per method (enough to choose) + `@seealso` links
+  to `survey::rake()` and `anesrake::anesrake()` + explicit documentation of
+  any behaviors that diverge from the source package
+- **Rationale:** Users who need the algorithm details read the source docs.
+  Users who need to pick a method should not have to leave the help page.
+  Divergent behavior (cap applied at each step, not post-hoc) is our design
+  responsibility to document.
+
+**Q: Should a third raking algorithm be added now or later?**
+- **Decision:** No third algorithm in Phase 0 or later phases; two methods are sufficient
+- **Rationale:** No compelling third algorithm identified. The two methods cover
+  the practical landscape. Defer to a future phase if user demand arises.
+
+### Outcome
+
+Changes applied to:
+- `plans/spec-phase-0.md` (v0.2 → v0.3): §VII rake() signature, argument table,
+  output contract, behavior rules (new rules 4–7 + control defaults table),
+  error/warning table, §II.d control merge semantics, §XI `.calibrate_engine()`,
+  §XII.G new warning template, §XIII rake() test plan (items 21–26)
+- `plans/impl-phase-0.md` (v1.1 → v1.2): PR 6 files, acceptance criteria, notes
+- `plans/error-messages.md`: new `surveyweights_warning_control_param_ignored` row
+- `plans/decisions-phase-0.md`: this entry
+
+---
+
 ## 2026-02-27 — Stage 3 Spec Resolution (all 20 review issues)
 
 ### Context
@@ -315,5 +480,120 @@ ambiguous reference), diagnostics test plan completed (weights_not_numeric, unsu
 poststratify weight validation error tests added, stale warning table threshold corrected,
 parent validator assumption documented, and unsupported_class coverage extended to
 diagnostics. Spec is now fully resolved and ready for implementation planning.
+
+---
+
+## 2026-03-04 — Stage 3 Plan Resolution (Pass 3 — 14 issues)
+
+### Context
+
+Resolving all 14 issues from `plans/plan-review-phase-0.md` (Pass 3). Two blocking
+issues required immediate attention: a spec/plan contradiction on `.update_survey_weights()`
+and a stale PR Map dependency statement. Twelve required/suggestion issues were systematic
+coverage gaps in per-PR acceptance criteria (items missing from each function PR's AC,
+a missing methods file, a missing vendored file in the Quality Gate, and a message class
+not tracked in error-messages.md).
+
+### Questions & Decisions
+
+**Q: Should `.update_survey_weights()` have an `output_class` parameter (Issue 1)?**
+- Options considered: remove from plan (A); add back to spec (B)
+- **Decision:** A — remove `output_class` from plan; calibration functions call
+  `.new_survey_calibrated()` directly; `.update_survey_weights()` is only used by
+  `adjust_nonresponse()` (which never promotes class)
+- **Rationale:** Spec was deliberately simplified in a prior session. Plan was not
+  synchronized. Spec is authoritative.
+
+**Q: Where should `S7::method(print, surveycore::survey_calibrated)` live (Issue 10)?**
+- Options considered: add `R/methods-print.R` (A); document exception in `00-classes.R` (B)
+- **Decision:** A — add `R/methods-print.R` to source file structure and PR 3 file list
+- **Rationale:** code-style.md §2 has no minimum-methods exemption. A one-method file
+  avoids tech debt and prevents future confusion about where to add Phase 1 S7 methods.
+
+**Q: Should svrep be the numerical oracle for `adjust_nonresponse()` (Issue 8)?**
+- Options considered: svrep oracle (A); hand-calculation only (B)
+- **Decision:** A — consistent with the decisions log (2026-03-04) and spec §II.c;
+  `svrep (>= 0.6)` added to DESCRIPTION Suggests in PR 1 AC; GAP #5 marked resolved
+- **Rationale:** The decisions log explicitly named svrep. The spec §II.c text reflected
+  that decision. PR 8 AC and spec §XIII item 5b had not been updated. Hand-calculation
+  remains a complement, not a substitute.
+
+### Outcome
+
+All 14 Pass 3 issues resolved. Changes applied to:
+- `plans/impl-phase-0.md` (v1.2 → v1.3): PR Map text (dependency clarification),
+  source file structure (added `methods-print.R`), PR 1 AC (svrep in Suggests; GAP #5
+  resolved), PR 1 Notes (GAP #5 resolution language), PR 3 files and AC (methods-print.R;
+  surveycore error class names for items 8/9; ALL-NA trigger for item 9), PR 4 shared
+  helpers and AC (remove output_class from .update_survey_weights()), PR 5 AC (item 1b
+  factor; items 13/13b split; warning dual-pattern explicit), PR 6 AC (item 1b factor;
+  items 16/16b split; item 23 variable_select; item 26b message class) and Notes (remove
+  stub language), PR 7 AC (item 1c type="count" default; items 8b/8c split), PR 8 AC
+  (22 test blocks; 7 error classes; item 10b factor; svrep oracle criterion), PR 9 AC
+  (6 error classes; items 7b/7c/7d explicit; item 3b survey_taylor), Quality Gate
+  (rake-anesrake.R in vendored-file check)
+- `plans/error-messages.md`: new "Messages" section with
+  `surveyweights_message_already_calibrated`
+
+Plan is approved and ready for implementation. Start with `/r-implement` at PR 3
+(PRs 1 and 2 are already merged).
+
+---
+
+## 2026-03-04 — Stage 3 Spec Resolution (Pass 3 — 12 of 13 issues)
+
+### Context
+
+Resolving issues from `plans/spec-review-phase-0.md` (Pass 3). The pass surfaced one
+architectural discovery (surveycore already owns `survey_calibrated`), two blocking
+internal inconsistencies, and ten required/suggestion gaps. Issue 37 (`adjust_nonresponse()`
+output column retention) was deferred to its own session.
+
+### Questions & Decisions
+
+**Q: Should surveyweights define its own `survey_calibrated` or use surveycore's (Issue 29)?**
+- Options considered: use surveycore's class directly (A); subclass it (B); define a peer class (C)
+- **Decision:** A — use `surveycore::survey_calibrated` directly
+- **Rationale:** surveycore already exports the class with `@calibration` property. Defining
+  a parallel class would create two S7 classes with incompatible fully-qualified names,
+  breaking `S7::S7_inherits()` across the ecosystem. surveyweights' job is to produce
+  correctly configured instances, not to redefine the class.
+
+**Q: How do test items #8 and #9 change given surveycore's class is more permissive (Issue 30)?**
+- **Decision:** Test #8 uses `surveycore_error_weights_nonpositive`. Test #9 changed to
+  "all-NA weights rejected" (surveycore only errors if ALL weights are NA); class =
+  `surveycore_error_weights_na`. Per-row NA/nonpositive validation remains in `.validate_weights()`
+  at the function call level.
+
+**Q: Should `.calibrate_engine()` return a numeric vector or a named list (Issue 31)?**
+- **Decision:** Named list: `list(weights = <numeric>, convergence = list(converged, iterations, max_error, tolerance))`
+- **Rationale:** Caller needs `iterations` and `max_error` to populate the history entry's
+  convergence block. Engine is the only place that computes these.
+
+**Q: Should rake() anesrake immediate convergence be silent or emit a message (Issue 36)?**
+- Options considered: A (silent success); A+ (silent success + `cli_inform()`)
+- **Decision:** A+ — emit `surveyweights_message_already_calibrated` via `cli_inform()`
+- **Rationale:** "Nothing happened" is easy to miss. The message surfaces the no-op at
+  call time while remaining suppressible with `suppressMessages()`. Has a class for
+  programmatic handling via `withCallingHandlers()`.
+
+**Q: Should Issue 37 (adjust_nonresponse() output column retention) be decided now?**
+- **Decision:** Deferred — the full output contract of `adjust_nonresponse()` (filtering,
+  column retention, interaction with `weighted_df` attributes) merits its own session.
+
+### Outcome
+
+12 of 13 Pass 3 issues resolved. Changes applied to:
+- `plans/spec-phase-0.md`: §I deliverables, §II class hierarchy and file org, §V (complete
+  rewrite to use surveycore's class), §IV step increment rule, §VII behavior rule 8
+  (already_calibrated), §X diagnostic error tables, §XI `.calibrate_engine()` return type
+  and parameter routing note, `.update_survey_weights()` signature simplified, §XII.C
+  method-dependent convergence messages, §XII.G `surveyweights_message_already_calibrated`,
+  §XIII test items 7c/7d (diagnostics), 26b (rake), 1c (poststratify), class test #8/#9
+  updated, §XIV GAPs #1–4 and #6 marked resolved
+- `plans/spec-review-phase-0.md`: Pass 3 resolution status table added
+- `plans/decisions-phase-0.md`: this entry
+
+Issue 37 (adjust_nonresponse output contract) deferred to a dedicated session.
 
 ---

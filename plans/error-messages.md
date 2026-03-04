@@ -64,7 +64,7 @@ function in subsections XII.A through XII.G).
 | `surveyweights_error_response_status_has_na` | `adjust_nonresponse()` | `response_status` column has `NA` values |
 | `surveyweights_error_response_status_all_zero` | `adjust_nonresponse()` | All rows are nonrespondents |
 | `surveyweights_error_class_cell_empty` | `adjust_nonresponse()` | Weighting class cell has no respondents |
-| `surveyweights_error_propensity_requires_phase2` | `adjust_nonresponse()` | `method = "propensity"` called in Phase 0 |
+| `surveyweights_error_propensity_requires_phase2` | `adjust_nonresponse()` | `method` is `"propensity"` or `"propensity-cell"` (Phase 2 stubs) |
 
 ### Diagnostics
 
@@ -79,3 +79,12 @@ function in subsections XII.A through XII.G).
 | `surveyweights_warning_weight_col_dropped` | `dplyr_reconstruct.weighted_df()` | dplyr verb removed the weight column from a `weighted_df` |
 | `surveyweights_warning_negative_calibrated_weights` | `calibrate()` | Linear calibration produced negative calibrated weights |
 | `surveyweights_warning_class_near_empty` | `adjust_nonresponse()` | A weighting class cell has fewer than `control$min_cell` respondents (default 20) OR adjustment factor exceeds `control$max_adjust` (default 2.0) |
+| `surveyweights_warning_control_param_ignored` | `rake()` | A `control` parameter is not applicable to the specified `method` (e.g., `control$pval` with `method = "survey"`, or `control$epsilon` with `method = "anesrake"`) |
+
+## Messages
+
+`cli_inform()` messages with required classes (testable with `expect_message(class = ...)`):
+
+| Class | Thrown by | Condition |
+|-------|-----------|-----------|
+| `surveyweights_message_already_calibrated` | `rake()` | `method = "anesrake"` and all raking variables pass the chi-square threshold in sweep 1 — no adjustment needed |

@@ -72,6 +72,22 @@ Find the last release tag on `main`:
 git describe --tags --abbrev=0 origin/main
 ```
 
+**Check for hotfix divergence** — run this and report the result:
+
+```bash
+git log origin/develop..origin/main --oneline
+```
+
+**If any commits appear:** `main` has commits that are not in `develop`
+(usually unsynced hotfixes). STOP and tell the user:
+
+> "`main` has N commit(s) not in `develop`: [list them]. These must be
+> merged into `develop` before the release PR, or they will cause a merge
+> conflict. Run `git checkout develop && git merge origin/main` and resolve
+> any conflicts, then push `develop` before continuing."
+
+Do not proceed until `develop` is in sync with `main`.
+
 Show the user what's changed since that tag:
 
 ```bash
@@ -106,7 +122,19 @@ Read each file. These are the source material for the NEWS.md section.
 
 ### Draft the new section
 
-Write a draft NEWS.md section following the format in `refs/news-format.md`.
+Write a draft NEWS.md section. Format:
+
+```markdown
+# surveyweights X.Y.Z
+
+## New features / improvements
+
+- [Summary of `feat:` commits]
+
+## Bug fixes
+
+- [Summary of `fix:` commits]
+```
 
 **Show the draft to the user and ask for approval.** Do not write to NEWS.md
 until the user approves the content. Revise if requested.
@@ -183,8 +211,23 @@ If one already exists: report its URL and skip to Step 7 (Monitor CI).
 
 PR title: `chore(release): bump version to X.Y.Z`
 
-PR body — use the template in `refs/release-pr-template.md`, filling
-in the NEWS.md section content for "What's in this release".
+PR body:
+
+```markdown
+## What
+
+Release surveyweights X.Y.Z.
+
+## What's in this release
+
+[paste the NEWS.md section content here]
+
+## Checklist
+
+- [ ] `devtools::check()` — 0 errors, 0 warnings
+- [ ] NEWS.md section complete and accurate
+- [ ] DESCRIPTION version bumped to X.Y.Z
+```
 
 **Show the draft to the user before creating.** Ask for approval. Do NOT
 create the PR until the user approves.
@@ -293,14 +336,8 @@ git tag -a vX.Y.Z -m "<confirmed-tag-message>"
 git push origin vX.Y.Z
 ```
 
-Report the tag URL:
-
-```
-https://github.com/JDenn0514/surveyweights/releases/tag/vX.Y.Z
-```
-
-Tell the user: go to that URL to create a GitHub Release with the NEWS.md
-section as the release body (optional but recommended).
+Tell the user: go to the releases page to create a GitHub Release with the
+NEWS.md section as the release body (optional but recommended).
 
 ---
 
@@ -346,7 +383,5 @@ Report:
 >
 > - PR #N merged to `main`
 > - Tag `vX.Y.Z` pushed
-> - `develop` bumped to `X.Y.Z.9000`
->
-> Consider creating a GitHub Release at: https://github.com/JDenn0514/surveyweights/releases/tag/vX.Y.Z"
+> - `develop` bumped to `X.Y.Z.9000`"
 

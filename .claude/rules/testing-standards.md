@@ -1,3 +1,5 @@
+<!-- Mirrored from ../survey-standards/.claude/rules/testing-standards.md. Keep in sync. -->
+
 # Surveyverse Testing Standards
 
 **Version:** 1.1

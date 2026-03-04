@@ -4,6 +4,10 @@
 **Created:** February 2026
 **Status:** Decided — applies to all surveyverse packages
 
+**Scope:** These preferences are owned by this repo but intended as guidance
+for the full surveyverse ecosystem. If another package adopts them, they should
+copy this file to their own `.claude/rules/`.
+
 These are meta-principles that govern every implementation decision across
 all phases. When in doubt about an approach, use this list as the tiebreaker.
 They are listed in priority order.

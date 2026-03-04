@@ -32,9 +32,26 @@ Use this mode when commit-and-pr has already created a PR and CI has failed.
 
 ### Step 1: Read the handoff block
 
-The user will provide a CI failure handoff block (fields: Run, PR, Job, Step, Error,
-Local repro). Read it carefully. Identify: which check failed (check vs test), which
-job (OS + R version), and the exact error message.
+The user will provide (or paste) a block like:
+
+```
+## CI Failure — Handoff to r-implement
+
+Run:    #12345
+PR:     #7 (https://github.com/...)
+Job:    R CMD Check / ubuntu-latest / release
+Step:   Running R CMD check
+
+Error:
+  <log output>
+
+Local repro:
+  Rscript -e "devtools::check()"
+  Rscript -e "devtools::test()"
+```
+
+Read it carefully. Identify: which check failed (check vs test), which job
+(OS + R version), and the exact error message.
 
 ### Step 2: Reproduce locally
 
@@ -108,7 +125,7 @@ Do not proceed until the user is on `develop` or a feature branch.
 
 ### Step 2: Read the implementation plan
 
-Ask the user for the path if not provided (e.g., `plans/phase-1-implementation-plan.md`).
+Ask the user for the path if not provided (e.g., `plans/impl-phase-0.md`).
 
 Find the **first unchecked `- [ ]` section**. That section defines the scope for this
 entire session. Do not implement anything outside that scope.
@@ -182,11 +199,17 @@ When `devtools::test()` and `devtools::check()` both pass:
 
 ## Conventions (always in context — no need to re-read)
 
-All coding conventions are in the rule files loaded at session start.
-Key rules: `code-style.md` (S7 patterns, cli errors, arg order), `r-package-conventions.md`
-(imports, roxygen2), `surveyweights-conventions.md` (naming, families, visibility),
-`testing-standards.md` + `testing-surveyweights.md` (test patterns).
-Error class names: `plans/error-messages.md` — update BEFORE using any new class.
+All surveyweights coding conventions are in the rule files loaded at session start.
+Quick index:
+
+| What you need | Where it is |
+|---|---|
+| S7 class patterns, cli errors, arg order, helper placement | `code-style.md §2–4` |
+| `cli_abort()` / `cli_warn()` structure and `class=` | `code-style.md §3` |
+| `::` everywhere, no `@importFrom`, roxygen2 | `r-package-conventions.md §2` |
+| Naming, families, visibility, export policy | `surveyweights-conventions.md` |
+| Test structure, constructor invariants, error testing | `testing-standards.md` + `testing-surveyweights.md` |
+| Error class names | `plans/error-messages.md` — update this file BEFORE using any new class |
 
 ---
 

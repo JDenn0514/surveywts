@@ -59,6 +59,7 @@
 #'
 #' @return `x`, invisibly.
 #'
+#' @keywords internal
 #' @export
 print.weighted_df <- function(x, n = 10, ...) {
   weight_col <- attr(x, "weight_col")

@@ -19,3 +19,4 @@
 \description{
 Print a weighted data frame
 }
+\keyword{internal}

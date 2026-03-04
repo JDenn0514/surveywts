@@ -2,3 +2,9 @@ url: https://jdenn0514.github.io/surveyweights/
 template:
   bootstrap: 5
 
+reference:
+  - title: Calibration
+    desc: >
+      Functions for calibrating survey weights to known population totals.
+    contents:
+      - calibrate

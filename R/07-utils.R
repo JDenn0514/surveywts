@@ -702,39 +702,6 @@
     ))
   }
 
-  # ---- Anesrake (PR 6 adds R/vendor-rake-anesrake.R + .anesrake_calibrate()) -
-  if (type == "anesrake") {
-    # .anesrake_calibrate() is defined in R/vendor-rake-anesrake.R, which is
-    # added in PR 6 alongside rake(). Until PR 6 merges, this code path is
-    # unreachable (rake() does not exist yet). The "undefined global function"
-    # R CMD check NOTE for .anesrake_calibrate will resolve in PR 6.
-    result <- .anesrake_calibrate(
-      data_df = data_df,
-      weights_vec = weights_vec,
-      vars_spec = vars_spec,
-      control = control
-    )
-
-    if (!result$converged) {
-      .throw_not_converged(
-        method = "anesrake",
-        context = "rake_anesrake",
-        control = control,
-        max_error = result$max_error
-      )
-    }
-
-    return(list(
-      weights = result$weights,
-      convergence = list(
-        converged = result$converged,
-        iterations = result$iterations,
-        max_error = result$max_error,
-        tolerance = control$improvement
-      )
-    ))
-  }
-
   # ---- Post-stratification (exact single-pass) -----------------------------
   if (type == "poststratify") {
     cells <- calibration_spec$cells
@@ -811,6 +778,9 @@
 # Throw surveyweights_error_calibration_not_converged on actual non-convergence.
 # context: "calibrate", "rake_survey", "rake_anesrake"
 .throw_not_converged <- function(method, context, control, max_error) {
+  # Round to 6 sig figs before embedding in the message to avoid platform-
+  # specific floating-point representation differences (macOS vs Linux).
+  max_error <- signif(max_error, 6)
   if (context == "calibrate") {
     cli::cli_abort(
       c(

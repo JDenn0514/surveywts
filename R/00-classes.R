@@ -8,51 +8,14 @@
 #   - select.weighted_df()            — dplyr 1.2.0 col-select path
 #   - rename.weighted_df()            — detect weight col rename
 #   - mutate.weighted_df()            — detect post-.keep weight col removal
-#   - .format_history_step()          — internal helper for history step labels
 #   - .reconstruct_weighted_df()      — internal helper shared by all dplyr methods
 #
+# .format_history_step() lives in R/07-utils.R (moved in PR 4).
 # survey_calibrated is defined in surveycore, not here.
 
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
-
-# Format one history entry as a single display line.
-# Used by print.weighted_df() and the S7::method(print, survey_calibrated)
-# in R/methods-print.R.  Move to R/07-utils.R in PR 4.
-.format_history_step <- function(entry) {
-  op <- entry$operation
-  params <- entry$parameters
-  ts <- entry$timestamp
-
-  label <- switch(
-    op,
-    "raking" = {
-      vars <- paste(params$variables, collapse = ", ")
-      paste0("raking (margins: ", vars, ")")
-    },
-    "calibration" = {
-      vars <- paste(params$variables, collapse = ", ")
-      paste0("calibration (variables: ", vars, ")")
-    },
-    "poststratify" = {
-      vars <- paste(params$variables, collapse = ", ")
-      paste0("poststratify (strata: ", vars, ")")
-    },
-    "nonresponse_weighting_class" = {
-      by <- params$by
-      if (is.null(by) || length(by) == 0L) {
-        "weighting-class nonresponse"
-      } else {
-        paste0("weighting-class nonresponse (by: ", paste(by, collapse = ", "), ")")
-      }
-    },
-    op # default: just the operation name
-  )
-
-  date_str <- format(ts, "%Y-%m-%d")
-  paste0("#   Step ", entry$step, " [", date_str, "]: ", label)
-}
 
 # Core reconstruction logic shared by all dplyr integration points.
 # If weight_col is present in `data`, restores weighted_df class and attributes.
@@ -104,10 +67,11 @@ print.weighted_df <- function(x, n = 10, ...) {
   n_rows <- nrow(x)
   n_cols <- ncol(x)
 
-  # Inline weight statistics (no .compute_weight_stats() — defined in PR 4)
-  w_mean <- mean(w, na.rm = TRUE)
-  w_cv <- if (w_mean > 0) stats::sd(w, na.rm = TRUE) / w_mean else NA_real_
-  w_ess <- sum(w, na.rm = TRUE)^2 / sum(w^2, na.rm = TRUE)
+  # Delegate weight statistics to shared helper (defined in R/07-utils.R)
+  stats <- .compute_weight_stats(w)
+  w_mean <- stats$mean
+  w_cv <- stats$cv
+  w_ess <- stats$ess
 
   # Format with commas for readability
   fmt_int <- function(x) formatC(round(x), format = "d", big.mark = ",")

@@ -1,4 +1,4 @@
-# R/vendor/calibrate-greg.R
+# R/vendor-calibrate-greg.R
 #
 # VENDORED CODE — do not edit the algorithm without updating VENDORED.md
 #
@@ -171,12 +171,18 @@
     misfit <- population - sample_total - colSums(mm * ww * Fm1(xeta, bounds))
     if (verbose) print(misfit)
 
-    if (all(abs(misfit) / (1 + abs(population)) < epsilon)) break
+    cur_max_error <- max(abs(misfit) / (1 + abs(population)))
+    if (cur_max_error < epsilon) {
+      attr(g, "iterations") <- iter
+      attr(g, "max_error") <- cur_max_error
+      break
+    }
 
     iter <- iter + 1L
     if (iter > maxit) {
-      achieved <- max(abs(misfit) / (1 + abs(population)))
-      attr(g, "failed") <- achieved
+      attr(g, "failed") <- cur_max_error
+      attr(g, "iterations") <- iter
+      attr(g, "max_error") <- cur_max_error
       break
     }
   })

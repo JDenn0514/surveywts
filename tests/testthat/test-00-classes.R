@@ -30,7 +30,7 @@
       operation = "nonresponse_weighting_class",
       timestamp = ts,
       call = "adjust_nonresponse(df, response_status = responded, by = c(age, sex))",
-      parameters = list(by = c("age", "sex")),
+      parameters = list(by_variables = c("age", "sex")),
       weight_stats = list(
         before = list(n = 5L, n_positive = 5L, n_zero = 0L,
                       mean = 1.0, cv = 0.15, min = 0.8, p25 = 0.9,
@@ -285,7 +285,7 @@ test_that("print method for survey_calibrated produces expected output", {
       operation = "nonresponse_weighting_class",
       timestamp = ts,
       call = "adjust_nonresponse(df, ...)",
-      parameters = list(by = c("age", "sex")),
+      parameters = list(by_variables = c("age", "sex")),
       weight_stats = list(before = list(), after = list()),
       convergence = NULL,
       package_version = "0.1.0"

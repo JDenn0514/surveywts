@@ -1,4 +1,4 @@
-# R/vendor/calibrate-ipf.R
+# R/vendor-calibrate-ipf.R
 #
 # VENDORED CODE — do not edit the algorithm without updating VENDORED.md
 #
@@ -50,6 +50,9 @@
 #   $weights    - numeric vector (n): calibrated weights
 #   $converged  - logical: TRUE if convergence achieved before maxit
 #   $iterations - integer: number of full sweeps completed
+#   $max_error  - double: max marginal delta / sum(ww) at final sweep (scaled
+#                 by starting sum(ww)); used by .calibrate_engine() to populate
+#                 the convergence block in the history entry.
 
 .ipf_calibrate <- function(
   margins,
@@ -103,6 +106,7 @@
   list(
     weights = ww,
     converged = converged,
-    iterations = iter
+    iterations = iter,
+    max_error = max_delta / eps_scaled * epsilon  # un-scale back to proportion units
   )
 }

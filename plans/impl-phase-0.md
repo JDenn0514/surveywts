@@ -98,7 +98,7 @@ Once merged, verify:
 
 - [x] PR 1: `feature/phase-0-infra` — DESCRIPTION, vendored algorithm files,
   VENDORED.md, package docs
-- [ ] PR 2: `feature/phase-0-test-helpers` — Test helper file and rule stubs
+- [x] PR 2: `feature/phase-0-test-helpers` — Test helper file and rule stubs
 - [ ] PR 3: `feature/phase-0-classes` — `weighted_df` S3 class + `survey_calibrated`
   S7 class + internal constructor + class tests
 - [ ] PR 4: `feature/phase-0-utils` — All shared internal helpers in `R/07-utils.R`
@@ -180,17 +180,17 @@ can be worked in parallel. PRs 8 and 9 also depend only on PR 4.
   and numerical tolerance table
 
 **Acceptance criteria:**
-- [ ] All new tests confirmed failing (red) before implementation began
-- [ ] `devtools::check()` 0 errors, 0 warnings, ≤2 pre-approved notes
-- [ ] `devtools::document()` run; NAMESPACE and man/ in sync
-- [ ] `make_surveyweights_data(n = 500, seed = 42)` produces a data.frame with
+- [x] All new tests confirmed failing (red) before implementation began
+- [x] `devtools::check()` 0 errors, 0 warnings, ≤2 pre-approved notes
+- [x] `devtools::document()` run; NAMESPACE and man/ in sync
+- [x] `make_surveyweights_data(n = 500, seed = 42)` produces a data.frame with
   columns: `id` (integer), `age_group` (character), `sex` (character),
   `education` (character), `region` (character), `base_weight` (positive numeric)
-- [ ] `make_surveyweights_data(include_nonrespondents = TRUE)` adds `responded`
+- [x] `make_surveyweights_data(include_nonrespondents = TRUE)` adds `responded`
   column (integer 0/1) with realistic split (≥ 20% nonrespondents)
-- [ ] `test_invariants()` defined exactly as in spec §XIII (checks `weighted_df`
+- [x] `test_invariants()` defined exactly as in spec §XIII (checks `weighted_df`
   and `survey_calibrated` invariants; uses `S7::S7_inherits()`, not `inherits()`)
-- [ ] `.claude/rules/surveyweights-conventions.md` and
+- [x] `.claude/rules/surveyweights-conventions.md` and
   `.claude/rules/testing-surveyweights.md` committed directly to `develop`
   before opening this PR (not part of the feature branch diff)
 

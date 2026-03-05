@@ -1,0 +1,35 @@
+url: https://jdenn0514.github.io/surveywts/
+
+template:
+  bootstrap: 5
+  bslib:
+    font_scale: 1.0
+    base_font: {google: "Roboto"}
+    code_font: {google: "Inter"}
+    heading_font: {google: "Roboto"}
+    bg: "#fcfbf9"         # lighten springwood background
+    fg: "#000000"         # contrast ratio: 15.76 for text
+    primary: "#AA4488"    # periwinkle — links, active states
+    navbar-bg: "#EECCDD"  # periwinkle tint — navbar background
+    navbar-light-hover-color: "#AA4488"
+
+reference:
+  - title: Calibration
+    desc: >
+      Functions for calibrating survey weights to known population totals.
+    contents:
+      - calibrate
+      - rake
+      - poststratify
+  - title: Nonresponse Adjustment
+    desc: >
+      Functions for adjusting survey weights for unit nonresponse.
+    contents:
+      - adjust_nonresponse
+  - title: Diagnostics
+    desc: >
+      Functions for assessing the distribution and quality of survey weights.
+    contents:
+      - effective_sample_size
+      - weight_variability
+      - summarize_weights

@@ -47,3 +47,8 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+docs
+.DS_Store
+.quarto
+.Rproj.user
+.claude/settings.local.json

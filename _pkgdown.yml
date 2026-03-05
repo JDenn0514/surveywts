@@ -1,6 +1,10 @@
 url: https://jdenn0514.github.io/surveywts/
 template:
   bootstrap: 5
+  bslib:
+    primary: "#AA4488"
+    navbar-bg: "#EECCDD"
+    navbar-light-hover-color: "#AA4488"
 
 reference:
   - title: Calibration

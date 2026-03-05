@@ -249,3 +249,33 @@
       10    10 18-34     F     Graduate  Midwest         1.38    0.002
       # i 490 more rows
 
+# rake() rejects an unnamed list as margins
+
+    Code
+      rake(df, margins = margins_unnamed)
+    Condition
+      Error in `.parse_margins()`:
+      x `margins` must be a named list or a data frame with columns variable, level, and target.
+      i Got <list> but list elements are not named.
+      v See `rake()` documentation for accepted formats.
+
+# rake() rejects named list with data.frame element missing level/target columns
+
+    Code
+      rake(df, margins = margins_bad_df)
+    Condition
+      Error in `FUN()`:
+      x Element age_group in `margins` is a data frame but is missing required columns level and/or target.
+      v See `rake()` documentation for accepted formats.
+
+# rake() throws calibration_not_converged via anesrake engine with maxit=1 improvement=0
+
+    Code
+      rake(df, margins = margins_extreme, control = list(maxit = 1L, improvement = 0,
+        pval = 2))
+    Condition
+      Error in `.throw_not_converged()`:
+      x Raking did not converge after 1 full sweeps.
+      i Chi-square improvement in the final sweep: 0% (threshold: 0%).
+      v Increase `control$maxit` or relax `control$improvement` in the `control` list.
+

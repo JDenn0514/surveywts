@@ -194,3 +194,14 @@
       10 big           1  1.25
       # i 75 more rows
 
+# adjust_nonresponse() rejects character response_status (not binary)
+
+    Code
+      adjust_nonresponse(df, response_status = resp_char)
+    Condition
+      Error in `.validate_response_status_binary()`:
+      x Response status column resp_char must be binary (0/1 or logical).
+      i Got <character> with values: "yes" and "no".
+      i Factor columns are not binary regardless of their levels.
+      v Convert to logical (`TRUE`/`FALSE`) or integer (`0`/`1`) before calling `adjust_nonresponse()`.
+

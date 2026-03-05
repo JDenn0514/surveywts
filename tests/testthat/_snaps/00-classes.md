@@ -105,3 +105,34 @@
       #   Step 1 [2025-01-15]: weighting-class nonresponse (by: age, sex) 
       #   Step 2 [2025-01-15]: raking (margins: age, sex, education) 
 
+# print method for survey_calibrated handles NULL ids, NULL strata, empty history
+
+    Code
+      print(sc)
+    Output
+      # A calibrated survey design: 5 observations, 2 variables
+      # Variance method: Taylor linearization
+      # IDs: ~1 | Strata: NULL | Weights: w 
+      # Weighting history: none
+
+# print.weighted_df() formats calibration, poststratify, and null-by nonresponse entries
+
+    Code
+      print(wdf)
+    Output
+      # A weighted data frame: 5 × 2 
+      # Weight: w (n = 5, mean = 1.00, CV = 0.16, ESS = 5) 
+      # Weighting history: 3 steps 
+      #   Step 1 [2025-01-15]: calibration (variables: age_group) 
+      #   Step 2 [2025-01-15]: poststratify (strata: age_group) 
+      #   Step 3 [2025-01-15]: weighting-class nonresponse 
+      # ── Data ────────────────────────────────────────────────────────────────────────
+      # A tibble: 5 x 2
+            x     w
+      * <int> <dbl>
+      1     1   1  
+      2     2   1.2
+      3     3   0.8
+      4     4   1.1
+      5     5   0.9
+

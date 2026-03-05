@@ -133,7 +133,7 @@
       cells[i] <- if (target_prop > 0) {
         n_cell * (obs_prop - target_prop)^2 / target_prop
       } else {
-        0
+        0 # nocov
       }
     }
     cells

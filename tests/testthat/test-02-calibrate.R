@@ -751,3 +751,56 @@ test_that("calibrate() step numbers increment correctly across chained calls", {
                     weights = .weight)
   expect_identical(attr(wdf2, "weighting_history")[[2L]]$step, 2L)
 })
+
+# ---------------------------------------------------------------------------
+# 20. weighted_df auto-detects weights when weights = NULL
+# ---------------------------------------------------------------------------
+
+test_that("calibrate() auto-detects weights from weighted_df when weights is NULL", {
+  # Covers .get_weight_vec() line 127: data_df[[attr(x, "weight_col")]]
+  df <- make_surveyweights_data(seed = 32)
+  pop <- .make_pop()
+
+  # First calibration produces a weighted_df
+  wdf <- calibrate(df, variables = c(age_group, sex), population = pop)
+  test_invariants(wdf)
+
+  # Second calibration with NO explicit weights arg — auto-detects weight_col
+  pop2 <- list(
+    age_group = c("18-34" = 0.28, "35-54" = 0.42, "55+" = 0.30),
+    sex = c("M" = 0.50, "F" = 0.50)
+  )
+  result <- calibrate(wdf, variables = c(age_group, sex), population = pop2)
+
+  test_invariants(result)
+  expect_true(inherits(result, "weighted_df"))
+  expect_identical(length(attr(result, "weighting_history")), 2L)
+})
+
+# ---------------------------------------------------------------------------
+# 21. Large count targets trigger scale normalization in GREG solver
+# ---------------------------------------------------------------------------
+
+test_that("calibrate() with method='logit', type='count', large counts triggers GREG scale normalization", {
+  # Covers vendor-calibrate-greg.R lines 128-130 and 182 (.greg_logit only):
+  #   when min(scales) > 20 (scales = population / sample_total).
+  # The scale normalization is only in .greg_logit(), so method="logit" is required.
+  # With n=500, base_weight~1, sample_total~150 per group.
+  # scales = 300000/150 = 2000 >> 20 → triggers scale normalization.
+  df <- make_surveyweights_data(seed = 34)
+
+  pop_large <- list(
+    age_group = c("18-34" = 300000L, "35-54" = 400000L, "55+" = 300000L)
+  )
+
+  result <- calibrate(
+    df,
+    variables = c(age_group),
+    population = pop_large,
+    type = "count",
+    method = "logit"
+  )
+
+  test_invariants(result)
+  expect_true(inherits(result, "weighted_df"))
+})

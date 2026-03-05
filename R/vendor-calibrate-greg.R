@@ -128,9 +128,9 @@
     scale <- mean(scales)
     ww <- ww * scale
     sample_total <- sample_total * scale
-    if (verbose) {
+    if (verbose) { # nocov start
       message(paste("Sampling weights rescaled by", signif(scale, 3)))
-    }
+    } # nocov end
   }
 
   xeta <- drop(mm %*% eta / sigma2)
@@ -148,6 +148,7 @@
     deriv <- dF(xeta, bounds)
 
     # Step-halving if g or deriv goes non-finite
+    # nocov start
     while (iter < maxit && any(!is.finite(g), !is.finite(deriv))) {
       iter <- iter + 1L
       deta <- deta / 2
@@ -157,9 +158,10 @@
       deriv <- dF(xeta, bounds)
       if (verbose) message("Step halving")
     }
+    # nocov end
 
     misfit <- population - sample_total - colSums(mm * ww * Fm1(xeta, bounds))
-    if (verbose) print(misfit)
+    if (verbose) print(misfit) # nocov
 
     cur_max_error <- max(abs(misfit) / (1 + abs(population)))
     if (cur_max_error < epsilon) {

@@ -137,3 +137,13 @@
       i Extra cells in the population frame are not allowed -- they may indicate a misspecified population.
       v Remove rows for "65+//M" from `population` before calling `poststratify()`.
 
+# poststratify() rejects population missing the 'target' column
+
+    Code
+      poststratify(df, strata = c(age_group), population = pop_no_target)
+    Condition
+      Error in `.validate_population_cells()`:
+      x `population` is missing required column target.
+      i `population` must have columns for each strata variable (age_group) plus target.
+      v Add the target column to `population`.
+

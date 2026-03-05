@@ -27,6 +27,7 @@ Suggests:
     knitr,
     rmarkdown,
     survey (>= 4.2-1),
+    svrep (>= 0.6),
     testthat (>= 3.2.0),
     withr (>= 2.5.0)
 Remotes:

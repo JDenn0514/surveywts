@@ -108,7 +108,7 @@ Once merged, verify:
 - [x] PR 6: `feature/phase-0-rake` — `rake()` + `.parse_margins()` + tests
 - [x] PR 7: `feature/phase-0-poststratify` — `poststratify()` +
   `.validate_population_cells()` + tests
-- [ ] PR 8: `feature/phase-0-nonresponse` — `adjust_nonresponse()` + tests
+- [x] PR 8: `feature/phase-0-nonresponse` — `adjust_nonresponse()` + tests
 - [ ] PR 9: `feature/phase-0-diagnostics` — `effective_sample_size()`,
   `weight_variability()`, `summarize_weights()` + tests
 

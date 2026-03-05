@@ -15,3 +15,10 @@ reference:
       Functions for adjusting survey weights for unit nonresponse.
     contents:
       - adjust_nonresponse
+  - title: Diagnostics
+    desc: >
+      Functions for assessing the distribution and quality of survey weights.
+    contents:
+      - effective_sample_size
+      - weight_variability
+      - summarize_weights

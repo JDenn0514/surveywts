@@ -76,10 +76,10 @@ test_that("calibrate() handles factor variables the same as character", {
 })
 
 # ---------------------------------------------------------------------------
-# 2. Happy path — survey_taylor → survey_calibrated
+# 2. Happy path — survey_taylor → survey_taylor (class preserved)
 # ---------------------------------------------------------------------------
 
-test_that("calibrate() returns survey_calibrated for survey_taylor input", {
+test_that("calibrate() preserves survey_taylor class for survey_taylor input", {
   df <- make_surveywts_data(seed = 3)
   design <- .make_test_taylor(df)
   pop <- .make_pop()
@@ -87,7 +87,17 @@ test_that("calibrate() returns survey_calibrated for survey_taylor input", {
   result <- calibrate(design, variables = c(age_group, sex), population = pop)
 
   test_invariants(result)
-  expect_true(S7::S7_inherits(result, surveycore::survey_calibrated))
+  expect_true(S7::S7_inherits(result, surveycore::survey_taylor))
+  expect_false(S7::S7_inherits(result, surveycore::survey_calibrated))
+  # Design vars are unchanged
+  expect_identical(result@variables$ids,    design@variables$ids)
+  expect_identical(result@variables$strata, design@variables$strata)
+  expect_identical(result@variables$fpc,    design@variables$fpc)
+  expect_identical(result@variables$nest,   design@variables$nest)
+  # Weights changed
+  expect_false(identical(result@data[[result@variables$weights]],
+                         design@data[[design@variables$weights]]))
+  expect_identical(length(result@metadata@weighting_history), 1L)
 })
 
 # ---------------------------------------------------------------------------
@@ -154,22 +164,29 @@ test_that("calibrate() on weighted_df accumulates weighting history", {
 
 test_that("calibrate() on survey_calibrated returns survey_calibrated", {
   df <- make_surveywts_data(seed = 6)
-  design <- .make_test_taylor(df)
-  pop <- .make_pop()
 
-  sc1 <- calibrate(design, variables = c(age_group, sex), population = pop)
-  test_invariants(sc1)
-  expect_true(S7::S7_inherits(sc1, surveycore::survey_calibrated))
+  # Construct survey_calibrated directly (not via calibrate())
+  sc_input <- surveycore::survey_calibrated(
+    data = df,
+    variables = list(
+      ids = NULL, strata = NULL, fpc = NULL,
+      weights = "base_weight", nest = FALSE
+    ),
+    metadata = surveycore::survey_metadata(),
+    groups = character(0),
+    call = NULL,
+    calibration = NULL
+  )
 
   pop2 <- list(
     age_group = c("18-34" = 0.28, "35-54" = 0.42, "55+" = 0.30),
     sex = c("M" = 0.50, "F" = 0.50)
   )
-  sc2 <- calibrate(sc1, variables = c(age_group, sex), population = pop2)
+  sc2 <- calibrate(sc_input, variables = c(age_group, sex), population = pop2)
   test_invariants(sc2)
   expect_true(S7::S7_inherits(sc2, surveycore::survey_calibrated))
-  # History should have 2 entries
-  expect_identical(length(sc2@metadata@weighting_history), 2L)
+  # History should have 1 entry (sc_input had no prior history)
+  expect_identical(length(sc2@metadata@weighting_history), 1L)
 })
 
 # ---------------------------------------------------------------------------

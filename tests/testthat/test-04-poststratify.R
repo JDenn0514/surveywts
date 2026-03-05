@@ -130,10 +130,10 @@ test_that("poststratify() returns weighted_df for weighted_df input", {
 })
 
 # ---------------------------------------------------------------------------
-# 3. Happy path — survey_taylor → survey_calibrated
+# 3. Happy path — survey_taylor → survey_taylor (class preserved)
 # ---------------------------------------------------------------------------
 
-test_that("poststratify() returns survey_calibrated for survey_taylor input", {
+test_that("poststratify() preserves survey_taylor class for survey_taylor input", {
   df     <- make_surveywts_data(seed = 4)
   design <- .make_test_taylor_ps(df)
   pop    <- .make_pop_ps()
@@ -141,7 +141,17 @@ test_that("poststratify() returns survey_calibrated for survey_taylor input", {
   result <- poststratify(design, strata = c(age_group, sex), population = pop)
 
   test_invariants(result)
-  expect_true(S7::S7_inherits(result, surveycore::survey_calibrated))
+  expect_true(S7::S7_inherits(result, surveycore::survey_taylor))
+  expect_false(S7::S7_inherits(result, surveycore::survey_calibrated))
+  # Design vars are unchanged
+  expect_identical(result@variables$ids,    design@variables$ids)
+  expect_identical(result@variables$strata, design@variables$strata)
+  expect_identical(result@variables$fpc,    design@variables$fpc)
+  expect_identical(result@variables$nest,   design@variables$nest)
+  # Weights changed
+  expect_false(identical(result@data[[result@variables$weights]],
+                         design@data[[design@variables$weights]]))
+  expect_identical(length(result@metadata@weighting_history), 1L)
 })
 
 # ---------------------------------------------------------------------------
@@ -149,22 +159,27 @@ test_that("poststratify() returns survey_calibrated for survey_taylor input", {
 # ---------------------------------------------------------------------------
 
 test_that("poststratify() accepts and returns survey_calibrated", {
-  df     <- make_surveywts_data(seed = 5)
-  design <- .make_test_taylor_ps(df)
-  pop    <- .make_pop_ps()
+  df  <- make_surveywts_data(seed = 5)
+  pop <- .make_pop_ps()
 
-  cal <- calibrate(
-    design,
-    variables = c(age_group, sex),
-    population = list(
-      age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
-      sex       = c("M" = 0.48, "F" = 0.52)
-    )
+  # Construct survey_calibrated directly (not via calibrate())
+  sc_input <- surveycore::survey_calibrated(
+    data = df,
+    variables = list(
+      ids = NULL, strata = NULL, fpc = NULL,
+      weights = "base_weight", nest = FALSE
+    ),
+    metadata = surveycore::survey_metadata(),
+    groups = character(0),
+    call = NULL,
+    calibration = NULL
   )
-  result <- poststratify(cal, strata = c(age_group, sex), population = pop)
+
+  result <- poststratify(sc_input, strata = c(age_group, sex), population = pop)
 
   test_invariants(result)
   expect_true(S7::S7_inherits(result, surveycore::survey_calibrated))
+  expect_identical(length(result@metadata@weighting_history), 1L)
 })
 
 # ---------------------------------------------------------------------------

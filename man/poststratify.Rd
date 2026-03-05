@@ -41,8 +41,8 @@ to 1.0. Note: default is \code{"count"}, unlike \code{\link[=calibrate]{calibrat
 \value{
 \itemize{
 \item \code{data.frame} or \code{weighted_df} input -> \code{weighted_df}
-\item \code{survey_taylor} or \code{survey_calibrated} input ->
-\code{surveycore::survey_calibrated}
+\item \code{survey_taylor} or \code{survey_calibrated} input -> same class as input
+(\code{survey_taylor} or \code{survey_calibrated}; class is preserved)
 }
 
 The weight column in the output contains post-stratified weights. A

@@ -63,15 +63,17 @@ partially, unless marked as a stub:
 |---|---|---|
 | `data.frame` | `weighted_df` | `weighted_df` |
 | `weighted_df` | `weighted_df` | `weighted_df` |
-| `survey_taylor` | `survey_calibrated` | `survey_taylor` (same class) |
+| `survey_taylor` | `survey_taylor` (same class) | `survey_taylor` (same class) |
 | `survey_calibrated` | `survey_calibrated` (same class) | `survey_calibrated` (same class) |
 | `survey_replicate` | Error: `surveywts_error_replicate_not_supported` | Error: `surveywts_error_replicate_not_supported` |
 | Any other | Error: `surveywts_error_unsupported_class` | Error: `surveywts_error_unsupported_class` |
 
-**Rule:** Calibration of a `survey_taylor` object changes the variance class
-to `survey_calibrated` because calibration changes the variance estimation
-strategy. Nonresponse adjustment does NOT change the variance class because
-weights are modified, not the variance method.
+**Rule:** Calibration and nonresponse adjustment update the weight column and
+append to the weighting history, but preserve the input class. Class encodes
+the variance estimation method; calibrating a `survey_taylor` design updates
+the weights but leaves PSUs, strata, and FPC intact, so Taylor linearization
+remains the correct variance formula. Promoting to `survey_calibrated` would
+silently discard the design structure and force SRS-based variance.
 
 ---
 
@@ -82,7 +84,6 @@ weights are modified, not the variance method.
 ```
 R/
 ├── 00-classes.R          # weighted_df S3 class definition only — survey_calibrated is defined in surveycore
-├── 01-constructors.R     # .new_survey_calibrated() — thin wrapper around surveycore::as_survey_calibrated()
 ├── 02-calibrate.R        # calibrate()
 ├── 03-rake.R             # rake() + .parse_margins()
 ├── 04-poststratify.R     # poststratify() + .validate_population_cells() (private, not in 07-utils.R)
@@ -572,25 +573,13 @@ Validator errors use surveycore's error classes (`surveycore_error_*`), not
 
 **Validation responsibility split:** Pre-construction validation (NA rejection per row,
 nonpositive rejection) happens at the function call level via `.validate_weights()`
-**before** `.new_survey_calibrated()` is called. The class validator is a backstop,
+**before** `.update_survey_weights()` is called. The class validator is a backstop,
 not the primary gate.
 
-### Internal Constructor: `.new_survey_calibrated()`
-
-```r
-.new_survey_calibrated <- function(design, updated_data, updated_weights_col,
-                                   history_entry) {
-  # design: the input survey_taylor or survey_calibrated
-  # updated_data: data.frame with new weight column values
-  # updated_weights_col: character(1) — column name in updated_data
-  # history_entry: list from .make_history_entry()
-  # Returns: surveycore::survey_calibrated
-  # Thin wrapper around surveycore::as_survey_calibrated(); sets @calibration = NULL
-}
-```
-
-This function is unexported. The calibration user-facing functions (`calibrate()`,
-`rake()`, `poststratify()`) call it when input is a survey object.
+All four user-facing functions (`calibrate()`, `rake()`, `poststratify()`,
+`adjust_nonresponse()`) call `.update_survey_weights()` when input is a survey object.
+This function updates the weight column and appends a history entry, preserving the
+input class. It lives in `R/utils.R`.
 
 ### Print Method
 
@@ -1514,11 +1503,12 @@ the dual pattern: `expect_error(class = ...)` + `expect_snapshot(error = TRUE, .
 #     implicitly tests multi-variable population with age_group + sex + education)
 #    Assert: attr(result, "weight_col") == ".weight" when weights = NULL
 # 1b. Happy path — factor-typed variable column (verify factor treated same as character)
-# 2. Happy path — survey_taylor input → survey_calibrated output
+# 2. Happy path — survey_taylor input → survey_taylor output (class preserved)
 # 2a. Happy path — multiple variables in population explicitly verified
 #     (assert length(population) == 3, all variables calibrated correctly)
 # 3. Happy path — weighted_df input → weighted_df output (history accumulates)
 # 4. Happy path — survey_calibrated input → survey_calibrated (re-calibration)
+#    Construct survey_calibrated input directly via surveycore::survey_calibrated()
 # 5. Happy path — method = "logit"
 # 6. Happy path — type = "count"
 # 7. Numerical correctness — matches survey::calibrate() within 1e-8 tolerance
@@ -1553,11 +1543,12 @@ the dual pattern: `expect_error(class = ...)` + `expect_snapshot(error = TRUE, .
 # 1. Happy path — data.frame input → weighted_df output (default method = "anesrake")
 #    Assert: attr(result, "weight_col") == ".weight" when weights = NULL
 # 1b. Happy path — factor-typed margin variable (verify factor treated same as character)
-# 2. Happy path — survey_taylor input → survey_calibrated output
+# 2. Happy path — survey_taylor input → survey_taylor output (class preserved)
 # 2a. Happy path — multiple margins explicitly verified
 #     (assert length(margins) == 3, all variables calibrated correctly)
 # 3. Happy path — weighted_df input → weighted_df output (history accumulates)
 # 4. Happy path — survey_calibrated input → survey_calibrated (re-raking)
+#    Construct survey_calibrated input directly via surveycore::survey_calibrated()
 # 5. Happy path — type = "count"
 # 6. Happy path — margins as named list
 # 7. Happy path — margins as long data frame
@@ -1620,6 +1611,8 @@ the dual pattern: `expect_error(class = ...)` + `expect_snapshot(error = TRUE, .
 # 1–4. Happy paths (df, weighted_df, survey_taylor, survey_calibrated)
 #       (all use default type = "count"; population targets are counts, not proportions)
 #       Assert in item 1: attr(result, "weight_col") == ".weight" when weights = NULL
+#       Items 3–4 (survey_taylor, survey_calibrated): class is preserved.
+#       For item 4, construct survey_calibrated directly via surveycore::survey_calibrated()
 # 1c. Happy path — type = "count" is the default: call succeeds without specifying type;
 #     call fails with population_totals_invalid when proportions-formatted population
 #     is passed without type = "prop" (verifies the default is "count", not "prop")
@@ -1653,6 +1646,7 @@ the dual pattern: `expect_error(class = ...)` + `expect_snapshot(error = TRUE, .
 # 2. Happy path — survey_taylor input → survey_taylor (same class)
 # 2b. Happy path — weighted_df input → weighted_df output
 # 2c. Happy path — survey_calibrated input → survey_calibrated output
+#     Construct survey_calibrated input directly via surveycore::survey_calibrated()
 # 3. Happy path — by = NULL (global redistribution)
 # 4. Happy path — by = c(age_group, sex) (within-class redistribution)
 # 5. Weight conservation — sum of weights before == sum of respondent weights after

@@ -15,8 +15,7 @@
 #                           because only rake() calls it.
 #
 # All shared helpers (.get_weight_vec, .validate_weights, etc.) live in
-# R/utils.R. Internal constructor .new_survey_calibrated() lives in
-# R/constructors.R.
+# R/utils.R.
 
 # ---------------------------------------------------------------------------
 # rake() — exported function
@@ -90,8 +89,8 @@
 #'
 #' @return
 #'   - `data.frame` or `weighted_df` input → `weighted_df`
-#'   - `survey_taylor` or `survey_calibrated` input →
-#'     `surveycore::survey_calibrated`
+#'   - `survey_taylor` or `survey_calibrated` input → same class as input
+#'     (`survey_taylor` or `survey_calibrated`; class is preserved)
 #'
 #'   The weight column in the output contains raked weights. A history entry
 #'   with `operation = "raking"` is appended to `weighting_history`.
@@ -339,10 +338,8 @@ rake <- function(
     new_history <- c(current_history, list(history_entry))
     .make_weighted_df(out_df, weight_col, new_history)
   } else {
-    # survey object → survey_calibrated
-    updated_data <- data@data
-    updated_data[[weight_col]] <- new_weights
-    .new_survey_calibrated(data, updated_data, weight_col, history_entry)
+    # survey object → same class (class preserved; only weights + history updated)
+    .update_survey_weights(data, new_weights, history_entry)
   }
 }
 

@@ -132,6 +132,7 @@ result <- rake(df, margins = margins)
 }
 \seealso{
 Other calibration: 
-\code{\link{calibrate}()}
+\code{\link{calibrate}()},
+\code{\link{poststratify}()}
 }
 \concept{calibration}

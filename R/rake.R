@@ -1,4 +1,4 @@
-# R/03-rake.R
+# R/rake.R
 #
 # rake() — iterative proportional fitting (raking) to marginal population totals.
 #
@@ -15,123 +15,8 @@
 #                           because only rake() calls it.
 #
 # All shared helpers (.get_weight_vec, .validate_weights, etc.) live in
-# R/07-utils.R. Internal constructor .new_survey_calibrated() lives in
-# R/01-constructors.R.
-
-# ---------------------------------------------------------------------------
-# .parse_margins() — private helper (used only by rake())
-# ---------------------------------------------------------------------------
-
-# Converts margins to Format A (named list of named numeric vectors).
-# Accepts:
-#   - Format A: named list (pass-through, with data.frame elements normalized)
-#   - Format B: data.frame with columns 'variable', 'level', 'target'
-#
-# Returns: named list. Each element is a named numeric vector
-#   c(level1 = target1, level2 = target2, ...)
-#
-# Errors with surveyweights_error_margins_format_invalid if margins is neither
-# a named list nor a valid Format B data.frame.
-.parse_margins <- function(margins) {
-  # Format B: data.frame with required columns
-  if (is.data.frame(margins)) {
-    required_cols <- c("variable", "level", "target")
-    missing_cols <- setdiff(required_cols, names(margins))
-    if (length(missing_cols) > 0L) {
-      cli::cli_abort(
-        c(
-          "x" = paste0(
-            "{.arg margins} must be a named list or a data frame with ",
-            "columns {.field variable}, {.field level}, and {.field target}."
-          ),
-          "i" = paste0(
-            "Got {.cls data.frame} but missing column(s): ",
-            "{.and {.field {missing_cols}}}."
-          ),
-          "v" = "See {.fn rake} documentation for accepted formats."
-        ),
-        class = "surveyweights_error_margins_format_invalid"
-      )
-    }
-
-    # Convert to Format A: split by variable, build named vector per variable
-    var_names <- unique(as.character(margins$variable))
-    result <- lapply(var_names, function(v) {
-      rows <- margins[as.character(margins$variable) == v, , drop = FALSE]
-      # Use stats::setNames() explicitly to guarantee names are preserved
-      stats::setNames(
-        as.double(rows$target),
-        as.character(rows$level)
-      )
-    })
-    names(result) <- var_names
-    return(result)
-  }
-
-  # Format A: named list — normalize data.frame elements to named vectors
-  if (is.list(margins) && !is.data.frame(margins)) {
-    if (length(names(margins)) == 0L || any(names(margins) == "")) {
-      cli::cli_abort(
-        c(
-          "x" = paste0(
-            "{.arg margins} must be a named list or a data frame with ",
-            "columns {.field variable}, {.field level}, and {.field target}."
-          ),
-          "i" = paste0(
-            "Got {.cls {class(margins)[[1]]}} but list elements are not named."
-          ),
-          "v" = "See {.fn rake} documentation for accepted formats."
-        ),
-        class = "surveyweights_error_margins_format_invalid"
-      )
-    }
-
-    # Normalize any data.frame elements to named vectors
-    result <- lapply(names(margins), function(v) {
-      elem <- margins[[v]]
-      if (is.data.frame(elem)) {
-        if (!all(c("level", "target") %in% names(elem))) {
-          cli::cli_abort(
-            c(
-              "x" = paste0(
-                "Element {.field {v}} in {.arg margins} is a data frame but ",
-                "is missing required columns {.field level} and/or {.field target}."
-              ),
-              "v" = "See {.fn rake} documentation for accepted formats."
-            ),
-            class = "surveyweights_error_margins_format_invalid"
-          )
-        }
-        # Use stats::setNames() to build named vector without stripping names
-        stats::setNames(
-          as.double(elem$target),
-          as.character(elem$level)
-        )
-      } else {
-        # Already a named vector — ensure it is double-typed; use
-        # stats::setNames() to guarantee names are preserved (as.numeric()
-        # strips names on some platforms).
-        stats::setNames(as.double(unname(elem)), names(elem))
-      }
-    })
-    names(result) <- names(margins)
-    return(result)
-  }
-
-  # Neither list nor data.frame
-  cls <- class(margins)[[1L]]
-  cli::cli_abort(
-    c(
-      "x" = paste0(
-        "{.arg margins} must be a named list or a data frame with ",
-        "columns {.field variable}, {.field level}, and {.field target}."
-      ),
-      "i" = "Got {.cls {cls}}.",
-      "v" = "See {.fn rake} documentation for accepted formats."
-    ),
-    class = "surveyweights_error_margins_format_invalid"
-  )
-}
+# R/utils.R. Internal constructor .new_survey_calibrated() lives in
+# R/constructors.R.
 
 # ---------------------------------------------------------------------------
 # rake() — exported function
@@ -459,4 +344,119 @@ rake <- function(
     updated_data[[weight_col]] <- new_weights
     .new_survey_calibrated(data, updated_data, weight_col, history_entry)
   }
+}
+
+# ---------------------------------------------------------------------------
+# .parse_margins() — private helper (used only by rake())
+# ---------------------------------------------------------------------------
+
+# Converts margins to Format A (named list of named numeric vectors).
+# Accepts:
+#   - Format A: named list (pass-through, with data.frame elements normalized)
+#   - Format B: data.frame with columns 'variable', 'level', 'target'
+#
+# Returns: named list. Each element is a named numeric vector
+#   c(level1 = target1, level2 = target2, ...)
+#
+# Errors with surveyweights_error_margins_format_invalid if margins is neither
+# a named list nor a valid Format B data.frame.
+.parse_margins <- function(margins) {
+  # Format B: data.frame with required columns
+  if (is.data.frame(margins)) {
+    required_cols <- c("variable", "level", "target")
+    missing_cols <- setdiff(required_cols, names(margins))
+    if (length(missing_cols) > 0L) {
+      cli::cli_abort(
+        c(
+          "x" = paste0(
+            "{.arg margins} must be a named list or a data frame with ",
+            "columns {.field variable}, {.field level}, and {.field target}."
+          ),
+          "i" = paste0(
+            "Got {.cls data.frame} but missing column(s): ",
+            "{.and {.field {missing_cols}}}."
+          ),
+          "v" = "See {.fn rake} documentation for accepted formats."
+        ),
+        class = "surveyweights_error_margins_format_invalid"
+      )
+    }
+
+    # Convert to Format A: split by variable, build named vector per variable
+    var_names <- unique(as.character(margins$variable))
+    result <- lapply(var_names, function(v) {
+      rows <- margins[as.character(margins$variable) == v, , drop = FALSE]
+      # Use stats::setNames() explicitly to guarantee names are preserved
+      stats::setNames(
+        as.double(rows$target),
+        as.character(rows$level)
+      )
+    })
+    names(result) <- var_names
+    return(result)
+  }
+
+  # Format A: named list — normalize data.frame elements to named vectors
+  if (is.list(margins) && !is.data.frame(margins)) {
+    if (length(names(margins)) == 0L || any(names(margins) == "")) {
+      cli::cli_abort(
+        c(
+          "x" = paste0(
+            "{.arg margins} must be a named list or a data frame with ",
+            "columns {.field variable}, {.field level}, and {.field target}."
+          ),
+          "i" = paste0(
+            "Got {.cls {class(margins)[[1]]}} but list elements are not named."
+          ),
+          "v" = "See {.fn rake} documentation for accepted formats."
+        ),
+        class = "surveyweights_error_margins_format_invalid"
+      )
+    }
+
+    # Normalize any data.frame elements to named vectors
+    result <- lapply(names(margins), function(v) {
+      elem <- margins[[v]]
+      if (is.data.frame(elem)) {
+        if (!all(c("level", "target") %in% names(elem))) {
+          cli::cli_abort(
+            c(
+              "x" = paste0(
+                "Element {.field {v}} in {.arg margins} is a data frame but ",
+                "is missing required columns {.field level} and/or {.field target}."
+              ),
+              "v" = "See {.fn rake} documentation for accepted formats."
+            ),
+            class = "surveyweights_error_margins_format_invalid"
+          )
+        }
+        # Use stats::setNames() to build named vector without stripping names
+        stats::setNames(
+          as.double(elem$target),
+          as.character(elem$level)
+        )
+      } else {
+        # Already a named vector — ensure it is double-typed; use
+        # stats::setNames() to guarantee names are preserved (as.numeric()
+        # strips names on some platforms).
+        stats::setNames(as.double(unname(elem)), names(elem))
+      }
+    })
+    names(result) <- names(margins)
+    return(result)
+  }
+
+  # Neither list nor data.frame
+  cls <- class(margins)[[1L]]
+  cli::cli_abort(
+    c(
+      "x" = paste0(
+        "{.arg margins} must be a named list or a data frame with ",
+        "columns {.field variable}, {.field level}, and {.field target}."
+      ),
+      "i" = "Got {.cls {cls}}.",
+      "v" = "See {.fn rake} documentation for accepted formats."
+    ),
+    class = "surveyweights_error_margins_format_invalid"
+  )
 }

@@ -708,3 +708,23 @@ test_that("adjust_nonresponse() history entry has correct structure", {
     as.character(utils::packageVersion("surveyweights"))
   )
 })
+
+# ---------------------------------------------------------------------------
+# 10c. Error — response_status_not_binary (character column)
+# ---------------------------------------------------------------------------
+
+test_that("adjust_nonresponse() rejects character response_status (not binary)", {
+  # Covers R/nonresponse.R lines 411-428: "all other types" branch in
+  # .validate_response_status_binary() for character input
+  df <- make_surveyweights_data(seed = 19)
+  df$resp_char <- rep(c("yes", "no"), length.out = nrow(df))
+
+  expect_error(
+    adjust_nonresponse(df, response_status = resp_char),
+    class = "surveyweights_error_response_status_not_binary"
+  )
+  expect_snapshot(
+    error = TRUE,
+    adjust_nonresponse(df, response_status = resp_char)
+  )
+})

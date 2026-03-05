@@ -1,11 +1,11 @@
-# R/07-utils.R
+# R/utils.R
 #
 # Shared internal helpers used by 2+ source files.
 # All functions are unexported and .-prefixed.
 #
 # Contents:
 #   .format_history_step()            — formats one history entry as display line
-#                                       (moved here from 00-classes.R in PR 4)
+#                                       (moved here from classes.R in PR 4)
 #   .get_weight_col_name()            — returns weight column name as character
 #   .get_weight_vec()                 — extracts weight vector from any input class
 #   .validate_weights()               — validates weight column (4 errors)
@@ -27,8 +27,8 @@
 # ============================================================================
 
 # Format one history entry as a single display line.
-# Used by print.weighted_df() (00-classes.R) and the S7 print method
-# for survey_calibrated (methods-print.R). Moved from 00-classes.R in PR 4.
+# Used by print.weighted_df() (classes.R) and the S7 print method
+# for survey_calibrated (methods-print.R). Moved from classes.R in PR 4.
 .format_history_step <- function(entry) {
   op <- entry$operation
   params <- entry$parameters
@@ -308,7 +308,7 @@
     # Extract targets as a named numeric vector
     elem <- population[[var]]
     if (is.data.frame(elem)) {
-      targets <- stats::setNames(as.numeric(elem$target), as.character(elem$level))
+      targets <- stats::setNames(as.numeric(elem$target), as.character(elem$level)) # nocov
     } else {
       targets <- elem
     }
@@ -509,6 +509,7 @@
 #
 # Returns: weighted_df
 .make_weighted_df <- function(data, weight_col, history = list()) {
+  # nocov start
   if (!weight_col %in% names(data)) {
     cli::cli_abort(
       c(
@@ -518,6 +519,7 @@
       class = "surveyweights_error_internal"
     )
   }
+  # nocov end
 
   structure(
     tibble::as_tibble(data),
@@ -761,7 +763,7 @@
       idx <- cell$indices
       n_hat_h <- sum(weights_vec[idx])
       # empty_stratum is detected before engine call; defensive check
-      if (n_hat_h <= 0) next
+      if (n_hat_h <= 0) next # nocov
       new_weights[idx] <- weights_vec[idx] * (cell$target / n_hat_h)
     }
 
@@ -772,6 +774,7 @@
     ))
   }
 
+  # nocov start
   cli::cli_abort(
     c(
       "x" = "Internal error: unknown calibration type {.val {type}}.",
@@ -779,6 +782,7 @@
     ),
     class = "surveyweights_error_internal"
   )
+  # nocov end
 }
 
 # ---- Internal helpers for .calibrate_engine() ----------------------------

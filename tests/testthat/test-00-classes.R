@@ -341,3 +341,72 @@ test_that("survey_calibrated validator rejects weight column where all values ar
     class = "surveycore_error_weights_all_zero"
   )
 })
+
+# ---------------------------------------------------------------------------
+# 7b. print — survey_calibrated with NULL ids/strata and empty history
+# ---------------------------------------------------------------------------
+
+test_that("print method for survey_calibrated handles NULL ids, NULL strata, empty history", {
+  # NULL ids → .format_design_vars() returns "~1" (line 14 of methods-print.R)
+  # NULL strata → strata_str = "NULL" (line 44)
+  # empty history → "Weighting history: none" (line 59)
+  sc <- surveycore::survey_calibrated(
+    data = data.frame(x = 1:5, w = c(1.2, 0.8, 1.1, 0.9, 1.0)),
+    variables = list(
+      ids = NULL, strata = NULL, fpc = NULL, weights = "w", nest = FALSE
+    )
+  )
+  expect_snapshot(print(sc))
+})
+
+# ---------------------------------------------------------------------------
+# 4c. print.weighted_df — history with calibration, poststratify, null-by nonresponse
+# ---------------------------------------------------------------------------
+
+test_that("print.weighted_df() formats calibration, poststratify, and null-by nonresponse entries", {
+  # Covers .format_history_step() branches:
+  #   "calibration"              → utils.R lines 44-45
+  #   "poststratify"             → utils.R lines 48-49
+  #   nonresponse with NULL by   → utils.R line 54
+  ts <- as.POSIXct("2025-01-15 12:00:00", tz = "UTC")
+  history <- list(
+    list(
+      step = 1L,
+      operation = "calibration",
+      timestamp = ts,
+      call = "calibrate(df, variables = c(age_group), population = pop)",
+      parameters = list(variables = c("age_group")),
+      weight_stats = list(before = list(), after = list()),
+      convergence = list(converged = TRUE, iterations = 2L,
+                         max_error = 1e-9, tolerance = 1e-7),
+      package_version = "0.1.0"
+    ),
+    list(
+      step = 2L,
+      operation = "poststratify",
+      timestamp = ts,
+      call = "poststratify(df, strata = c(age_group), population = pop)",
+      parameters = list(variables = c("age_group")),
+      weight_stats = list(before = list(), after = list()),
+      convergence = NULL,
+      package_version = "0.1.0"
+    ),
+    list(
+      step = 3L,
+      operation = "nonresponse_weighting_class",
+      timestamp = ts,
+      call = "adjust_nonresponse(df, response_status = responded)",
+      parameters = list(by_variables = NULL),
+      weight_stats = list(before = list(), after = list()),
+      convergence = NULL,
+      package_version = "0.1.0"
+    )
+  )
+  wdf <- structure(
+    tibble::tibble(x = 1:5, w = c(1.0, 1.2, 0.8, 1.1, 0.9)),
+    class = c("weighted_df", "tbl_df", "tbl", "data.frame"),
+    weight_col = "w",
+    weighting_history = history
+  )
+  expect_snapshot(print(wdf))
+})

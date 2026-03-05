@@ -133,7 +133,7 @@ Use **`@` directly** everywhere in internal code. Do not create accessor functio
 **Exception:** `@data` and `@metadata` have thin accessor functions to protect against raw manipulation and provide a stable name if internal structure changes:
 
 ```r
-# Accessor functions (defined in 07-utils.R, exported)
+# Accessor functions (defined in utils.R, exported)
 survey_data     <- function(x) x@data
 survey_metadata <- function(x) x@metadata
 
@@ -377,7 +377,7 @@ summary.my_class <- function(object, ...) { ... }    # never dispatched
 | Helper used in... | Lives in... |
 |-------------------|-------------|
 | Exactly 1 source file | Defined at the top of that file, before its first call site |
-| 2 or more source files | `R/07-utils.R` |
+| 2 or more source files | `R/utils.R` |
 
 All internal helpers are **not exported** and prefixed with `.`:
 
@@ -387,7 +387,7 @@ All internal helpers are **not exported** and prefixed with `.`:
   ...
 }
 
-# In R/07-utils.R — used by constructors AND update_design()
+# In R/utils.R — used by constructors AND update_design()
 .get_design_vars_flat <- function(design) {
   c(
     design@variables$ids,
@@ -398,7 +398,7 @@ All internal helpers are **not exported** and prefixed with `.`:
 }
 ```
 
-When a single-use inline helper grows a second call site, promote it to `07-utils.R` in the same PR that adds the second call.
+When a single-use inline helper grows a second call site, promote it to `utils.R` in the same PR that adds the second call.
 
 ---
 
@@ -499,7 +499,7 @@ air format .
 air format .
 
 # Format a single file
-air format R/01-calibrate.R
+air format R/calibrate.R
 ```
 
 Run `air format .` before opening a PR. Do not commit air-reformatted files

@@ -1,4 +1,4 @@
-# R/02-calibrate.R
+# R/calibrate.R
 #
 # calibrate() — general calibration to known marginal population totals.
 #
@@ -9,8 +9,8 @@
 #   - type = "count"     (population counts)
 #
 # All shared helpers (.get_weight_vec, .validate_weights, etc.) live in
-# R/07-utils.R. All vendored algorithms live in R/vendor-calibrate-greg.R.
-# Internal constructor .new_survey_calibrated() lives in R/01-constructors.R.
+# R/utils.R. All vendored algorithms live in R/vendor-calibrate-greg.R.
+# Internal constructor .new_survey_calibrated() lives in R/constructors.R.
 
 #' Calibrate survey weights to known population totals
 #'

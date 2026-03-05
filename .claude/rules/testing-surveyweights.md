@@ -25,13 +25,13 @@ only what is specific to surveyweights.
 
 | Source file | Test file |
 |---|---|
-| `R/00-classes.R` + `R/01-constructors.R` | `tests/testthat/test-00-classes.R` |
-| `R/02-calibrate.R` | `tests/testthat/test-02-calibrate.R` |
-| `R/03-rake.R` | `tests/testthat/test-03-rake.R` |
-| `R/04-poststratify.R` | `tests/testthat/test-04-poststratify.R` |
-| `R/05-nonresponse.R` | `tests/testthat/test-05-nonresponse.R` |
-| `R/06-diagnostics.R` | `tests/testthat/test-06-diagnostics.R` |
-| `R/07-utils.R` | (tested indirectly via PRs 5–9; no direct test file) |
+| `R/classes.R` + `R/constructors.R` | `tests/testthat/test-00-classes.R` |
+| `R/calibrate.R` | `tests/testthat/test-02-calibrate.R` |
+| `R/rake.R` | `tests/testthat/test-03-rake.R` |
+| `R/poststratify.R` | `tests/testthat/test-04-poststratify.R` |
+| `R/nonresponse.R` | `tests/testthat/test-05-nonresponse.R` |
+| `R/diagnostics.R` | `tests/testthat/test-06-diagnostics.R` |
+| `R/utils.R` | (tested indirectly via PRs 5–9; no direct test file) |
 
 ---
 

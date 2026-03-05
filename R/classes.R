@@ -1,4 +1,4 @@
-# R/00-classes.R
+# R/classes.R
 #
 # weighted_df S3 class definition.
 #
@@ -10,42 +10,8 @@
 #   - mutate.weighted_df()            — detect post-.keep weight col removal
 #   - .reconstruct_weighted_df()      — internal helper shared by all dplyr methods
 #
-# .format_history_step() lives in R/07-utils.R (moved in PR 4).
+# .format_history_step() lives in R/utils.R (moved in PR 4).
 # survey_calibrated is defined in surveycore, not here.
-
-# ---------------------------------------------------------------------------
-# Internal helpers
-# ---------------------------------------------------------------------------
-
-# Core reconstruction logic shared by all dplyr integration points.
-# If weight_col is present in `data`, restores weighted_df class and attributes.
-# If weight_col is missing, warns (surveyweights_warning_weight_col_dropped)
-# and returns a plain tibble.
-.reconstruct_weighted_df <- function(data, template) {
-  weight_col <- attr(template, "weight_col")
-
-  if (weight_col %in% names(data)) {
-    structure(
-      data,
-      class = c("weighted_df", "tbl_df", "tbl", "data.frame"),
-      weight_col = weight_col,
-      weighting_history = attr(template, "weighting_history")
-    )
-  } else {
-    cli::cli_warn(
-      c(
-        "!" = "Weight column {.field {weight_col}} was removed from the {.cls weighted_df}.",
-        "i" = "The result has been downgraded to a plain tibble.",
-        "i" = "Load {.pkg surveytidy} for rename-aware handling."
-      ),
-      class = "surveyweights_warning_weight_col_dropped"
-    )
-    # Strip custom weighted_df attributes before returning as plain tibble
-    attr(data, "weight_col") <- NULL
-    attr(data, "weighting_history") <- NULL
-    tibble::as_tibble(data)
-  }
-}
 
 # ---------------------------------------------------------------------------
 # print.weighted_df()
@@ -68,7 +34,7 @@ print.weighted_df <- function(x, n = 10, ...) {
   n_rows <- nrow(x)
   n_cols <- ncol(x)
 
-  # Delegate weight statistics to shared helper (defined in R/07-utils.R)
+  # Delegate weight statistics to shared helper (defined in R/utils.R)
   stats <- .compute_weight_stats(w)
   w_mean <- stats$mean
   w_cv <- stats$cv
@@ -171,4 +137,38 @@ rename.weighted_df <- function(.data, ...) {
 mutate.weighted_df <- function(.data, ...) {
   result <- NextMethod()
   .reconstruct_weighted_df(result, .data)
+}
+
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
+
+# Core reconstruction logic shared by all dplyr integration points.
+# If weight_col is present in `data`, restores weighted_df class and attributes.
+# If weight_col is missing, warns (surveyweights_warning_weight_col_dropped)
+# and returns a plain tibble.
+.reconstruct_weighted_df <- function(data, template) {
+  weight_col <- attr(template, "weight_col")
+
+  if (weight_col %in% names(data)) {
+    structure(
+      data,
+      class = c("weighted_df", "tbl_df", "tbl", "data.frame"),
+      weight_col = weight_col,
+      weighting_history = attr(template, "weighting_history")
+    )
+  } else {
+    cli::cli_warn(
+      c(
+        "!" = "Weight column {.field {weight_col}} was removed from the {.cls weighted_df}.",
+        "i" = "The result has been downgraded to a plain tibble.",
+        "i" = "Load {.pkg surveytidy} for rename-aware handling."
+      ),
+      class = "surveyweights_warning_weight_col_dropped"
+    )
+    # Strip custom weighted_df attributes before returning as plain tibble
+    attr(data, "weight_col") <- NULL
+    attr(data, "weighting_history") <- NULL
+    tibble::as_tibble(data)
+  }
 }

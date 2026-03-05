@@ -1,4 +1,4 @@
-# R/05-nonresponse.R
+# R/nonresponse.R
 #
 # adjust_nonresponse() — weighting-class nonresponse adjustment.
 #
@@ -7,7 +7,7 @@
 #
 # No private helpers. Cell-grouping logic is inline (~15 lines).
 # All shared helpers (.get_weight_vec, .validate_weights, etc.) live in
-# R/07-utils.R. .check_input_class() and .get_history() are in R/02-calibrate.R.
+# R/utils.R. .check_input_class() and .get_history() are in R/calibrate.R.
 
 #' Adjust survey weights for unit nonresponse
 #'

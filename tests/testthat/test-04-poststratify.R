@@ -588,3 +588,28 @@ test_that("poststratify() step increments correctly in chained calls", {
   expect_identical(history[[1L]]$operation, "calibration")
   expect_identical(history[[2L]]$operation, "poststratify")
 })
+
+# ---------------------------------------------------------------------------
+# 9b. Error — population_cell_missing (missing required column in population)
+# ---------------------------------------------------------------------------
+
+test_that("poststratify() rejects population missing the 'target' column", {
+  # Covers R/poststratify.R lines 272-287 and
+  # .validate_population_cells() required column check
+  df <- make_surveyweights_data(seed = 12)
+
+  # Population data frame is missing the required 'target' column
+  pop_no_target <- data.frame(
+    age_group = c("18-34", "35-54", "55+"),
+    stringsAsFactors = FALSE
+  )
+
+  expect_error(
+    poststratify(df, strata = c(age_group), population = pop_no_target),
+    class = "surveyweights_error_population_cell_missing"
+  )
+  expect_snapshot(
+    error = TRUE,
+    poststratify(df, strata = c(age_group), population = pop_no_target)
+  )
+})

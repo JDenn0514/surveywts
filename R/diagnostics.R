@@ -1,4 +1,4 @@
-# R/06-diagnostics.R
+# R/diagnostics.R
 #
 # Diagnostic functions for survey weight analysis.
 #
@@ -9,62 +9,6 @@
 #
 # Private helper (used only in this file):
 #   .diag_validate_input() — class check + weights_required check + data extraction
-
-# ---------------------------------------------------------------------------
-# .diag_validate_input()
-# ---------------------------------------------------------------------------
-
-# Validates x and extracts (data_df, weight_col) for use by diagnostic
-# functions. Checks:
-#   1. x is a supported class — throws surveyweights_error_unsupported_class
-#   2. x is a plain data.frame with weights = NULL —
-#      throws surveyweights_error_weights_required
-# Returns: list(data_df = <data.frame>, weight_col = <character>)
-.diag_validate_input <- function(x, weights_quo) {
-  is_supported <- is.data.frame(x) ||
-    S7::S7_inherits(x, surveycore::survey_taylor) ||
-    S7::S7_inherits(x, surveycore::survey_calibrated)
-
-  if (!is_supported) {
-    cls <- class(x)[[1L]]
-    cli::cli_abort(
-      c(
-        "x" = paste0(
-          "{.arg x} must be a data frame, {.cls weighted_df}, ",
-          "{.cls survey_taylor}, or {.cls survey_calibrated}."
-        ),
-        "i" = "Got {.cls {cls}}."
-      ),
-      class = "surveyweights_error_unsupported_class"
-    )
-  }
-
-  is_plain_df <- is.data.frame(x) && !inherits(x, "weighted_df")
-  if (is_plain_df && rlang::quo_is_null(weights_quo)) {
-    cli::cli_abort(
-      c(
-        "x" = paste0(
-          "{.arg weights} is required when {.arg x} is a plain ",
-          "data frame."
-        ),
-        "i" = paste0(
-          "For {.cls weighted_df} and survey objects, the weight ",
-          "column is detected automatically."
-        ),
-        "v" = paste0(
-          "Pass the column name as a bare name, ",
-          "e.g., {.code weights = wt_col}."
-        )
-      ),
-      class = "surveyweights_error_weights_required"
-    )
-  }
-
-  data_df <- if (is.data.frame(x)) x else x@data
-  weight_col <- .get_weight_col_name(x, weights_quo)
-
-  list(data_df = data_df, weight_col = weight_col)
-}
 
 # ---------------------------------------------------------------------------
 # effective_sample_size()
@@ -197,4 +141,60 @@ summarize_weights <- function(x, weights = NULL, by = NULL) {
 
     dplyr::bind_rows(result_dfs)
   }
+}
+
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
+
+# Validates x and extracts (data_df, weight_col) for use by diagnostic
+# functions. Checks:
+#   1. x is a supported class — throws surveyweights_error_unsupported_class
+#   2. x is a plain data.frame with weights = NULL —
+#      throws surveyweights_error_weights_required
+# Returns: list(data_df = <data.frame>, weight_col = <character>)
+.diag_validate_input <- function(x, weights_quo) {
+  is_supported <- is.data.frame(x) ||
+    S7::S7_inherits(x, surveycore::survey_taylor) ||
+    S7::S7_inherits(x, surveycore::survey_calibrated)
+
+  if (!is_supported) {
+    cls <- class(x)[[1L]]
+    cli::cli_abort(
+      c(
+        "x" = paste0(
+          "{.arg x} must be a data frame, {.cls weighted_df}, ",
+          "{.cls survey_taylor}, or {.cls survey_calibrated}."
+        ),
+        "i" = "Got {.cls {cls}}."
+      ),
+      class = "surveyweights_error_unsupported_class"
+    )
+  }
+
+  is_plain_df <- is.data.frame(x) && !inherits(x, "weighted_df")
+  if (is_plain_df && rlang::quo_is_null(weights_quo)) {
+    cli::cli_abort(
+      c(
+        "x" = paste0(
+          "{.arg weights} is required when {.arg x} is a plain ",
+          "data frame."
+        ),
+        "i" = paste0(
+          "For {.cls weighted_df} and survey objects, the weight ",
+          "column is detected automatically."
+        ),
+        "v" = paste0(
+          "Pass the column name as a bare name, ",
+          "e.g., {.code weights = wt_col}."
+        )
+      ),
+      class = "surveyweights_error_weights_required"
+    )
+  }
+
+  data_df <- if (is.data.frame(x)) x else x@data
+  weight_col <- .get_weight_col_name(x, weights_quo)
+
+  list(data_df = data_df, weight_col = weight_col)
 }

@@ -1051,3 +1051,132 @@ test_that("rake() emits already_calibrated when all variables excluded by min_ce
   expect_identical(last_entry$convergence$iterations, 1L)
   expect_identical(last_entry$convergence$max_error, 0)
 })
+
+# ---------------------------------------------------------------------------
+# 27. Error — margins_format_invalid (unnamed list)
+# ---------------------------------------------------------------------------
+
+test_that("rake() rejects an unnamed list as margins", {
+  # Covers R/rake.R lines 74-86: unnamed list check
+  df <- make_surveyweights_data(seed = 46)
+  margins_unnamed <- list(
+    c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
+    c("M" = 0.48, "F" = 0.52)
+  )
+
+  expect_error(
+    rake(df, margins = margins_unnamed),
+    class = "surveyweights_error_margins_format_invalid"
+  )
+  expect_snapshot(error = TRUE, rake(df, margins = margins_unnamed))
+})
+
+# ---------------------------------------------------------------------------
+# 28. Error — margins_format_invalid (data.frame element missing columns)
+# ---------------------------------------------------------------------------
+
+test_that("rake() rejects named list with data.frame element missing level/target columns", {
+  # Covers R/rake.R lines 94-103: df element without level/target
+  df <- make_surveyweights_data(seed = 47)
+  margins_bad_df <- list(
+    age_group = data.frame(
+      cat = c("18-34", "35-54", "55+"),  # wrong column names (not level/target)
+      prop = c(0.30, 0.40, 0.30),
+      stringsAsFactors = FALSE
+    )
+  )
+
+  expect_error(
+    rake(df, margins = margins_bad_df),
+    class = "surveyweights_error_margins_format_invalid"
+  )
+  expect_snapshot(error = TRUE, rake(df, margins = margins_bad_df))
+})
+
+# ---------------------------------------------------------------------------
+# 29. Single-level margin variable — degenerate chi-sq (df = 0)
+# ---------------------------------------------------------------------------
+
+test_that("rake() handles single-level margin variable (degenerate chi-sq df = 0)", {
+  # Covers vendor-rake-anesrake.R line 187: p_val = 1.0 degenerate case
+  # when df = length(cells) - 1 = 0 (single-level variable)
+  df <- data.frame(
+    group_one = rep("A", 50),               # single level: df = 0 in chi-sq
+    group_two = c(rep("X", 30), rep("Y", 20)),  # two levels: gets raked
+    base_weight = rep(1, 50),
+    stringsAsFactors = FALSE
+  )
+  margins <- list(
+    group_one = c("A" = 1.0),             # single level — degenerate chi-sq
+    group_two = c("X" = 0.5, "Y" = 0.5)  # needs adjustment from 60/40
+  )
+
+  result <- rake(df, margins = margins, weights = base_weight)
+
+  test_invariants(result)
+  expect_true(inherits(result, "weighted_df"))
+})
+
+# ---------------------------------------------------------------------------
+# 30. Exactly calibrated data — prev_total_chi_sq = 0
+# ---------------------------------------------------------------------------
+
+test_that("rake() handles exactly calibrated data (prev_total_chi_sq = 0, line 232)", {
+  # Covers vendor-rake-anesrake.R line 232: else { 0 } when prev_total_chi_sq == 0
+  # Data proportions exactly match the margin targets → initial chi-sq = 0
+  df_exact <- data.frame(
+    age_group   = c(rep("18-34", 3), rep("35-54", 4), rep("55+", 3)),
+    w           = rep(1, 10),
+    stringsAsFactors = FALSE
+  )
+  margins_exact <- list(
+    age_group = c("18-34" = 0.3, "35-54" = 0.4, "55+" = 0.3)
+  )
+
+  # Data is exactly calibrated: should return already_calibrated message
+  expect_message(
+    result <- rake(df_exact, margins = margins_exact, weights = w),
+    class = "surveyweights_message_already_calibrated"
+  )
+  test_invariants(result)
+  expect_identical(
+    attr(result, "weighting_history")[[1L]]$convergence$max_error,
+    0
+  )
+})
+
+# ---------------------------------------------------------------------------
+# 31. Error — calibration_not_converged via anesrake engine
+# ---------------------------------------------------------------------------
+
+test_that("rake() throws calibration_not_converged via anesrake engine with maxit=1 improvement=0", {
+  # Covers utils.R lines 736-741 (.throw_not_converged for rake_anesrake)
+  # and utils.R lines 872-890 (.throw_not_converged rake_anesrake branch)
+  # and vendor-rake-anesrake.R lines 253, 262-269 (iter >= maxit + max_error calc)
+  #
+  # With maxit=1 and improvement=0 (threshold 0%), any positive improvement
+  # never satisfies improvement_pct < 0, so convergence fails after 1 sweep.
+  df <- make_surveyweights_data(seed = 48)
+  # Extreme margins very different from data proportions to ensure raking happens
+  margins_extreme <- list(
+    age_group = c("18-34" = 0.80, "35-54" = 0.10, "55+" = 0.10),
+    sex       = c("M" = 0.90, "F" = 0.10)
+  )
+
+  expect_error(
+    rake(
+      df,
+      margins = margins_extreme,
+      control = list(maxit = 1L, improvement = 0, pval = 2)
+    ),
+    class = "surveyweights_error_calibration_not_converged"
+  )
+  expect_snapshot(
+    error = TRUE,
+    rake(
+      df,
+      margins = margins_extreme,
+      control = list(maxit = 1L, improvement = 0, pval = 2)
+    )
+  )
+})

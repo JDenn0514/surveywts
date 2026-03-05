@@ -1,4 +1,4 @@
-# R/04-poststratify.R
+# R/poststratify.R
 #
 # poststratify() -- exact post-stratification to joint population cell counts.
 #
@@ -9,9 +9,9 @@
 #   .validate_population_cells()  -- validates population data frame structure
 #
 # All shared helpers (.get_weight_vec, .validate_weights, etc.) live in
-# R/07-utils.R. Internal constructor .new_survey_calibrated() lives in
-# R/01-constructors.R. .check_input_class() and .get_history() are in
-# R/02-calibrate.R (loaded with the package; accessible from any R file).
+# R/utils.R. Internal constructor .new_survey_calibrated() lives in
+# R/constructors.R. .check_input_class() and .get_history() are in
+# R/calibrate.R (loaded with the package; accessible from any R file).
 
 #' Post-stratify survey weights to known joint population cell totals
 #'
@@ -179,6 +179,7 @@ poststratify <- function(
   # is always > 0 in Phase 0. This guard protects Phase 1+ scenarios.
   for (i in seq_along(cells)) {
     n_hat_h <- sum(weights_vec[cells[[i]]$indices])
+    # nocov start
     if (n_hat_h <= 0) {
       cell_label <- pop_keys[[i]]
       cli::cli_abort(
@@ -195,6 +196,7 @@ poststratify <- function(
         class = "surveyweights_error_empty_stratum"
       )
     }
+    # nocov end
   }
 
   # ---- 12. Run calibration engine (poststratify type) ---------------------

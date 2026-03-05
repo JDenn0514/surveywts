@@ -65,6 +65,6 @@ sticker(
   u_size = 3.5,
 
   # ── Output file ───────────────────────────────────────────────────────────
-  filename = "man/figures/surveywts.png",
+  filename = "man/figures/logo.png",
   dpi = 300
 )

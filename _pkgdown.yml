@@ -1,9 +1,16 @@
 url: https://jdenn0514.github.io/surveywts/
+
 template:
   bootstrap: 5
   bslib:
-    primary: "#AA4488"
-    navbar-bg: "#EECCDD"
+    font_scale: 1.0
+    base_font: {google: "Roboto"}
+    code_font: {google: "Inter"}
+    heading_font: {google: "Roboto"}
+    bg: "#fcfbf9"         # lighten springwood background
+    fg: "#000000"         # contrast ratio: 15.76 for text
+    primary: "#AA4488"    # periwinkle — links, active states
+    navbar-bg: "#EECCDD"  # periwinkle tint — navbar background
     navbar-light-hover-color: "#AA4488"
 
 reference:

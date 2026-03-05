@@ -593,3 +593,11 @@ more useful to permit linking proprietary applications with the library. If this
 what you want to do, use the GNU Lesser General Public License instead of this
 License. But first, please read
 &lt;<http://www.gnu.org/philosophy/why-not-lgpl.html>&gt;.
+
+## Third-party assets
+
+### Hex sticker icon
+- **Icon:** Gym icons created by Freepik - Flaticon
+- **Source:** https://www.flaticon.com/free-icons/gym
+- **License:** [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)  
+

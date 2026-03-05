@@ -10,3 +10,8 @@ reference:
       - calibrate
       - rake
       - poststratify
+  - title: Nonresponse Adjustment
+    desc: >
+      Functions for adjusting survey weights for unit nonresponse.
+    contents:
+      - adjust_nonresponse

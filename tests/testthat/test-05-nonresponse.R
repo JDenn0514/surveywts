@@ -112,14 +112,19 @@ test_that("adjust_nonresponse() returns weighted_df for weighted_df input", {
 
 test_that("adjust_nonresponse() returns survey_calibrated for survey_calibrated input", {
   df <- make_surveywts_data(seed = 5, include_nonrespondents = TRUE)
-  design <- .make_test_taylor_nr(df)
 
-  # Calibrate first to get a survey_calibrated object
-  pop <- list(
-    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
-    sex = c("M" = 0.48, "F" = 0.52)
+  # Construct survey_calibrated directly (not via calibrate())
+  calibrated <- surveycore::survey_calibrated(
+    data = df,
+    variables = list(
+      ids = NULL, strata = NULL, fpc = NULL,
+      weights = "base_weight", nest = FALSE
+    ),
+    metadata = surveycore::survey_metadata(),
+    groups = character(0),
+    call = NULL,
+    calibration = NULL
   )
-  calibrated <- calibrate(design, variables = c(age_group, sex), population = pop)
 
   result <- adjust_nonresponse(calibrated, response_status = responded)
 

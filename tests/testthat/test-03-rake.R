@@ -78,10 +78,10 @@ test_that("rake() handles factor margin variables the same as character", {
 })
 
 # ---------------------------------------------------------------------------
-# 2. Happy path — survey_taylor → survey_calibrated
+# 2. Happy path — survey_taylor → survey_taylor (class preserved)
 # ---------------------------------------------------------------------------
 
-test_that("rake() returns survey_calibrated for survey_taylor input", {
+test_that("rake() preserves survey_taylor class for survey_taylor input", {
   df <- make_surveywts_data(seed = 3)
   design <- .make_test_taylor_rake(df)
   margins <- .make_margins()
@@ -89,7 +89,15 @@ test_that("rake() returns survey_calibrated for survey_taylor input", {
   result <- rake(design, margins = margins)
 
   test_invariants(result)
-  expect_true(S7::S7_inherits(result, surveycore::survey_calibrated))
+  expect_true(S7::S7_inherits(result, surveycore::survey_taylor))
+  expect_false(S7::S7_inherits(result, surveycore::survey_calibrated))
+  # Design vars are unchanged
+  expect_identical(result@variables$ids,    design@variables$ids)
+  expect_identical(result@variables$strata, design@variables$strata)
+  expect_identical(result@variables$fpc,    design@variables$fpc)
+  expect_identical(result@variables$nest,   design@variables$nest)
+  # History entry appended regardless of whether weights actually changed
+  expect_identical(length(result@metadata@weighting_history), 1L)
 })
 
 # ---------------------------------------------------------------------------
@@ -152,21 +160,29 @@ test_that("rake() on weighted_df accumulates weighting history", {
 
 test_that("rake() on survey_calibrated returns survey_calibrated", {
   df <- make_surveywts_data(seed = 6)
-  design <- .make_test_taylor_rake(df)
-  margins <- .make_margins()
 
-  sc1 <- rake(design, margins = margins)
-  test_invariants(sc1)
-  expect_true(S7::S7_inherits(sc1, surveycore::survey_calibrated))
+  # Construct survey_calibrated directly (not via rake())
+  sc_input <- surveycore::survey_calibrated(
+    data = df,
+    variables = list(
+      ids = NULL, strata = NULL, fpc = NULL,
+      weights = "base_weight", nest = FALSE
+    ),
+    metadata = surveycore::survey_metadata(),
+    groups = character(0),
+    call = NULL,
+    calibration = NULL
+  )
 
   margins2 <- list(
     age_group = c("18-34" = 0.28, "35-54" = 0.42, "55+" = 0.30),
     sex       = c("M" = 0.50, "F" = 0.50)
   )
-  sc2 <- rake(sc1, margins = margins2)
+  sc2 <- rake(sc_input, margins = margins2)
   test_invariants(sc2)
   expect_true(S7::S7_inherits(sc2, surveycore::survey_calibrated))
-  expect_identical(length(sc2@metadata@weighting_history), 2L)
+  # History should have 1 entry (sc_input had no prior history)
+  expect_identical(length(sc2@metadata@weighting_history), 1L)
 })
 
 # ---------------------------------------------------------------------------

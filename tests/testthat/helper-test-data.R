@@ -77,4 +77,10 @@ test_invariants <- function(obj) {
     testthat::expect_true(is.numeric(obj@data[[obj@variables$weights]]))
     testthat::expect_true(all(obj@data[[obj@variables$weights]] > 0))
   }
+  if (S7::S7_inherits(obj, surveycore::survey_taylor)) {
+    testthat::expect_true(is.character(obj@variables$weights))
+    testthat::expect_true(obj@variables$weights %in% names(obj@data))
+    testthat::expect_true(is.numeric(obj@data[[obj@variables$weights]]))
+    testthat::expect_true(all(obj@data[[obj@variables$weights]] > 0))
+  }
 }

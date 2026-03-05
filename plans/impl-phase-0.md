@@ -31,7 +31,6 @@ used by two or more source files live in `R/07-utils.R`.
 ```
 R/
 ├── 00-classes.R         # weighted_df S3 class (print.weighted_df, dplyr_reconstruct.weighted_df)
-├── 01-constructors.R    # .new_survey_calibrated() — internal constructor only
 ├── 02-calibrate.R       # calibrate()
 ├── 03-rake.R            # rake() + .parse_margins()
 ├── 04-poststratify.R    # poststratify() + .validate_population_cells()
@@ -223,8 +222,9 @@ to exist. PRs 8 and 9 also depend only on PR 4.
 - `R/methods-print.R` — `S7::method(print, surveycore::survey_calibrated)`;
   per code-style.md §2, S7 print methods live in a dedicated file separate
   from class definitions
-- `R/01-constructors.R` — `.new_survey_calibrated()` internal constructor
-  (no exports)
+- (Note: `R/01-constructors.R` was deleted. `.update_survey_weights()` in
+  `R/07-utils.R` handles class-preserving weight updates for all four
+  user-facing functions.)
 
 **Acceptance criteria:**
 - [ ] All new tests confirmed failing (red) before implementation began
@@ -322,9 +322,8 @@ to exist. PRs 8 and 9 also depend only on PR 4.
 - `.make_weighted_df(data, weight_col, history = list())` — internal `weighted_df`
   constructor
 - `.update_survey_weights(design, new_weights_vec, history_entry)` — updates
-  survey object weights and appends history entry; only used by
-  `adjust_nonresponse()` (which never promotes class); calibration functions
-  call `.new_survey_calibrated()` directly for class promotion
+  survey object weights and appends history entry; preserves input class;
+  used by `calibrate()`, `rake()`, `poststratify()`, and `adjust_nonresponse()`
 
 **Acceptance criteria:**
 - [ ] All new tests confirmed failing (red) before implementation began
@@ -391,7 +390,7 @@ to exist. PRs 8 and 9 also depend only on PR 4.
 - [ ] All `calibrate()` test items from spec §XIII pass (items 1–19 plus 13c,
   13d, 14b; item 19b is relocated to `test-03-rake.R` in PR 6):
   - Happy paths: data.frame→weighted_df (assert `attr(result,"weight_col")==".weight"`),
-    survey_taylor→survey_calibrated, weighted_df→weighted_df (history),
+    survey_taylor→survey_taylor (class preserved), weighted_df→weighted_df (history),
     survey_calibrated→survey_calibrated, 1b. factor-typed `variables` column,
     method="logit", type="count", multi-variable population verified
   - Numerical correctness vs `survey::calibrate()` within 1e-8 tolerance
@@ -458,7 +457,7 @@ to exist. PRs 8 and 9 also depend only on PR 4.
 - [ ] `devtools::document()` run; NAMESPACE and man/ in sync
 - [ ] All `rake()` test items from spec §XIII pass (items 1–26 plus 17b, 23b, 26c, chaining):
   - Happy paths: data.frame (assert `attr(result,"weight_col")==".weight"`),
-    survey_taylor, weighted_df (history), survey_calibrated,
+    survey_taylor (class preserved), weighted_df (history), survey_calibrated,
     1b. factor-typed margin variable, type="count", margins as named list,
     margins as long data frame, mixed format, method = "survey" explicit,
     cap with both methods, cap = NULL
@@ -559,7 +558,7 @@ row, no extra population cells, target values valid for the given `type`. Return
 - [ ] `devtools::document()` run; NAMESPACE and man/ in sync
 - [ ] All `poststratify()` test items from spec §XIII pass (items 1–15):
   - Happy paths: data.frame (assert `attr(result,"weight_col")==".weight"`),
-    weighted_df, survey_taylor, survey_calibrated
+    weighted_df, survey_taylor (class preserved), survey_calibrated
   - Item 1c: verify `type = "count"` is the default
   - Happy path: numeric strata column (integer age; verifies no categorical restriction)
   - Numerical correctness vs `survey::postStratify()` within 1e-8 tolerance

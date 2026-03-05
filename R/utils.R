@@ -535,8 +535,8 @@
 
 # Updates a survey object's weight column and appends a history entry to
 # @metadata@weighting_history. Returns a new survey object of the SAME class
-# as the input (no class promotion — only adjust_nonresponse() uses this).
-# Calibration functions use .new_survey_calibrated() for class promotion.
+# as the input (no class promotion). Used by calibrate(), rake(),
+# poststratify(), and adjust_nonresponse().
 #
 # Arguments:
 #   design          : survey_taylor or survey_calibrated

@@ -9,9 +9,8 @@
 #   .validate_population_cells()  -- validates population data frame structure
 #
 # All shared helpers (.get_weight_vec, .validate_weights, etc.) live in
-# R/utils.R. Internal constructor .new_survey_calibrated() lives in
-# R/constructors.R. .check_input_class() and .get_history() are in
-# R/calibrate.R (loaded with the package; accessible from any R file).
+# R/utils.R. .check_input_class() and .get_history() are in R/calibrate.R
+# (loaded with the package; accessible from any R file).
 
 #' Post-stratify survey weights to known joint population cell totals
 #'
@@ -43,8 +42,8 @@
 #'
 #' @return
 #'   - `data.frame` or `weighted_df` input -> `weighted_df`
-#'   - `survey_taylor` or `survey_calibrated` input ->
-#'     `surveycore::survey_calibrated`
+#'   - `survey_taylor` or `survey_calibrated` input -> same class as input
+#'     (`survey_taylor` or `survey_calibrated`; class is preserved)
 #'
 #'   The weight column in the output contains post-stratified weights. A
 #'   history entry with `operation = "poststratify"` is appended to
@@ -240,9 +239,8 @@ poststratify <- function(
     new_history             <- c(current_history, list(history_entry))
     .make_weighted_df(out_df, weight_col, new_history)
   } else {
-    updated_data                  <- data@data
-    updated_data[[weight_col]]    <- new_weights
-    .new_survey_calibrated(data, updated_data, weight_col, history_entry)
+    # survey object → same class (class preserved; only weights + history updated)
+    .update_survey_weights(data, new_weights, history_entry)
   }
 }
 

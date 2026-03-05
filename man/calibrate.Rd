@@ -48,8 +48,8 @@ are proportions. \code{"count"}: \code{population} values are counts.}
 \value{
 \itemize{
 \item \code{data.frame} or \code{weighted_df} input → \code{weighted_df}
-\item \code{survey_taylor} or \code{survey_calibrated} input →
-\code{surveycore::survey_calibrated}
+\item \code{survey_taylor} or \code{survey_calibrated} input → same class as input
+(\code{survey_taylor} or \code{survey_calibrated}; class is preserved)
 }
 
 The weight column in the output contains calibrated weights. A history

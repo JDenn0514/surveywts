@@ -51,7 +51,7 @@
 # ---------------------------------------------------------------------------
 
 test_that("rake() returns weighted_df for data.frame input", {
-  df <- make_surveyweights_data(seed = 1)
+  df <- make_surveywts_data(seed = 1)
   margins <- .make_margins()
 
   result <- rake(df, margins = margins)
@@ -67,7 +67,7 @@ test_that("rake() returns weighted_df for data.frame input", {
 # ---------------------------------------------------------------------------
 
 test_that("rake() handles factor margin variables the same as character", {
-  df <- make_surveyweights_data(seed = 2)
+  df <- make_surveywts_data(seed = 2)
   df$age_group <- factor(df$age_group, levels = c("18-34", "35-54", "55+"))
   margins <- .make_margins()
 
@@ -82,7 +82,7 @@ test_that("rake() handles factor margin variables the same as character", {
 # ---------------------------------------------------------------------------
 
 test_that("rake() returns survey_calibrated for survey_taylor input", {
-  df <- make_surveyweights_data(seed = 3)
+  df <- make_surveywts_data(seed = 3)
   design <- .make_test_taylor_rake(df)
   margins <- .make_margins()
 
@@ -97,7 +97,7 @@ test_that("rake() returns survey_calibrated for survey_taylor input", {
 # ---------------------------------------------------------------------------
 
 test_that("rake() calibrates all margin variables correctly (method='survey')", {
-  df <- make_surveyweights_data(seed = 4)
+  df <- make_surveywts_data(seed = 4)
   margins <- list(
     age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
     sex       = c("M" = 0.48, "F" = 0.52),
@@ -128,7 +128,7 @@ test_that("rake() calibrates all margin variables correctly (method='survey')", 
 # ---------------------------------------------------------------------------
 
 test_that("rake() on weighted_df accumulates weighting history", {
-  df <- make_surveyweights_data(seed = 5)
+  df <- make_surveywts_data(seed = 5)
   margins <- .make_margins()
 
   wdf <- rake(df, margins = margins)
@@ -151,7 +151,7 @@ test_that("rake() on weighted_df accumulates weighting history", {
 # ---------------------------------------------------------------------------
 
 test_that("rake() on survey_calibrated returns survey_calibrated", {
-  df <- make_surveyweights_data(seed = 6)
+  df <- make_surveywts_data(seed = 6)
   design <- .make_test_taylor_rake(df)
   margins <- .make_margins()
 
@@ -174,7 +174,7 @@ test_that("rake() on survey_calibrated returns survey_calibrated", {
 # ---------------------------------------------------------------------------
 
 test_that("rake() with type = 'count' accepts count targets", {
-  df <- make_surveyweights_data(n = 500, seed = 7)
+  df <- make_surveywts_data(n = 500, seed = 7)
   margins <- .make_margins("count")
 
   result <- rake(df, margins = margins, type = "count")
@@ -189,7 +189,7 @@ test_that("rake() with type = 'count' accepts count targets", {
 # ---------------------------------------------------------------------------
 
 test_that("rake() accepts named list margins (Format A)", {
-  df <- make_surveyweights_data(seed = 8)
+  df <- make_surveywts_data(seed = 8)
   margins <- list(
     age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
     sex       = c("M" = 0.48, "F" = 0.52)
@@ -206,7 +206,7 @@ test_that("rake() accepts named list margins (Format A)", {
 # ---------------------------------------------------------------------------
 
 test_that("rake() accepts long data.frame margins (Format B)", {
-  df <- make_surveyweights_data(n = 300, seed = 9)
+  df <- make_surveywts_data(n = 300, seed = 9)
   # Use a single-variable Format B with all observed levels
   age_levels <- sort(unique(df$age_group))
   n_levels <- length(age_levels)
@@ -229,7 +229,7 @@ test_that("rake() accepts long data.frame margins (Format B)", {
 # ---------------------------------------------------------------------------
 
 test_that("rake() accepts mixed margins format (list with df element)", {
-  df <- make_surveyweights_data(seed = 10)
+  df <- make_surveywts_data(seed = 10)
   margins <- list(
     age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
     sex       = data.frame(
@@ -255,14 +255,14 @@ test_that("rake() accepts mixed margins format (list with df element)", {
 test_that("rake(method='survey') matches survey::rake() within 1e-8", {
   skip_if_not_installed("survey")
 
-  df <- make_surveyweights_data(n = 200, seed = 11)
+  df <- make_surveywts_data(n = 200, seed = 11)
   margins <- list(
     age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
     sex       = c("M" = 0.48, "F" = 0.52)
   )
   total_w <- sum(df$base_weight)
 
-  # surveyweights result
+  # surveywts result
   sw_result <- rake(
     df,
     margins = margins,
@@ -301,7 +301,7 @@ test_that("rake() rejects unsupported input class (SE-1)", {
   margins <- .make_margins()
   expect_error(
     rake(matrix(1:6, 2, 3), margins = margins),
-    class = "surveyweights_error_unsupported_class"
+    class = "surveywts_error_unsupported_class"
   )
   expect_snapshot(
     error = TRUE,
@@ -319,7 +319,7 @@ test_that("rake() rejects 0-row data frame (SE-2)", {
   margins <- .make_margins()
   expect_error(
     rake(empty_df, margins = margins),
-    class = "surveyweights_error_empty_data"
+    class = "surveywts_error_empty_data"
   )
   expect_snapshot(
     error = TRUE,
@@ -328,7 +328,7 @@ test_that("rake() rejects 0-row data frame (SE-2)", {
 })
 
 test_that("rake() rejects survey_replicate input (SE-3)", {
-  df <- make_surveyweights_data(seed = 12)
+  df <- make_surveywts_data(seed = 12)
   margins <- .make_margins()
   meta <- surveycore::survey_metadata()
   rep_design <- surveycore::survey_replicate(
@@ -345,7 +345,7 @@ test_that("rake() rejects survey_replicate input (SE-3)", {
   )
   expect_error(
     rake(rep_design, margins = margins),
-    class = "surveyweights_error_replicate_not_supported"
+    class = "surveywts_error_replicate_not_supported"
   )
   expect_snapshot(
     error = TRUE,
@@ -354,11 +354,11 @@ test_that("rake() rejects survey_replicate input (SE-3)", {
 })
 
 test_that("rake() rejects named weight column missing from data (SE-4)", {
-  df <- make_surveyweights_data(seed = 13)
+  df <- make_surveywts_data(seed = 13)
   margins <- .make_margins()
   expect_error(
     rake(df, margins = margins, weights = nonexistent_wt),
-    class = "surveyweights_error_weights_not_found"
+    class = "surveywts_error_weights_not_found"
   )
   expect_snapshot(
     error = TRUE,
@@ -367,12 +367,12 @@ test_that("rake() rejects named weight column missing from data (SE-4)", {
 })
 
 test_that("rake() rejects non-numeric weight column (SE-5)", {
-  df <- make_surveyweights_data(seed = 14)
+  df <- make_surveywts_data(seed = 14)
   df$bad_wt <- as.character(df$base_weight)
   margins <- .make_margins()
   expect_error(
     rake(df, margins = margins, weights = bad_wt),
-    class = "surveyweights_error_weights_not_numeric"
+    class = "surveywts_error_weights_not_numeric"
   )
   expect_snapshot(
     error = TRUE,
@@ -381,12 +381,12 @@ test_that("rake() rejects non-numeric weight column (SE-5)", {
 })
 
 test_that("rake() rejects non-positive weight column (SE-6)", {
-  df <- make_surveyweights_data(seed = 15)
+  df <- make_surveywts_data(seed = 15)
   df$base_weight[1] <- 0
   margins <- .make_margins()
   expect_error(
     rake(df, margins = margins, weights = base_weight),
-    class = "surveyweights_error_weights_nonpositive"
+    class = "surveywts_error_weights_nonpositive"
   )
   expect_snapshot(
     error = TRUE,
@@ -395,12 +395,12 @@ test_that("rake() rejects non-positive weight column (SE-6)", {
 })
 
 test_that("rake() rejects NA in weight column (SE-7)", {
-  df <- make_surveyweights_data(seed = 16)
+  df <- make_surveywts_data(seed = 16)
   df$base_weight[1] <- NA_real_
   margins <- .make_margins()
   expect_error(
     rake(df, margins = margins, weights = base_weight),
-    class = "surveyweights_error_weights_na"
+    class = "surveywts_error_weights_na"
   )
   expect_snapshot(
     error = TRUE,
@@ -417,7 +417,7 @@ test_that("rake() empty_data fires before weights_not_found (SE-8)", {
   margins <- .make_margins()
   expect_error(
     rake(empty_df, margins = margins, weights = missing_wt),
-    class = "surveyweights_error_empty_data"
+    class = "surveywts_error_empty_data"
   )
   expect_snapshot(
     error = TRUE,
@@ -430,10 +430,10 @@ test_that("rake() empty_data fires before weights_not_found (SE-8)", {
 # ---------------------------------------------------------------------------
 
 test_that("rake() rejects margins that are not a list or data.frame", {
-  df <- make_surveyweights_data(seed = 17)
+  df <- make_surveywts_data(seed = 17)
   expect_error(
     rake(df, margins = c(0.5, 0.5)),
-    class = "surveyweights_error_margins_format_invalid"
+    class = "surveywts_error_margins_format_invalid"
   )
   expect_snapshot(
     error = TRUE,
@@ -446,12 +446,12 @@ test_that("rake() rejects margins that are not a list or data.frame", {
 # ---------------------------------------------------------------------------
 
 test_that("rake() rejects data.frame margins missing required columns", {
-  df <- make_surveyweights_data(seed = 18)
+  df <- make_surveywts_data(seed = 18)
   bad_df <- data.frame(variable = "age_group", level = "18-34",
                        stringsAsFactors = FALSE)  # missing 'target'
   expect_error(
     rake(df, margins = bad_df),
-    class = "surveyweights_error_margins_format_invalid"
+    class = "surveywts_error_margins_format_invalid"
   )
   expect_snapshot(
     error = TRUE,
@@ -464,14 +464,14 @@ test_that("rake() rejects data.frame margins missing required columns", {
 # ---------------------------------------------------------------------------
 
 test_that("rake() rejects margins with variable not in data", {
-  df <- make_surveyweights_data(seed = 19)
+  df <- make_surveywts_data(seed = 19)
   margins <- list(
     age_group   = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
     not_a_column = c("A" = 0.50, "B" = 0.50)
   )
   expect_error(
     rake(df, margins = margins),
-    class = "surveyweights_error_margins_variable_not_found"
+    class = "surveywts_error_margins_variable_not_found"
   )
   expect_snapshot(
     error = TRUE,
@@ -484,7 +484,7 @@ test_that("rake() rejects margins with variable not in data", {
 # ---------------------------------------------------------------------------
 
 test_that("rake() rejects numeric margin variable", {
-  df <- make_surveyweights_data(seed = 20)
+  df <- make_surveywts_data(seed = 20)
   # Add a numeric column to use as (invalid) raking variable
   df$income <- rnorm(nrow(df), mean = 50000, sd = 10000)
   margins <- list(
@@ -493,7 +493,7 @@ test_that("rake() rejects numeric margin variable", {
   )
   expect_error(
     rake(df, margins = margins),
-    class = "surveyweights_error_variable_not_categorical"
+    class = "surveywts_error_variable_not_categorical"
   )
   expect_snapshot(
     error = TRUE,
@@ -506,12 +506,12 @@ test_that("rake() rejects numeric margin variable", {
 # ---------------------------------------------------------------------------
 
 test_that("rake() rejects NA in a margin variable", {
-  df <- make_surveyweights_data(seed = 21)
+  df <- make_surveywts_data(seed = 21)
   df$age_group[1] <- NA_character_
   margins <- .make_margins()
   expect_error(
     rake(df, margins = margins),
-    class = "surveyweights_error_variable_has_na"
+    class = "surveywts_error_variable_has_na"
   )
   expect_snapshot(
     error = TRUE,
@@ -524,7 +524,7 @@ test_that("rake() rejects NA in a margin variable", {
 # ---------------------------------------------------------------------------
 
 test_that("rake() rejects margins missing a data level (Format B input)", {
-  df <- make_surveyweights_data(n = 200, seed = 22)
+  df <- make_surveywts_data(n = 200, seed = 22)
   # Format B that omits "55+" level for age_group
   margins_df <- data.frame(
     variable = c("age_group", "age_group", "sex", "sex"),
@@ -534,7 +534,7 @@ test_that("rake() rejects margins missing a data level (Format B input)", {
   )
   expect_error(
     rake(df, margins = margins_df),
-    class = "surveyweights_error_population_level_missing"
+    class = "surveywts_error_population_level_missing"
   )
   expect_snapshot(
     error = TRUE,
@@ -547,14 +547,14 @@ test_that("rake() rejects margins missing a data level (Format B input)", {
 # ---------------------------------------------------------------------------
 
 test_that("rake() rejects margins with level not in data", {
-  df <- make_surveyweights_data(seed = 23)
+  df <- make_surveywts_data(seed = 23)
   margins <- list(
     age_group = c("18-34" = 0.25, "35-54" = 0.40, "55+" = 0.25, "65+" = 0.10),
     sex       = c("M" = 0.48, "F" = 0.52)
   )
   expect_error(
     rake(df, margins = margins),
-    class = "surveyweights_error_population_level_extra"
+    class = "surveywts_error_population_level_extra"
   )
   expect_snapshot(
     error = TRUE,
@@ -567,14 +567,14 @@ test_that("rake() rejects margins with level not in data", {
 # ---------------------------------------------------------------------------
 
 test_that("rake() rejects margin proportions not summing to 1", {
-  df <- make_surveyweights_data(seed = 24)
+  df <- make_surveywts_data(seed = 24)
   margins <- list(
     age_group = c("18-34" = 0.20, "35-54" = 0.30, "55+" = 0.20),  # sums to 0.7
     sex       = c("M" = 0.48, "F" = 0.52)
   )
   expect_error(
     rake(df, margins = margins),
-    class = "surveyweights_error_population_totals_invalid"
+    class = "surveywts_error_population_totals_invalid"
   )
   expect_snapshot(
     error = TRUE,
@@ -587,14 +587,14 @@ test_that("rake() rejects margin proportions not summing to 1", {
 # ---------------------------------------------------------------------------
 
 test_that("rake() rejects non-positive count targets", {
-  df <- make_surveyweights_data(seed = 25)
+  df <- make_surveywts_data(seed = 25)
   margins <- list(
     age_group = c("18-34" = 150, "35-54" = -10, "55+" = 150),
     sex       = c("M" = 240, "F" = 260)
   )
   expect_error(
     rake(df, margins = margins, type = "count"),
-    class = "surveyweights_error_population_totals_invalid"
+    class = "surveywts_error_population_totals_invalid"
   )
   expect_snapshot(
     error = TRUE,
@@ -607,7 +607,7 @@ test_that("rake() rejects non-positive count targets", {
 # ---------------------------------------------------------------------------
 
 test_that("rake() accepts proportions summing to 1.0 + 9e-7 (within tolerance)", {
-  df <- make_surveyweights_data(seed = 26)
+  df <- make_surveywts_data(seed = 26)
   margins <- list(
     age_group = c("18-34" = 0.30 + 9e-7 / 3, "35-54" = 0.40, "55+" = 0.30),
     sex       = c("M" = 0.48, "F" = 0.52)
@@ -623,14 +623,14 @@ test_that("rake() accepts proportions summing to 1.0 + 9e-7 (within tolerance)",
 # ---------------------------------------------------------------------------
 
 test_that("rake() rejects proportions summing to 1.0 + 2e-6 (outside tolerance)", {
-  df <- make_surveyweights_data(seed = 27)
+  df <- make_surveywts_data(seed = 27)
   margins <- list(
     age_group = c("18-34" = 0.30 + 2e-6, "35-54" = 0.40, "55+" = 0.30),
     sex       = c("M" = 0.48, "F" = 0.52)
   )
   expect_error(
     rake(df, margins = margins),
-    class = "surveyweights_error_population_totals_invalid"
+    class = "surveywts_error_population_totals_invalid"
   )
   expect_snapshot(
     error = TRUE,
@@ -643,14 +643,14 @@ test_that("rake() rejects proportions summing to 1.0 + 2e-6 (outside tolerance)"
 # ---------------------------------------------------------------------------
 
 test_that("rake() throws calibration_not_converged when survey method hits maxit", {
-  df <- make_surveyweights_data(seed = 28)
+  df <- make_surveywts_data(seed = 28)
   margins <- .make_margins()
   expect_error(
     rake(
       df, margins = margins, method = "survey",
       control = list(maxit = 1, epsilon = 1e-20)
     ),
-    class = "surveyweights_error_calibration_not_converged"
+    class = "surveywts_error_calibration_not_converged"
   )
   expect_snapshot(
     error = TRUE,
@@ -666,11 +666,11 @@ test_that("rake() throws calibration_not_converged when survey method hits maxit
 # ---------------------------------------------------------------------------
 
 test_that("rake() throws calibration_not_converged for maxit = 0", {
-  df <- make_surveyweights_data(seed = 29)
+  df <- make_surveywts_data(seed = 29)
   margins <- .make_margins()
   expect_error(
     rake(df, margins = margins, control = list(maxit = 0)),
-    class = "surveyweights_error_calibration_not_converged"
+    class = "surveywts_error_calibration_not_converged"
   )
   expect_snapshot(
     error = TRUE,
@@ -683,7 +683,7 @@ test_that("rake() throws calibration_not_converged for maxit = 0", {
 # ---------------------------------------------------------------------------
 
 test_that("rake() works with a single margin variable", {
-  df <- make_surveyweights_data(seed = 30)
+  df <- make_surveywts_data(seed = 30)
   margins <- list(
     age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30)
   )
@@ -699,7 +699,7 @@ test_that("rake() works with a single margin variable", {
 # ---------------------------------------------------------------------------
 
 test_that("rake() produces correct weighting_history structure", {
-  df <- make_surveyweights_data(seed = 31)
+  df <- make_surveywts_data(seed = 31)
   margins <- .make_margins()
 
   result <- rake(df, margins = margins)
@@ -726,7 +726,7 @@ test_that("rake() produces correct weighting_history structure", {
   expect_true("tolerance" %in% names(entry$convergence))
   expect_identical(
     entry$package_version,
-    as.character(utils::packageVersion("surveyweights"))
+    as.character(utils::packageVersion("surveywts"))
   )
 })
 
@@ -735,7 +735,7 @@ test_that("rake() produces correct weighting_history structure", {
 # ---------------------------------------------------------------------------
 
 test_that("rake() step number increments correctly in chained calls", {
-  df <- make_surveyweights_data(seed = 32)
+  df <- make_surveywts_data(seed = 32)
   margins1 <- .make_margins()
   margins2 <- list(
     age_group = c("18-34" = 0.28, "35-54" = 0.42, "55+" = 0.30),
@@ -756,7 +756,7 @@ test_that("rake() step number increments correctly in chained calls", {
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() → rake() chain produces two-entry history with correct labels", {
-  df <- make_surveyweights_data(seed = 33)
+  df <- make_surveywts_data(seed = 33)
   pop <- list(
     age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
     sex       = c("M" = 0.48, "F" = 0.52)
@@ -781,7 +781,7 @@ test_that("calibrate() → rake() chain produces two-entry history with correct 
 # ---------------------------------------------------------------------------
 
 test_that("rake(method='survey') produces valid calibrated weights", {
-  df <- make_surveyweights_data(seed = 34)
+  df <- make_surveywts_data(seed = 34)
   # Use targets that differ from sample proportions to force actual calibration
   margins <- list(
     age_group = c("18-34" = 0.40, "35-54" = 0.35, "55+" = 0.25),
@@ -811,7 +811,7 @@ test_that("rake(method='survey') produces valid calibrated weights", {
 # ---------------------------------------------------------------------------
 
 test_that("rake() cap limits weight ratio with method = 'anesrake'", {
-  df <- make_surveyweights_data(seed = 35)
+  df <- make_surveywts_data(seed = 35)
   margins <- .make_margins()
   cap_val <- 3.0
 
@@ -827,7 +827,7 @@ test_that("rake() cap limits weight ratio with method = 'anesrake'", {
 # ---------------------------------------------------------------------------
 
 test_that("rake() cap limits weight ratio with method = 'survey'", {
-  df <- make_surveyweights_data(seed = 36)
+  df <- make_surveywts_data(seed = 36)
   margins <- .make_margins()
   cap_val <- 3.0
 
@@ -843,7 +843,7 @@ test_that("rake() cap limits weight ratio with method = 'survey'", {
 # ---------------------------------------------------------------------------
 
 test_that("rake() with cap = NULL does not restrict weight ratios", {
-  df <- make_surveyweights_data(seed = 37)
+  df <- make_surveywts_data(seed = 37)
   # Use severely imbalanced margins to produce high weight ratios
   margins <- list(
     age_group = c("18-34" = 0.70, "35-54" = 0.20, "55+" = 0.10),
@@ -874,7 +874,7 @@ test_that("rake() with cap = NULL does not restrict weight ratios", {
 # ---------------------------------------------------------------------------
 
 test_that("rake() with variable_select = 'max' produces valid calibrated weights", {
-  df <- make_surveyweights_data(seed = 38)
+  df <- make_surveywts_data(seed = 38)
   margins <- .make_margins()
 
   result_max <- rake(df, margins = margins, control = list(variable_select = "max"))
@@ -892,7 +892,7 @@ test_that("rake() with variable_select = 'max' produces valid calibrated weights
 # ---------------------------------------------------------------------------
 
 test_that("rake() with variable_select = 'average' produces valid calibrated weights", {
-  df <- make_surveyweights_data(seed = 39)
+  df <- make_surveywts_data(seed = 39)
   margins <- .make_margins()
 
   result <- rake(df, margins = margins, control = list(variable_select = "average"))
@@ -913,7 +913,7 @@ test_that("rake(method='anesrake') converges to the target marginals", {
   # mathematically relevant correctness property.
   # Use extreme targets (far from sampling probabilities of 0.30/0.40/0.30 and
   # 0.48/0.52) so chi-square discrepancy is undeniably significant at pval=0.05.
-  df <- make_surveyweights_data(n = 500, seed = 40)
+  df <- make_surveywts_data(n = 500, seed = 40)
   margins <- list(
     age_group = c("18-34" = 0.10, "35-54" = 0.70, "55+" = 0.20),
     sex       = c("M" = 0.70, "F" = 0.30)
@@ -948,12 +948,12 @@ test_that("rake(method='anesrake') converges to the target marginals", {
 # ---------------------------------------------------------------------------
 
 test_that("rake() warns when anesrake-specific control param set with method='survey'", {
-  df <- make_surveyweights_data(seed = 41)
+  df <- make_surveywts_data(seed = 41)
   margins <- .make_margins()
   expect_warning(
     rake(df, margins = margins, method = "survey",
          control = list(pval = 0.01)),
-    class = "surveyweights_warning_control_param_ignored"
+    class = "surveywts_warning_control_param_ignored"
   )
   expect_snapshot(
     rake(df, margins = margins, method = "survey",
@@ -966,12 +966,12 @@ test_that("rake() warns when anesrake-specific control param set with method='su
 # ---------------------------------------------------------------------------
 
 test_that("rake() warns when survey-specific control param set with method='anesrake'", {
-  df <- make_surveyweights_data(seed = 42)
+  df <- make_surveywts_data(seed = 42)
   margins <- .make_margins()
   expect_warning(
     rake(df, margins = margins, method = "anesrake",
          control = list(epsilon = 1e-5)),
-    class = "surveyweights_warning_control_param_ignored"
+    class = "surveywts_warning_control_param_ignored"
   )
   expect_snapshot(
     rake(df, margins = margins, method = "anesrake",
@@ -984,7 +984,7 @@ test_that("rake() warns when survey-specific control param set with method='anes
 # ---------------------------------------------------------------------------
 
 test_that("rake() applies method-specific control defaults correctly", {
-  df <- make_surveyweights_data(seed = 43)
+  df <- make_surveywts_data(seed = 43)
   margins <- .make_margins()
 
   # Method = "anesrake": default maxit = 1000
@@ -1009,7 +1009,7 @@ test_that("rake() applies method-specific control defaults correctly", {
 # ---------------------------------------------------------------------------
 
 test_that("rake() emits already_calibrated message when data is already calibrated", {
-  df <- make_surveyweights_data(seed = 44)
+  df <- make_surveywts_data(seed = 44)
   margins <- .make_margins()
 
   # First rake using method="survey" to guarantee actual weight adjustment
@@ -1019,7 +1019,7 @@ test_that("rake() emits already_calibrated message when data is already calibrat
   expect_message(
     result <- rake(wdf, margins = margins, weights = .weight,
                    control = list(pval = 0.99)),  # high threshold ensures skip
-    class = "surveyweights_message_already_calibrated"
+    class = "surveywts_message_already_calibrated"
   )
   test_invariants(result)
 
@@ -1034,7 +1034,7 @@ test_that("rake() emits already_calibrated message when data is already calibrat
 # ---------------------------------------------------------------------------
 
 test_that("rake() emits already_calibrated when all variables excluded by min_cell_n", {
-  df <- make_surveyweights_data(seed = 45)
+  df <- make_surveywts_data(seed = 45)
   margins <- .make_margins()
 
   expect_message(
@@ -1042,7 +1042,7 @@ test_that("rake() emits already_calibrated when all variables excluded by min_ce
       df, margins = margins,
       control = list(min_cell_n = nrow(df) + 1L)  # all cells below minimum
     ),
-    class = "surveyweights_message_already_calibrated"
+    class = "surveywts_message_already_calibrated"
   )
   test_invariants(result)
 
@@ -1058,7 +1058,7 @@ test_that("rake() emits already_calibrated when all variables excluded by min_ce
 
 test_that("rake() rejects an unnamed list as margins", {
   # Covers R/rake.R lines 74-86: unnamed list check
-  df <- make_surveyweights_data(seed = 46)
+  df <- make_surveywts_data(seed = 46)
   margins_unnamed <- list(
     c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
     c("M" = 0.48, "F" = 0.52)
@@ -1066,7 +1066,7 @@ test_that("rake() rejects an unnamed list as margins", {
 
   expect_error(
     rake(df, margins = margins_unnamed),
-    class = "surveyweights_error_margins_format_invalid"
+    class = "surveywts_error_margins_format_invalid"
   )
   expect_snapshot(error = TRUE, rake(df, margins = margins_unnamed))
 })
@@ -1077,7 +1077,7 @@ test_that("rake() rejects an unnamed list as margins", {
 
 test_that("rake() rejects named list with data.frame element missing level/target columns", {
   # Covers R/rake.R lines 94-103: df element without level/target
-  df <- make_surveyweights_data(seed = 47)
+  df <- make_surveywts_data(seed = 47)
   margins_bad_df <- list(
     age_group = data.frame(
       cat = c("18-34", "35-54", "55+"),  # wrong column names (not level/target)
@@ -1088,7 +1088,7 @@ test_that("rake() rejects named list with data.frame element missing level/targe
 
   expect_error(
     rake(df, margins = margins_bad_df),
-    class = "surveyweights_error_margins_format_invalid"
+    class = "surveywts_error_margins_format_invalid"
   )
   expect_snapshot(error = TRUE, rake(df, margins = margins_bad_df))
 })
@@ -1136,7 +1136,7 @@ test_that("rake() handles exactly calibrated data (prev_total_chi_sq = 0, line 2
   # Data is exactly calibrated: should return already_calibrated message
   expect_message(
     result <- rake(df_exact, margins = margins_exact, weights = w),
-    class = "surveyweights_message_already_calibrated"
+    class = "surveywts_message_already_calibrated"
   )
   test_invariants(result)
   expect_identical(
@@ -1156,7 +1156,7 @@ test_that("rake() throws calibration_not_converged via anesrake engine with maxi
   #
   # With maxit=1 and improvement=0 (threshold 0%), any positive improvement
   # never satisfies improvement_pct < 0, so convergence fails after 1 sweep.
-  df <- make_surveyweights_data(seed = 48)
+  df <- make_surveywts_data(seed = 48)
   # Extreme margins very different from data proportions to ensure raking happens
   margins_extreme <- list(
     age_group = c("18-34" = 0.80, "35-54" = 0.10, "55+" = 0.10),
@@ -1169,7 +1169,7 @@ test_that("rake() throws calibration_not_converged via anesrake engine with maxi
       margins = margins_extreme,
       control = list(maxit = 1L, improvement = 0, pval = 2)
     ),
-    class = "surveyweights_error_calibration_not_converged"
+    class = "surveywts_error_calibration_not_converged"
   )
   expect_snapshot(
     error = TRUE,

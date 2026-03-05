@@ -145,7 +145,7 @@ mutate.weighted_df <- function(.data, ...) {
 
 # Core reconstruction logic shared by all dplyr integration points.
 # If weight_col is present in `data`, restores weighted_df class and attributes.
-# If weight_col is missing, warns (surveyweights_warning_weight_col_dropped)
+# If weight_col is missing, warns (surveywts_warning_weight_col_dropped)
 # and returns a plain tibble.
 .reconstruct_weighted_df <- function(data, template) {
   weight_col <- attr(template, "weight_col")
@@ -164,7 +164,7 @@ mutate.weighted_df <- function(.data, ...) {
         "i" = "The result has been downgraded to a plain tibble.",
         "i" = "Load {.pkg surveytidy} for rename-aware handling."
       ),
-      class = "surveyweights_warning_weight_col_dropped"
+      class = "surveywts_warning_weight_col_dropped"
     )
     # Strip custom weighted_df attributes before returning as plain tibble
     attr(data, "weight_col") <- NULL

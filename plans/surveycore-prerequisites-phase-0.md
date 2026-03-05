@@ -2,10 +2,10 @@
 
 **Created:** 2026-02-28
 **Status:** Ready to implement in surveycore
-**Blocking:** surveyweights Phase 0, PRs 3–9
+**Blocking:** surveywts Phase 0, PRs 3–9
 
 This document is a complete specification of every change required in the
-`surveycore` package before surveyweights Phase 0 implementation can begin.
+`surveycore` package before surveywts Phase 0 implementation can begin.
 It is extracted from `plans/spec-phase-0.md` and `plans/impl-phase-0.md`.
 
 ---
@@ -16,10 +16,10 @@ These must be confirmed against surveycore source before writing any code:
 
 | # | Question | Impact |
 |---|----------|--------|
-| **GAP 1** | Exact `survey_base` property names and inheritance path — are `@data`, `@variables`, `@metadata` the actual property names? | BLOCKING: surveyweights' `survey_calibrated` inherits from `survey_base` |
-| **GAP 2** | Exact name and signature for the `weighting_history` accessor | BLOCKING: surveyweights calls it as `survey_weighting_history(x)` |
+| **GAP 1** | Exact `survey_base` property names and inheritance path — are `@data`, `@variables`, `@metadata` the actual property names? | BLOCKING: surveywts' `survey_calibrated` inherits from `survey_base` |
+| **GAP 2** | Exact name and signature for the `weighting_history` accessor | BLOCKING: surveywts calls it as `survey_weighting_history(x)` |
 | **GAP 3** | Is `@variables$weights` a `character(1)` column name (not the vector itself)? | CRITICAL: all weight extraction logic depends on this |
-| **GAP 4** | Minimum surveycore version once this PR merges — surveyweights will pin to it | BLOCKING: locks the `surveycore (>= X.Y.Z)` DESCRIPTION entry |
+| **GAP 4** | Minimum surveycore version once this PR merges — surveywts will pin to it | BLOCKING: locks the `surveycore (>= X.Y.Z)` DESCRIPTION entry |
 
 ---
 
@@ -31,9 +31,9 @@ Add a `weighting_history` list property to the surveycore metadata class.
 - **Property name:** `weighting_history`
 - **Type:** `list`
 - **Default:** `list()` (empty list)
-- **Access pattern used by surveyweights:** `obj@metadata@weighting_history`
+- **Access pattern used by surveywts:** `obj@metadata@weighting_history`
 
-Each element of the list is a history entry appended by surveyweights after
+Each element of the list is a history entry appended by surveywts after
 each calibration or nonresponse adjustment operation. The entry structure
 is fully specified in `plans/spec-phase-0.md §IV.5` and is reproduced below
 for reference:
@@ -81,7 +81,7 @@ Update surveycore constructors (e.g., `as_survey_taylor()`) to accept a
   attribute), `@metadata@weighting_history` defaults to `list()`
 
 **Why this is needed:**
-A user may build a `weighted_df` through surveyweights calibration functions,
+A user may build a `weighted_df` through surveywts calibration functions,
 then pass it to a surveycore constructor to attach design metadata (strata,
 PSUs, etc.). The weighting history accumulated before the constructor call
 must be preserved on the resulting survey object.
@@ -108,7 +108,7 @@ survey_weighting_history <- function(x) {
 - **Name:** `survey_weighting_history` (subject to GAP 2 confirmation)
 - **Input:** Any `survey_base` subclass
 - **Return:** `list` (never `NULL`; return `list()` if property is empty)
-- **Export:** Yes — called by surveyweights and user code
+- **Export:** Yes — called by surveywts and user code
 
 ---
 
@@ -125,7 +125,7 @@ survey_base    (abstract S7 class)
   └── survey_replicate
 ```
 
-`survey_calibrated` will be defined in **surveyweights**, inheriting from
+`survey_calibrated` will be defined in **surveywts**, inheriting from
 `surveycore::survey_base`.
 
 ### `survey_base` properties assumed
@@ -153,14 +153,14 @@ survey_base    (abstract S7 class)
 Surveyweights spec §V assumes the `survey_base` parent validator already
 enforces the presence of the required `@variables` keys (`ids`, `weights`,
 `strata`, `fpc`, `nest`). **GAP 1:** Verify this. If it does NOT enforce these,
-surveyweights will add corresponding checks to the `survey_calibrated`
+surveywts will add corresponding checks to the `survey_calibrated`
 validator.
 
 ---
 
 ## 5. Export requirements
 
-The following must be exported from surveycore for use in surveyweights:
+The following must be exported from surveycore for use in surveywts:
 
 | Name | Type | Status |
 |------|------|--------|
@@ -171,9 +171,9 @@ The following must be exported from surveycore for use in surveyweights:
 
 ---
 
-## 6. DESCRIPTION impact on surveyweights
+## 6. DESCRIPTION impact on surveywts
 
-Once this PR is merged, update the following in surveyweights `DESCRIPTION`:
+Once this PR is merged, update the following in surveywts `DESCRIPTION`:
 
 ```
 Imports:
@@ -189,7 +189,7 @@ Remotes:
 
 | Change | File(s) | Required before |
 |--------|---------|-----------------|
-| Add `weighting_history` list property to metadata class | metadata class definition | surveyweights PR 3 |
-| Update constructors to promote `weighted_df` history | constructor files | surveyweights PR 3 |
-| Add + export `survey_weighting_history()` | new file or existing utils | surveyweights PR 3 |
-| Resolve GAPs 1–4 | — | surveyweights PR 3 |
+| Add `weighting_history` list property to metadata class | metadata class definition | surveywts PR 3 |
+| Update constructors to promote `weighted_df` history | constructor files | surveywts PR 3 |
+| Add + export `survey_weighting_history()` | new file or existing utils | surveywts PR 3 |
+| Resolve GAPs 1–4 | — | surveywts PR 3 |

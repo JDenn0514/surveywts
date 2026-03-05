@@ -2,10 +2,10 @@
 #
 # Shared test infrastructure loaded automatically by testthat.
 # Provides:
-#   - make_surveyweights_data()   — synthetic data generator
+#   - make_surveywts_data()   — synthetic data generator
 #   - test_invariants()           — invariant checker
 
-make_surveyweights_data <- function(
+make_surveywts_data <- function(
   n = 500L,
   seed = 42L,
   include_nonrespondents = FALSE

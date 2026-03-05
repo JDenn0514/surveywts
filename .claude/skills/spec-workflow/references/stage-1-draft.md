@@ -12,7 +12,7 @@ questions:
     multiSelect: false
     options:
       - label: "Phase 0 — Initial implementation"
-        description: "The first phase of surveyweights. See CLAUDE.md for current phase status."
+        description: "The first phase of surveywts. See CLAUDE.md for current phase status."
       - label: "Later phase"
         description: "A subsequent phase building on Phase 0."
       - label: "Feature / bug fix"
@@ -74,13 +74,13 @@ Model every spec on the Phase 1 structure. Required sections:
   is the intentional design, state it explicitly and show the exact output.
 - Every error condition is listed in a table with: error class, trigger
   condition, and the message template. Class names follow:
-  `"surveyweights_error_{snake_case}"` or `"surveyweights_warning_{snake_case}"`.
+  `"surveywts_error_{snake_case}"` or `"surveywts_warning_{snake_case}"`.
 - "TBD" and "to be determined" are not allowed — flag as **GAP** with
   `> ⚠️ GAP: [description]` so they're easy to find.
 - Domain estimation and grouping behavior must be specified for every analysis
   function.
 - Do NOT restate rules already defined in `code-style.md`,
-  `r-package-conventions.md`, or `surveyweights-conventions.md`. Reference them.
+  `r-package-conventions.md`, or `surveywts-conventions.md`. Reference them.
 
 ---
 

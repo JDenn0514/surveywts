@@ -1,6 +1,6 @@
-# surveyweights GitHub Strategy
+# surveywts GitHub Strategy
 
-<!-- Applies to the surveyweights package. Adapted from the surveycore version. -->
+<!-- Applies to the surveywts package. Adapted from the surveycore version. -->
 <!-- Read on-demand when creating PRs or setting up CI — not auto-loaded. -->
 
 **Version:** 2.0

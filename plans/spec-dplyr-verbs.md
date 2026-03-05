@@ -23,7 +23,7 @@ document specifies:
 3. `group_by.weighted_df()` and `ungroup.weighted_df()` behavior
 
 This spec does NOT repeat rules defined in `code-style.md`,
-`r-package-conventions.md`, `surveyweights-conventions.md`, or
+`r-package-conventions.md`, `surveywts-conventions.md`, or
 `testing-standards.md`. Those rules apply by reference.
 
 ---
@@ -176,16 +176,16 @@ rename expressions: `new_name = old_name`).
 ### Critical Behavioral Change vs. Current Implementation
 
 The current `rename.weighted_df()` calls `.reconstruct_weighted_df()`, which
-triggers `surveyweights_warning_weight_col_dropped` when the weight column is
+triggers `surveywts_warning_weight_col_dropped` when the weight column is
 renamed (because the old `weight_col` name is no longer in `names(result)`).
 
 **After this spec:** renaming the weight column silently updates `weight_col`
-to the new name. `surveyweights_warning_weight_col_dropped` is NOT issued for
+to the new name. `surveywts_warning_weight_col_dropped` is NOT issued for
 rename operations — only for verbs that physically drop the weight column.
 
 ### Error / Warning Table
 
-No new error or warning classes. `surveyweights_warning_weight_col_dropped` is
+No new error or warning classes. `surveywts_warning_weight_col_dropped` is
 NOT triggered by `rename.weighted_df()`.
 
 ---
@@ -299,7 +299,7 @@ The verification test pattern:
 # In test-00-classes.R
 test_that("{verb}() preserves weighted_df class via dplyr_reconstruct", {
   d <- .make_weighted_df(
-    make_surveyweights_data(n = 50, seed = 1),
+    make_surveywts_data(n = 50, seed = 1),
     weight_col = "base_weight",
     history = list(.make_test_history_entry())
   )
@@ -333,7 +333,7 @@ All tests go in `tests/testthat/test-00-classes.R`.
 #    - attr(result, "weight_col") updated to new name
 #    - Column with new name is present in names(result)
 #    - class(result)[1] == "weighted_df" (no downgrade)
-#    - No surveyweights_warning_weight_col_dropped issued
+#    - No surveywts_warning_weight_col_dropped issued
 #    - test_invariants(result) passes
 
 # 3. Happy path — rename a column that appears in parameters$variables
@@ -413,7 +413,7 @@ All tests go in `tests/testthat/test-00-classes.R`.
 Implementation is complete when all of the following pass:
 
 - [ ] **`rename.weighted_df()`** — renaming the weight column updates
-  `attr(x, "weight_col")` to the new name; `surveyweights_warning_weight_col_dropped`
+  `attr(x, "weight_col")` to the new name; `surveywts_warning_weight_col_dropped`
   is NOT issued
 - [ ] **`rename.weighted_df()`** — renaming a calibration variable updates
   `parameters$variables` in all matching history entries

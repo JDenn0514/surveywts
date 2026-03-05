@@ -1,7 +1,7 @@
 ---
 name: r-implement
 description: >
-  Use when it's time to write R implementation code for surveyweights. Trigger
+  Use when it's time to write R implementation code for surveywts. Trigger
   when the user says "implement", "code this up", "start coding", "write the
   code", "start the PR", or "let's build this". Also use when commit-and-pr
   produces a CI Failure handoff block and the user needs the failure fixed.
@@ -9,7 +9,7 @@ description: >
 
 # R Implementation Skill
 
-You are implementing R package code for surveyweights.
+You are implementing R package code for surveywts.
 
 ---
 
@@ -199,7 +199,7 @@ When `devtools::test()` and `devtools::check()` both pass:
 
 ## Conventions (always in context — no need to re-read)
 
-All surveyweights coding conventions are in the rule files loaded at session start.
+All surveywts coding conventions are in the rule files loaded at session start.
 Quick index:
 
 | What you need | Where it is |
@@ -207,8 +207,8 @@ Quick index:
 | S7 class patterns, cli errors, arg order, helper placement | `code-style.md §2–4` |
 | `cli_abort()` / `cli_warn()` structure and `class=` | `code-style.md §3` |
 | `::` everywhere, no `@importFrom`, roxygen2 | `r-package-conventions.md §2` |
-| Naming, families, visibility, export policy | `surveyweights-conventions.md` |
-| Test structure, constructor invariants, error testing | `testing-standards.md` + `testing-surveyweights.md` |
+| Naming, families, visibility, export policy | `surveywts-conventions.md` |
+| Test structure, constructor invariants, error testing | `testing-standards.md` + `testing-surveywts.md` |
 | Error class names | `plans/error-messages.md` — update this file BEFORE using any new class |
 
 ---
@@ -222,5 +222,5 @@ Do not mark the section complete until ALL are true:
 - [ ] `devtools::document()` run (if roxygen2 changed); `_pkgdown.yml` updated (if new exports)
 - [ ] `plans/error-messages.md` updated (if new error classes added)
 - [ ] No `UseMethod()` on S7 objects; no missing `class=`; no `@importFrom`
-- [ ] `test_invariants()` first in every constructor test (see `testing-surveyweights.md`); dual pattern on Layer 3 errors
+- [ ] `test_invariants()` first in every constructor test (see `testing-surveywts.md`); dual pattern on Layer 3 errors
 - [ ] Implementation plan section marked `[x]`

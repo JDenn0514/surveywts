@@ -1,4 +1,4 @@
-# surveyweights Roadmap
+# surveywts Roadmap
 
 **Package goal:** All-in-one source for survey weighting needs, combining
 functionality from `survey`, `svrep`, `anesrake`, `WeightIt`, and others
@@ -34,7 +34,7 @@ This is the minimum useful thing the package does.
 - `@calibration` property: provenance record from calibration functions
 - `as_survey_calibrated(design, calibration, variance = c("srs", "bootstrap"))`
   - `variance = "bootstrap"` deferred to Phase 1; raises
-    `surveyweights_error_bootstrap_requires_replicates` until then
+    `surveywts_error_bootstrap_requires_replicates` until then
 - Estimation functions (`get_means()` etc.) dispatch on `survey_calibrated`
   using SRS variance initially
 
@@ -76,10 +76,10 @@ All three:
 ### Notes
 
 - First task in Phase 0: add `surveycore (>= 0.1.0)` to `DESCRIPTION Imports`
-- Define `make_surveyweights_data()` and `test_invariants()` in
+- Define `make_surveywts_data()` and `test_invariants()` in
   `tests/testthat/helper-test-data.R` before writing any source
-- Fill in stubs in `surveyweights-conventions.md` and
-  `testing-surveyweights.md` before implementation begins
+- Fill in stubs in `surveywts-conventions.md` and
+  `testing-surveywts.md` before implementation begins
 
 ---
 
@@ -263,7 +263,7 @@ this work is substantial and should not be appended to Phase 4.
   - `vignette("propensity-weighting")` — causal estimands; ATE vs ATT workflow
   - `vignette("nonresponse")` — weighting-class vs propensity comparison
 - `plans/error-messages.md` complete with every class from all phases
-- `surveyweights-conventions.md` fully filled in
+- `surveywts-conventions.md` fully filled in
 - `R CMD check --as-cran` clean: 0 errors, 0 warnings, ≤2 notes
 - `pkgdown` site build verified
 - NEWS.md entries for all phases reviewed

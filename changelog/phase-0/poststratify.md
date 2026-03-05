@@ -27,13 +27,13 @@ poststratify(data, strata, population, weights = NULL, type = c("count", "prop")
 
 **Errors thrown:**
 
-- `surveyweights_error_variable_has_na` -- NA in a strata variable.
-- `surveyweights_error_population_totals_invalid` -- prop targets don't sum to 1,
+- `surveywts_error_variable_has_na` -- NA in a strata variable.
+- `surveywts_error_population_totals_invalid` -- prop targets don't sum to 1,
   or count target <= 0.
-- `surveyweights_error_population_cell_duplicate` -- duplicate cell in population.
-- `surveyweights_error_population_cell_missing` -- data cell absent from population.
-- `surveyweights_error_population_cell_not_in_data` -- population cell absent from data.
-- `surveyweights_error_empty_stratum` -- cell has zero weighted count (defensive guard).
+- `surveywts_error_population_cell_duplicate` -- duplicate cell in population.
+- `surveywts_error_population_cell_missing` -- data cell absent from population.
+- `surveywts_error_population_cell_not_in_data` -- population cell absent from data.
+- `surveywts_error_empty_stratum` -- cell has zero weighted count (defensive guard).
 - All standard SE-1 through SE-8 input validation errors.
 
 ### New private helper: `.validate_population_cells()`

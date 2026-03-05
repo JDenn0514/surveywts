@@ -78,7 +78,7 @@ Options:
 Severity: BLOCKING
 The spec itself flags this as needing resolution: "⚠️ GAP: Decision needed on whether cells in population not present in data should be a warning (current spec) or an error."
 
-The current spec specifies a warning (`surveyweights_warning_population_cell_not_in_data`) with the behavior "the cell is ignored." This is a meaningful design decision about whether unexpected extra cells in the population silently proceed or halt. The spec correctly flags it for review — and Pass 1 is the right place to resolve it.
+The current spec specifies a warning (`surveywts_warning_population_cell_not_in_data`) with the behavior "the cell is ignored." This is a meaningful design decision about whether unexpected extra cells in the population silently proceed or halt. The spec correctly flags it for review — and Pass 1 is the right place to resolve it.
 
 Methodological note: Extra cells in population that have no sample observations represent a misspecification of the population frame. Silent ignorance risks masking errors in the caller's data.
 
@@ -105,7 +105,7 @@ The test plans for `calibrate()` and `rake()` include `# Edge — 0-row data fra
 Without specifying the behavior, the test cannot be written correctly.
 
 Options:
-- **[A]** Add to Behavior Rules: "If `nrow(data) == 0`, error `surveyweights_error_empty_data`" — new error class, add to error table and Section XII — Effort: low, Risk: low, Impact: explicit contract
+- **[A]** Add to Behavior Rules: "If `nrow(data) == 0`, error `surveywts_error_empty_data`" — new error class, add to error table and Section XII — Effort: low, Risk: low, Impact: explicit contract
 - **[B]** Add to Behavior Rules: "0-row input returns a 0-row output without error" — Effort: low, Risk: low, Impact: vacuous success semantics
 - **[C] Do nothing** — Test says edge case is tested but spec doesn't say what the expected outcome is
 
@@ -128,7 +128,7 @@ None of the function behavior rules address what happens when:
 If NA is treated as a level, it would appear in population targets. If not, what happens?
 
 Options:
-- **[A]** Specify that NA in any auxiliary/grouping variable is an error (`surveyweights_error_variable_has_na`); add to error tables and test plans — Effort: low, Risk: low, Impact: explicit; users must handle NAs before calling
+- **[A]** Specify that NA in any auxiliary/grouping variable is an error (`surveywts_error_variable_has_na`); add to error tables and test plans — Effort: low, Risk: low, Impact: explicit; users must handle NAs before calling
 - **[B]** Specify per-function behavior: NA treated as a level for calibration; NA rows excluded for adjustment; add this to each Behavior Rules section — Effort: medium, Risk: medium, Impact: more flexible but complex
 - **[C] Do nothing** — Implementer decides; behavior is undocumented and may vary across functions
 
@@ -140,12 +140,12 @@ Options:
 
 **Issue 7: Categorical-variable-only restriction is stated only for calibrate(), not rake() or poststratify()**
 Severity: REQUIRED
-The error `surveyweights_error_calibrate_variable_not_categorical` and the restriction "categorical (character or factor) variables only in Phase 0" appear only in Section VI (`calibrate()`). Sections VII (`rake()`) and VIII (`poststratify()`) have no analogous restriction or error.
+The error `surveywts_error_calibrate_variable_not_categorical` and the restriction "categorical (character or factor) variables only in Phase 0" appear only in Section VI (`calibrate()`). Sections VII (`rake()`) and VIII (`poststratify()`) have no analogous restriction or error.
 
 IPF (rake) is also a categorical-variable method. Does `rake()` silently accept a numeric variable? Does `poststratify()` allow numeric strata? If so, what happens? If not, what is the error class?
 
 Options:
-- **[A]** Apply the same categorical restriction to `rake()` and `poststratify()`; either reuse `surveyweights_error_calibrate_variable_not_categorical` or introduce a more general `surveyweights_error_variable_not_categorical` — Effort: low, Risk: low, Impact: consistent behavior across calibration functions
+- **[A]** Apply the same categorical restriction to `rake()` and `poststratify()`; either reuse `surveywts_error_calibrate_variable_not_categorical` or introduce a more general `surveywts_error_variable_not_categorical` — Effort: low, Risk: low, Impact: consistent behavior across calibration functions
 - **[B]** Specify that `poststratify()` accepts numeric strata columns (it's a join-like operation, numeric key is fine); only `rake()` needs the categorical restriction — Effort: low, Risk: low, Impact: correct granularity
 - **[C] Do nothing** — Ambiguous behavior; implementer decides per function
 
@@ -206,7 +206,7 @@ Options:
 
 **Issue 11: min_cell threshold for class_near_empty warning is hardcoded with no rationale**
 Severity: REQUIRED
-The spec says "cells with fewer than 5 respondents" trigger `surveyweights_warning_class_near_empty`, and it flags this as: "⚠️ GAP: Confirm minimum cell size threshold (5 respondents). This is a methodological choice; cite a reference or make it configurable."
+The spec says "cells with fewer than 5 respondents" trigger `surveywts_warning_class_near_empty`, and it flags this as: "⚠️ GAP: Confirm minimum cell size threshold (5 respondents). This is a methodological choice; cite a reference or make it configurable."
 
 This GAP is in the spec text. Pass 1 is the right time to resolve it.
 
@@ -255,7 +255,7 @@ Options:
 
 **Issue 14: Error message template for calibrate_variable_not_categorical incorrectly suggests rake() for continuous variables**
 Severity: REQUIRED
-The `v` bullet for `surveyweights_error_calibrate_variable_not_categorical` reads:
+The `v` bullet for `surveywts_error_calibrate_variable_not_categorical` reads:
 > "v: Convert to factor or character, or use {.fn rake} for continuous auxiliary variables."
 
 But `rake()` in Phase 0 also only supports categorical variables (IPF requires categorical margins). Suggesting `rake()` for continuous variables is factually incorrect and will mislead users.
@@ -269,16 +269,16 @@ Options:
 
 ---
 
-#### Section: II / surveyweights-package.R (.onLoad specification)
+#### Section: II / surveywts-package.R (.onLoad specification)
 
 **Issue 15: .onLoad() / S7::methods_register() not specified in the spec**
 Severity: REQUIRED
-`survey_calibrated` is an S7 class with an S7-registered print method (`S7::method(print, survey_calibrated) <- ...`). For S7 method dispatch to work at runtime, `S7::methods_register()` must be called in `.onLoad()`. The spec lists `surveyweights-package.R` in the source file organization table but specifies no content for it.
+`survey_calibrated` is an S7 class with an S7-registered print method (`S7::method(print, survey_calibrated) <- ...`). For S7 method dispatch to work at runtime, `S7::methods_register()` must be called in `.onLoad()`. The spec lists `surveywts-package.R` in the source file organization table but specifies no content for it.
 
 From CLAUDE.md: "S7::methods_register() in `.onLoad()`" — this rule exists at the package level but the spec is silent on it.
 
 Options:
-- **[A]** Add to the Architecture section: "surveyweights-package.R must include .onLoad() calling S7::methods_register()" — Effort: trivial, Risk: low, Impact: prevents runtime dispatch failure
+- **[A]** Add to the Architecture section: "surveywts-package.R must include .onLoad() calling S7::methods_register()" — Effort: trivial, Risk: low, Impact: prevents runtime dispatch failure
 - **[B]** Reference CLAUDE.md rule and note the spec relies on it — Effort: trivial, Risk: low
 - **[C] Do nothing** — Implementer may forget; print dispatch silently fails
 
@@ -294,7 +294,7 @@ The test plan for `calibrate()` has a test for single-variable population (#22) 
 
 Options:
 - **[A]** Add: `# 2a. Happy path — multiple variables in population (age_group + sex + education)` — Effort: trivial
-- **[B]** Note that make_surveyweights_data() returns multi-variable data and happy path #1 implicitly tests this — Effort: trivial (one comment)
+- **[B]** Note that make_surveywts_data() returns multi-variable data and happy path #1 implicitly tests this — Effort: trivial (one comment)
 - **[C] Do nothing** — Implicit through data generator usage
 
 **Recommendation: B** — Note the implicit coverage; it is a low-risk gap.
@@ -335,10 +335,10 @@ Options:
 
 **Issue 19: Quality gate references nonexistent file "surveycore-conventions.md"**
 Severity: SUGGESTION
-The last QA gate reads: "[ ] `surveycore-conventions.md` stub is filled in with Phase 0 conventions." No file named `surveycore-conventions.md` exists in this package's rules. The CLAUDE.md rule files include `surveyweights-conventions.md` and `testing-surveyweights.md` as stubs. This is likely a typo.
+The last QA gate reads: "[ ] `surveycore-conventions.md` stub is filled in with Phase 0 conventions." No file named `surveycore-conventions.md` exists in this package's rules. The CLAUDE.md rule files include `surveywts-conventions.md` and `testing-surveywts.md` as stubs. This is likely a typo.
 
 Options:
-- **[A]** Replace with two gates: "[ ] `surveyweights-conventions.md` stub is filled in with Phase 0 conventions" and "[ ] `testing-surveyweights.md` stub is filled in with test_invariants() definition and data generator" — Effort: trivial
+- **[A]** Replace with two gates: "[ ] `surveywts-conventions.md` stub is filled in with Phase 0 conventions" and "[ ] `testing-surveywts.md` stub is filled in with test_invariants() definition and data generator" — Effort: trivial
 - **[B]** Leave a single corrected gate — Effort: trivial
 - **[C] Do nothing** — CI cannot verify a nonexistent file; gate is inoperable
 
@@ -412,15 +412,15 @@ All 20 Pass 1 issues were resolved in the spec update.
 Severity: BLOCKING
 No rule file cited — this is a contract completeness gap: the spec states a behavior but provides no class name for the implementer.
 
-Section VI states: _"Levels present in `population` but absent from `data` are an error."_ This is the reverse of `surveyweights_error_population_level_missing` (which covers a data level absent from `population`). For GREG calibration, a population target for a level that has no sample observations is mathematically ill-posed — the calibration system is overdetermined. For rake (IPF), the same applies: a margin entry for a level not in the data cannot be calibrated. Both functions require this error to be raised.
+Section VI states: _"Levels present in `population` but absent from `data` are an error."_ This is the reverse of `surveywts_error_population_level_missing` (which covers a data level absent from `population`). For GREG calibration, a population target for a level that has no sample observations is mathematically ill-posed — the calibration system is overdetermined. For rake (IPF), the same applies: a margin entry for a level not in the data cannot be calibrated. Both functions require this error to be raised.
 
-The Section XII master error table has no class for this condition. The poststratify analog is `surveyweights_error_population_cell_not_in_data` — calibrate()/rake() have no equivalent.
+The Section XII master error table has no class for this condition. The poststratify analog is `surveywts_error_population_cell_not_in_data` — calibrate()/rake() have no equivalent.
 
 The spec text for Section VI also says "Levels present in `population` but absent from `data` are an error" — twice stating behavior, zero times naming the class. An implementer reading this must invent a name, which defeats the purpose of the error class contract.
 
 Options:
-- **[A]** Add `surveyweights_error_population_level_extra` to the calibrate() error table with a message template; add to Section XII master table (thrown by `calibrate()` validation and implied for `rake()` via the "all calibrate() errors apply" reference); add test items to both calibrate() and rake() test plans — Effort: low, Risk: low, Impact: complete error contract
-- **[B]** Reuse the poststratify name and generalize: rename `surveyweights_error_population_cell_not_in_data` to `surveyweights_error_population_level_extra` covering all three functions — Effort: low, Risk: low (poststratify is unimplemented)
+- **[A]** Add `surveywts_error_population_level_extra` to the calibrate() error table with a message template; add to Section XII master table (thrown by `calibrate()` validation and implied for `rake()` via the "all calibrate() errors apply" reference); add test items to both calibrate() and rake() test plans — Effort: low, Risk: low, Impact: complete error contract
+- **[B]** Reuse the poststratify name and generalize: rename `surveywts_error_population_cell_not_in_data` to `surveywts_error_population_level_extra` covering all three functions — Effort: low, Risk: low (poststratify is unimplemented)
 - **[C] Do nothing** — Spec says "an error" without a class; implementer invents a name inconsistent with the error table
 
 **Recommendation: A** — A new, narrowly scoped class for calibrate()/rake() is cleaner than reusing poststratify's cell-based name. Both conditions are real errors that survey practitioners encounter (population frame has more levels than the sample).
@@ -465,16 +465,16 @@ Options:
 
 #### Section: VIII / XII / XIII (poststratify and rake — population_totals_invalid)
 
-**Issue 24: `surveyweights_error_population_totals_invalid` missing from Section VIII error table and from poststratify() and rake() test plans**
+**Issue 24: `surveywts_error_population_totals_invalid` missing from Section VIII error table and from poststratify() and rake() test plans**
 Severity: REQUIRED
 Internal spec inconsistency: Section XII states this class is thrown by `calibrate()`, `rake()`, AND `poststratify()`, but Section VIII's per-function error table omits it entirely, and neither the rake() nor poststratify() test plans include an explicit test for it.
 
-Section VIII population format specifies: _"For `type = 'prop'`: values in `target` must sum to 1.0 (within 1e-6)."_ The validation logic that enforces this would throw `surveyweights_error_population_totals_invalid` — but Section VIII's error table has no row for it. The rake() error table says "All errors from `calibrate()` apply" which implies it, but the rake() test plan items 11–23 (which explicitly list each error) do not include it. poststratify() is worse: neither the section error table nor the test plan mentions it.
+Section VIII population format specifies: _"For `type = 'prop'`: values in `target` must sum to 1.0 (within 1e-6)."_ The validation logic that enforces this would throw `surveywts_error_population_totals_invalid` — but Section VIII's error table has no row for it. The rake() error table says "All errors from `calibrate()` apply" which implies it, but the rake() test plan items 11–23 (which explicitly list each error) do not include it. poststratify() is worse: neither the section error table nor the test plan mentions it.
 
 calibrate() test item #18 `"Error — population_totals_invalid (prop does not sum to 1)"` exists ✅. Equivalent tests are absent from rake() and poststratify().
 
 Options:
-- **[A]** Add `surveyweights_error_population_totals_invalid` to the Section VIII error table with a message template for the poststratify context; add explicit test items to both the rake() test plan and poststratify() test plan (`# Error — population_totals_invalid (type="prop" targets do not sum to 1)`) — Effort: low, Risk: low, Impact: complete coverage
+- **[A]** Add `surveywts_error_population_totals_invalid` to the Section VIII error table with a message template for the poststratify context; add explicit test items to both the rake() test plan and poststratify() test plan (`# Error — population_totals_invalid (type="prop" targets do not sum to 1)`) — Effort: low, Risk: low, Impact: complete coverage
 - **[B]** For rake(): add a single explicit test item referencing the error class; for poststratify(): add to error table + test plan — Effort: same as A
 - **[C] Do nothing** — Master table and function specs are inconsistent; test may never be written for rake()/poststratify()
 
@@ -508,7 +508,7 @@ Severity: REQUIRED
 Internal spec inconsistency: Section IX and the test plan use `min_cell = 20` (NAEP methodology) and a dual-condition trigger (`n < min_cell` OR `adjustment_factor > max_adjust`); the master table still reflects the original hardcoded threshold of 5 respondents.
 
 Line 1147 of the spec (Section XII warnings table):
-> `surveyweights_warning_class_near_empty` | `adjust_nonresponse()` | A weighting class cell has **fewer than 5 respondents**
+> `surveywts_warning_class_near_empty` | `adjust_nonresponse()` | A weighting class cell has **fewer than 5 respondents**
 
 But the resolved behavior (Section IX, Behavior Rules, and test items #15 and #15b) is:
 > warns when EITHER `n_respondents < control$min_cell` (default **20**) OR `adjustment_factor > control$max_adjust` (default 2.0)
@@ -551,12 +551,12 @@ Options:
 Severity: SUGGESTION
 Violates `engineering-preferences.md §4` — handle edge cases explicitly.
 
-`effective_sample_size()`, `weight_variability()`, `summarize_weights()` accept `data.frame`, `weighted_df`, `survey_taylor`, and `survey_calibrated`. The master error table (Section XII) lists `surveyweights_error_unsupported_class` as thrown by "All calibration/NR functions" — diagnostics are explicitly excluded. If a user passes a `matrix`, `list`, or an object from another survey package, they get an uninformative R error rather than a clear typed `surveyweights_error_unsupported_class`.
+`effective_sample_size()`, `weight_variability()`, `summarize_weights()` accept `data.frame`, `weighted_df`, `survey_taylor`, and `survey_calibrated`. The master error table (Section XII) lists `surveywts_error_unsupported_class` as thrown by "All calibration/NR functions" — diagnostics are explicitly excluded. If a user passes a `matrix`, `list`, or an object from another survey package, they get an uninformative R error rather than a clear typed `surveywts_error_unsupported_class`.
 
 The Section X error tables don't include `unsupported_class`. The quality gates don't require it. This is consistent within the spec — it's an intentional omission — but it creates a user experience gap.
 
 Options:
-- **[A]** Add `surveyweights_error_unsupported_class` to the diagnostic error tables and Section XII master table; add test items to the diagnostics test plan — Effort: low, Risk: low, Impact: consistent defensive behavior across all package functions
+- **[A]** Add `surveywts_error_unsupported_class` to the diagnostic error tables and Section XII master table; add test items to the diagnostics test plan — Effort: low, Risk: low, Impact: consistent defensive behavior across all package functions
 - **[B]** Document explicitly in Section X that diagnostics do not perform class validation — any object with an accessible column may work — Effort: trivial, Risk: low (documents the current intent)
 - **[C] Do nothing** — Uninformative error on unsupported class; inconsistency with calibration functions documented by implication only
 
@@ -587,7 +587,7 @@ Options:
 | 21 | Missing error class for "population has a level absent from data" in calibrate() and rake() | ✅ Resolved |
 | 22 | rake() test plan items "1–6. Same happy paths as calibrate()" includes a test that doesn't exist | ✅ Resolved |
 | 23 | Diagnostics test plan missing the `weights_not_numeric` error test | ✅ Resolved |
-| 24 | `surveyweights_error_population_totals_invalid` missing from poststratify() error table | ✅ Resolved |
+| 24 | `surveywts_error_population_totals_invalid` missing from poststratify() error table | ✅ Resolved |
 | 25 | poststratify() test plan omits explicit weight validation error tests | ✅ Resolved |
 | 26 | Master warning table for `class_near_empty` still says "fewer than 5 respondents" | ✅ Resolved |
 | 27 | survey_calibrated validator doesn't state whether it relies on survey_base's validator | ✅ Resolved |
@@ -615,11 +615,11 @@ Before reviewing new issues: the surveycore package was inspected directly. The 
 
 #### Section: V (survey_calibrated — Architectural Conflict)
 
-**Issue 29: `surveycore` already defines and exports `survey_calibrated` — redefining it in `surveyweights` creates a namespace conflict**
+**Issue 29: `surveycore` already defines and exports `survey_calibrated` — redefining it in `surveywts` creates a namespace conflict**
 Severity: BLOCKING
 No rule file cited — this is a fundamental architectural discovery from the surveycore source inspection.
 
-The spec (§V, §I deliverables table, §II class hierarchy) plans to define `surveyweights::survey_calibrated` in this package. But surveycore already defines and exports `surveycore::survey_calibrated` with this structure:
+The spec (§V, §I deliverables table, §II class hierarchy) plans to define `surveywts::survey_calibrated` in this package. But surveycore already defines and exports `surveycore::survey_calibrated` with this structure:
 
 ```
 <surveycore::survey_calibrated> class
@@ -633,19 +633,19 @@ The spec (§V, §I deliverables table, §II class hierarchy) plans to define `su
   $ calibration: <ANY>    ← NOT in spec
 ```
 
-surveycore also exports `as_survey_calibrated(data, weights, calibration = NULL)` which constructs it. S7 uses fully qualified class names — `surveycore::survey_calibrated` and `surveyweights::survey_calibrated` would be different classes. Defining both creates:
-- Interoperability problems: `S7::S7_inherits(x, surveycore::survey_calibrated)` returns FALSE for surveyweights-produced objects
+surveycore also exports `as_survey_calibrated(data, weights, calibration = NULL)` which constructs it. S7 uses fully qualified class names — `surveycore::survey_calibrated` and `surveywts::survey_calibrated` would be different classes. Defining both creates:
+- Interoperability problems: `S7::S7_inherits(x, surveycore::survey_calibrated)` returns FALSE for surveywts-produced objects
 - Export collisions if both packages are loaded and users type `survey_calibrated`
 - Confusion: two classes named `survey_calibrated` in the ecosystem
 
-The `@calibration` property on surveycore's class suggests it was designed to hold calibration provenance. Whether surveyweights should (a) use surveycore's class directly, (b) subclass it, or (c) define its own class with a different name is an architectural decision that must be made before any implementation begins.
+The `@calibration` property on surveycore's class suggests it was designed to hold calibration provenance. Whether surveywts should (a) use surveycore's class directly, (b) subclass it, or (c) define its own class with a different name is an architectural decision that must be made before any implementation begins.
 
 Options:
-- **[A]** Use `surveycore::survey_calibrated` directly — surveyweights is the package that fills in `@calibration` and `@metadata@weighting_history`; no new class defined in surveyweights — Effort: medium (rewrite §V, §I deliverables, §II class hierarchy), Risk: low, Impact: single ecosystem class; no namespace conflict
-- **[B]** Define `surveyweights::survey_calibrated` as a child class of `surveycore::survey_calibrated` — extends it with surveyweights-specific properties — Effort: medium, Risk: medium (double inheritance adds complexity), Impact: distinguishable class; inherits surveycore dispatch
-- **[C]** Keep spec as-is (define `surveyweights::survey_calibrated` as a peer class extending `survey_base`) — Effort: low, Risk: high (naming collision with surveycore's class; ecosystem confusion)
+- **[A]** Use `surveycore::survey_calibrated` directly — surveywts is the package that fills in `@calibration` and `@metadata@weighting_history`; no new class defined in surveywts — Effort: medium (rewrite §V, §I deliverables, §II class hierarchy), Risk: low, Impact: single ecosystem class; no namespace conflict
+- **[B]** Define `surveywts::survey_calibrated` as a child class of `surveycore::survey_calibrated` — extends it with surveywts-specific properties — Effort: medium, Risk: medium (double inheritance adds complexity), Impact: distinguishable class; inherits surveycore dispatch
+- **[C]** Keep spec as-is (define `surveywts::survey_calibrated` as a peer class extending `survey_base`) — Effort: low, Risk: high (naming collision with surveycore's class; ecosystem confusion)
 
-**Recommendation: A** — The surveyverse ecosystem should have one calibrated survey class. surveycore already owns it. surveyweights' job is to produce properly configured instances of that class, not to redefine it. The `@calibration` property can hold calibration provenance if needed, or be left NULL with history tracked in `@metadata@weighting_history` (already implemented in surveycore).
+**Recommendation: A** — The surveyverse ecosystem should have one calibrated survey class. surveycore already owns it. surveywts' job is to produce properly configured instances of that class, not to redefine it. The `@calibration` property can hold calibration provenance if needed, or be left NULL with history tracked in `@metadata@weighting_history` (already implemented in surveycore).
 
 ---
 
@@ -655,17 +655,17 @@ Violates the testing contract: the spec's validator behavior tests are written f
 
 surveycore's `survey_calibrated` validator:
 1. Allows NA weights — checks `non_na <- wt_col[!is.na(wt_col)]` and only errors if `length(non_na) == 0` (ALL weights NA). Individual NA weights are permitted.
-2. Uses error classes `surveycore_error_*` — NOT `surveyweights_error_*`
+2. Uses error classes `surveycore_error_*` — NOT `surveywts_error_*`
 
 The spec's §V validator and test plan both assert:
-- Test #8: validator rejects non-positive weights → `class = "surveyweights_error_weights_nonpositive"` (actual class: `surveycore_error_weights_nonpositive`)
-- Test #9: validator rejects NA in weight column → `class = "surveyweights_error_weights_na"` (surveycore's validator does NOT reject individual NAs — it only rejects all-NA)
+- Test #8: validator rejects non-positive weights → `class = "surveywts_error_weights_nonpositive"` (actual class: `surveycore_error_weights_nonpositive`)
+- Test #9: validator rejects NA in weight column → `class = "surveywts_error_weights_na"` (surveycore's validator does NOT reject individual NAs — it only rejects all-NA)
 
-If surveyweights uses `surveycore::survey_calibrated` (Resolution A from Issue 29), both tests are wrong: wrong error classes (surveycore's not surveyweights'), and test #9 cannot pass because the NA rejection behavior specified doesn't exist.
+If surveywts uses `surveycore::survey_calibrated` (Resolution A from Issue 29), both tests are wrong: wrong error classes (surveycore's not surveywts'), and test #9 cannot pass because the NA rejection behavior specified doesn't exist.
 
 Options:
 - **[A]** If using surveycore's class (Issue 29 option A): update test items #8 and #9 to use `surveycore_error_*` class names; remove test #9 or change it to test "all-NA weights rejected" instead of "single NA rejected"; accept that per-NA validation happens at the function call level, not the class validator — Effort: low, Risk: low, Impact: correct tests
-- **[B]** If defining a surveyweights subclass (Issue 29 option B): add a surveyweights-specific validator that enforces NA rejection and uses `surveyweights_error_*` classes — Effort: medium, Risk: low, Impact: spec's validator tests work as written
+- **[B]** If defining a surveywts subclass (Issue 29 option B): add a surveywts-specific validator that enforces NA rejection and uses `surveywts_error_*` classes — Effort: medium, Risk: low, Impact: spec's validator tests work as written
 - **[C] Do nothing** — Tests will fail; NA protection is silently absent if surveycore's class is used
 
 **Recommendation: A** — Consistent with Issue 29 recommendation. The function-level validation (`.validate_weights()`) already enforces NA rejection before any calibrated object is created; the class validator doesn't need to duplicate it.
@@ -758,12 +758,12 @@ Severity: REQUIRED
 Violates `engineering-preferences.md §4` — edge case behavior (NA weights, zero weights) must be explicitly specified.
 
 Section X lists these errors for `effective_sample_size()`, `weight_variability()`, `summarize_weights()`:
-- `surveyweights_error_unsupported_class`
-- `surveyweights_error_weights_required`
-- `surveyweights_error_weights_not_found`
-- `surveyweights_error_weights_not_numeric`
+- `surveywts_error_unsupported_class`
+- `surveywts_error_weights_required`
+- `surveywts_error_weights_not_found`
+- `surveywts_error_weights_not_numeric`
 
-Notably absent: `surveyweights_error_weights_nonpositive` and `surveyweights_error_weights_na`. Two scenarios are possible:
+Notably absent: `surveywts_error_weights_nonpositive` and `surveywts_error_weights_na`. Two scenarios are possible:
 
 1. **Diagnostics call `.validate_weights()`** → these errors ARE thrown but are missing from the error table and test plan (a spec omission)
 2. **Diagnostics do NOT call `.validate_weights()`** → NA weights would silently produce `NA` ESS/CV; nonpositive weights would produce meaningless statistics (this may be intentional for diagnostics as "inspect-any-weights" tools)
@@ -785,7 +785,7 @@ Options:
 Severity: REQUIRED
 Internal spec inconsistency: §VII specifies anesrake convergence criterion (chi-square improvement) but §XII.C error message references epsilon/margin-error (survey method criterion).
 
-§XII.C `surveyweights_error_calibration_not_converged` message for `rake()`:
+§XII.C `surveywts_error_calibration_not_converged` message for `rake()`:
 ```
 x: Raking did not converge after {control$maxit} full sweeps.
 i: Maximum margin error: {max_error} (tolerance: {control$epsilon}).
@@ -793,7 +793,7 @@ v: Increase {.code control$maxit}, relax {.code control$epsilon}, or verify marg
 ```
 
 For `method = "survey"` this is correct. For `method = "anesrake"` (the **default method**):
-- `control$epsilon` doesn't exist (triggers `surveyweights_warning_control_param_ignored` if set)
+- `control$epsilon` doesn't exist (triggers `surveywts_warning_control_param_ignored` if set)
 - "Maximum margin error" is not the convergence metric — chi-square improvement is
 - `v` bullet telling users to "relax `control$epsilon`" actively misleads them
 
@@ -827,7 +827,7 @@ Also: if `control$min_cell_n > 0` excludes all variables from raking entirely (a
 
 Options:
 - **[A]** Specify: if all variables pass chi-square threshold in sweep 1, this is convergence (success) with `convergence$converged = TRUE, convergence$iterations = 1L, convergence$max_error = 0`. `control$maxit = 0` remains a separate error per §II.d — Effort: trivial, Risk: low, Impact: explicit behavior
-- **[B]** Specify: if no variables are selected in any sweep (either all pass chi-square OR all excluded by min_cell_n), issue `surveyweights_warning_no_variables_raked` and return weights unchanged — Effort: low, Risk: low, Impact: more defensive; warns user that nothing happened
+- **[B]** Specify: if no variables are selected in any sweep (either all pass chi-square OR all excluded by min_cell_n), issue `surveywts_warning_no_variables_raked` and return weights unchanged — Effort: low, Risk: low, Impact: more defensive; warns user that nothing happened
 - **[C] Do nothing** — Edge case behavior is undefined; implementer decides
 
 **Recommendation: A** — Immediate convergence is the correct interpretation. "Already calibrated" is a valid and common state. Add to §VII behavior rules.
@@ -956,7 +956,7 @@ Options:
 - GAP #5: Already handled by test item 5b and quality gate
 - GAP #6: See Issue 39 (SUGGESTION)
 
-**Overall assessment:** Three passes of intensive review have progressively tightened this spec. The most critical finding of Pass 3 is Issue 29: `surveycore` already owns `survey_calibrated` with a different structure than the spec assumes — defining a parallel class in surveyweights would create ecosystem fragmentation. Resolving this architectural question (use surveycore's class vs. define a new one) unlocks resolution of Issues 30 and 38 as well. The remaining issues are either mechanical fixes (add anesrake to Suggests, fix error message for anesrake convergence, specify step increment rule) or are needed before the spec can be considered implementation-ready. Issue 31 (engine return type) is a clean internal inconsistency with a clear fix. The spec remains excellent in breadth and detail — these are edge-of-the-design issues, not structural failures.
+**Overall assessment:** Three passes of intensive review have progressively tightened this spec. The most critical finding of Pass 3 is Issue 29: `surveycore` already owns `survey_calibrated` with a different structure than the spec assumes — defining a parallel class in surveywts would create ecosystem fragmentation. Resolving this architectural question (use surveycore's class vs. define a new one) unlocks resolution of Issues 30 and 38 as well. The remaining issues are either mechanical fixes (add anesrake to Suggests, fix error message for anesrake convergence, specify step increment rule) or are needed before the spec can be considered implementation-ready. Issue 31 (engine return type) is a clean internal inconsistency with a clear fix. The spec remains excellent in breadth and detail — these are edge-of-the-design issues, not structural failures.
 
 ### Resolution Status (Pass 3)
 
@@ -969,7 +969,7 @@ Options:
 | 33 | `step` increment rule not specified | ✅ Resolved — explicit rule added to §IV |
 | 34 | Diagnostic functions don't specify `.validate_weights()` — two error classes missing | ✅ Resolved — diagnostics call `.validate_weights()`; error table and tests updated |
 | 35 | `rake()` convergence error message incorrect for `method = "anesrake"` | ✅ Resolved — method-dependent message templates added to §XII.C |
-| 36 | `rake()` anesrake: behavior undefined when all variables pass chi-square threshold | ✅ Resolved — immediate convergence = success; `surveyweights_message_already_calibrated` emitted |
+| 36 | `rake()` anesrake: behavior undefined when all variables pass chi-square threshold | ✅ Resolved — immediate convergence = success; `surveywts_message_already_calibrated` emitted |
 | 37 | `adjust_nonresponse()` output doesn't specify whether `response_status` column retained | ⏸ Deferred — `adjust_nonresponse()` output contract review to its own session |
 | 38 | `.update_survey_weights(output_class = "survey_calibrated")` is dead code | ✅ Resolved — `output_class` parameter removed from spec |
 | 39 | `.calibrate_engine()` `calibration_spec` missing anesrake-specific fields | ✅ Resolved — noted that anesrake params travel through `control`, not `calibration_spec` |
@@ -988,7 +988,7 @@ This pass audits the §XIII test catalog against the spec's own behavior rules. 
 
 **Issue 40: `control$maxit = 0` has no test item in `calibrate()` or `rake()` test lists**
 Severity: BLOCKING
-§II.d explicitly states: "`control$maxit = 0` is treated as invalid: the algorithm never runs and immediately throws `surveyweights_error_calibration_not_converged` **with a note that 0 iterations means no calibration was attempted**." This is a distinct trigger with distinct message text from the ordinary non-convergence case (existing items 14 for calibrate, 17 for rake). If only the ordinary non-convergence case is tested, an implementer who handles `maxit = 0` generically (falling through to the same error path without the specific note) will pass all tests while the API contract is silently broken.
+§II.d explicitly states: "`control$maxit = 0` is treated as invalid: the algorithm never runs and immediately throws `surveywts_error_calibration_not_converged` **with a note that 0 iterations means no calibration was attempted**." This is a distinct trigger with distinct message text from the ordinary non-convergence case (existing items 14 for calibrate, 17 for rake). If only the ordinary non-convergence case is tested, an implementer who handles `maxit = 0` generically (falling through to the same error path without the specific note) will pass all tests while the API contract is silently broken.
 
 Options:
 - **[A]** Add test items to both functions' §XIII test lists: `# 14b. Error — calibration_not_converged triggered by control$maxit = 0 (distinct message note)` for calibrate() and a matching item for rake() — Effort: trivial, Risk: low, Impact: contract verified; snapshot tests will catch message differences
@@ -1087,7 +1087,7 @@ Options:
 
 **Issue 47: Logical `response_status` has no happy path test**
 Severity: REQUIRED
-§IX states: "Must be `logical` or integer `0`/`1`. `1`/`TRUE` = respondent." `make_surveyweights_data()` generates `responded` as integer. All happy path tests will therefore use integer. The logical type is an explicitly supported path with no test item. Item 10 tests bad types (triggers `response_status_not_binary`); item 10b tests factors. But correct handling of `TRUE`/`FALSE` is assumed, never verified.
+§IX states: "Must be `logical` or integer `0`/`1`. `1`/`TRUE` = respondent." `make_surveywts_data()` generates `responded` as integer. All happy path tests will therefore use integer. The logical type is an explicitly supported path with no test item. Item 10 tests bad types (triggers `response_status_not_binary`); item 10b tests factors. But correct handling of `TRUE`/`FALSE` is assumed, never verified.
 
 Options:
 - **[A]** Add test item `# 1b. Happy path — logical response_status (TRUE/FALSE; convert integer column to logical before calling)` — Effort: trivial, Risk: low
@@ -1115,7 +1115,7 @@ Options:
 
 **Issue 49: All-equal weights edge case missing from diagnostics tests**
 Severity: REQUIRED
-When all weights are equal, ESS = n exactly and CV = 0 exactly — these are mathematical identities that validate the formula implementation. `make_surveyweights_data()` produces log-normal weights; item 1's hand-calculation test uses non-equal weights. The all-equal case verifies the formula reduces correctly at its boundary. Neither `effective_sample_size()` nor `weight_variability()` has this test.
+When all weights are equal, ESS = n exactly and CV = 0 exactly — these are mathematical identities that validate the formula implementation. `make_surveywts_data()` produces log-normal weights; item 1's hand-calculation test uses non-equal weights. The all-equal case verifies the formula reduces correctly at its boundary. Neither `effective_sample_size()` nor `weight_variability()` has this test.
 
 Options:
 - **[A]** Add test item `# 1b. All-equal weights — ESS = n and CV = 0 exactly (rep(1, n) or rep(k, n))` for both `effective_sample_size()` and `weight_variability()` — Effort: trivial, Risk: low
@@ -1146,7 +1146,7 @@ Severity: REQUIRED
 §IV.5 defines 8 fields per history entry: `step`, `operation`, `timestamp`, `call`, `parameters`, `weight_stats`, `convergence`, `package_version`. History test items for all four functions only say "correct structure." Critically, `convergence` must be `NULL` for `poststratify()` and `adjust_nonresponse()` (non-iterative) and a populated list for `calibrate()` and `rake()`. If an implementer forgets to pass `convergence = NULL` for non-iterative functions, the history format is wrong but no test will catch it. Similarly, `package_version` being a non-empty character string is never verified.
 
 Options:
-- **[A]** Expand history structure test items to explicitly assert: (1) `convergence` is `NULL` for `poststratify()` and `adjust_nonresponse()`, (2) `convergence` is a list for `calibrate()` and `rake()`, (3) `package_version` is `as.character(packageVersion("surveyweights"))`, (4) `timestamp` is POSIXct — Effort: low, Risk: low
+- **[A]** Expand history structure test items to explicitly assert: (1) `convergence` is `NULL` for `poststratify()` and `adjust_nonresponse()`, (2) `convergence` is a list for `calibrate()` and `rake()`, (3) `package_version` is `as.character(packageVersion("surveywts"))`, (4) `timestamp` is POSIXct — Effort: low, Risk: low
 - **[B] Do nothing** — "correct structure" is sufficient; `NULL` vs list is an implementation detail
 
 **Recommendation: A** — The `convergence = NULL` distinction is a spec-defined behavioral contract, not an implementation detail. The history format is the primary audit trail for the package's value proposition.
@@ -1174,7 +1174,7 @@ Severity: SUGGESTION
 Item 26b tests the "already calibrated" message when all variables pass the chi-square threshold. But §VII rule 8 specifies the same message fires when variables are "excluded by `control$min_cell_n`." These are two distinct code paths in the anesrake engine leading to the same outcome. A bug that breaks the `min_cell_n` exclusion path (e.g., it skips the variable's sweep rather than counting it as "already calibrated") would not be caught by item 26b.
 
 Options:
-- **[A]** Add test item `# 26c. Message — already_calibrated via min_cell_n exclusion: set control$min_cell_n very large so all variables are excluded; verify surveyweights_message_already_calibrated is emitted` — Effort: low, Risk: low
+- **[A]** Add test item `# 26c. Message — already_calibrated via min_cell_n exclusion: set control$min_cell_n very large so all variables are excluded; verify surveywts_message_already_calibrated is emitted` — Effort: low, Risk: low
 - **[B] Do nothing** — items 26b is sufficient; the distinction is an internal engine detail
 
 **Recommendation: A** — Both paths lead to the same message but through different logic. Forty lines of test setup, zero risk.

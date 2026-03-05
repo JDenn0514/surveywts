@@ -5,7 +5,7 @@ New section goes at the **very top** of `NEWS.md`, above any existing header.
 ## Template
 
 ```markdown
-# surveyweights X.Y.Z
+# surveywts X.Y.Z
 
 ## New features
 

@@ -12,7 +12,7 @@ description: >
 
 # Surveyverse Spec Workflow
 
-This skill governs spec work for surveyweights.
+This skill governs spec work for surveywts.
 Three stages, always in order:
 
 1. **Stage 1 — Draft:** Write the spec sheet
@@ -59,9 +59,9 @@ Every stage works alongside — never instead of — these rule files:
 |---|---|
 | `code-style.md` | Indentation, pipe, air formatter, S7 patterns, cli error structure, argument order, helper placement |
 | `r-package-conventions.md` | `::` usage, NAMESPACE, roxygen2, `@return`, `@examples`, export policy |
-| `surveyweights-conventions.md` | Package-specific naming patterns, `@family` groups, return visibility, export policy |
+| `surveywts-conventions.md` | Package-specific naming patterns, `@family` groups, return visibility, export policy |
 | `testing-standards.md` | `test_that()` scope, 98% coverage, assertion patterns, data generators |
-| `testing-surveyweights.md` | `test_invariants()`, layer 1 vs layer 3 error testing, data generators, numerical tolerances |
+| `testing-surveywts.md` | `test_invariants()`, layer 1 vs layer 3 error testing, data generators, numerical tolerances |
 
 When a spec decision touches one of these rules, cite the rule file. When the
 spec is silent on something these rules already define, note that the rule is

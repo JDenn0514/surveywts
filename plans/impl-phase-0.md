@@ -10,7 +10,7 @@
 
 ## Overview
 
-This plan delivers Phase 0 of surveyweights: the `weighted_df` S3 class,
+This plan delivers Phase 0 of surveywts: the `weighted_df` S3 class,
 the `survey_calibrated` S7 class, three calibration functions
 (`calibrate()`, `rake()`, `poststratify()`), one nonresponse function
 (`adjust_nonresponse()`), and three diagnostics (`effective_sample_size()`,
@@ -23,7 +23,7 @@ used by two or more source files live in `R/07-utils.R`.
 > **Note:** The source file organization below supersedes spec §II, which listed
 > all calibration functions in a single `02-calibrate.R`. The per-function split
 > adopted here renumbers `nonresponse.R` (was 03, now 05) and `diagnostics.R`
-> (was 04, now 06). The `testing-surveyweights.md` update in PR 2 will reflect
+> (was 04, now 06). The `testing-surveywts.md` update in PR 2 will reflect
 > the updated file map.
 
 ### Source File Organization
@@ -44,7 +44,7 @@ R/
 ├── vendor/
 │   ├── calibrate-greg.R # Vendored GREG/logit calibration from survey::calibrate()
 │   └── calibrate-ipf.R  # Vendored IPF/raking from survey::rake()
-└── surveyweights-package.R
+└── surveywts-package.R
 tests/testthat/
 ├── helper-test-data.R
 ├── test-00-classes.R
@@ -129,7 +129,7 @@ to exist. PRs 8 and 9 also depend only on PR 4.
 - `R/vendor/calibrate-greg.R` — vendored GREG/logit calibration
 - `R/vendor/calibrate-ipf.R` — vendored IPF/raking
 - `VENDORED.md` — attribution record at repo root
-- `R/surveyweights-package.R` — replace TODO stubs with proper package docs
+- `R/surveywts-package.R` — replace TODO stubs with proper package docs
 
 **Acceptance criteria:**
 - [x] All new tests confirmed failing (red) before implementation began
@@ -148,7 +148,7 @@ to exist. PRs 8 and 9 also depend only on PR 4.
 - [x] `R/vendor/calibrate-ipf.R` has attribution comment block (same format)
 - [x] `VENDORED.md` created at repo root; attributes both vendored files with
   package, version, function name, license, and algorithm description
-- [x] `R/surveyweights-package.R` updated with real description and Key Functions
+- [x] `R/surveywts-package.R` updated with real description and Key Functions
   section listing all exported functions
 
 **Notes:**
@@ -156,8 +156,8 @@ to exist. PRs 8 and 9 also depend only on PR 4.
   user-facing exported functions. `changelog/phase-0/` feeds NEWS.md; internal
   infrastructure does not belong there. Changelog entries begin with PR 5.
 - `.onLoad()` calling `S7::methods_register()` already exists in `R/zzz.R`.
-  The spec intends it in `surveyweights-package.R` but `zzz.R` is equivalent
-  and correct. Do not duplicate it; update `surveyweights-package.R` with
+  The spec intends it in `surveywts-package.R` but `zzz.R` is equivalent
+  and correct. Do not duplicate it; update `surveywts-package.R` with
   documentation only.
 - Vendored algorithms must remain mathematically identical to their source;
   only rename internal variables and remove unused dependencies as needed.
@@ -173,39 +173,39 @@ to exist. PRs 8 and 9 also depend only on PR 4.
 **Depends on:** PR 1
 
 **Files (in TDD order — no test file; helpers are tested indirectly):**
-- `tests/testthat/helper-test-data.R` — `make_surveyweights_data()` and
+- `tests/testthat/helper-test-data.R` — `make_surveywts_data()` and
   `test_invariants()`
 
 **Before opening PR 2** (direct commits to `develop`, no branch needed):
-- `.claude/rules/surveyweights-conventions.md` — fill in stubs with Phase 0
+- `.claude/rules/surveywts-conventions.md` — fill in stubs with Phase 0
   naming patterns
-- `.claude/rules/testing-surveyweights.md` — fill in stubs with
-  `test_invariants()` definition, `make_surveyweights_data()` spec, file map,
+- `.claude/rules/testing-surveywts.md` — fill in stubs with
+  `test_invariants()` definition, `make_surveywts_data()` spec, file map,
   and numerical tolerance table
 
 **Acceptance criteria:**
 - [x] All new tests confirmed failing (red) before implementation began
 - [x] `devtools::check()` 0 errors, 0 warnings, ≤2 pre-approved notes
 - [x] `devtools::document()` run; NAMESPACE and man/ in sync
-- [x] `make_surveyweights_data(n = 500, seed = 42)` produces a data.frame with
+- [x] `make_surveywts_data(n = 500, seed = 42)` produces a data.frame with
   columns: `id` (integer), `age_group` (character), `sex` (character),
   `education` (character), `region` (character), `base_weight` (positive numeric)
-- [x] `make_surveyweights_data(include_nonrespondents = TRUE)` adds `responded`
+- [x] `make_surveywts_data(include_nonrespondents = TRUE)` adds `responded`
   column (integer 0/1) with realistic split (≥ 20% nonrespondents)
 - [x] `test_invariants()` defined exactly as in spec §XIII (checks `weighted_df`
   and `survey_calibrated` invariants; uses `S7::S7_inherits()`, not `inherits()`)
-- [x] `.claude/rules/surveyweights-conventions.md` and
-  `.claude/rules/testing-surveyweights.md` committed directly to `develop`
+- [x] `.claude/rules/surveywts-conventions.md` and
+  `.claude/rules/testing-surveywts.md` committed directly to `develop`
   before opening this PR (not part of the feature branch diff)
 
 **Notes:**
-- `make_surveyweights_data()` must produce realistic imbalance — not equal-sized
+- `make_surveywts_data()` must produce realistic imbalance — not equal-sized
   groups. Use `set.seed(seed)` at the top; use `sample(...)` with unequal
   `prob =` arguments for demographic groups.
 - `test_invariants()` must reference the exported `survey_calibrated` class
   object by name. It will not yet be available at testthat load time; use
   `if (exists("survey_calibrated"))` guard for the S7 branch until PR 3 lands.
-- The file map in `testing-surveyweights.md` must reflect the split file
+- The file map in `testing-surveywts.md` must reflect the split file
   structure from this plan, not the single-file structure in spec §II.
 
 ---
@@ -239,7 +239,7 @@ to exist. PRs 8 and 9 also depend only on PR 4.
   2e. `dplyr_reconstruct` via `mutate()` not touching weight col → `weighted_df`
   2f. `dplyr_reconstruct` via `mutate()` modifying weight values → `weighted_df`
   2g. `dplyr_reconstruct` via `mutate(.keep = "unused")` dropping weight col → warning + plain tibble
-  3. Warning class is `surveyweights_warning_weight_col_dropped`
+  3. Warning class is `surveywts_warning_weight_col_dropped`
   4. `print.weighted_df` snapshot with 2-step history (matches verbatim in spec §IV)
   4b. `print.weighted_df` snapshot with empty history → `# Weighting history: none`
   5. History is empty list on initial creation
@@ -308,8 +308,8 @@ to exist. PRs 8 and 9 also depend only on PR 4.
 - `.validate_weights(data, weight_col)` — validates existence, type, positivity, no NA
 - `.validate_calibration_variables(data, variable_names, context)` — checks
   that each column in `variable_names` is character or factor (throws
-  `surveyweights_error_variable_not_categorical`) and contains no NAs (throws
-  `surveyweights_error_variable_has_na`); `context` is `"Calibration"` or
+  `surveywts_error_variable_not_categorical`) and contains no NAs (throws
+  `surveywts_error_variable_has_na`); `context` is `"Calibration"` or
   `"Raking"` and appears in the error message; used by `calibrate()` and `rake()`
 - `.validate_population_marginals(population, variable_names, data, type)` —
   validates named-list population targets; used by `calibrate()` and `rake()`
@@ -332,8 +332,8 @@ to exist. PRs 8 and 9 also depend only on PR 4.
 - [ ] `devtools::document()` run; NAMESPACE and man/ in sync
 - [ ] All 9 shared helpers implemented with signatures matching spec §XI
 - [ ] `.validate_calibration_variables(data, variable_names, context)` implemented with
-  signature matching spec §XI; throws `surveyweights_error_variable_not_categorical`
-  for non-character/non-factor columns and `surveyweights_error_variable_has_na`
+  signature matching spec §XI; throws `surveywts_error_variable_not_categorical`
+  for non-character/non-factor columns and `surveywts_error_variable_has_na`
   for columns with NAs; `context` parameter (`"Calibration"` / `"Raking"`) appears
   in the error message text
 - [ ] `.validate_weights()` throws all 4 typed errors from spec §XII.A:
@@ -345,7 +345,7 @@ to exist. PRs 8 and 9 also depend only on PR 4.
 - [ ] `.calibrate_engine()` accepts `method = c("linear", "logit", "ipf",
   "poststratify")` and delegates to the appropriate vendored algorithm
 - [ ] `.make_history_entry()` produces a list matching spec §IV.5 including
-  `package_version = as.character(packageVersion("surveyweights"))`
+  `package_version = as.character(packageVersion("surveywts"))`
 - [ ] `.update_survey_weights()` takes exactly 3 arguments (`design`,
   `new_weights_vec`, `history_entry`) — no `output_class` parameter; only
   `adjust_nonresponse()` calls it; calibration functions use
@@ -412,7 +412,7 @@ to exist. PRs 8 and 9 also depend only on PR 4.
   `expect_snapshot(error=TRUE)`); warning tests (item 15) use
   `expect_warning(class =)` + `expect_snapshot()`
 - [ ] `test_invariants()` called in every happy path test block
-- [ ] `make_surveyweights_data()` used in all non-edge-case test blocks
+- [ ] `make_surveywts_data()` used in all non-edge-case test blocks
 - [ ] Argument order: `data, variables, population, weights, method, type, control`
 - [ ] `method = "logit"` delegates to vendored logit calibration
 - [ ] History operation label is exactly `"calibration"`
@@ -425,9 +425,9 @@ to exist. PRs 8 and 9 also depend only on PR 4.
   function body is primarily orchestration: validate → compute before-stats →
   call `.calibrate_engine()` → compute after-stats → build history entry →
   return output.
-- `surveyweights_error_calibration_not_converged` is thrown by
+- `surveywts_error_calibration_not_converged` is thrown by
   `.calibrate_engine()`, not by `calibrate()` directly.
-- `surveyweights_error_population_level_extra` is thrown by
+- `surveywts_error_population_level_extra` is thrown by
   `.validate_population_marginals()` in `07-utils.R`.
 
 ---
@@ -450,7 +450,7 @@ to exist. PRs 8 and 9 also depend only on PR 4.
 `.parse_margins(margins)` — converts Format B (long data.frame with `variable`,
 `level`, `target` columns) to Format A (named list). Called at the top of
 `rake()` after format validation. Returns a named list; errors with
-`surveyweights_error_margins_format_invalid` if `margins` is neither valid format.
+`surveywts_error_margins_format_invalid` if `margins` is neither valid format.
 
 **Acceptance criteria:**
 - [ ] All new tests confirmed failing (red) before implementation began
@@ -480,8 +480,8 @@ to exist. PRs 8 and 9 also depend only on PR 4.
   - Warnings: control_param_ignored (pval with survey; epsilon with anesrake)
   - Item 23: `control$variable_select = "max"` vs `"total"`
   - Item 23b: `control$variable_select = "average"` produces valid calibrated weights
-  - Item 26b: `surveyweights_message_already_calibrated` via chi-square threshold
-  - Item 26c: `surveyweights_message_already_calibrated` via min_cell_n exclusion
+  - Item 26b: `surveywts_message_already_calibrated` via chi-square threshold
+  - Item 26c: `surveywts_message_already_calibrated` via min_cell_n exclusion
   - Edge: single margin
   - History: full §IV.5 structure (step, operation, timestamp POSIXct, call,
     parameters including method/cap/resolved control, weight_stats before/after,
@@ -493,7 +493,7 @@ to exist. PRs 8 and 9 also depend only on PR 4.
 - [ ] All error tests use dual pattern; warning tests use `expect_warning(class =)` +
   `expect_snapshot()`
 - [ ] `test_invariants()` called in every happy path test block
-- [ ] `make_surveyweights_data()` used in all non-edge-case test blocks
+- [ ] `make_surveywts_data()` used in all non-edge-case test blocks
 - [ ] Argument order: `data, margins, weights, type, method, cap, control`
 - [ ] Default `method = "anesrake"` (first element of character vector)
 - [ ] `control = list()` in signature; method-appropriate defaults applied internally
@@ -503,7 +503,7 @@ to exist. PRs 8 and 9 also depend only on PR 4.
 - [ ] When `cap` is non-`NULL`, cap applied at each IPF step (`w / mean(w) > cap`
   → `w = cap × mean(w)`); documented in function `@details`
 - [ ] Method-specific control params passed to wrong method trigger
-  `surveyweights_warning_control_param_ignored` (one warning per ignored param)
+  `surveywts_warning_control_param_ignored` (one warning per ignored param)
 - [ ] `R/vendor/rake-anesrake.R` carries full attribution comment block:
   source package (`anesrake`), version, authors (Pasek & Tahk), license (GPL-2+),
   function name, and algorithm description
@@ -575,14 +575,14 @@ row, no extra population cells, target values valid for the given `type`. Return
     convergence == NULL, package_version); step increment
 - [ ] All error tests use dual pattern
 - [ ] `test_invariants()` called in every happy path test block
-- [ ] `make_surveyweights_data()` used in all non-edge-case test blocks
+- [ ] `make_surveywts_data()` used in all non-edge-case test blocks
 - [ ] Argument order: `data, strata, population, weights, type`
 - [ ] No categorical restriction on strata variables (Issue 7 resolution);
   numeric/integer strata are valid cell keys
 - [ ] Post-stratification formula is exact:
   `w_new = w * (N_h / N_hat_h)` per spec §VIII
 - [ ] `.validate_population_cells()` checks for duplicate rows in `population` and
-  throws `surveyweights_error_population_cell_duplicate`; test item 8d passes
+  throws `surveywts_error_population_cell_duplicate`; test item 8d passes
 - [ ] History operation label is exactly `"poststratify"`
 - [ ] Changelog entry written and committed on this branch
 
@@ -591,7 +591,7 @@ row, no extra population cells, target values valid for the given `type`. Return
   only `poststratify()` calls it. Unlike `.validate_population_marginals()`
   (which is shared with `calibrate()`), cell validation is join-based and
   not applicable to the other calibration functions.
-- `surveyweights_error_population_cell_not_in_data` (extra cells in population)
+- `surveywts_error_population_cell_not_in_data` (extra cells in population)
   is thrown by `.validate_population_cells()` — this was resolved as an error,
   not a warning (Issue 4, Option A).
 - The `empty_stratum` error condition (zero weighted count in a cell) is
@@ -620,7 +620,7 @@ row, no extra population cells, target values valid for the given `type`. Return
 - [ ] Dual pattern on all Layer 3 errors; all 7 function-specific error classes
   and 1 warning class in spec §XII.E tested
 - [ ] `test_invariants()` called in every happy path test block
-- [ ] `make_surveyweights_data(include_nonrespondents = TRUE)` used for main
+- [ ] `make_surveywts_data(include_nonrespondents = TRUE)` used for main
   happy path tests
 - [ ] Item 1: assert `attr(result, "weight_col") == ".weight"` when `weights = NULL`
 - [ ] Item 1b: logical TRUE/FALSE `response_status` produces same output as integer
@@ -641,10 +641,10 @@ row, no extra population cells, target values valid for the given `type`. Return
 - [ ] Output contains only respondent rows (`response_status == 1`)
 - [ ] Argument order: `data, response_status, weights, by, method, control`
 - [ ] Does NOT change the variance class for survey objects (spec §I)
-- [ ] `method = "propensity"` → `surveyweights_error_propensity_requires_phase2`
+- [ ] `method = "propensity"` → `surveywts_error_propensity_requires_phase2`
   (API-stable Phase 2 stub)
 - [ ] Warning thresholds: `control$min_cell = 20`, `control$max_adjust = 2.0`;
-  either condition alone triggers `surveyweights_warning_class_near_empty`
+  either condition alone triggers `surveywts_warning_class_near_empty`
 - [ ] Separate test blocks for count-trigger (item 14) and factor-trigger (14b)
 - [ ] History operation label is exactly `"nonresponse_weighting_class"`
 - [ ] Changelog entry written and committed on this branch
@@ -687,7 +687,7 @@ row, no extra population cells, target values valid for the given `type`. Return
   from item 3 (`survey_calibrated`) — `survey_taylor` uses `@variables$weights`
   and is a distinct code path
 - [ ] `unsupported_class` tested (item 5b): throw
-  `surveyweights_error_unsupported_class` for matrix/list input
+  `surveywts_error_unsupported_class` for matrix/list input
 - [ ] `effective_sample_size()` returns named scalar `c(n_eff = <value>)`;
   name `"n_eff"` is part of the API contract
 - [ ] `weight_variability()` returns named scalar `c(cv = <value>)`;
@@ -726,7 +726,7 @@ Before opening the release PR (`develop` → `main`), all of the following must 
 - [ ] All snapshot tests pass (`testthat::snapshot_review()` clean)
 - [ ] `air::format_package()` produces no diffs
 - [ ] `test_invariants()` is called in every constructor test block
-- [ ] `make_surveyweights_data()` is used in all non-edge-case test blocks
+- [ ] `make_surveywts_data()` is used in all non-edge-case test blocks
 - [ ] `calibrate()`, `rake()` (`method = "survey"`), `poststratify()` have numerical
   correctness tests against `survey` package (`skip_if_not_installed("survey")` inside
   each relevant `test_that()` block)
@@ -738,7 +738,7 @@ Before opening the release PR (`develop` → `main`), all of the following must 
 - [ ] `VENDORED.md` is created and attributes all vendored code
 - [ ] Reference for `adjust_nonresponse()` is documented in `VENDORED.md`
   (hand-calculation validation methodology)
-- [ ] `surveyweights-conventions.md` stub is filled in with Phase 0 conventions
-- [ ] `testing-surveyweights.md` stub is filled in with `test_invariants()`
-  definition, `make_surveyweights_data()` spec, and updated file map
+- [ ] `surveywts-conventions.md` stub is filled in with Phase 0 conventions
+- [ ] `testing-surveywts.md` stub is filled in with `test_invariants()`
+  definition, `make_surveywts_data()` spec, and updated file map
 - [ ] Surveycore prerequisite PR is merged before any PR that uses survey objects

@@ -1,4 +1,4 @@
-# surveyweights Code Style Guide
+# surveywts Code Style Guide
 
 **Version:** 1.0
 **Created:** February 2025
@@ -22,7 +22,7 @@
 | Getter return values | Visible (no `invisible()`) |
 | Argument order | `x`/`data` first → required NSE → required scalar → optional NSE → optional scalar → `...` |
 | Internal helper placement | Inline if used in 1 file; shared utils file if used in 2+ files |
-| Dispatch rule | `S7::method()` for extending existing generics; plain function + `S7::S7_inherits()` for surveyweights-owned generics |
+| Dispatch rule | `S7::method()` for extending existing generics; plain function + `S7::S7_inherits()` for surveywts-owned generics |
 | Error structure | `"x"` + `"i"` + optional `"v"` bullets; `class=` on every `cli_abort()` |
 | Warning classes | `class=` on every `cli_warn()` too |
 | Message language | Declarative for `"x"`/`"i"` bullets; imperative for `"v"` bullet |
@@ -83,7 +83,7 @@ cli::cli_abort(
     "i" = "Got class {.cls {class(wt_col)}}.",
     "v" = "Use {.code as.numeric({.field {weights_var}})} to convert."
   ),
-  class = "surveyweights_error_weights_not_numeric"
+  class = "surveywts_error_weights_not_numeric"
 )
 ```
 
@@ -196,7 +196,7 @@ cli::cli_abort(
     "i" = "Context or diagnosis.",                # Usually present
     "v" = "How to fix it (imperative)."           # When fixable
   ),
-  class = "surveyweights_error_{condition}"          # ALWAYS required
+  class = "surveywts_error_{condition}"          # ALWAYS required
 )
 ```
 
@@ -212,7 +212,7 @@ cli::cli_abort(
     "i" = "FPC must be fully observed for finite population correction.",
     "v" = "Remove rows with missing FPC or set {.arg fpc = NULL} to omit the correction."
   ),
-  class = "surveyweights_error_fpc_na"
+  class = "surveywts_error_fpc_na"
 )
 
 # Bad — no class, no context
@@ -229,7 +229,7 @@ cli::cli_warn(
     "i" = "Why this matters.",
     "i" = "What to do if this is unexpected."
   ),
-  class = "surveyweights_warning_{condition}"    # ALWAYS required
+  class = "surveywts_warning_{condition}"    # ALWAYS required
 )
 ```
 
@@ -242,19 +242,19 @@ The canonical list of all classes is in `plans/error-messages.md`. When adding a
 3. Add a corresponding `expect_error(class = ...)` test
 
 Class naming convention:
-- Errors: `"surveyweights_error_{snake_case_condition}"`
-- Warnings: `"surveyweights_warning_{snake_case_condition}"`
+- Errors: `"surveywts_error_{snake_case_condition}"`
+- Warnings: `"surveywts_warning_{snake_case_condition}"`
 
 ```r
 # Error class examples
-"surveyweights_error_not_data_frame"
-"surveyweights_error_weights_nonpositive"
-"surveyweights_error_subset_degenerate"
+"surveywts_error_not_data_frame"
+"surveywts_error_weights_nonpositive"
+"surveywts_error_subset_degenerate"
 
 # Warning class examples
-"surveyweights_warning_srs_no_weights"
-"surveyweights_warning_single_stratum"
-"surveyweights_warning_psu_multi_strata"
+"surveywts_warning_srs_no_weights"
+"surveywts_warning_single_stratum"
+"surveywts_warning_psu_multi_strata"
 ```
 
 ### cli inline markup
@@ -341,30 +341,30 @@ set_var_label <- function(x, var, label)
 | Situation | Use |
 |-----------|-----|
 | Extending an existing generic (`print`, `summary`, `format`, `rename`, `filter`, `select`, etc.) | `S7::method(generic, class) <- function(...) { }` |
-| Creating a new generic owned by surveyweights (e.g., own constructor or extractor functions) | Plain function + `S7::S7_inherits()` for type validation |
+| Creating a new generic owned by surveywts (e.g., own constructor or extractor functions) | Plain function + `S7::S7_inherits()` for type validation |
 
 **Important:** S3 dispatch does NOT work for S7 objects. S7 uses namespaced class names
-(`"surveyweights::my_class"`). `UseMethod()` would look for a method named
-`my_fn.surveyweights::my_class`, which is not a legal R function name.
+(`"surveywts::my_class"`). `UseMethod()` would look for a method named
+`my_fn.surveywts::my_class`, which is not a legal R function name.
 Use a plain function with explicit `S7::S7_inherits()` type checking instead.
 
 ```r
 # CORRECT — extending print (existing generic)
 S7::method(print, my_class) <- function(x, ...) { ... }
 
-# CORRECT — new surveyweights-owned generic
+# CORRECT — new surveywts-owned generic
 # Plain function; S7::S7_inherits() validates the type explicitly.
 my_fn <- function(x, ...) {
   if (!S7::S7_inherits(x, my_class)) {
     cli::cli_abort(
-      c("x" = "{.arg x} must be a surveyweights object."),
-      class = "surveyweights_error_not_weights_object"
+      c("x" = "{.arg x} must be a surveywts object."),
+      class = "surveywts_error_not_weights_object"
     )
   }
   # implementation
 }
 
-# WRONG — UseMethod() cannot find name.surveyweights::my_class methods
+# WRONG — UseMethod() cannot find name.surveywts::my_class methods
 my_fn <- function(x, ...) UseMethod("my_fn")
 my_fn.my_class <- function(x, ...) { ... }  # never dispatched
 

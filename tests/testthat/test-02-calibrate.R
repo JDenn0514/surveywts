@@ -49,7 +49,7 @@
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() returns weighted_df for data.frame input", {
-  df <- make_surveyweights_data(seed = 1)
+  df <- make_surveywts_data(seed = 1)
   pop <- .make_pop()
 
   result <- calibrate(df, variables = c(age_group, sex), population = pop)
@@ -65,7 +65,7 @@ test_that("calibrate() returns weighted_df for data.frame input", {
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() handles factor variables the same as character", {
-  df <- make_surveyweights_data(seed = 2)
+  df <- make_surveywts_data(seed = 2)
   df$age_group <- factor(df$age_group, levels = c("18-34", "35-54", "55+"))
   pop <- .make_pop()
 
@@ -80,7 +80,7 @@ test_that("calibrate() handles factor variables the same as character", {
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() returns survey_calibrated for survey_taylor input", {
-  df <- make_surveyweights_data(seed = 3)
+  df <- make_surveywts_data(seed = 3)
   design <- .make_test_taylor(df)
   pop <- .make_pop()
 
@@ -95,7 +95,7 @@ test_that("calibrate() returns survey_calibrated for survey_taylor input", {
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() calibrates all variables in population correctly", {
-  df <- make_surveyweights_data(seed = 4)
+  df <- make_surveywts_data(seed = 4)
   pop <- list(
     age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
     sex = c("M" = 0.48, "F" = 0.52),
@@ -129,7 +129,7 @@ test_that("calibrate() calibrates all variables in population correctly", {
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() on weighted_df accumulates weighting history", {
-  df <- make_surveyweights_data(seed = 5)
+  df <- make_surveywts_data(seed = 5)
   pop <- .make_pop()
 
   wdf <- calibrate(df, variables = c(age_group, sex), population = pop)
@@ -153,7 +153,7 @@ test_that("calibrate() on weighted_df accumulates weighting history", {
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() on survey_calibrated returns survey_calibrated", {
-  df <- make_surveyweights_data(seed = 6)
+  df <- make_surveywts_data(seed = 6)
   design <- .make_test_taylor(df)
   pop <- .make_pop()
 
@@ -177,7 +177,7 @@ test_that("calibrate() on survey_calibrated returns survey_calibrated", {
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() with method = 'logit' produces valid calibrated weights", {
-  df <- make_surveyweights_data(seed = 7)
+  df <- make_surveywts_data(seed = 7)
   pop <- .make_pop()
 
   result <- calibrate(df, variables = c(age_group, sex), population = pop,
@@ -194,7 +194,7 @@ test_that("calibrate() with method = 'logit' produces valid calibrated weights",
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() with type = 'count' accepts count targets", {
-  df <- make_surveyweights_data(n = 500, seed = 8)
+  df <- make_surveywts_data(n = 500, seed = 8)
   pop <- .make_pop("count")
 
   result <- calibrate(df, variables = c(age_group, sex), population = pop,
@@ -222,14 +222,14 @@ test_that("calibrate() matches survey::calibrate() within 1e-8 tolerance", {
   skip_if_not_installed("survey")
   skip_if_not_installed("MASS")
 
-  df <- make_surveyweights_data(n = 200, seed = 9)
+  df <- make_surveywts_data(n = 200, seed = 9)
   pop_prop <- list(
     age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
     sex = c("M" = 0.48, "F" = 0.52)
   )
   total_w <- sum(df$base_weight)
 
-  # surveyweights calibration
+  # surveywts calibration
   sw_result <- calibrate(
     df,
     variables = c(age_group, sex),
@@ -288,7 +288,7 @@ test_that("calibrate() rejects unsupported input class (SE-1)", {
   pop <- .make_pop()
   expect_error(
     calibrate(matrix(1:6, 2, 3), variables = c(age_group), population = pop),
-    class = "surveyweights_error_unsupported_class"
+    class = "surveywts_error_unsupported_class"
   )
   expect_snapshot(
     error = TRUE,
@@ -297,11 +297,11 @@ test_that("calibrate() rejects unsupported input class (SE-1)", {
 })
 
 test_that("calibrate() rejects 0-row data frame (SE-2)", {
-  df <- make_surveyweights_data(seed = 10)[0, ]
+  df <- make_surveywts_data(seed = 10)[0, ]
   pop <- .make_pop()
   expect_error(
     calibrate(df, variables = c(age_group, sex), population = pop),
-    class = "surveyweights_error_empty_data"
+    class = "surveywts_error_empty_data"
   )
   expect_snapshot(
     error = TRUE,
@@ -311,7 +311,7 @@ test_that("calibrate() rejects 0-row data frame (SE-2)", {
 
 test_that("calibrate() rejects survey_replicate input (SE-3)", {
   pop <- .make_pop()
-  df <- make_surveyweights_data(seed = 11)
+  df <- make_surveywts_data(seed = 11)
   meta <- surveycore::survey_metadata()
   rep_obj <- surveycore::survey_replicate(
     data = df,
@@ -326,7 +326,7 @@ test_that("calibrate() rejects survey_replicate input (SE-3)", {
   )
   expect_error(
     calibrate(rep_obj, variables = c(age_group, sex), population = pop),
-    class = "surveyweights_error_replicate_not_supported"
+    class = "surveywts_error_replicate_not_supported"
   )
   expect_snapshot(
     error = TRUE,
@@ -335,12 +335,12 @@ test_that("calibrate() rejects survey_replicate input (SE-3)", {
 })
 
 test_that("calibrate() rejects named weight column not in data (SE-4)", {
-  df <- make_surveyweights_data(seed = 12)
+  df <- make_surveywts_data(seed = 12)
   pop <- .make_pop()
   expect_error(
     calibrate(df, variables = c(age_group, sex), population = pop,
               weights = nonexistent_col),
-    class = "surveyweights_error_weights_not_found"
+    class = "surveywts_error_weights_not_found"
   )
   expect_snapshot(
     error = TRUE,
@@ -350,13 +350,13 @@ test_that("calibrate() rejects named weight column not in data (SE-4)", {
 })
 
 test_that("calibrate() rejects non-numeric weight column (SE-5)", {
-  df <- make_surveyweights_data(seed = 13)
+  df <- make_surveywts_data(seed = 13)
   df$chr_weight <- as.character(df$base_weight)
   pop <- .make_pop()
   expect_error(
     calibrate(df, variables = c(age_group, sex), population = pop,
               weights = chr_weight),
-    class = "surveyweights_error_weights_not_numeric"
+    class = "surveywts_error_weights_not_numeric"
   )
   expect_snapshot(
     error = TRUE,
@@ -366,13 +366,13 @@ test_that("calibrate() rejects non-numeric weight column (SE-5)", {
 })
 
 test_that("calibrate() rejects weight column with non-positive values (SE-6)", {
-  df <- make_surveyweights_data(seed = 14)
+  df <- make_surveywts_data(seed = 14)
   df$base_weight[1] <- 0
   pop <- .make_pop()
   expect_error(
     calibrate(df, variables = c(age_group, sex), population = pop,
               weights = base_weight),
-    class = "surveyweights_error_weights_nonpositive"
+    class = "surveywts_error_weights_nonpositive"
   )
   expect_snapshot(
     error = TRUE,
@@ -382,13 +382,13 @@ test_that("calibrate() rejects weight column with non-positive values (SE-6)", {
 })
 
 test_that("calibrate() rejects weight column with NA values (SE-7)", {
-  df <- make_surveyweights_data(seed = 15)
+  df <- make_surveywts_data(seed = 15)
   df$base_weight[2] <- NA_real_
   pop <- .make_pop()
   expect_error(
     calibrate(df, variables = c(age_group, sex), population = pop,
               weights = base_weight),
-    class = "surveyweights_error_weights_na"
+    class = "surveywts_error_weights_na"
   )
   expect_snapshot(
     error = TRUE,
@@ -398,13 +398,13 @@ test_that("calibrate() rejects weight column with NA values (SE-7)", {
 })
 
 test_that("calibrate() validation order: empty_data fires before weights_not_found (SE-8)", {
-  df <- make_surveyweights_data(seed = 16)[0, ]
+  df <- make_surveywts_data(seed = 16)[0, ]
   pop <- .make_pop()
   # 0-row data WITH a named but missing weight column: empty_data fires first
   expect_error(
     calibrate(df, variables = c(age_group, sex), population = pop,
               weights = nonexistent_col),
-    class = "surveyweights_error_empty_data"
+    class = "surveywts_error_empty_data"
   )
   expect_snapshot(
     error = TRUE,
@@ -418,13 +418,13 @@ test_that("calibrate() validation order: empty_data fires before weights_not_fou
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() rejects numeric calibration variable", {
-  df <- make_surveyweights_data(seed = 17)
+  df <- make_surveywts_data(seed = 17)
   df$num_var <- as.numeric(seq_len(nrow(df)))
   pop <- list(num_var = c("1" = 0.5, "2" = 0.5))
 
   expect_error(
     calibrate(df, variables = c(num_var), population = pop),
-    class = "surveyweights_error_variable_not_categorical"
+    class = "surveywts_error_variable_not_categorical"
   )
   expect_snapshot(
     error = TRUE,
@@ -437,13 +437,13 @@ test_that("calibrate() rejects numeric calibration variable", {
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() rejects calibration variable with NA values", {
-  df <- make_surveyweights_data(seed = 18)
+  df <- make_surveywts_data(seed = 18)
   df$age_group[5] <- NA_character_
   pop <- .make_pop()
 
   expect_error(
     calibrate(df, variables = c(age_group, sex), population = pop),
-    class = "surveyweights_error_variable_has_na"
+    class = "surveywts_error_variable_has_na"
   )
   expect_snapshot(
     error = TRUE,
@@ -456,7 +456,7 @@ test_that("calibrate() rejects calibration variable with NA values", {
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() rejects population name not found in data", {
-  df <- make_surveyweights_data(seed = 19)
+  df <- make_surveywts_data(seed = 19)
   # population has "nonexistent_var" which is not a column in data
   # variables only selects age_group (which exists)
   pop <- list(
@@ -466,7 +466,7 @@ test_that("calibrate() rejects population name not found in data", {
 
   expect_error(
     calibrate(df, variables = c(age_group), population = pop),
-    class = "surveyweights_error_population_variable_not_found"
+    class = "surveywts_error_population_variable_not_found"
   )
   expect_snapshot(
     error = TRUE,
@@ -479,7 +479,7 @@ test_that("calibrate() rejects population name not found in data", {
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() rejects population missing a data level", {
-  df <- make_surveyweights_data(seed = 20)
+  df <- make_surveywts_data(seed = 20)
   # population for age_group is missing "55+"
   pop <- list(
     age_group = c("18-34" = 0.50, "35-54" = 0.50),
@@ -488,7 +488,7 @@ test_that("calibrate() rejects population missing a data level", {
 
   expect_error(
     calibrate(df, variables = c(age_group, sex), population = pop),
-    class = "surveyweights_error_population_level_missing"
+    class = "surveywts_error_population_level_missing"
   )
   expect_snapshot(
     error = TRUE,
@@ -501,7 +501,7 @@ test_that("calibrate() rejects population missing a data level", {
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() rejects population with extra level absent from data", {
-  df <- make_surveyweights_data(seed = 21)
+  df <- make_surveywts_data(seed = 21)
   # population for age_group has extra level "65+" not in data
   pop <- list(
     age_group = c("18-34" = 0.20, "35-54" = 0.35, "55+" = 0.30, "65+" = 0.15),
@@ -510,7 +510,7 @@ test_that("calibrate() rejects population with extra level absent from data", {
 
   expect_error(
     calibrate(df, variables = c(age_group, sex), population = pop),
-    class = "surveyweights_error_population_level_extra"
+    class = "surveywts_error_population_level_extra"
   )
   expect_snapshot(
     error = TRUE,
@@ -523,7 +523,7 @@ test_that("calibrate() rejects population with extra level absent from data", {
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() rejects proportions that do not sum to 1", {
-  df <- make_surveyweights_data(seed = 22)
+  df <- make_surveywts_data(seed = 22)
   # age_group sums to 0.80 (not 1.0)
   pop <- list(
     age_group = c("18-34" = 0.30, "35-54" = 0.30, "55+" = 0.20),
@@ -532,7 +532,7 @@ test_that("calibrate() rejects proportions that do not sum to 1", {
 
   expect_error(
     calibrate(df, variables = c(age_group, sex), population = pop),
-    class = "surveyweights_error_population_totals_invalid"
+    class = "surveywts_error_population_totals_invalid"
   )
   expect_snapshot(
     error = TRUE,
@@ -545,7 +545,7 @@ test_that("calibrate() rejects proportions that do not sum to 1", {
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() rejects count targets that are non-positive", {
-  df <- make_surveyweights_data(seed = 23)
+  df <- make_surveywts_data(seed = 23)
   pop <- list(
     age_group = c("18-34" = 150, "35-54" = -1, "55+" = 150),
     sex = c("M" = 240, "F" = 260)
@@ -554,7 +554,7 @@ test_that("calibrate() rejects count targets that are non-positive", {
   expect_error(
     calibrate(df, variables = c(age_group, sex), population = pop,
               type = "count"),
-    class = "surveyweights_error_population_totals_invalid"
+    class = "surveywts_error_population_totals_invalid"
   )
   expect_snapshot(
     error = TRUE,
@@ -568,7 +568,7 @@ test_that("calibrate() rejects count targets that are non-positive", {
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() accepts proportions summing to 1.0 + 9e-7 (within 1e-6 tolerance)", {
-  df <- make_surveyweights_data(seed = 24)
+  df <- make_surveywts_data(seed = 24)
   # sex sums to exactly 1.0 + 9e-7 (within 1e-6 tolerance)
   pop <- list(
     age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
@@ -585,7 +585,7 @@ test_that("calibrate() accepts proportions summing to 1.0 + 9e-7 (within 1e-6 to
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() rejects proportions summing to 1.0 + 2e-6 (outside 1e-6 tolerance)", {
-  df <- make_surveyweights_data(seed = 25)
+  df <- make_surveywts_data(seed = 25)
   pop <- list(
     age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
     sex = c("M" = 0.48, "F" = 0.52 + 2e-6)
@@ -593,7 +593,7 @@ test_that("calibrate() rejects proportions summing to 1.0 + 2e-6 (outside 1e-6 t
 
   expect_error(
     calibrate(df, variables = c(age_group, sex), population = pop),
-    class = "surveyweights_error_population_totals_invalid"
+    class = "surveywts_error_population_totals_invalid"
   )
 })
 
@@ -602,13 +602,13 @@ test_that("calibrate() rejects proportions summing to 1.0 + 2e-6 (outside 1e-6 t
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() throws calibration_not_converged when maxit is reached", {
-  df <- make_surveyweights_data(seed = 26)
+  df <- make_surveywts_data(seed = 26)
   pop <- .make_pop()
 
   expect_error(
     calibrate(df, variables = c(age_group, sex), population = pop,
               method = "logit", control = list(maxit = 1, epsilon = 1e-20)),
-    class = "surveyweights_error_calibration_not_converged"
+    class = "surveywts_error_calibration_not_converged"
   )
   expect_snapshot(
     error = TRUE,
@@ -622,13 +622,13 @@ test_that("calibrate() throws calibration_not_converged when maxit is reached", 
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() with control$maxit = 0 throws not_converged with distinct note", {
-  df <- make_surveyweights_data(seed = 27)
+  df <- make_surveywts_data(seed = 27)
   pop <- .make_pop()
 
   expect_error(
     calibrate(df, variables = c(age_group, sex), population = pop,
               control = list(maxit = 0)),
-    class = "surveyweights_error_calibration_not_converged"
+    class = "surveywts_error_calibration_not_converged"
   )
   expect_snapshot(
     error = TRUE,
@@ -643,7 +643,7 @@ test_that("calibrate() with control$maxit = 0 throws not_converged with distinct
 
 test_that("calibrate() warns when linear calibration produces negative weights", {
   # Use extreme targets to force negative weights with linear method
-  df <- make_surveyweights_data(n = 100, seed = 28)
+  df <- make_surveywts_data(n = 100, seed = 28)
   # All weight to "18-34" so other groups get negative weights
   pop <- list(
     age_group = c("18-34" = 0.99, "35-54" = 0.005, "55+" = 0.005),
@@ -653,7 +653,7 @@ test_that("calibrate() warns when linear calibration produces negative weights",
   expect_warning(
     result <- calibrate(df, variables = c(age_group, sex), population = pop,
                         method = "linear"),
-    class = "surveyweights_warning_negative_calibrated_weights"
+    class = "surveywts_warning_negative_calibrated_weights"
   )
   expect_snapshot(
     calibrate(df, variables = c(age_group, sex), population = pop,
@@ -688,7 +688,7 @@ test_that("calibrate() handles single-row data frame", {
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() handles single variable in population", {
-  df <- make_surveyweights_data(seed = 29)
+  df <- make_surveywts_data(seed = 29)
   pop <- list(
     sex = c("M" = 0.48, "F" = 0.52)
   )
@@ -703,7 +703,7 @@ test_that("calibrate() handles single variable in population", {
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() produces a correctly structured weighting history entry", {
-  df <- make_surveyweights_data(seed = 30)
+  df <- make_surveywts_data(seed = 30)
   pop <- .make_pop()
 
   result <- calibrate(df, variables = c(age_group, sex), population = pop)
@@ -727,7 +727,7 @@ test_that("calibrate() produces a correctly structured weighting history entry",
   expect_true(is.numeric(entry$convergence$tolerance))
   expect_identical(
     entry$package_version,
-    as.character(utils::packageVersion("surveyweights"))
+    as.character(utils::packageVersion("surveywts"))
   )
 })
 
@@ -736,7 +736,7 @@ test_that("calibrate() produces a correctly structured weighting history entry",
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() step numbers increment correctly across chained calls", {
-  df <- make_surveyweights_data(seed = 31)
+  df <- make_surveywts_data(seed = 31)
   pop1 <- list(
     age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30)
   )
@@ -758,7 +758,7 @@ test_that("calibrate() step numbers increment correctly across chained calls", {
 
 test_that("calibrate() auto-detects weights from weighted_df when weights is NULL", {
   # Covers .get_weight_vec() line 127: data_df[[attr(x, "weight_col")]]
-  df <- make_surveyweights_data(seed = 32)
+  df <- make_surveywts_data(seed = 32)
   pop <- .make_pop()
 
   # First calibration produces a weighted_df
@@ -787,7 +787,7 @@ test_that("calibrate() with method='logit', type='count', large counts triggers 
   # The scale normalization is only in .greg_logit(), so method="logit" is required.
   # With n=500, base_weight~1, sample_total~150 per group.
   # scales = 300000/150 = 2000 >> 20 → triggers scale normalization.
-  df <- make_surveyweights_data(seed = 34)
+  df <- make_surveywts_data(seed = 34)
 
   pop_large <- list(
     age_group = c("18-34" = 300000L, "35-54" = 400000L, "55+" = 300000L)

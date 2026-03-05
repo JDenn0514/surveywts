@@ -58,13 +58,13 @@ summarize_weights(x, weights = NULL, by = NULL)
 
 **Errors thrown (all three functions):**
 
-- `surveyweights_error_unsupported_class` — `x` is not a supported class.
-- `surveyweights_error_weights_required` — `x` is a plain `data.frame` and
+- `surveywts_error_unsupported_class` — `x` is not a supported class.
+- `surveywts_error_weights_required` — `x` is a plain `data.frame` and
   `weights = NULL`.
-- `surveyweights_error_weights_not_found` — named weight column missing.
-- `surveyweights_error_weights_not_numeric` — weight column is not numeric.
-- `surveyweights_error_weights_nonpositive` — weight column has values ≤ 0.
-- `surveyweights_error_weights_na` — weight column has `NA` values.
+- `surveywts_error_weights_not_found` — named weight column missing.
+- `surveywts_error_weights_not_numeric` — weight column is not numeric.
+- `surveywts_error_weights_nonpositive` — weight column has values ≤ 0.
+- `surveywts_error_weights_na` — weight column has `NA` values.
 
 ### New private helper: `.diag_validate_input()`
 

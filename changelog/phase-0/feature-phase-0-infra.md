@@ -11,7 +11,7 @@
 - Add Phase 0 planning documents: spec (`plans/spec-phase-0.md`), adversarial spec review (`plans/spec-review-phase-0.md`), implementation plan (`plans/impl-phase-0.md`), adversarial plan review (`plans/plan-review-phase-0.md`), design decisions log (`plans/decisions-phase-0.md`), and surveycore prerequisite analysis (`plans/surveycore-prerequisites-phase-0.md`)
 - Populate `plans/error-messages.md` with Phase 0 error and warning class table
 - Vendor GPL-3-compatible calibration code from the survey package: GREG (`R/vendor/calibrate-greg.R`) and IPF (`R/vendor/calibrate-ipf.R`); add `VENDORED.md` attribution file
-- Update `DESCRIPTION` (dependencies, author, description text) and `R/surveyweights-package.R` with Phase 0 package documentation
+- Update `DESCRIPTION` (dependencies, author, description text) and `R/surveywts-package.R` with Phase 0 package documentation
 
 ## Files Modified
 
@@ -24,8 +24,8 @@
 - `.claude/skills/r-implement/SKILL.md` — updated with CI handoff handling
 - `.claude/skills/spec-reviewer/SKILL.md` — streamlined (absorbed into spec-workflow)
 - `DESCRIPTION` — updated dependencies, description, and author fields
-- `R/surveyweights-package.R` — updated package-level documentation for Phase 0
-- `man/surveyweights-package.Rd` — regenerated from roxygen2
+- `R/surveywts-package.R` — updated package-level documentation for Phase 0
+- `man/surveywts-package.Rd` — regenerated from roxygen2
 - `plans/error-messages.md` — populated with Phase 0 error/warning class table
 - `plans/spec-phase-0.md` — Phase 0 spec (new)
 - `plans/spec-review-phase-0.md` — adversarial spec review (new)

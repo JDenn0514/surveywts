@@ -149,9 +149,9 @@ summarize_weights <- function(x, weights = NULL, by = NULL) {
 
 # Validates x and extracts (data_df, weight_col) for use by diagnostic
 # functions. Checks:
-#   1. x is a supported class — throws surveyweights_error_unsupported_class
+#   1. x is a supported class — throws surveywts_error_unsupported_class
 #   2. x is a plain data.frame with weights = NULL —
-#      throws surveyweights_error_weights_required
+#      throws surveywts_error_weights_required
 # Returns: list(data_df = <data.frame>, weight_col = <character>)
 .diag_validate_input <- function(x, weights_quo) {
   is_supported <- is.data.frame(x) ||
@@ -168,7 +168,7 @@ summarize_weights <- function(x, weights = NULL, by = NULL) {
         ),
         "i" = "Got {.cls {cls}}."
       ),
-      class = "surveyweights_error_unsupported_class"
+      class = "surveywts_error_unsupported_class"
     )
   }
 
@@ -189,7 +189,7 @@ summarize_weights <- function(x, weights = NULL, by = NULL) {
           "e.g., {.code weights = wt_col}."
         )
       ),
-      class = "surveyweights_error_weights_required"
+      class = "surveywts_error_weights_required"
     )
   }
 

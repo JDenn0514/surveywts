@@ -37,24 +37,24 @@ adjust_nonresponse(
 
 **Warnings:**
 
-- `surveyweights_warning_class_near_empty` -- a weighting class cell has fewer
+- `surveywts_warning_class_near_empty` -- a weighting class cell has fewer
   than `control$min_cell` respondents (default 20) OR the adjustment factor
   exceeds `control$max_adjust` (default 2.0). Either condition alone triggers
   the warning.
 
 **Errors thrown:**
 
-- `surveyweights_error_response_status_not_found` -- `response_status` column
+- `surveywts_error_response_status_not_found` -- `response_status` column
   missing from data.
-- `surveyweights_error_response_status_not_binary` -- column is not 0/1 or
+- `surveywts_error_response_status_not_binary` -- column is not 0/1 or
   logical (factor columns are rejected regardless of their levels).
-- `surveyweights_error_response_status_has_na` -- `response_status` column
+- `surveywts_error_response_status_has_na` -- `response_status` column
   has NA values.
-- `surveyweights_error_response_status_all_zero` -- no respondents in data.
-- `surveyweights_error_class_cell_empty` -- a weighting class cell has no
+- `surveywts_error_response_status_all_zero` -- no respondents in data.
+- `surveywts_error_class_cell_empty` -- a weighting class cell has no
   respondents.
-- `surveyweights_error_variable_has_na` -- NA in a `by` variable.
-- `surveyweights_error_propensity_requires_phase2` -- `method` is `"propensity"`
+- `surveywts_error_variable_has_na` -- NA in a `by` variable.
+- `surveywts_error_propensity_requires_phase2` -- `method` is `"propensity"`
   or `"propensity-cell"` (Phase 2 stubs).
 - All standard SE-1 through SE-8 input validation errors.
 

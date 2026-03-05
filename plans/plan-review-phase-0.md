@@ -117,8 +117,8 @@ Severity: REQUIRED
 Violates `engineering-preferences.md §1`: "Duplicated logic is a bug waiting to happen. If two functions do the same thing, they should share a helper."
 
 Both `calibrate()` and `rake()` must validate that their respective variable columns are:
-1. Categorical (character or factor) — throws `surveyweights_error_variable_not_categorical`
-2. Free of NA values — throws `surveyweights_error_variable_has_na`
+1. Categorical (character or factor) — throws `surveywts_error_variable_not_categorical`
+2. Free of NA values — throws `surveywts_error_variable_has_na`
 
 The logic is structurally identical (loop over variable names, check class, check NA). The spec §XII.B and §XII.C message templates differ only in the context word ("Calibration variable" vs "Raking variable"), which is a `context =` parameter away from being shared. Without a shared helper, this validation logic will be duplicated in `02-calibrate.R` and `03-rake.R`. Any change to the check (e.g., future support for ordered factors) must be made in two places.
 
@@ -160,7 +160,7 @@ Options:
 Severity: SUGGESTION
 Violates github-strategy.md §What gets a branch vs. direct push: "README / docs update → No branch needed."
 
-PR 2 includes `.claude/rules/surveyweights-conventions.md` and `.claude/rules/testing-surveyweights.md` in a feature branch. These are developer-facing documentation files in the `.claude/` directory, not R package artifacts. They are analogous to README or docs updates — github-strategy.md says those do not need a branch. Putting them in a feature branch adds PR review overhead for documents that have no functional effect on the R package.
+PR 2 includes `.claude/rules/surveywts-conventions.md` and `.claude/rules/testing-surveywts.md` in a feature branch. These are developer-facing documentation files in the `.claude/` directory, not R package artifacts. They are analogous to README or docs updates — github-strategy.md says those do not need a branch. Putting them in a feature branch adds PR review overhead for documents that have no functional effect on the R package.
 
 The R package artifact in PR 2 (`tests/testthat/helper-test-data.R`) does warrant a branch and PR. The rule stubs don't.
 
@@ -253,7 +253,7 @@ R/
 The test file map in spec §XIII similarly shows `test-03-nonresponse.R` and `test-04-diagnostics.R`, which the plan renames. The plan's Overview does document the new structure clearly, but does not explicitly note "this deviates from spec §II and §XIII — the spec file organization is superseded by this plan." Someone cross-referencing the spec's source file table later will be confused.
 
 Options:
-- **[A]** Add one sentence to the Overview: "The source file organization below supersedes spec §II; the `testing-surveyweights.md` update in PR 2 will update the file map accordingly." — Effort: trivial, Risk: low, Impact: self-documenting deviation
+- **[A]** Add one sentence to the Overview: "The source file organization below supersedes spec §II; the `testing-surveywts.md` update in PR 2 will update the file map accordingly." — Effort: trivial, Risk: low, Impact: self-documenting deviation
 - **[B]** Leave as-is; the plan's file table is unambiguous — Effort: none, Risk: low
 
 **Recommendation: A** — One sentence prevents confusion when anyone refers back to spec §II.
@@ -289,14 +289,14 @@ and error classes thrown.
 Severity: REQUIRED
 `calibrate()` throws this error when a data level has no population entry; `rake()`'s
 error table omits it. IPF would silently ignore missing-level observations.
-**Resolution:** Added `surveyweights_error_population_level_missing` to §VII error table
+**Resolution:** Added `surveywts_error_population_level_missing` to §VII error table
 and §XII.C message template.
 
 **Issue 4: No error class or message template for non-positive count targets**
 Severity: REQUIRED
 Spec §XI describes count-target validation but §XII message templates only cover
 `type = "prop"`. The behavior is specified but untestable without an error class.
-**Resolution:** Extended `surveyweights_error_population_totals_invalid` to cover both
+**Resolution:** Extended `surveywts_error_population_totals_invalid` to cover both
 cases; updated message templates in §XII.B, C, D.
 
 ### Code Quality Issues
@@ -305,7 +305,7 @@ cases; updated message templates in §XII.B, C, D.
 Severity: REQUIRED
 `dplyr_reconstruct` treats rename the same as drop (fires warning, downgrades to tibble)
 but this is neither specified nor tested. Decision: `rename.weighted_df()` lives in
-`surveytidy` (not `surveyweights`); spec §IV documents the rename-as-drop behavior and
+`surveytidy` (not `surveywts`); spec §IV documents the rename-as-drop behavior and
 §XII.G warning hint added.
 **Resolution:** Added behavior note to §IV; added `"v"` hint in §XII.G warning template.
 
@@ -330,7 +330,7 @@ Spec placed the calibrate→rake chain test in calibrate's list; impl plan moved
 
 **Issue 9: Factor variables never tested in calibrate/rake**
 Severity: REQUIRED
-`make_surveyweights_data()` returns only character columns; spec says "character or factor"
+`make_surveywts_data()` returns only character columns; spec says "character or factor"
 but no happy path tests factor input.
 **Resolution:** Added item 1b (factor happy path) to calibrate and rake test lists.
 
@@ -360,7 +360,7 @@ Zero iterations is almost certainly a user error; behavior was undefined.
 Severity: REQUIRED
 Easy user mistake that produces ambiguous targets. `survey::postStratify()` silently
 uses first match; this package errors instead.
-**Resolution:** Added `surveyweights_error_population_cell_duplicate` to §VIII,
+**Resolution:** Added `surveywts_error_population_cell_duplicate` to §VIII,
 §XII.D, error-messages.md, and test item 8d.
 
 **Issue 15: Factor `response_status` not in `adjust_nonresponse()` error paths**
@@ -476,7 +476,7 @@ Options:
 
 **Issue 3: PR 3 acceptance criteria for validator tests (items 8 and 9) don't specify the error class names or the "ALL NA" triggering nuance**
 Severity: REQUIRED
-Violates testing-standards.md: "class= on every expect_error()" must match the actual class thrown; the class here is `surveycore_error_*`, not `surveyweights_error_*`.
+Violates testing-standards.md: "class= on every expect_error()" must match the actual class thrown; the class here is `surveycore_error_*`, not `surveywts_error_*`.
 
 The plan's PR 3 AC says:
 
@@ -486,12 +486,12 @@ The plan's PR 3 AC says:
 The spec §XIII clarifies:
 
 ```
-# 8. class = "surveycore_error_weights_nonpositive" (surveycore's class, not surveyweights_error_*)
+# 8. class = "surveycore_error_weights_nonpositive" (surveycore's class, not surveywts_error_*)
 # 9. class = "surveycore_error_weights_na"
 #    (surveycore's validator permits individual NAs; errors only when length(non_na) == 0)
 ```
 
-Two problems: (1) the class names are omitted — an implementer writing `expect_error(class = "surveyweights_error_weights_nonpositive")` would write a test that always passes vacuously because the actual class is `surveycore_error_*`. (2) For item 9, the triggering condition is "ALL values NA" — individual NAs are allowed by surveycore's validator. A test that passes one NA-containing weight column would not trigger the error and would give false confidence.
+Two problems: (1) the class names are omitted — an implementer writing `expect_error(class = "surveywts_error_weights_nonpositive")` would write a test that always passes vacuously because the actual class is `surveycore_error_*`. (2) For item 9, the triggering condition is "ALL values NA" — individual NAs are allowed by surveycore's validator. A test that passes one NA-containing weight column would not trigger the error and would give false confidence.
 
 Options:
 - **[A]** Update items 8 and 9 to: "class = `'surveycore_error_weights_nonpositive'`" and "class = `'surveycore_error_weights_na'`; trigger requires ALL values to be NA (surveycore permits individual NAs)" — Effort: trivial, Risk: low, Impact: prevents a silent test correctness failure
@@ -535,7 +535,7 @@ Missing from PR 6's AC:
 
 - **Item 23**: Happy path — `control$variable_select = "max"` produces different variable selection order than `"total"`. The control defaults AC ("maxit = 1000; maxit = 100; user override") covers item 26 but not item 23. Variable selection ordering is a distinctive anesrake behavior; without a test, `variable_select` goes untested.
 
-- **Item 26b**: Message — `surveyweights_message_already_calibrated`. When all anesrake variables pass the chi-square threshold in sweep 1, `rake()` emits a `cli_inform()` message with this class. The spec §VII behavior rule 8 and test item 26b require `expect_message(class = "surveyweights_message_already_calibrated")`. This class is required for testability and programmatic suppression. No AC criterion mentions it.
+- **Item 26b**: Message — `surveywts_message_already_calibrated`. When all anesrake variables pass the chi-square threshold in sweep 1, `rake()` emits a `cli_inform()` message with this class. The spec §VII behavior rule 8 and test item 26b require `expect_message(class = "surveywts_message_already_calibrated")`. This class is required for testability and programmatic suppression. No AC criterion mentions it.
 
 Options:
 - **[A]** Add explicit AC bullets for items 1b, 16b, 23, and 26b — Effort: low, Risk: low, Impact: closes four coverage gaps
@@ -634,7 +634,7 @@ Options:
 Severity: REQUIRED
 Violates code-style.md §2: "Methods are grouped by type in dedicated files (`04-methods-print.R`, etc.) — not co-located with class definitions."
 
-The plan's source file structure has no `methods-print.R` or equivalent. The plan's PR 3 section assigns `R/00-classes.R` to "`weighted_df` S3 class + `survey_calibrated` S7 class + validator." But `survey_calibrated` is defined in surveycore, not here. So `00-classes.R` in surveyweights contains the `weighted_df` S3 class and its S3 methods (`print.weighted_df`, `dplyr_reconstruct.weighted_df`). The S7 method `S7::method(print, surveycore::survey_calibrated)` has no home.
+The plan's source file structure has no `methods-print.R` or equivalent. The plan's PR 3 section assigns `R/00-classes.R` to "`weighted_df` S3 class + `survey_calibrated` S7 class + validator." But `survey_calibrated` is defined in surveycore, not here. So `00-classes.R` in surveywts contains the `weighted_df` S3 class and its S3 methods (`print.weighted_df`, `dplyr_reconstruct.weighted_df`). The S7 method `S7::method(print, surveycore::survey_calibrated)` has no home.
 
 code-style.md §2 is explicit: `00-s7-classes.R` = class definitions only; `04-methods-print.R` = all S7 `print`/`summary` methods. Putting the S7 print method in `00-classes.R` alongside S3 class code violates both halves of this rule. Without a designated file in the plan, the implementer will put the S7 method in an ad hoc location or mix it with the S3 class code.
 
@@ -687,12 +687,12 @@ Options:
 
 #### Section: PR 9 / error-messages.md
 
-**Issue 13: `surveyweights_message_already_calibrated` is a required class per spec §XII.G but is not tracked in `plans/error-messages.md`**
+**Issue 13: `surveywts_message_already_calibrated` is a required class per spec §XII.G but is not tracked in `plans/error-messages.md`**
 Severity: SUGGESTION
-`error-messages.md` tracks all classes for the quality gate criterion: "Every `cli_abort()` and `cli_warn()` has a `class =`." But `rake()` spec §VII behavior rule 8 adds a `cli_inform()` message with class `surveyweights_message_already_calibrated`. This is listed in spec §XII.G's warnings table and is testable with `expect_message(class = ...)`. Without a row in `error-messages.md`, the Quality Gate criterion implicitly excludes message classes.
+`error-messages.md` tracks all classes for the quality gate criterion: "Every `cli_abort()` and `cli_warn()` has a `class =`." But `rake()` spec §VII behavior rule 8 adds a `cli_inform()` message with class `surveywts_message_already_calibrated`. This is listed in spec §XII.G's warnings table and is testable with `expect_message(class = ...)`. Without a row in `error-messages.md`, the Quality Gate criterion implicitly excludes message classes.
 
 Options:
-- **[A]** Add a "Messages" section to `plans/error-messages.md` with one row: `surveyweights_message_already_calibrated | rake() | method="anesrake", all variables pass chi-square in sweep 1` — Effort: trivial
+- **[A]** Add a "Messages" section to `plans/error-messages.md` with one row: `surveywts_message_already_calibrated | rake() | method="anesrake", all variables pass chi-square in sweep 1` — Effort: trivial
 - **[B]** Leave as-is; argue that `cli_inform()` messages are outside the scope of `error-messages.md` — Effort: none; risk: the message class is untestable without deliberate documentation of its existence
 
 **Recommendation: A** — The class is required for testability per the spec. Tracking it alongside errors and warnings closes the gap.
@@ -705,7 +705,7 @@ Options:
 Severity: SUGGESTION
 PR 5 AC says: "All error tests use dual pattern (`expect_error(class=)` + `expect_snapshot(error=TRUE)`)." PR 6 AC says: "All error tests use dual pattern; warning tests use `expect_warning(class =)` + `expect_snapshot()`."
 
-PR 5's item 15 (`surveyweights_warning_negative_calibrated_weights`) requires a warning test. The warning dual-pattern requirement (`expect_warning(class=)` + `expect_snapshot()`) is not stated for PR 5, creating an inconsistency with PR 6. An implementer following PR 5's criteria might apply only `expect_warning(class=)` without a snapshot.
+PR 5's item 15 (`surveywts_warning_negative_calibrated_weights`) requires a warning test. The warning dual-pattern requirement (`expect_warning(class=)` + `expect_snapshot()`) is not stated for PR 5, creating an inconsistency with PR 6. An implementer following PR 5's criteria might apply only `expect_warning(class=)` without a snapshot.
 
 Options:
 - **[A]** Add to PR 5 AC: "warning tests (item 15) use `expect_warning(class =)` + `expect_snapshot()`" — Effort: trivial

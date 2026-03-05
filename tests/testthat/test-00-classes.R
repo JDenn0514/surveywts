@@ -121,7 +121,7 @@ test_that("dplyr_reconstruct.weighted_df() drops class and warns when weight col
 
   expect_warning(
     result <- dplyr::select(wdf, x),
-    class = "surveyweights_warning_weight_col_dropped"
+    class = "surveywts_warning_weight_col_dropped"
   )
   expect_false(inherits(result, "weighted_df"))
   expect_true(tibble::is_tibble(result))
@@ -139,7 +139,7 @@ test_that("dplyr_reconstruct.weighted_df() drops class and warns when weight col
 
   expect_warning(
     result <- dplyr::rename(wdf, weight_renamed = w),
-    class = "surveyweights_warning_weight_col_dropped"
+    class = "surveywts_warning_weight_col_dropped"
   )
   expect_false(inherits(result, "weighted_df"))
 })
@@ -208,7 +208,7 @@ test_that("dplyr_reconstruct.weighted_df() drops class and warns when mutate(.ke
   # When w is USED in the expression, w is treated as "used" and gets dropped.
   expect_warning(
     result <- dplyr::mutate(wdf, y = w * 2, .keep = "unused"),
-    class = "surveyweights_warning_weight_col_dropped"
+    class = "surveywts_warning_weight_col_dropped"
   )
   expect_false(inherits(result, "weighted_df"))
   expect_false("w" %in% names(result))
@@ -217,17 +217,17 @@ test_that("dplyr_reconstruct.weighted_df() drops class and warns when mutate(.ke
 expect_snapshot(dplyr::mutate(.make_test_wdf(), y = w * 2, .keep = "unused"))
 
 # ---------------------------------------------------------------------------
-# 3. Warning class is surveyweights_warning_weight_col_dropped
+# 3. Warning class is surveywts_warning_weight_col_dropped
 # (covered by tests 2, 2b, 2g above — explicit class checks included there)
 # ---------------------------------------------------------------------------
 
-test_that("warning class is surveyweights_warning_weight_col_dropped", {
+test_that("warning class is surveywts_warning_weight_col_dropped", {
   wdf <- .make_test_wdf()
   w <- tryCatch(
     withCallingHandlers(
       dplyr::select(wdf, x),
       warning = function(cnd) {
-        expect_true(inherits(cnd, "surveyweights_warning_weight_col_dropped"))
+        expect_true(inherits(cnd, "surveywts_warning_weight_col_dropped"))
         invokeRestart("muffleWarning")
       }
     )

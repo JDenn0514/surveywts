@@ -10,7 +10,7 @@
 
 ## Document Purpose
 
-This document is the single source of truth for Phase 0 of surveyweights. It
+This document is the single source of truth for Phase 0 of surveywts. It
 fully specifies every exported class, function, error class, and test
 expectation required to ship v0.1.0. Implementation may not begin until this
 spec is approved (Stage 2 review + Stage 3 resolve complete).
@@ -18,7 +18,7 @@ spec is approved (Stage 2 review + Stage 3 resolve complete).
 This spec does NOT repeat rules defined in:
 - `code-style.md` — formatting, pipe, error structure, S7 patterns, argument order
 - `r-package-conventions.md` — `::` usage, NAMESPACE, roxygen2, export policy
-- `surveyweights-conventions.md` — error/warning prefixes, return visibility
+- `surveywts-conventions.md` — error/warning prefixes, return visibility
 - `testing-standards.md` — `test_that()` scope, coverage targets, assertion patterns
 
 Those rules apply by reference. Where this spec makes a choice consistent with
@@ -33,7 +33,7 @@ those rules, it states the outcome without re-explaining the rule.
 | Component | Type | Exported? |
 |-----------|------|-----------|
 | `weighted_df` | S3 class | Yes (class object; no user constructor) |
-| `survey_calibrated` (from `surveycore`) | S7 class (defined in surveycore; instances produced by surveyweights) | No — class is exported from surveycore; no re-export needed |
+| `survey_calibrated` (from `surveycore`) | S7 class (defined in surveycore; instances produced by surveywts) | No — class is exported from surveycore; no re-export needed |
 | `calibrate()` | Function | Yes |
 | `rake()` | Function | Yes |
 | `poststratify()` | Function | Yes |
@@ -65,8 +65,8 @@ partially, unless marked as a stub:
 | `weighted_df` | `weighted_df` | `weighted_df` |
 | `survey_taylor` | `survey_calibrated` | `survey_taylor` (same class) |
 | `survey_calibrated` | `survey_calibrated` (same class) | `survey_calibrated` (same class) |
-| `survey_replicate` | Error: `surveyweights_error_replicate_not_supported` | Error: `surveyweights_error_replicate_not_supported` |
-| Any other | Error: `surveyweights_error_unsupported_class` | Error: `surveyweights_error_unsupported_class` |
+| `survey_replicate` | Error: `surveywts_error_replicate_not_supported` | Error: `surveywts_error_replicate_not_supported` |
+| Any other | Error: `surveywts_error_unsupported_class` | Error: `surveywts_error_unsupported_class` |
 
 **Rule:** Calibration of a `survey_taylor` object changes the variance class
 to `survey_calibrated` because calibration changes the variance estimation
@@ -96,10 +96,10 @@ R/
 ├── vendor/
 │   ├── calibrate-greg.R  # Vendored GREG/logit calibration from survey::calibrate()
 │   └── calibrate-ipf.R   # Vendored IPF/raking from survey::rake()
-└── surveyweights-package.R  # Package doc + .onLoad() calling S7::methods_register()
+└── surveywts-package.R  # Package doc + .onLoad() calling S7::methods_register()
 tests/
 └── testthat/
-    ├── helper-test-data.R          # make_surveyweights_data(), test_invariants()
+    ├── helper-test-data.R          # make_surveywts_data(), test_invariants()
     ├── test-00-classes.R
     ├── test-02-calibrate.R
     ├── test-03-rake.R
@@ -118,13 +118,13 @@ tests/
 surveycore::survey_base  (abstract)
   ├── surveycore::survey_taylor
   ├── surveycore::survey_replicate
-  └── surveycore::survey_calibrated   ← defined in surveycore; instances produced by surveyweights
+  └── surveycore::survey_calibrated   ← defined in surveycore; instances produced by surveywts
 
 S3 (independent of S7 hierarchy):
   weighted_df  ← c("weighted_df", "tbl_df", "tbl", "data.frame")
 ```
 
-**`surveyweights-package.R`** must define `.onLoad()` calling `S7::methods_register()`
+**`surveywts-package.R`** must define `.onLoad()` calling `S7::methods_register()`
 to register all S7 method dispatch at package load time. Without this, S7 print and
 summary methods for `survey_calibrated` will silently fail to dispatch at runtime.
 
@@ -237,7 +237,7 @@ these rows with "See §II.d" in place of the description.
 
 | Arg | Type | Default | Description |
 |-----|------|---------|-------------|
-| `data` | `data.frame`, `weighted_df`, `survey_taylor`, `survey_calibrated` | required | Input dataset or survey design. `survey_replicate` → `surveyweights_error_replicate_not_supported`. Any other class → `surveyweights_error_unsupported_class`. |
+| `data` | `data.frame`, `weighted_df`, `survey_taylor`, `survey_calibrated` | required | Input dataset or survey design. `survey_replicate` → `surveywts_error_replicate_not_supported`. Any other class → `surveywts_error_unsupported_class`. |
 | `weights` | bare name (NSE) | `NULL` | Weight column name. `NULL` → uniform weights (1/n for all rows). For `weighted_df`, auto-detected from `attr(data, "weight_col")`. For survey objects, auto-detected from `@variables$weights`. When specified, the column must be numeric, strictly positive, and contain no `NA`. |
 
 ### Common Validation Rules
@@ -249,13 +249,13 @@ templates.
 
 | Class | Trigger condition |
 |-------|-------------------|
-| `surveyweights_error_unsupported_class` | `data` is not a supported class (see matrix in §I) |
-| `surveyweights_error_replicate_not_supported` | `data` is `survey_replicate` |
-| `surveyweights_error_empty_data` | `nrow(data) == 0` |
-| `surveyweights_error_weights_not_found` | Named weight column not in `data` |
-| `surveyweights_error_weights_not_numeric` | Weight column is not numeric |
-| `surveyweights_error_weights_nonpositive` | Weight column has values ≤ 0 |
-| `surveyweights_error_weights_na` | Weight column has `NA` values |
+| `surveywts_error_unsupported_class` | `data` is not a supported class (see matrix in §I) |
+| `surveywts_error_replicate_not_supported` | `data` is `survey_replicate` |
+| `surveywts_error_empty_data` | `nrow(data) == 0` |
+| `surveywts_error_weights_not_found` | Named weight column not in `data` |
+| `surveywts_error_weights_not_numeric` | Weight column is not numeric |
+| `surveywts_error_weights_nonpositive` | Weight column has values ≤ 0 |
+| `surveywts_error_weights_na` | Weight column has `NA` values |
 
 ### Output Class Rules
 
@@ -287,7 +287,7 @@ Users may pass `control = list(maxit = 200)` without specifying other keys; omit
 keys fall back to the method-appropriate defaults.
 
 `control$maxit = 0` is treated as invalid: the algorithm never runs and immediately
-throws `surveyweights_error_calibration_not_converged` with a note that 0 iterations
+throws `surveywts_error_calibration_not_converged` with a note that 0 iterations
 means no calibration was attempted.
 
 ### Convergence Criterion
@@ -303,7 +303,7 @@ where `calibrated_h` and `target_h` are on the same scale (both proportions or b
 counts). For `rake()`, one "iteration" means one full sweep through all margins. For
 `calibrate()`, one "iteration" means one full optimization step.
 
-Non-convergence within `control$maxit` → `surveyweights_error_calibration_not_converged`.
+Non-convergence within `control$maxit` → `surveywts_error_calibration_not_converged`.
 
 For `poststratify()` and `adjust_nonresponse()`, no iteration occurs; both are
 single-pass exact operations.
@@ -313,8 +313,8 @@ single-pass exact operations.
 All calibration and nonresponse functions validate in this fixed order. When multiple
 errors are present, the **first** one in this sequence is thrown:
 
-1. Input class check (`surveyweights_error_unsupported_class` / `surveyweights_error_replicate_not_supported`)
-2. Empty data check (`surveyweights_error_empty_data`)
+1. Input class check (`surveywts_error_unsupported_class` / `surveywts_error_replicate_not_supported`)
+2. Empty data check (`surveywts_error_empty_data`)
 3. Weights validation (all four weight errors via `.validate_weights()`)
 4. Function-specific validation (variables, population/margins, response status)
 
@@ -345,7 +345,7 @@ an interface contract; implementation belongs in a separate surveycore PR.
 
 ### What surveycore must provide for Phase 0
 
-| Property / method | Where used in surveyweights |
+| Property / method | Where used in surveywts |
 |---|---|
 | `survey_base` S7 class (parent for `survey_calibrated`) | `R/00-classes.R` |
 | `@data` property on `survey_taylor` | Weight extraction, data update |
@@ -382,7 +382,7 @@ The weight column is always present as a regular column in the data frame.
 
 **Rule (from CLAUDE.md):** The weight column is sacred. It must never be silently
 removed or renamed. Operations that would remove it trigger
-`surveyweights_warning_weight_col_dropped`.
+`surveywts_warning_weight_col_dropped`.
 
 ### Internal Constructor: `.make_weighted_df()`
 
@@ -404,7 +404,7 @@ Registered to restore `weighted_df` class after dplyr verbs.
 **Behavior:**
 1. If the weight column (`attr(x, "weight_col")`) is present in the result → restore
    `weighted_df` class and both attributes.
-2. If the weight column was removed → issue `surveyweights_warning_weight_col_dropped`
+2. If the weight column was removed → issue `surveywts_warning_weight_col_dropped`
    and return a plain tibble.
 3. **Renaming the weight column** is treated the same as dropping it: `dplyr_reconstruct`
    does not detect renames and will trigger rule 2 above. For rename-aware behavior that
@@ -446,7 +446,7 @@ Rules:
 - `n` controls the number of rows shown (default 10, same as tibble).
 - History shows all steps with date (formatted as `YYYY-MM-DD`).
 - If `weighting_history` is empty, the history line reads: `# Weighting history: none`
-- `invisible(x)` is returned per `surveyweights-conventions.md`.
+- `invisible(x)` is returned per `surveywts-conventions.md`.
 
 ### Weighting History Entry Format
 
@@ -485,7 +485,7 @@ list(
     max_error     = 0.0003,
     tolerance     = 1e-6
   ),
-  package_version = "0.1.0"               # as.character(packageVersion("surveyweights"))
+  package_version = "0.1.0"               # as.character(packageVersion("surveywts"))
 )
 ```
 
@@ -506,7 +506,7 @@ and chained calls would produce duplicate step numbers.
 
 | Class | Thrown by | Condition |
 |-------|-----------|-----------|
-| `surveyweights_warning_weight_col_dropped` | `dplyr_reconstruct.weighted_df()` | dplyr verb removed the weight column |
+| `surveywts_warning_weight_col_dropped` | `dplyr_reconstruct.weighted_df()` | dplyr verb removed the weight column |
 
 ---
 
@@ -514,12 +514,12 @@ and chained calls would produce duplicate step numbers.
 
 ### Definition and Ownership
 
-`surveyweights` does **not** define `survey_calibrated`. It uses
+`surveywts` does **not** define `survey_calibrated`. It uses
 `surveycore::survey_calibrated` directly, which is already defined and exported
-from surveycore. surveyweights' role is to produce correctly configured instances
+from surveycore. surveywts' role is to produce correctly configured instances
 of that class.
 
-This eliminates a namespace conflict: defining a parallel `surveyweights::survey_calibrated`
+This eliminates a namespace conflict: defining a parallel `surveywts::survey_calibrated`
 extending `survey_base` would create two S7 classes with the same name but different
 fully-qualified names — `S7::S7_inherits()` checks would fail across the ecosystem.
 
@@ -534,7 +534,7 @@ surveycore's class structure (confirmed from source — GAP #1 resolved):
   $ variables  : <list>
   $ groups     : <character>
   $ call       : <ANY>
-  $ calibration: <ANY>    ← set to NULL by surveyweights; history in @metadata@weighting_history
+  $ calibration: <ANY>    ← set to NULL by surveywts; history in @metadata@weighting_history
 ```
 
 `survey_calibrated` does NOT extend `survey_taylor`. It extends `survey_base`
@@ -550,7 +550,7 @@ incorrect post-calibration.
 | `@metadata` | surveycore metadata class | `survey_base` | Labels, weighting history, etc. |
 | `@groups` | `character` | `survey_base` | Grouping variables (empty by default) |
 | `@call` | `ANY` | `survey_base` | Construction call |
-| `@calibration` | `ANY` | `survey_calibrated` | Left `NULL` by surveyweights; provenance stored in `@metadata@weighting_history` |
+| `@calibration` | `ANY` | `survey_calibrated` | Left `NULL` by surveywts; provenance stored in `@metadata@weighting_history` |
 
 `@variables$weights`: character scalar — the name of the weight column in `@data`.
 (Confirmed from surveycore source — GAP #3 resolved.)
@@ -568,7 +568,7 @@ surveycore's `survey_calibrated` validator enforces:
    are permitted by the validator).
 
 Validator errors use surveycore's error classes (`surveycore_error_*`), not
-`surveyweights_error_*`. Test with `class =` only, no snapshot.
+`surveywts_error_*`. Test with `class =` only, no snapshot.
 
 **Validation responsibility split:** Pre-construction validation (NA rejection per row,
 nonpositive rejection) happens at the function call level via `.validate_weights()`
@@ -598,7 +598,7 @@ This function is unexported. The calibration user-facing functions (`calibrate()
 S7::method(print, surveycore::survey_calibrated) <- function(x, n = 10, ...) { ... }
 ```
 
-Registered in surveyweights for `surveycore::survey_calibrated`. This is valid S7
+Registered in surveywts for `surveycore::survey_calibrated`. This is valid S7
 behavior — any package may register methods for a class defined elsewhere.
 
 **Verbatim console output format:**
@@ -683,7 +683,7 @@ list(
 
 Every level present in `data[[variable]]` must appear in the corresponding
 population entry. Levels present in `population` but absent from `data` are
-an error (`surveyweights_error_population_level_extra`).
+an error (`surveywts_error_population_level_extra`).
 
 ### Output Contract
 
@@ -696,13 +696,13 @@ plain `data.frame`, the weight column is named `".weight"` (see **§II.d**).
 ### Behavior Rules
 
 1. `variables` must be categorical (character or factor). Numeric/integer variables
-   → `surveyweights_error_variable_not_categorical`. Phase 0 does not support
+   → `surveywts_error_variable_not_categorical`. Phase 0 does not support
    calibration on continuous auxiliary variables.
 2. `method = "linear"` may produce negative calibrated weights. The function returns
-   the result and issues `surveyweights_warning_negative_calibrated_weights`. The
+   the result and issues `surveywts_warning_negative_calibrated_weights`. The
    user decides whether to accept negative weights.
 3. Convergence is assessed per **§II.d**. Non-convergence within `control$maxit`
-   → `surveyweights_error_calibration_not_converged`.
+   → `surveywts_error_calibration_not_converged`.
 
 ### Error and Warning Table
 
@@ -711,14 +711,14 @@ Common validation errors from **§II.d** apply. The errors below are specific to
 
 | Class | Trigger condition |
 |-------|-------------------|
-| `surveyweights_error_variable_not_categorical` | A `variables` column is `numeric` or `integer` |
-| `surveyweights_error_variable_has_na` | A `variables` column has `NA` values |
-| `surveyweights_error_population_variable_not_found` | A `population` name not found in `data` |
-| `surveyweights_error_population_level_missing` | A level in `data` has no entry in `population` |
-| `surveyweights_error_population_level_extra` | A `population` level has no observations in `data` |
-| `surveyweights_error_population_totals_invalid` | `type = "prop"` proportions don't sum to 1 |
-| `surveyweights_error_calibration_not_converged` | Max iterations reached without convergence |
-| `surveyweights_warning_negative_calibrated_weights` | `method = "linear"` produced negative weights |
+| `surveywts_error_variable_not_categorical` | A `variables` column is `numeric` or `integer` |
+| `surveywts_error_variable_has_na` | A `variables` column has `NA` values |
+| `surveywts_error_population_variable_not_found` | A `population` name not found in `data` |
+| `surveywts_error_population_level_missing` | A level in `data` has no entry in `population` |
+| `surveywts_error_population_level_extra` | A `population` level has no observations in `data` |
+| `surveywts_error_population_totals_invalid` | `type = "prop"` proportions don't sum to 1 |
+| `surveywts_error_calibration_not_converged` | Max iterations reached without convergence |
+| `surveywts_warning_negative_calibrated_weights` | `method = "linear"` produced negative weights |
 
 ---
 
@@ -758,7 +758,7 @@ rake(
 | `type` | character | `"prop"` | Whether targets are proportions or counts. |
 | `method` | character | `"anesrake"` | Raking algorithm. `"anesrake"`: variable selection by chi-square discrepancy, improvement-based convergence, optional weight capping at each step. `"survey"`: fixed-order cycling through all margins, epsilon-based convergence. See behavior rules below and `@details` for full descriptions and links to each method's source. |
 | `cap` | numeric or `NULL` | `NULL` | Cap on the ratio of calibrated weight to mean weight (`w / mean(w) ≤ cap`). Applied at each IPF step for both methods. `NULL` = no cap. See behavior rule 6. |
-| `control` | list | `list()` | Algorithm parameters. Defaults are method-dependent (see table in behavior rules). User-supplied values override per-method defaults; omitted keys retain their method defaults. Method-specific parameters passed to the wrong method trigger `surveyweights_warning_control_param_ignored`. |
+| `control` | list | `list()` | Algorithm parameters. Defaults are method-dependent (see table in behavior rules). User-supplied values override per-method defaults; omitted keys retain their method defaults. Method-specific parameters passed to the wrong method trigger `surveywts_warning_control_param_ignored`. |
 
 ### `margins` Formats
 
@@ -784,7 +784,7 @@ tibble(
 Auto-detected when `margins` is a `data.frame` with exactly these three columns.
 
 Values are coerced to numeric. Missing columns in Format B → error
-`surveyweights_error_margins_format_invalid`.
+`surveywts_error_margins_format_invalid`.
 
 Individual elements of Format A can be a data frame with `level` and `target`
 columns (not just named vectors). This allows mixing formats:
@@ -810,7 +810,7 @@ storing in history.
 ### Behavior Rules
 
 1. `margins` variables must be categorical (character or factor). Numeric/integer
-   → `surveyweights_error_variable_not_categorical`. IPF requires categorical margins.
+   → `surveywts_error_variable_not_categorical`. IPF requires categorical margins.
 2. The IPF algorithm cycles through margins until convergence or `control$maxit`
    full sweeps are completed. Variable order and convergence criterion depend on
    `method` (see rules 4 and 5).
@@ -833,7 +833,7 @@ storing in history.
    `cap × mean(w)`. Applied at each step, not post-hoc after convergence. This
    matches the weight-capping behavior of the `anesrake` package.
 7. Method-specific `control` parameters passed to the wrong method are ignored
-   and trigger `surveyweights_warning_control_param_ignored`. Specifically:
+   and trigger `surveywts_warning_control_param_ignored`. Specifically:
    `control$pval`, `control$improvement`, `control$min_cell_n`,
    `control$variable_select` are ignored when `method = "survey"`; `control$epsilon`
    is ignored when `method = "anesrake"`.
@@ -842,7 +842,7 @@ storing in history.
    algorithm converges immediately with `convergence$converged = TRUE,
    convergence$iterations = 1L, convergence$max_error = 0`. This is a success state
    ("already calibrated"), not an error. A `cli_inform()` message is emitted:
-   `surveyweights_message_already_calibrated` — class is required for testability
+   `surveywts_message_already_calibrated` — class is required for testability
    and programmatic suppression via `withCallingHandlers()`. Message text:
    `ℹ Raking converged in 1 sweep: all variables already met their margins. Weights were not adjusted.`
    Users can silence it with `suppressMessages()`.
@@ -865,15 +865,15 @@ Common validation errors from **§II.d** apply. The errors below are specific to
 
 | Class | Trigger condition |
 |-------|-------------------|
-| `surveyweights_error_margins_format_invalid` | `margins` is not a named list or valid long data frame |
-| `surveyweights_error_margins_variable_not_found` | A `margins` variable not in `data` |
-| `surveyweights_error_variable_not_categorical` | A `margins` variable is `numeric` or `integer` |
-| `surveyweights_error_variable_has_na` | A `margins` variable has `NA` values |
-| `surveyweights_error_population_level_missing` | A data level absent from `margins` |
-| `surveyweights_error_population_level_extra` | A margins level has no observations in `data` |
-| `surveyweights_error_population_totals_invalid` | `type = "prop"` proportions don't sum to 1, or `type = "count"` target ≤ 0 |
-| `surveyweights_error_calibration_not_converged` | Max full sweeps reached without convergence |
-| `surveyweights_warning_control_param_ignored` | A `control` parameter is not applicable to the specified `method` |
+| `surveywts_error_margins_format_invalid` | `margins` is not a named list or valid long data frame |
+| `surveywts_error_margins_variable_not_found` | A `margins` variable not in `data` |
+| `surveywts_error_variable_not_categorical` | A `margins` variable is `numeric` or `integer` |
+| `surveywts_error_variable_has_na` | A `margins` variable has `NA` values |
+| `surveywts_error_population_level_missing` | A data level absent from `margins` |
+| `surveywts_error_population_level_extra` | A margins level has no observations in `data` |
+| `surveywts_error_population_totals_invalid` | `type = "prop"` proportions don't sum to 1, or `type = "count"` target ≤ 0 |
+| `surveywts_error_calibration_not_converged` | Max full sweeps reached without convergence |
+| `surveywts_warning_control_param_ignored` | A `control` parameter is not applicable to the specified `method` |
 
 ---
 
@@ -933,12 +933,12 @@ tribble(
 
 Every cell combination present in `data` must appear in `population`. Cells
 in `population` but absent from `data` → error
-`surveyweights_error_population_cell_not_in_data`. If a user genuinely wants to
+`surveywts_error_population_cell_not_in_data`. If a user genuinely wants to
 ignore extra cells, they must remove them from the population data frame before
 calling — silent ignorance of extra cells risks masking misspecification.
 
 Duplicate rows in `population` (same cell combination appearing more than once)
-→ error `surveyweights_error_population_cell_duplicate`. Duplicate rows indicate
+→ error `surveywts_error_population_cell_duplicate`. Duplicate rows indicate
 a data entry error and produce ambiguous targets.
 
 ### Output Contract
@@ -958,7 +958,7 @@ plain `data.frame`, the weight column is named `".weight"` (see **§II.d**).
    where `N_h` is the population total for cell `h` and `N_hat_h` is the
    current weighted count.
 3. If a data cell has zero weighted count (all weights are 0 in a cell) →
-   error `surveyweights_error_empty_stratum`.
+   error `surveywts_error_empty_stratum`.
 
 ### Error and Warning Table
 
@@ -967,12 +967,12 @@ Common validation errors from **§II.d** apply. The errors below are specific to
 
 | Class | Trigger condition |
 |-------|-------------------|
-| `surveyweights_error_variable_has_na` | A `strata` variable has `NA` values |
-| `surveyweights_error_population_totals_invalid` | `type = "prop"` targets don't sum to 1, or `type = "count"` target ≤ 0 |
-| `surveyweights_error_population_cell_duplicate` | A cell combination appears more than once in `population` |
-| `surveyweights_error_population_cell_missing` | A data cell has no matching row in `population` |
-| `surveyweights_error_population_cell_not_in_data` | A `population` cell has no observations in `data` |
-| `surveyweights_error_empty_stratum` | A stratum cell has zero weighted count |
+| `surveywts_error_variable_has_na` | A `strata` variable has `NA` values |
+| `surveywts_error_population_totals_invalid` | `type = "prop"` targets don't sum to 1, or `type = "count"` target ≤ 0 |
+| `surveywts_error_population_cell_duplicate` | A cell combination appears more than once in `population` |
+| `surveywts_error_population_cell_missing` | A data cell has no matching row in `population` |
+| `surveywts_error_population_cell_not_in_data` | A `population` cell has no observations in `data` |
+| `surveywts_error_empty_stratum` | A stratum cell has zero weighted count |
 
 ---
 
@@ -1020,7 +1020,7 @@ adjust_nonresponse(
 | `weighted_df` | `weighted_df` |
 | `survey_taylor` | `survey_taylor` (same class — no variance method change) |
 | `survey_calibrated` | `survey_calibrated` (same class) |
-| `survey_replicate` | Error: `surveyweights_error_replicate_not_supported` |
+| `survey_replicate` | Error: `surveywts_error_replicate_not_supported` |
 
 **Row filtering:** Output contains only rows where `response_status == 1` (or
 `TRUE`). Nonrespondent rows are dropped.
@@ -1040,7 +1040,7 @@ cell `h`, and `sum(w_h_respondents)` is the sum of respondent weights only.
 ### Behavior Rules
 
 1. `method = "propensity"` or `method = "propensity-cell"` → error
-   `surveyweights_error_propensity_requires_phase2`. Both are API-stable stubs
+   `surveywts_error_propensity_requires_phase2`. Both are API-stable stubs
    for Phase 2. The error message includes `{.val {method}}` so users see which
    method they requested.
 2. If `by = NULL`, redistribution is global: all nonrespondent weights flow to
@@ -1054,16 +1054,16 @@ Common validation errors from **§II.d** apply. The errors below are specific to
 
 | Class | Trigger condition |
 |-------|-------------------|
-| `surveyweights_error_variable_has_na` | A `by` variable has `NA` values |
-| `surveyweights_error_response_status_not_found` | `response_status` column not in `data` |
-| `surveyweights_error_response_status_not_binary` | Column is not 0/1 or logical (factor columns are not binary regardless of their levels) |
-| `surveyweights_error_response_status_has_na` | `response_status` column has `NA` values |
-| `surveyweights_error_response_status_all_zero` | No respondents in `data` |
-| `surveyweights_error_class_cell_empty` | A weighting class cell has no respondents |
-| `surveyweights_error_propensity_requires_phase2` | `method` is `"propensity"` or `"propensity-cell"` (Phase 2 stubs) |
-| `surveyweights_warning_class_near_empty` | A cell is sparse by count or adjustment factor |
+| `surveywts_error_variable_has_na` | A `by` variable has `NA` values |
+| `surveywts_error_response_status_not_found` | `response_status` column not in `data` |
+| `surveywts_error_response_status_not_binary` | Column is not 0/1 or logical (factor columns are not binary regardless of their levels) |
+| `surveywts_error_response_status_has_na` | `response_status` column has `NA` values |
+| `surveywts_error_response_status_all_zero` | No respondents in `data` |
+| `surveywts_error_class_cell_empty` | A weighting class cell has no respondents |
+| `surveywts_error_propensity_requires_phase2` | `method` is `"propensity"` or `"propensity-cell"` (Phase 2 stubs) |
+| `surveywts_warning_class_near_empty` | A cell is sparse by count or adjustment factor |
 
-**Threshold for `surveyweights_warning_class_near_empty`:** warns when either
+**Threshold for `surveywts_warning_class_near_empty`:** warns when either
 condition is met — `n_respondents < control$min_cell` OR
 `adjustment_factor > control$max_adjust`. Both thresholds are user-configurable.
 
@@ -1094,12 +1094,12 @@ validation errors apply (same as calibration functions).
 
 | Class | Condition |
 |-------|-----------|
-| `surveyweights_error_unsupported_class` | `x` is not a supported class |
-| `surveyweights_error_weights_required` | `x` is a plain `data.frame` and `weights = NULL` |
-| `surveyweights_error_weights_not_found` | Specified column not in `x` |
-| `surveyweights_error_weights_not_numeric` | Weight column is not numeric |
-| `surveyweights_error_weights_nonpositive` | Weight column has values ≤ 0 |
-| `surveyweights_error_weights_na` | Weight column has `NA` values |
+| `surveywts_error_unsupported_class` | `x` is not a supported class |
+| `surveywts_error_weights_required` | `x` is a plain `data.frame` and `weights = NULL` |
+| `surveywts_error_weights_not_found` | Specified column not in `x` |
+| `surveywts_error_weights_not_numeric` | Weight column is not numeric |
+| `surveywts_error_weights_nonpositive` | Weight column has values ≤ 0 |
+| `surveywts_error_weights_na` | Weight column has `NA` values |
 
 ### `weight_variability()`
 
@@ -1148,7 +1148,7 @@ summarize_weights(x, weights = NULL, by = NULL)
 When `by = NULL`, returns a single-row tibble (overall summary).
 
 **Errors:** Same error behavior as `effective_sample_size()` (all six error classes apply),
-including `surveyweights_error_unsupported_class` for non-supported input classes.
+including `surveywts_error_unsupported_class` for non-supported input classes.
 
 ---
 
@@ -1208,8 +1208,8 @@ Used by both `calibrate()` and `rake()`. Returns `invisible(TRUE)` on success.
 # variable_names: character vector of column names to check
 # context: character(1) — "Calibration" or "Raking"; appears in error messages
 # Throws:
-#   surveyweights_error_variable_not_categorical if any column is not character or factor
-#   surveyweights_error_variable_has_na if any column contains NA values
+#   surveywts_error_variable_not_categorical if any column is not character or factor
+#   surveywts_error_variable_has_na if any column contains NA values
 ```
 
 ### `.validate_population_marginals(population, variable_names, data, type)`
@@ -1353,69 +1353,69 @@ specific function name.
 
 | Class | Trigger | Message template |
 |-------|---------|-----------------|
-| `surveyweights_error_unsupported_class` | `data` is not a supported class | `x`: `data` must be a data frame, {.cls weighted_df}, {.cls survey_taylor}, or {.cls survey_calibrated}. `i`: Got {.cls {class(data)[[1]]}}. |
-| `surveyweights_error_replicate_not_supported` | `data` is `survey_replicate` | `x`: {.cls survey_replicate} objects are not supported in Phase 0. `i`: Replicate-weight support requires Phase 1. `v`: Use a {.cls survey_taylor} design, or wait for Phase 1. |
-| `surveyweights_error_empty_data` | `nrow(data) == 0` | `x`: {.arg data} has 0 rows. `i`: This operation is undefined on empty data. `v`: Ensure {.arg data} has at least one row. |
-| `surveyweights_error_weights_not_found` | Named weight column missing from `data` | `x`: Weight column {.field {weights_var}} not found in `data`. `i`: Available columns: {.and {.field {names(data)}}}. `v`: Pass the column name as a bare name, e.g., {.code weights = wt_col}. |
-| `surveyweights_error_weights_not_numeric` | Weight column is not numeric | `x`: Weight column {.field {weights_var}} must be numeric. `i`: Got {.cls {class(wt_col)[[1]]}}. `v`: Use {.code as.numeric({.field {weights_var}})} to convert. |
-| `surveyweights_error_weights_nonpositive` | Weight column has values ≤ 0 | `x`: Weight column {.field {weights_var}} contains {sum(wt_col <= 0)} non-positive value(s). `i`: All starting weights must be strictly positive (> 0). `v`: Remove or replace non-positive weights before proceeding. |
-| `surveyweights_error_weights_na` | Weight column has `NA` values | `x`: Weight column {.field {weights_var}} contains {sum(is.na(wt_col))} NA value(s). `i`: Weights must be fully observed. `v`: Remove rows with missing weights before proceeding. |
+| `surveywts_error_unsupported_class` | `data` is not a supported class | `x`: `data` must be a data frame, {.cls weighted_df}, {.cls survey_taylor}, or {.cls survey_calibrated}. `i`: Got {.cls {class(data)[[1]]}}. |
+| `surveywts_error_replicate_not_supported` | `data` is `survey_replicate` | `x`: {.cls survey_replicate} objects are not supported in Phase 0. `i`: Replicate-weight support requires Phase 1. `v`: Use a {.cls survey_taylor} design, or wait for Phase 1. |
+| `surveywts_error_empty_data` | `nrow(data) == 0` | `x`: {.arg data} has 0 rows. `i`: This operation is undefined on empty data. `v`: Ensure {.arg data} has at least one row. |
+| `surveywts_error_weights_not_found` | Named weight column missing from `data` | `x`: Weight column {.field {weights_var}} not found in `data`. `i`: Available columns: {.and {.field {names(data)}}}. `v`: Pass the column name as a bare name, e.g., {.code weights = wt_col}. |
+| `surveywts_error_weights_not_numeric` | Weight column is not numeric | `x`: Weight column {.field {weights_var}} must be numeric. `i`: Got {.cls {class(wt_col)[[1]]}}. `v`: Use {.code as.numeric({.field {weights_var}})} to convert. |
+| `surveywts_error_weights_nonpositive` | Weight column has values ≤ 0 | `x`: Weight column {.field {weights_var}} contains {sum(wt_col <= 0)} non-positive value(s). `i`: All starting weights must be strictly positive (> 0). `v`: Remove or replace non-positive weights before proceeding. |
+| `surveywts_error_weights_na` | Weight column has `NA` values | `x`: Weight column {.field {weights_var}} contains {sum(is.na(wt_col))} NA value(s). `i`: Weights must be fully observed. `v`: Remove rows with missing weights before proceeding. |
 
 ### XII.B `calibrate()` Errors
 
 | Class | Message template |
 |-------|-----------------|
-| `surveyweights_error_variable_not_categorical` | `x`: Calibration variable {.field {var}} is {.cls {class(data[[var]])[[1]]}}. `i`: Phase 0 supports categorical (character or factor) variables only. `v`: Convert to factor or character. Continuous auxiliary variable calibration is not supported in Phase 0. |
-| `surveyweights_error_variable_has_na` | `x`: Calibration variable {.field {var}} contains {sum(is.na(data[[var]]))} NA value(s). `i`: NA values in calibration variables are not allowed. `v`: Remove or impute NA values in {.field {var}} before calibrating. |
-| `surveyweights_error_population_variable_not_found` | `x`: Population variable {.field {var}} not found in `data`. `i`: Names in `population` must match column names in `data`. `v`: Check spelling: available columns are {.and {.field {names(data)}}}. |
-| `surveyweights_error_population_level_missing` | `x`: Level {.val {level}} of variable {.field {var}} is present in `data` but not in `population`. `i`: Every level in the data must have a corresponding population target. `v`: Add {.val {level}} to the {.field {var}} entry in `population`. |
-| `surveyweights_error_population_level_extra` | `x`: Level {.val {level}} of variable {.field {var}} is present in `population` but not in `data`. `i`: Population targets for levels absent from the sample are undefined. `v`: Remove {.val {level}} from the {.field {var}} entry in `population`. |
-| `surveyweights_error_population_totals_invalid` | **`type = "prop"`:** `x`: Population totals for {.field {var}} sum to {sum_val}, not 1.0. `i`: When {.code type = "prop"}, each variable's targets must sum to 1.0 (within 1e-6 tolerance). `v`: Adjust the values in {.code population${.field {var}}}. **`type = "count"`:** `x`: Population targets for {.field {var}} contain {n_nonpos} non-positive value(s). `i`: When {.code type = "count"}, all targets must be strictly positive (> 0). `v`: Remove or correct non-positive entries in {.code population${.field {var}}}. |
-| `surveyweights_error_calibration_not_converged` | `x`: Calibration did not converge after {control$maxit} iterations. `i`: Maximum calibration error: {max_error} (tolerance: {control$epsilon}). `v`: Increase {.code control$maxit}, relax {.code control$epsilon}, or verify population totals are consistent with the sample. |
-| `surveyweights_warning_negative_calibrated_weights` | `!`: Linear calibration produced {n_neg} negative calibrated weight(s). `i`: Negative weights can cause invalid variance estimates. `i`: Consider {.code method = "logit"} for bounded weights, or review population totals. |
+| `surveywts_error_variable_not_categorical` | `x`: Calibration variable {.field {var}} is {.cls {class(data[[var]])[[1]]}}. `i`: Phase 0 supports categorical (character or factor) variables only. `v`: Convert to factor or character. Continuous auxiliary variable calibration is not supported in Phase 0. |
+| `surveywts_error_variable_has_na` | `x`: Calibration variable {.field {var}} contains {sum(is.na(data[[var]]))} NA value(s). `i`: NA values in calibration variables are not allowed. `v`: Remove or impute NA values in {.field {var}} before calibrating. |
+| `surveywts_error_population_variable_not_found` | `x`: Population variable {.field {var}} not found in `data`. `i`: Names in `population` must match column names in `data`. `v`: Check spelling: available columns are {.and {.field {names(data)}}}. |
+| `surveywts_error_population_level_missing` | `x`: Level {.val {level}} of variable {.field {var}} is present in `data` but not in `population`. `i`: Every level in the data must have a corresponding population target. `v`: Add {.val {level}} to the {.field {var}} entry in `population`. |
+| `surveywts_error_population_level_extra` | `x`: Level {.val {level}} of variable {.field {var}} is present in `population` but not in `data`. `i`: Population targets for levels absent from the sample are undefined. `v`: Remove {.val {level}} from the {.field {var}} entry in `population`. |
+| `surveywts_error_population_totals_invalid` | **`type = "prop"`:** `x`: Population totals for {.field {var}} sum to {sum_val}, not 1.0. `i`: When {.code type = "prop"}, each variable's targets must sum to 1.0 (within 1e-6 tolerance). `v`: Adjust the values in {.code population${.field {var}}}. **`type = "count"`:** `x`: Population targets for {.field {var}} contain {n_nonpos} non-positive value(s). `i`: When {.code type = "count"}, all targets must be strictly positive (> 0). `v`: Remove or correct non-positive entries in {.code population${.field {var}}}. |
+| `surveywts_error_calibration_not_converged` | `x`: Calibration did not converge after {control$maxit} iterations. `i`: Maximum calibration error: {max_error} (tolerance: {control$epsilon}). `v`: Increase {.code control$maxit}, relax {.code control$epsilon}, or verify population totals are consistent with the sample. |
+| `surveywts_warning_negative_calibrated_weights` | `!`: Linear calibration produced {n_neg} negative calibrated weight(s). `i`: Negative weights can cause invalid variance estimates. `i`: Consider {.code method = "logit"} for bounded weights, or review population totals. |
 
 ### XII.C `rake()` Errors
 
 | Class | Message template |
 |-------|-----------------|
-| `surveyweights_error_margins_format_invalid` | `x`: {.arg margins} must be a named list or a data frame with columns {.field variable}, {.field level}, and {.field target}. `i`: Got {.cls {class(margins)[[1]]}}. `v`: See {.fn rake} documentation for accepted formats. |
-| `surveyweights_error_margins_variable_not_found` | `x`: Raking variable {.field {var}} not found in `data`. `i`: Check that all variable names in {.arg margins} exist as columns in `data`. |
-| `surveyweights_error_variable_not_categorical` | `x`: Raking variable {.field {var}} is {.cls {class(data[[var]])[[1]]}}. `i`: Phase 0 supports categorical (character or factor) variables only. `v`: Convert to factor or character. Continuous variable raking is not supported in Phase 0. |
-| `surveyweights_error_variable_has_na` | `x`: Raking variable {.field {var}} contains {sum(is.na(data[[var]]))} NA value(s). `i`: NA values in raking variables are not allowed. `v`: Remove or impute NA values in {.field {var}} before calling {.fn rake}. |
-| `surveyweights_error_population_level_missing` | `x`: Level {.val {level}} of margin {.field {var}} is present in `data` but not in `margins`. `i`: Every level in the data must have a corresponding population target. `v`: Add {.val {level}} to the {.field {var}} entry in `margins`. |
-| `surveyweights_error_population_level_extra` | `x`: Level {.val {level}} of margin {.field {var}} is present in `margins` but not in `data`. `i`: Population targets for levels absent from the sample are undefined. `v`: Remove {.val {level}} from the {.field {var}} entry in `margins`. |
-| `surveyweights_error_population_totals_invalid` | **`type = "prop"`:** `x`: Population totals for {.field {var}} sum to {sum_val}, not 1.0. `i`: When {.code type = "prop"}, each variable's targets must sum to 1.0 (within 1e-6 tolerance). `v`: Adjust the values in the {.field target} column for {.field {var}}. **`type = "count"`:** `x`: Population targets for {.field {var}} contain {n_nonpos} non-positive value(s). `i`: When {.code type = "count"}, all targets must be strictly positive (> 0). `v`: Remove or correct non-positive entries in the {.field target} column for {.field {var}}. |
-| `surveyweights_error_calibration_not_converged` | **`method = "anesrake"`:** `x`: Raking did not converge after {control$maxit} full sweeps. `i`: Chi-square improvement in the final sweep: {improvement_pct}% (threshold: {control$improvement}%). `v`: Increase {.code control$maxit} or relax {.code control$improvement} in the {.arg control} list. **`method = "survey"`:** `x`: Raking did not converge after {control$maxit} full sweeps. `i`: Maximum margin error: {max_error} (tolerance: {control$epsilon}). `v`: Increase {.code control$maxit}, relax {.code control$epsilon}, or verify margin totals are consistent with the sample. |
+| `surveywts_error_margins_format_invalid` | `x`: {.arg margins} must be a named list or a data frame with columns {.field variable}, {.field level}, and {.field target}. `i`: Got {.cls {class(margins)[[1]]}}. `v`: See {.fn rake} documentation for accepted formats. |
+| `surveywts_error_margins_variable_not_found` | `x`: Raking variable {.field {var}} not found in `data`. `i`: Check that all variable names in {.arg margins} exist as columns in `data`. |
+| `surveywts_error_variable_not_categorical` | `x`: Raking variable {.field {var}} is {.cls {class(data[[var]])[[1]]}}. `i`: Phase 0 supports categorical (character or factor) variables only. `v`: Convert to factor or character. Continuous variable raking is not supported in Phase 0. |
+| `surveywts_error_variable_has_na` | `x`: Raking variable {.field {var}} contains {sum(is.na(data[[var]]))} NA value(s). `i`: NA values in raking variables are not allowed. `v`: Remove or impute NA values in {.field {var}} before calling {.fn rake}. |
+| `surveywts_error_population_level_missing` | `x`: Level {.val {level}} of margin {.field {var}} is present in `data` but not in `margins`. `i`: Every level in the data must have a corresponding population target. `v`: Add {.val {level}} to the {.field {var}} entry in `margins`. |
+| `surveywts_error_population_level_extra` | `x`: Level {.val {level}} of margin {.field {var}} is present in `margins` but not in `data`. `i`: Population targets for levels absent from the sample are undefined. `v`: Remove {.val {level}} from the {.field {var}} entry in `margins`. |
+| `surveywts_error_population_totals_invalid` | **`type = "prop"`:** `x`: Population totals for {.field {var}} sum to {sum_val}, not 1.0. `i`: When {.code type = "prop"}, each variable's targets must sum to 1.0 (within 1e-6 tolerance). `v`: Adjust the values in the {.field target} column for {.field {var}}. **`type = "count"`:** `x`: Population targets for {.field {var}} contain {n_nonpos} non-positive value(s). `i`: When {.code type = "count"}, all targets must be strictly positive (> 0). `v`: Remove or correct non-positive entries in the {.field target} column for {.field {var}}. |
+| `surveywts_error_calibration_not_converged` | **`method = "anesrake"`:** `x`: Raking did not converge after {control$maxit} full sweeps. `i`: Chi-square improvement in the final sweep: {improvement_pct}% (threshold: {control$improvement}%). `v`: Increase {.code control$maxit} or relax {.code control$improvement} in the {.arg control} list. **`method = "survey"`:** `x`: Raking did not converge after {control$maxit} full sweeps. `i`: Maximum margin error: {max_error} (tolerance: {control$epsilon}). `v`: Increase {.code control$maxit}, relax {.code control$epsilon}, or verify margin totals are consistent with the sample. |
 
 ### XII.D `poststratify()` Errors
 
 | Class | Message template |
 |-------|-----------------|
-| `surveyweights_error_variable_has_na` | `x`: Strata variable {.field {var}} contains {sum(is.na(data[[var]]))} NA value(s). `i`: NA values in strata variables are not allowed. `v`: Remove or impute NA values in {.field {var}} before calling {.fn poststratify}. |
-| `surveyweights_error_population_totals_invalid` | **`type = "prop"`:** `x`: Population targets sum to {sum_val}, not 1.0. `i`: When {.code type = "prop"}, targets in {.arg population} must sum to 1.0 (within 1e-6 tolerance). `v`: Adjust the values in the {.field target} column of {.arg population}. **`type = "count"`:** `x`: Population targets contain {n_nonpos} non-positive value(s). `i`: When {.code type = "count"}, all targets must be strictly positive (> 0). `v`: Remove or correct non-positive entries in the {.field target} column of {.arg population}. |
-| `surveyweights_error_population_cell_duplicate` | `x`: Population cell {.val {cell_label}} appears {n} times in `population`. `i`: Each cell combination must appear exactly once in `population`. `v`: Remove duplicate rows for {.val {cell_label}} from `population` before calling {.fn poststratify}. |
-| `surveyweights_error_population_cell_missing` | `x`: Cell {.val {cell_label}} is present in `data` but has no matching row in `population`. `i`: Every cell combination in the data must appear in `population`. `v`: Add a row for {.val {cell_label}} to `population`. |
-| `surveyweights_error_population_cell_not_in_data` | `x`: Population cell {.val {cell_label}} has no observations in `data`. `i`: Extra cells in the population frame are not allowed — they may indicate a misspecified population. `v`: Remove rows for {.val {cell_label}} from `population` before calling {.fn poststratify}. |
-| `surveyweights_error_empty_stratum` | `x`: Stratum cell {.val {cell_label}} has zero weighted count. `i`: Post-stratification requires at least one positive-weight observation in every cell. `v`: Collapse small cells before post-stratifying. |
+| `surveywts_error_variable_has_na` | `x`: Strata variable {.field {var}} contains {sum(is.na(data[[var]]))} NA value(s). `i`: NA values in strata variables are not allowed. `v`: Remove or impute NA values in {.field {var}} before calling {.fn poststratify}. |
+| `surveywts_error_population_totals_invalid` | **`type = "prop"`:** `x`: Population targets sum to {sum_val}, not 1.0. `i`: When {.code type = "prop"}, targets in {.arg population} must sum to 1.0 (within 1e-6 tolerance). `v`: Adjust the values in the {.field target} column of {.arg population}. **`type = "count"`:** `x`: Population targets contain {n_nonpos} non-positive value(s). `i`: When {.code type = "count"}, all targets must be strictly positive (> 0). `v`: Remove or correct non-positive entries in the {.field target} column of {.arg population}. |
+| `surveywts_error_population_cell_duplicate` | `x`: Population cell {.val {cell_label}} appears {n} times in `population`. `i`: Each cell combination must appear exactly once in `population`. `v`: Remove duplicate rows for {.val {cell_label}} from `population` before calling {.fn poststratify}. |
+| `surveywts_error_population_cell_missing` | `x`: Cell {.val {cell_label}} is present in `data` but has no matching row in `population`. `i`: Every cell combination in the data must appear in `population`. `v`: Add a row for {.val {cell_label}} to `population`. |
+| `surveywts_error_population_cell_not_in_data` | `x`: Population cell {.val {cell_label}} has no observations in `data`. `i`: Extra cells in the population frame are not allowed — they may indicate a misspecified population. `v`: Remove rows for {.val {cell_label}} from `population` before calling {.fn poststratify}. |
+| `surveywts_error_empty_stratum` | `x`: Stratum cell {.val {cell_label}} has zero weighted count. `i`: Post-stratification requires at least one positive-weight observation in every cell. `v`: Collapse small cells before post-stratifying. |
 
 ### XII.E `adjust_nonresponse()` Errors
 
 | Class | Message template |
 |-------|-----------------|
-| `surveyweights_error_variable_has_na` | `x`: Weighting class variable {.field {var}} contains {sum(is.na(data[[var]]))} NA value(s). `i`: NA values in weighting class variables are not allowed. `v`: Remove or impute NA values in {.field {var}} before calling {.fn adjust_nonresponse}. |
-| `surveyweights_error_response_status_not_found` | `x`: Response status column {.field {status_var}} not found in `data`. `i`: Available columns: {.and {.field {names(data)}}}. `v`: Pass the column name as a bare name, e.g., {.code response_status = responded}. |
-| `surveyweights_error_response_status_not_binary` | `x`: Response status column {.field {status_var}} must be binary (0/1 or logical). `i`: Got {.cls {class(data[[status_var]])[[1]]}} with values: {.val {unique(data[[status_var]])}}. `i`: Factor columns are not binary regardless of their levels. `v`: Convert to logical ({.code TRUE}/{.code FALSE}) or integer ({.code 0}/{.code 1}) before calling {.fn adjust_nonresponse}. |
-| `surveyweights_error_response_status_has_na` | `x`: Response status column {.field {status_var}} contains {sum(is.na(data[[status_var]]))} NA value(s). `i`: The response indicator must be fully observed. `v`: Remove rows with missing response status before calling {.fn adjust_nonresponse}. |
-| `surveyweights_error_response_status_all_zero` | `x`: No respondents found in `data`. `i`: All values of {.field {status_var}} are 0 or {.code FALSE}. `v`: Ensure `data` contains both respondents and nonrespondents before adjustment. |
-| `surveyweights_error_class_cell_empty` | `x`: Weighting class cell {.val {cell_label}} has no respondents. `i`: Cannot redistribute nonrespondent weights to an empty respondent cell. `v`: Collapse weighting classes to ensure each cell has at least one respondent. |
-| `surveyweights_error_propensity_requires_phase2` | `x`: {.code method = {.val {method}}} is not available in Phase 0. `i`: Propensity-based methods ({.val "propensity"} and {.val "propensity-cell"}) require Phase 2 (v0.3.0). `v`: Use {.code method = "weighting-class"} for now. |
-| `surveyweights_warning_class_near_empty` | `!`: Weighting class cell {.val {cell_label}} is sparse ({n} respondent(s), adjustment factor {adj:.2f}×). `i`: Small or high-adjustment cells may produce extreme weights. `i`: Consider collapsing weighting classes or adjusting {.code control$min_cell} / {.code control$max_adjust}. |
+| `surveywts_error_variable_has_na` | `x`: Weighting class variable {.field {var}} contains {sum(is.na(data[[var]]))} NA value(s). `i`: NA values in weighting class variables are not allowed. `v`: Remove or impute NA values in {.field {var}} before calling {.fn adjust_nonresponse}. |
+| `surveywts_error_response_status_not_found` | `x`: Response status column {.field {status_var}} not found in `data`. `i`: Available columns: {.and {.field {names(data)}}}. `v`: Pass the column name as a bare name, e.g., {.code response_status = responded}. |
+| `surveywts_error_response_status_not_binary` | `x`: Response status column {.field {status_var}} must be binary (0/1 or logical). `i`: Got {.cls {class(data[[status_var]])[[1]]}} with values: {.val {unique(data[[status_var]])}}. `i`: Factor columns are not binary regardless of their levels. `v`: Convert to logical ({.code TRUE}/{.code FALSE}) or integer ({.code 0}/{.code 1}) before calling {.fn adjust_nonresponse}. |
+| `surveywts_error_response_status_has_na` | `x`: Response status column {.field {status_var}} contains {sum(is.na(data[[status_var]]))} NA value(s). `i`: The response indicator must be fully observed. `v`: Remove rows with missing response status before calling {.fn adjust_nonresponse}. |
+| `surveywts_error_response_status_all_zero` | `x`: No respondents found in `data`. `i`: All values of {.field {status_var}} are 0 or {.code FALSE}. `v`: Ensure `data` contains both respondents and nonrespondents before adjustment. |
+| `surveywts_error_class_cell_empty` | `x`: Weighting class cell {.val {cell_label}} has no respondents. `i`: Cannot redistribute nonrespondent weights to an empty respondent cell. `v`: Collapse weighting classes to ensure each cell has at least one respondent. |
+| `surveywts_error_propensity_requires_phase2` | `x`: {.code method = {.val {method}}} is not available in Phase 0. `i`: Propensity-based methods ({.val "propensity"} and {.val "propensity-cell"}) require Phase 2 (v0.3.0). `v`: Use {.code method = "weighting-class"} for now. |
+| `surveywts_warning_class_near_empty` | `!`: Weighting class cell {.val {cell_label}} is sparse ({n} respondent(s), adjustment factor {adj:.2f}×). `i`: Small or high-adjustment cells may produce extreme weights. `i`: Consider collapsing weighting classes or adjusting {.code control$min_cell} / {.code control$max_adjust}. |
 
 ### XII.F Diagnostic Errors
 
 | Class | Thrown by | Trigger |
 |-------|-----------|---------|
-| `surveyweights_error_weights_required` | `effective_sample_size()`, `weight_variability()`, `summarize_weights()` | Plain `data.frame` input with `weights = NULL` |
+| `surveywts_error_weights_required` | `effective_sample_size()`, `weight_variability()`, `summarize_weights()` | Plain `data.frame` input with `weights = NULL` |
 
 **Message template:**
 `x`: {.arg weights} is required when {.arg x} is a plain data frame. `i`: For {.cls weighted_df} and survey objects, the weight column is detected automatically. `v`: Pass the column name as a bare name, e.g., {.code weights = wt_col}.
@@ -1424,9 +1424,9 @@ specific function name.
 
 | Class | Thrown by | Trigger | Message template |
 |-------|-----------|---------|-----------------|
-| `surveyweights_warning_weight_col_dropped` | `dplyr_reconstruct.weighted_df()` | dplyr verb removed or renamed the weight column | `!`: The weight column {.field {weight_col}} was removed by a dplyr operation. `i`: The result has been downgraded from {.cls weighted_df} to a plain tibble. `i`: Use {.fn dplyr::select} to keep {.field {weight_col}}, or re-apply weights if this was intentional. `v`: To rename the weight column, load {.pkg surveytidy} which provides a rename-aware {.fn rename.weighted_df} method. |
-| `surveyweights_warning_control_param_ignored` | `rake()` | A `control` parameter is not applicable to the specified `method` | `!`: {.code control${.field {param}}} is not used when {.code method = {.val {method}}} and will be ignored. `i`: For {.code method = "anesrake"}, valid {.arg control} keys are: {.code maxit}, {.code improvement}, {.code pval}, {.code min_cell_n}, {.code variable_select}. `i`: For {.code method = "survey"}, valid {.arg control} keys are: {.code maxit}, {.code epsilon}. |
-| `surveyweights_message_already_calibrated` | `rake()` (method = "anesrake" only) | All variables pass chi-square threshold or are excluded in sweep 1 — weights unchanged | `ℹ`: Raking converged in 1 sweep: all variables already met their margins. Weights were not adjusted. |
+| `surveywts_warning_weight_col_dropped` | `dplyr_reconstruct.weighted_df()` | dplyr verb removed or renamed the weight column | `!`: The weight column {.field {weight_col}} was removed by a dplyr operation. `i`: The result has been downgraded from {.cls weighted_df} to a plain tibble. `i`: Use {.fn dplyr::select} to keep {.field {weight_col}}, or re-apply weights if this was intentional. `v`: To rename the weight column, load {.pkg surveytidy} which provides a rename-aware {.fn rename.weighted_df} method. |
+| `surveywts_warning_control_param_ignored` | `rake()` | A `control` parameter is not applicable to the specified `method` | `!`: {.code control${.field {param}}} is not used when {.code method = {.val {method}}} and will be ignored. `i`: For {.code method = "anesrake"}, valid {.arg control} keys are: {.code maxit}, {.code improvement}, {.code pval}, {.code min_cell_n}, {.code variable_select}. `i`: For {.code method = "survey"}, valid {.arg control} keys are: {.code maxit}, {.code epsilon}. |
+| `surveywts_message_already_calibrated` | `rake()` (method = "anesrake" only) | All variables pass chi-square threshold or are excluded in sweep 1 — weights unchanged | `ℹ`: Raking converged in 1 sweep: all variables already met their margins. Weights were not adjusted. |
 
 ---
 
@@ -1447,10 +1447,10 @@ Internal utilities (`.calibrate_engine()` etc.) are tested indirectly through
 the public API. Direct tests only if indirect coverage is impossible (see
 `testing-standards.md §2`).
 
-### `make_surveyweights_data()` — required in `helper-test-data.R`
+### `make_surveywts_data()` — required in `helper-test-data.R`
 
 ```r
-make_surveyweights_data <- function(n = 500, seed = 42, include_nonrespondents = FALSE) {
+make_surveywts_data <- function(n = 500, seed = 42, include_nonrespondents = FALSE) {
   # Returns a plain data.frame with:
   #   - id: integer row identifier
   #   - age_group: character, c("18-34", "35-54", "55+")
@@ -1510,7 +1510,7 @@ the dual pattern: `expect_error(class = ...)` + `expect_snapshot(error = TRUE, .
 **`calibrate()`:**
 ```
 # 1. Happy path — data.frame input → weighted_df output
-#    (uses make_surveyweights_data() which returns multi-variable data;
+#    (uses make_surveywts_data() which returns multi-variable data;
 #     implicitly tests multi-variable population with age_group + sex + education)
 #    Assert: attr(result, "weight_col") == ".weight" when weights = NULL
 # 1b. Happy path — factor-typed variable column (verify factor treated same as character)
@@ -1543,7 +1543,7 @@ the dual pattern: `expect_error(class = ...)` + `expect_snapshot(error = TRUE, .
 #     assert step (integer), operation == "calibration", timestamp (POSIXct),
 #     call (non-empty character), parameters (named list), weight_stats (before/after),
 #     convergence (list with converged/iterations/max_error/tolerance),
-#     package_version == as.character(packageVersion("surveyweights"))
+#     package_version == as.character(packageVersion("surveywts"))
 # 19. History — step number increments correctly across chained calls
 # Note: calibrate() → rake() chain test (item 19b) is in test-03-rake.R
 ```
@@ -1585,7 +1585,7 @@ the dual pattern: `expect_error(class = ...)` + `expect_snapshot(error = TRUE, .
 #     assert step (integer), operation == "raking", timestamp (POSIXct),
 #     call (non-empty character), parameters includes method/cap/resolved control,
 #     weight_stats (before/after), convergence (list with converged/iterations/max_error/tolerance),
-#     package_version == as.character(packageVersion("surveyweights"))
+#     package_version == as.character(packageVersion("surveywts"))
 # 20. History — step number increments correctly across chained calls
 # 20b. Integration — calibrate() → rake() chain produces two-entry weighting_history
 #      with step numbers 1 and 2 and correct operation labels
@@ -1601,18 +1601,18 @@ the dual pattern: `expect_error(class = ...)` + `expect_snapshot(error = TRUE, .
 # 24. Numerical correctness — method = "anesrake" matches anesrake::anesrake() within
 #     1e-8 tolerance (skip_if_not_installed("anesrake"), inside the test block)
 # 25. Warning — control$pval set with method = "survey" →
-#     surveyweights_warning_control_param_ignored (dual pattern)
+#     surveywts_warning_control_param_ignored (dual pattern)
 # 25b. Warning — control$epsilon set with method = "anesrake" →
-#      surveyweights_warning_control_param_ignored (dual pattern)
+#      surveywts_warning_control_param_ignored (dual pattern)
 # 26. Control defaults — method = "anesrake" resolves maxit = 1000;
 #     method = "survey" resolves maxit = 100; user override works correctly
 # 26b. Message — already_calibrated: when all anesrake variables pass chi-square
 #      threshold in sweep 1, convergence$iterations == 1L, convergence$max_error == 0,
-#      and surveyweights_message_already_calibrated is emitted
-#      (expect_message(class = "surveyweights_message_already_calibrated"))
+#      and surveywts_message_already_calibrated is emitted
+#      (expect_message(class = "surveywts_message_already_calibrated"))
 # 26c. Message — already_calibrated via min_cell_n exclusion: set control$min_cell_n
 #      very large so all variables are excluded; verify convergence$iterations == 1L
-#      and surveyweights_message_already_calibrated is emitted
+#      and surveywts_message_already_calibrated is emitted
 ```
 
 **`poststratify()`:**
@@ -1640,7 +1640,7 @@ the dual pattern: `expect_error(class = ...)` + `expect_snapshot(error = TRUE, .
 #     assert step (integer), operation == "poststratify", timestamp (POSIXct),
 #     call (non-empty character), parameters (named list), weight_stats (before/after),
 #     convergence == NULL (poststratify is non-iterative),
-#     package_version == as.character(packageVersion("surveyweights"))
+#     package_version == as.character(packageVersion("surveywts"))
 # 15. History — step number increments correctly across chained calls
 ```
 
@@ -1683,7 +1683,7 @@ the dual pattern: `expect_error(class = ...)` + `expect_snapshot(error = TRUE, .
 #     timestamp (POSIXct), call (non-empty character), parameters (named list
 #     with by_variables and method), weight_stats (before/after),
 #     convergence == NULL (non-iterative),
-#     package_version == as.character(packageVersion("surveyweights"))
+#     package_version == as.character(packageVersion("surveywts"))
 ```
 
 **`effective_sample_size()`, `weight_variability()`, `summarize_weights()`:**
@@ -1720,7 +1720,7 @@ the dual pattern: `expect_error(class = ...)` + `expect_snapshot(error = TRUE, .
 # 2e. dplyr_reconstruct — mutate() adding a new column, weight col untouched → weighted_df
 # 2f. dplyr_reconstruct — mutate() modifying weight VALUES (column still exists) → weighted_df
 # 2g. dplyr_reconstruct — mutate() dropping weight col (.keep = "unused") → plain tibble + warning
-# 3. Warning class is surveyweights_warning_weight_col_dropped
+# 3. Warning class is surveywts_warning_weight_col_dropped
 #    (applies to 2, 2b, 2g; use expect_warning(class=) + expect_snapshot() for each)
 # 4. print.weighted_df — snapshot test (output matches verbatim example in Section IV;
 #    uses a weighted_df with 2-step weighting history)
@@ -1730,11 +1730,11 @@ the dual pattern: `expect_error(class = ...)` + `expect_snapshot(error = TRUE, .
 # 6. Class vector is correct: c("weighted_df", "tbl_df", "tbl", "data.frame")
 # 7. survey_calibrated print — snapshot test (output matches verbatim example in Section V)
 # 8. survey_calibrated S7 validator — rejects non-positive weights
-#    class = "surveycore_error_weights_nonpositive" (surveycore's class, not surveyweights_error_*)
+#    class = "surveycore_error_weights_nonpositive" (surveycore's class, not surveywts_error_*)
 #    class= only, no snapshot — message is not CLI-formatted
 # 9. survey_calibrated S7 validator — rejects weight column where ALL values are NA
 #    (surveycore's validator permits individual NAs; errors only when length(non_na) == 0)
-#    class = "surveycore_error_weights_na" (surveycore's class, not surveyweights_error_*)
+#    class = "surveycore_error_weights_na" (surveycore's class, not surveywts_error_*)
 #    class= only, no snapshot
 ```
 
@@ -1743,7 +1743,7 @@ All error path tests use the dual pattern from `testing-standards.md`:
 
 S7 validator errors (tests #8 and #9 above) use `class=` only — no snapshot —
 because those messages are not CLI-formatted. They use `surveycore_error_*` classes,
-not `surveyweights_error_*`, because the validator belongs to surveycore's class.
+not `surveywts_error_*`, because the validator belongs to surveycore's class.
 
 All snapshot failures block PRs.
 
@@ -1762,7 +1762,7 @@ All snapshot failures block PRs.
 - [ ] All snapshot tests pass (`testthat::snapshot_review()` clean)
 - [ ] `air::format_package()` produces no diffs
 - [ ] `test_invariants()` is called in every constructor test block
-- [ ] `make_surveyweights_data()` is used in all non-edge-case test blocks
+- [ ] `make_surveywts_data()` is used in all non-edge-case test blocks
 - [ ] `calibrate()`, `rake()`, `poststratify()` have numerical correctness tests
   against `survey` package (each with `skip_if_not_installed("survey")` inside
   the relevant `test_that()` block)
@@ -1771,8 +1771,8 @@ All snapshot failures block PRs.
 - [ ] `VENDORED.md` is created and attributes all vendored code
 - [ ] Reference implementation for `adjust_nonresponse()` is identified and documented
   in `VENDORED.md` (or a hand-calculation validation methodology is documented)
-- [ ] `surveyweights-conventions.md` stub is filled in with Phase 0 conventions
-- [ ] `testing-surveyweights.md` stub is filled in with `test_invariants()` definition
+- [ ] `surveywts-conventions.md` stub is filled in with Phase 0 conventions
+- [ ] `testing-surveywts.md` stub is filled in with `test_invariants()` definition
 - [ ] Surveycore prerequisite PR is merged before this branch opens
 
 ---
@@ -1781,7 +1781,7 @@ All snapshot failures block PRs.
 
 | # | Section | Status | Description |
 |---|---------|--------|-------------|
-| 1 | II, V | ✅ Resolved | `survey_base` properties confirmed: `@data`, `@metadata`, `@variables`, `@groups`, `@call`. `survey_calibrated` defined in surveycore (not surveyweights). See §V. |
+| 1 | II, V | ✅ Resolved | `survey_base` properties confirmed: `@data`, `@metadata`, `@variables`, `@groups`, `@call`. `survey_calibrated` defined in surveycore (not surveywts). See §V. |
 | 2 | III | ✅ Resolved | `survey_weighting_history(x)` confirmed exported from surveycore; `@metadata@weighting_history` already exists as a list property. |
 | 3 | III | ✅ Resolved | `@variables$weights` confirmed as character scalar (column name). surveycore validator reads `self@data[[self@variables$weights]]`. |
 | 4 | II.b | ✅ Resolved | surveycore installed with all prerequisite features; `0.1.0` minimum version confirmed. |

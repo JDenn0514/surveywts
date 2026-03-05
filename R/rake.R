@@ -85,7 +85,7 @@
 #'   - `epsilon = 1e-7`: maximum relative margin error convergence threshold
 #'
 #'   Passing anesrake-specific keys when `method = "survey"` (or vice versa)
-#'   triggers a `surveyweights_warning_control_param_ignored` warning per
+#'   triggers a `surveywts_warning_control_param_ignored` warning per
 #'   ignored parameter.
 #'
 #' @return
@@ -104,7 +104,7 @@
 #'   `control$pval` are skipped in that sweep. Convergence is assessed as the
 #'   percentage improvement in total chi-square between consecutive sweeps.
 #'   If all variables pass or are excluded in sweep 1, a
-#'   `surveyweights_message_already_calibrated` message is emitted.
+#'   `surveywts_message_already_calibrated` message is emitted.
 #'
 #'   **`method = "survey"`:** Variables are raked in the fixed order given by
 #'   `margins`. All variables participate in every sweep. Convergence is
@@ -177,7 +177,7 @@ rake <- function(
             "{.code maxit}, {.code epsilon}."
           )
         ),
-        class = "surveyweights_warning_control_param_ignored"
+        class = "surveywts_warning_control_param_ignored"
       )
     }
   } else {
@@ -198,7 +198,7 @@ rake <- function(
             "{.code maxit}, {.code epsilon}."
           )
         ),
-        class = "surveyweights_warning_control_param_ignored"
+        class = "surveywts_warning_control_param_ignored"
       )
     }
   }
@@ -215,7 +215,7 @@ rake <- function(
         "i" = "This operation is undefined on empty data.",
         "v" = "Ensure {.arg data} has at least one row."
       ),
-      class = "surveyweights_error_empty_data"
+      class = "surveywts_error_empty_data"
     )
   }
 
@@ -255,7 +255,7 @@ rake <- function(
             "columns in {.arg data}."
           )
         ),
-        class = "surveyweights_error_margins_variable_not_found"
+        class = "surveywts_error_margins_variable_not_found"
       )
     }
   }
@@ -358,7 +358,7 @@ rake <- function(
 # Returns: named list. Each element is a named numeric vector
 #   c(level1 = target1, level2 = target2, ...)
 #
-# Errors with surveyweights_error_margins_format_invalid if margins is neither
+# Errors with surveywts_error_margins_format_invalid if margins is neither
 # a named list nor a valid Format B data.frame.
 .parse_margins <- function(margins) {
   # Format B: data.frame with required columns
@@ -378,7 +378,7 @@ rake <- function(
           ),
           "v" = "See {.fn rake} documentation for accepted formats."
         ),
-        class = "surveyweights_error_margins_format_invalid"
+        class = "surveywts_error_margins_format_invalid"
       )
     }
 
@@ -410,7 +410,7 @@ rake <- function(
           ),
           "v" = "See {.fn rake} documentation for accepted formats."
         ),
-        class = "surveyweights_error_margins_format_invalid"
+        class = "surveywts_error_margins_format_invalid"
       )
     }
 
@@ -427,7 +427,7 @@ rake <- function(
               ),
               "v" = "See {.fn rake} documentation for accepted formats."
             ),
-            class = "surveyweights_error_margins_format_invalid"
+            class = "surveywts_error_margins_format_invalid"
           )
         }
         # Use stats::setNames() to build named vector without stripping names
@@ -457,6 +457,6 @@ rake <- function(
       "i" = "Got {.cls {cls}}.",
       "v" = "See {.fn rake} documentation for accepted formats."
     ),
-    class = "surveyweights_error_margins_format_invalid"
+    class = "surveywts_error_margins_format_invalid"
   )
 }

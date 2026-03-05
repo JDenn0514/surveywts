@@ -45,7 +45,7 @@
 # ---------------------------------------------------------------------------
 
 test_that("adjust_nonresponse() returns weighted_df for data.frame input", {
-  df <- make_surveyweights_data(seed = 1, include_nonrespondents = TRUE)
+  df <- make_surveywts_data(seed = 1, include_nonrespondents = TRUE)
 
   result <- adjust_nonresponse(df, response_status = responded)
 
@@ -62,7 +62,7 @@ test_that("adjust_nonresponse() returns weighted_df for data.frame input", {
 # ---------------------------------------------------------------------------
 
 test_that("adjust_nonresponse() handles logical response_status same as integer", {
-  df_int <- make_surveyweights_data(seed = 2, include_nonrespondents = TRUE)
+  df_int <- make_surveywts_data(seed = 2, include_nonrespondents = TRUE)
   df_lgl <- df_int
   df_lgl$responded_lgl <- as.logical(df_lgl$responded)
 
@@ -78,7 +78,7 @@ test_that("adjust_nonresponse() handles logical response_status same as integer"
 # ---------------------------------------------------------------------------
 
 test_that("adjust_nonresponse() returns survey_taylor for survey_taylor input", {
-  df <- make_surveyweights_data(seed = 3, include_nonrespondents = TRUE)
+  df <- make_surveywts_data(seed = 3, include_nonrespondents = TRUE)
   design <- .make_test_taylor_nr(df)
 
   result <- adjust_nonresponse(design, response_status = responded)
@@ -96,7 +96,7 @@ test_that("adjust_nonresponse() returns survey_taylor for survey_taylor input", 
 # ---------------------------------------------------------------------------
 
 test_that("adjust_nonresponse() returns weighted_df for weighted_df input", {
-  df <- make_surveyweights_data(seed = 4, include_nonrespondents = TRUE)
+  df <- make_surveywts_data(seed = 4, include_nonrespondents = TRUE)
   wdf <- .make_weighted_df(df, "base_weight", list())
 
   result <- adjust_nonresponse(wdf, response_status = responded)
@@ -111,7 +111,7 @@ test_that("adjust_nonresponse() returns weighted_df for weighted_df input", {
 # ---------------------------------------------------------------------------
 
 test_that("adjust_nonresponse() returns survey_calibrated for survey_calibrated input", {
-  df <- make_surveyweights_data(seed = 5, include_nonrespondents = TRUE)
+  df <- make_surveywts_data(seed = 5, include_nonrespondents = TRUE)
   design <- .make_test_taylor_nr(df)
 
   # Calibrate first to get a survey_calibrated object
@@ -134,7 +134,7 @@ test_that("adjust_nonresponse() returns survey_calibrated for survey_calibrated 
 # ---------------------------------------------------------------------------
 
 test_that("adjust_nonresponse() performs global redistribution when by = NULL", {
-  df <- make_surveyweights_data(seed = 6, include_nonrespondents = TRUE)
+  df <- make_surveywts_data(seed = 6, include_nonrespondents = TRUE)
   df$base_weight <- 1  # uniform weights for easy verification
 
   result <- adjust_nonresponse(df, response_status = responded, weights = base_weight)
@@ -155,7 +155,7 @@ test_that("adjust_nonresponse() performs global redistribution when by = NULL", 
 # ---------------------------------------------------------------------------
 
 test_that("adjust_nonresponse() performs within-class redistribution with by", {
-  df <- make_surveyweights_data(seed = 7, include_nonrespondents = TRUE)
+  df <- make_surveywts_data(seed = 7, include_nonrespondents = TRUE)
   df$base_weight <- 1
 
   result <- adjust_nonresponse(
@@ -175,7 +175,7 @@ test_that("adjust_nonresponse() performs within-class redistribution with by", {
 # ---------------------------------------------------------------------------
 
 test_that("adjust_nonresponse() conserves total weight", {
-  df <- make_surveyweights_data(seed = 8, include_nonrespondents = TRUE)
+  df <- make_surveywts_data(seed = 8, include_nonrespondents = TRUE)
   df$base_weight <- 1
 
   sum_before <- sum(df$base_weight)
@@ -227,7 +227,7 @@ test_that("adjust_nonresponse() matches svrep::redistribute_weights() within 1e-
   skip_if_not_installed("svrep")
   skip_if_not_installed("survey")
 
-  df <- make_surveyweights_data(seed = 9, include_nonrespondents = TRUE)
+  df <- make_surveywts_data(seed = 9, include_nonrespondents = TRUE)
 
   # Create a replicate design (svrep requires svyrep.design)
   base_design <- survey::svydesign(
@@ -268,7 +268,7 @@ test_that("adjust_nonresponse() matches svrep::redistribute_weights() within 1e-
 # ---------------------------------------------------------------------------
 
 test_that("adjust_nonresponse() conserves weight within each by-cell", {
-  df <- make_surveyweights_data(seed = 10, include_nonrespondents = TRUE)
+  df <- make_surveywts_data(seed = 10, include_nonrespondents = TRUE)
   df$base_weight <- 1
 
   result <- adjust_nonresponse(
@@ -296,7 +296,7 @@ test_that("adjust_nonresponse() rejects unsupported class (SE-1)", {
 
   expect_error(
     adjust_nonresponse(m, response_status = x),
-    class = "surveyweights_error_unsupported_class"
+    class = "surveywts_error_unsupported_class"
   )
   expect_snapshot(
     error = TRUE,
@@ -305,11 +305,11 @@ test_that("adjust_nonresponse() rejects unsupported class (SE-1)", {
 })
 
 test_that("adjust_nonresponse() rejects empty data frame (SE-2)", {
-  df_empty <- make_surveyweights_data(seed = 1)[0, ]
+  df_empty <- make_surveywts_data(seed = 1)[0, ]
 
   expect_error(
     adjust_nonresponse(df_empty, response_status = responded),
-    class = "surveyweights_error_empty_data"
+    class = "surveywts_error_empty_data"
   )
   expect_snapshot(
     error = TRUE,
@@ -318,12 +318,12 @@ test_that("adjust_nonresponse() rejects empty data frame (SE-2)", {
 })
 
 test_that("adjust_nonresponse() rejects survey_replicate input (SE-3)", {
-  df <- make_surveyweights_data(seed = 1, include_nonrespondents = TRUE)
+  df <- make_surveywts_data(seed = 1, include_nonrespondents = TRUE)
   rep_design <- .make_test_replicate_nr(df)
 
   expect_error(
     adjust_nonresponse(rep_design, response_status = responded),
-    class = "surveyweights_error_replicate_not_supported"
+    class = "surveywts_error_replicate_not_supported"
   )
   expect_snapshot(
     error = TRUE,
@@ -332,11 +332,11 @@ test_that("adjust_nonresponse() rejects survey_replicate input (SE-3)", {
 })
 
 test_that("adjust_nonresponse() rejects missing weight column (SE-4)", {
-  df <- make_surveyweights_data(seed = 1, include_nonrespondents = TRUE)
+  df <- make_surveywts_data(seed = 1, include_nonrespondents = TRUE)
 
   expect_error(
     adjust_nonresponse(df, response_status = responded, weights = no_such_col),
-    class = "surveyweights_error_weights_not_found"
+    class = "surveywts_error_weights_not_found"
   )
   expect_snapshot(
     error = TRUE,
@@ -345,12 +345,12 @@ test_that("adjust_nonresponse() rejects missing weight column (SE-4)", {
 })
 
 test_that("adjust_nonresponse() rejects non-numeric weight column (SE-5)", {
-  df <- make_surveyweights_data(seed = 1, include_nonrespondents = TRUE)
+  df <- make_surveywts_data(seed = 1, include_nonrespondents = TRUE)
   df$char_wt <- "bad"
 
   expect_error(
     adjust_nonresponse(df, response_status = responded, weights = char_wt),
-    class = "surveyweights_error_weights_not_numeric"
+    class = "surveywts_error_weights_not_numeric"
   )
   expect_snapshot(
     error = TRUE,
@@ -359,12 +359,12 @@ test_that("adjust_nonresponse() rejects non-numeric weight column (SE-5)", {
 })
 
 test_that("adjust_nonresponse() rejects non-positive weights (SE-6)", {
-  df <- make_surveyweights_data(seed = 1, include_nonrespondents = TRUE)
+  df <- make_surveywts_data(seed = 1, include_nonrespondents = TRUE)
   df$base_weight[1] <- 0
 
   expect_error(
     adjust_nonresponse(df, response_status = responded, weights = base_weight),
-    class = "surveyweights_error_weights_nonpositive"
+    class = "surveywts_error_weights_nonpositive"
   )
   expect_snapshot(
     error = TRUE,
@@ -373,12 +373,12 @@ test_that("adjust_nonresponse() rejects non-positive weights (SE-6)", {
 })
 
 test_that("adjust_nonresponse() rejects NA in weight column (SE-7)", {
-  df <- make_surveyweights_data(seed = 1, include_nonrespondents = TRUE)
+  df <- make_surveywts_data(seed = 1, include_nonrespondents = TRUE)
   df$base_weight[1] <- NA_real_
 
   expect_error(
     adjust_nonresponse(df, response_status = responded, weights = base_weight),
-    class = "surveyweights_error_weights_na"
+    class = "surveywts_error_weights_na"
   )
   expect_snapshot(
     error = TRUE,
@@ -387,11 +387,11 @@ test_that("adjust_nonresponse() rejects NA in weight column (SE-7)", {
 })
 
 test_that("adjust_nonresponse() empty_data fires before weights_not_found (SE-8)", {
-  df_empty <- make_surveyweights_data(seed = 1)[0, ]
+  df_empty <- make_surveywts_data(seed = 1)[0, ]
 
   expect_error(
     adjust_nonresponse(df_empty, response_status = responded, weights = no_such_col),
-    class = "surveyweights_error_empty_data"
+    class = "surveywts_error_empty_data"
   )
   expect_snapshot(
     error = TRUE,
@@ -404,12 +404,12 @@ test_that("adjust_nonresponse() empty_data fires before weights_not_found (SE-8)
 # ---------------------------------------------------------------------------
 
 test_that("adjust_nonresponse() rejects by variable with NA values", {
-  df <- make_surveyweights_data(seed = 11, include_nonrespondents = TRUE)
+  df <- make_surveywts_data(seed = 11, include_nonrespondents = TRUE)
   df$age_group[1] <- NA_character_
 
   expect_error(
     adjust_nonresponse(df, response_status = responded, by = age_group),
-    class = "surveyweights_error_variable_has_na"
+    class = "surveywts_error_variable_has_na"
   )
   expect_snapshot(
     error = TRUE,
@@ -422,12 +422,12 @@ test_that("adjust_nonresponse() rejects by variable with NA values", {
 # ---------------------------------------------------------------------------
 
 test_that("adjust_nonresponse() rejects response_status with NA values", {
-  df <- make_surveyweights_data(seed = 12, include_nonrespondents = TRUE)
+  df <- make_surveywts_data(seed = 12, include_nonrespondents = TRUE)
   df$responded[1] <- NA_integer_
 
   expect_error(
     adjust_nonresponse(df, response_status = responded),
-    class = "surveyweights_error_response_status_has_na"
+    class = "surveywts_error_response_status_has_na"
   )
   expect_snapshot(
     error = TRUE,
@@ -440,11 +440,11 @@ test_that("adjust_nonresponse() rejects response_status with NA values", {
 # ---------------------------------------------------------------------------
 
 test_that("adjust_nonresponse() rejects missing response_status column", {
-  df <- make_surveyweights_data(seed = 13)  # no responded column
+  df <- make_surveywts_data(seed = 13)  # no responded column
 
   expect_error(
     adjust_nonresponse(df, response_status = responded),
-    class = "surveyweights_error_response_status_not_found"
+    class = "surveywts_error_response_status_not_found"
   )
   expect_snapshot(
     error = TRUE,
@@ -457,12 +457,12 @@ test_that("adjust_nonresponse() rejects missing response_status column", {
 # ---------------------------------------------------------------------------
 
 test_that("adjust_nonresponse() rejects response_status with non-binary integer values", {
-  df <- make_surveyweights_data(seed = 14)
+  df <- make_surveywts_data(seed = 14)
   df$resp_bad <- c(0L, 1L, 2L, rep(0L, nrow(df) - 3))
 
   expect_error(
     adjust_nonresponse(df, response_status = resp_bad),
-    class = "surveyweights_error_response_status_not_binary"
+    class = "surveywts_error_response_status_not_binary"
   )
   expect_snapshot(
     error = TRUE,
@@ -475,12 +475,12 @@ test_that("adjust_nonresponse() rejects response_status with non-binary integer 
 # ---------------------------------------------------------------------------
 
 test_that("adjust_nonresponse() rejects factor response_status (not binary)", {
-  df <- make_surveyweights_data(seed = 15)
+  df <- make_surveywts_data(seed = 15)
   df$resp_factor <- factor(c("R", "NR", "R", rep("R", nrow(df) - 3)))
 
   expect_error(
     adjust_nonresponse(df, response_status = resp_factor),
-    class = "surveyweights_error_response_status_not_binary"
+    class = "surveywts_error_response_status_not_binary"
   )
   expect_snapshot(
     error = TRUE,
@@ -493,12 +493,12 @@ test_that("adjust_nonresponse() rejects factor response_status (not binary)", {
 # ---------------------------------------------------------------------------
 
 test_that("adjust_nonresponse() rejects data with all nonrespondents", {
-  df <- make_surveyweights_data(seed = 16)
+  df <- make_surveywts_data(seed = 16)
   df$responded <- 0L
 
   expect_error(
     adjust_nonresponse(df, response_status = responded),
-    class = "surveyweights_error_response_status_all_zero"
+    class = "surveywts_error_response_status_all_zero"
   )
   expect_snapshot(
     error = TRUE,
@@ -522,7 +522,7 @@ test_that("adjust_nonresponse() rejects by-cell with no respondents", {
 
   expect_error(
     adjust_nonresponse(df, response_status = responded, weights = w, by = class),
-    class = "surveyweights_error_class_cell_empty"
+    class = "surveywts_error_class_cell_empty"
   )
   expect_snapshot(
     error = TRUE,
@@ -535,11 +535,11 @@ test_that("adjust_nonresponse() rejects by-cell with no respondents", {
 # ---------------------------------------------------------------------------
 
 test_that("adjust_nonresponse() rejects method = 'propensity' (Phase 2 stub)", {
-  df <- make_surveyweights_data(seed = 17, include_nonrespondents = TRUE)
+  df <- make_surveywts_data(seed = 17, include_nonrespondents = TRUE)
 
   expect_error(
     adjust_nonresponse(df, response_status = responded, method = "propensity"),
-    class = "surveyweights_error_propensity_requires_phase2"
+    class = "surveywts_error_propensity_requires_phase2"
   )
   expect_snapshot(
     error = TRUE,
@@ -548,11 +548,11 @@ test_that("adjust_nonresponse() rejects method = 'propensity' (Phase 2 stub)", {
 })
 
 test_that("adjust_nonresponse() rejects method = 'propensity-cell' (Phase 2 stub)", {
-  df <- make_surveyweights_data(seed = 18, include_nonrespondents = TRUE)
+  df <- make_surveywts_data(seed = 18, include_nonrespondents = TRUE)
 
   expect_error(
     adjust_nonresponse(df, response_status = responded, method = "propensity-cell"),
-    class = "surveyweights_error_propensity_requires_phase2"
+    class = "surveywts_error_propensity_requires_phase2"
   )
   expect_snapshot(
     error = TRUE,
@@ -580,7 +580,7 @@ test_that("adjust_nonresponse() warns when a cell has fewer than 20 respondents"
       weights = w,
       by = class
     ),
-    class = "surveyweights_warning_class_near_empty"
+    class = "surveywts_warning_class_near_empty"
   )
   expect_snapshot(
     adjust_nonresponse(
@@ -614,7 +614,7 @@ test_that("adjust_nonresponse() warns when adjustment factor exceeds 2.0", {
       weights = w,
       by = class
     ),
-    class = "surveyweights_warning_class_near_empty"
+    class = "surveywts_warning_class_near_empty"
   )
   test_invariants(result)
 })
@@ -624,7 +624,7 @@ test_that("adjust_nonresponse() warns when adjustment factor exceeds 2.0", {
 # ---------------------------------------------------------------------------
 
 test_that("adjust_nonresponse() returns unchanged weights when all are respondents", {
-  df <- make_surveyweights_data(seed = 19)
+  df <- make_surveywts_data(seed = 19)
   df$responded <- 1L
 
   result <- adjust_nonresponse(df, response_status = responded)
@@ -640,7 +640,7 @@ test_that("adjust_nonresponse() returns unchanged weights when all are responden
 # ---------------------------------------------------------------------------
 
 test_that("adjust_nonresponse() single by-cell gives same result as global", {
-  df <- make_surveyweights_data(seed = 20, include_nonrespondents = TRUE)
+  df <- make_surveywts_data(seed = 20, include_nonrespondents = TRUE)
   df$const_class <- "all"
 
   result_global <- adjust_nonresponse(df, response_status = responded)
@@ -660,7 +660,7 @@ test_that("adjust_nonresponse() single by-cell gives same result as global", {
 # ---------------------------------------------------------------------------
 
 test_that("adjust_nonresponse() history entry has correct structure", {
-  df <- make_surveyweights_data(seed = 21, include_nonrespondents = TRUE)
+  df <- make_surveywts_data(seed = 21, include_nonrespondents = TRUE)
 
   result <- adjust_nonresponse(
     df,
@@ -705,7 +705,7 @@ test_that("adjust_nonresponse() history entry has correct structure", {
   # package_version
   expect_identical(
     entry$package_version,
-    as.character(utils::packageVersion("surveyweights"))
+    as.character(utils::packageVersion("surveywts"))
   )
 })
 
@@ -716,12 +716,12 @@ test_that("adjust_nonresponse() history entry has correct structure", {
 test_that("adjust_nonresponse() rejects character response_status (not binary)", {
   # Covers R/nonresponse.R lines 411-428: "all other types" branch in
   # .validate_response_status_binary() for character input
-  df <- make_surveyweights_data(seed = 19)
+  df <- make_surveywts_data(seed = 19)
   df$resp_char <- rep(c("yes", "no"), length.out = nrow(df))
 
   expect_error(
     adjust_nonresponse(df, response_status = resp_char),
-    class = "surveyweights_error_response_status_not_binary"
+    class = "surveywts_error_response_status_not_binary"
   )
   expect_snapshot(
     error = TRUE,

@@ -1,7 +1,7 @@
 # Vendored Code Attribution
 
 This file documents all code vendored from external packages into
-`surveyweights`. All vendored code is reproduced and adapted under the
+`surveywts`. All vendored code is reproduced and adapted under the
 terms of the original license, which is GPL-2 or later — compatible with
 this package's GPL-3 license.
 

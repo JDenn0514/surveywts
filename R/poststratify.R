@@ -91,7 +91,7 @@ poststratify <- function(
         "i" = "This operation is undefined on empty data.",
         "v" = "Ensure {.arg data} has at least one row."
       ),
-      class = "surveyweights_error_empty_data"
+      class = "surveywts_error_empty_data"
     )
   }
 
@@ -134,7 +134,7 @@ poststratify <- function(
             "calling {.fn poststratify}."
           )
         ),
-        class = "surveyweights_error_variable_has_na"
+        class = "surveywts_error_variable_has_na"
       )
     }
   }
@@ -193,7 +193,7 @@ poststratify <- function(
           ),
           "v" = "Collapse small cells before post-stratifying."
         ),
-        class = "surveyweights_error_empty_stratum"
+        class = "surveywts_error_empty_stratum"
       )
     }
     # nocov end
@@ -285,7 +285,7 @@ poststratify <- function(
           "Add the {.field {col}} column to {.arg population}."
         )
       ),
-      class = "surveyweights_error_population_cell_missing"
+      class = "surveywts_error_population_cell_missing"
     )
   }
 
@@ -321,7 +321,7 @@ poststratify <- function(
           "{.arg population} before calling {.fn poststratify}."
         )
       ),
-      class = "surveyweights_error_population_cell_duplicate"
+      class = "surveywts_error_population_cell_duplicate"
     )
   }
 
@@ -340,7 +340,7 @@ poststratify <- function(
           "Add a row for {.val {cell_label}} to {.arg population}."
         )
       ),
-      class = "surveyweights_error_population_cell_missing"
+      class = "surveywts_error_population_cell_missing"
     )
   }
 
@@ -363,7 +363,7 @@ poststratify <- function(
           "before calling {.fn poststratify}."
         )
       ),
-      class = "surveyweights_error_population_cell_not_in_data"
+      class = "surveywts_error_population_cell_not_in_data"
     )
   }
 
@@ -388,7 +388,7 @@ poststratify <- function(
             "{.arg population}."
           )
         ),
-        class = "surveyweights_error_population_totals_invalid"
+        class = "surveywts_error_population_totals_invalid"
       )
     }
   } else {
@@ -409,7 +409,7 @@ poststratify <- function(
             "{.field target} column of {.arg population}."
           )
         ),
-        class = "surveyweights_error_population_totals_invalid"
+        class = "surveywts_error_population_totals_invalid"
       )
     }
   }

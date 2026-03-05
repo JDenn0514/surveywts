@@ -12,7 +12,7 @@ description: >
 
 # Surveyverse Implementation Workflow
 
-This skill governs implementation plan work for surveyweights
+This skill governs implementation plan work for surveywts
 packages). Three stages, always in order:
 
 1. **Stage 1 — Draft:** Write the implementation plan from the finalized spec
@@ -59,9 +59,9 @@ Every stage works alongside — never instead of — these rule files:
 |---|---|
 | `code-style.md` | Indentation, pipe, air formatter, S7 patterns, cli error structure, argument order, helper placement |
 | `r-package-conventions.md` | `::` usage, NAMESPACE, roxygen2, `@return`, `@examples`, export policy |
-| `surveyweights-conventions.md` | Naming patterns (`get_*`, `extract_*`, `set_*`), `@family`, return visibility, haven handling |
+| `surveywts-conventions.md` | Naming patterns (`get_*`, `extract_*`, `set_*`), `@family`, return visibility, haven handling |
 | `testing-standards.md` | `test_that()` scope, 98% coverage, assertion patterns, data generators |
-| `testing-surveyweights.md` | `test_invariants()`, layer 1 vs layer 3 error testing, `make_survey_data()`, numerical tolerances |
+| `testing-surveywts.md` | `test_invariants()`, layer 1 vs layer 3 error testing, `make_survey_data()`, numerical tolerances |
 | `github-strategy.md` | Branch naming, PR granularity, commit format, merge strategy |
 
 ---

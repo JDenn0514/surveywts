@@ -95,7 +95,7 @@ calibrate <- function(
         "i" = "This operation is undefined on empty data.",
         "v" = "Ensure {.arg data} has at least one row."
       ),
-      class = "surveyweights_error_empty_data"
+      class = "surveywts_error_empty_data"
     )
   }
 
@@ -137,7 +137,7 @@ calibrate <- function(
           "{.and {.field {names(plain_df)}}}."
         )
       ),
-      class = "surveyweights_error_population_variable_not_found"
+      class = "surveywts_error_population_variable_not_found"
     )
   }
 
@@ -197,7 +197,7 @@ calibrate <- function(
           "or review population totals."
         )
       ),
-      class = "surveyweights_warning_negative_calibrated_weights"
+      class = "surveywts_warning_negative_calibrated_weights"
     )
   }
 
@@ -250,7 +250,7 @@ calibrate <- function(
         "i" = "Replicate-weight support requires Phase 1.",
         "v" = "Use a {.cls survey_taylor} design, or wait for Phase 1."
       ),
-      class = "surveyweights_error_replicate_not_supported"
+      class = "surveywts_error_replicate_not_supported"
     )
   }
 
@@ -268,7 +268,7 @@ calibrate <- function(
         ),
         "i" = "Got {.cls {cls}}."
       ),
-      class = "surveyweights_error_unsupported_class"
+      class = "surveywts_error_unsupported_class"
     )
   }
 }

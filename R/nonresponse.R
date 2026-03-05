@@ -94,7 +94,7 @@ adjust_nonresponse <- function(
         "i" = "This operation is undefined on empty data.",
         "v" = "Ensure {.arg data} has at least one row."
       ),
-      class = "surveyweights_error_empty_data"
+      class = "surveywts_error_empty_data"
     )
   }
 
@@ -131,7 +131,7 @@ adjust_nonresponse <- function(
           "Use {.code method = \"weighting-class\"} for now."
         )
       ),
-      class = "surveyweights_error_propensity_requires_phase2"
+      class = "surveywts_error_propensity_requires_phase2"
     )
   }
 
@@ -151,7 +151,7 @@ adjust_nonresponse <- function(
           "e.g., {.code response_status = responded}."
         )
       ),
-      class = "surveyweights_error_response_status_not_found"
+      class = "surveywts_error_response_status_not_found"
     )
   }
 
@@ -172,7 +172,7 @@ adjust_nonresponse <- function(
           "{.fn adjust_nonresponse}."
         )
       ),
-      class = "surveyweights_error_response_status_has_na"
+      class = "surveywts_error_response_status_has_na"
     )
   }
 
@@ -195,7 +195,7 @@ adjust_nonresponse <- function(
           "nonrespondents before adjustment."
         )
       ),
-      class = "surveyweights_error_response_status_all_zero"
+      class = "surveywts_error_response_status_all_zero"
     )
   }
 
@@ -223,7 +223,7 @@ adjust_nonresponse <- function(
             "calling {.fn adjust_nonresponse}."
           )
         ),
-        class = "surveyweights_error_variable_has_na"
+        class = "surveywts_error_variable_has_na"
       )
     }
   }
@@ -264,7 +264,7 @@ adjust_nonresponse <- function(
             "least one respondent."
           )
         ),
-        class = "surveyweights_error_class_cell_empty"
+        class = "surveywts_error_class_cell_empty"
       )
     }
   }
@@ -297,7 +297,7 @@ adjust_nonresponse <- function(
             "{.code control$min_cell} / {.code control$max_adjust}."
           )
         ),
-        class = "surveyweights_warning_class_near_empty"
+        class = "surveywts_warning_class_near_empty"
       )
     }
 
@@ -374,7 +374,7 @@ adjust_nonresponse <- function(
           "({.code 0}/{.code 1}) before calling {.fn adjust_nonresponse}."
         )
       ),
-      class = "surveyweights_error_response_status_not_binary"
+      class = "surveywts_error_response_status_not_binary"
     )
   }
 
@@ -401,7 +401,7 @@ adjust_nonresponse <- function(
             "({.code 0}/{.code 1}) before calling {.fn adjust_nonresponse}."
           )
         ),
-        class = "surveyweights_error_response_status_not_binary"
+        class = "surveywts_error_response_status_not_binary"
       )
     }
     return(invisible(TRUE))
@@ -424,6 +424,6 @@ adjust_nonresponse <- function(
         "({.code 0}/{.code 1}) before calling {.fn adjust_nonresponse}."
       )
     ),
-    class = "surveyweights_error_response_status_not_binary"
+    class = "surveywts_error_response_status_not_binary"
   )
 }

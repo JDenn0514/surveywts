@@ -4,7 +4,7 @@
 **Created:** February 2025
 **Status:** Decided — applies to all surveyverse packages
 
-This document covers conventions that apply to **all surveyverse R packages**. For package-specific examples and details, see the local conventions file in each package (e.g., `surveyweights-conventions.md`).
+This document covers conventions that apply to **all surveyverse R packages**. For package-specific examples and details, see the local conventions file in each package (e.g., `surveywts-conventions.md`).
 
 ---
 

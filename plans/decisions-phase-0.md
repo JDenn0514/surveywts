@@ -1,4 +1,4 @@
-# Decisions Log — surveyweights phase-0
+# Decisions Log — surveywts phase-0
 
 This file records planning decisions made during phase-0.
 Each entry corresponds to one planning session.
@@ -30,7 +30,7 @@ should be called. Also surfaced a naming collision in the Phase 2/3 roadmap.
 - Options considered: `"propensity"` only (A); both (B)
 - **Decision:** B — Phase 2 adds both `"propensity-cell"` and `"propensity"` to
   `adjust_nonresponse()`. Both are Phase 2 API-stable stubs in Phase 0, using the
-  same error class `surveyweights_error_propensity_requires_phase2`.
+  same error class `surveywts_error_propensity_requires_phase2`.
 - **Rationale:** Propensity-cell adjustment (estimate propensity → quintile cells →
   redistribute within cells) is arguably more common in practice than pure IPW
   (used by NHANES, for example). Including it in Phase 2 alongside `"propensity"`
@@ -72,7 +72,7 @@ Changes applied to:
   Phase 2 `adjust_nonresponse()` description updated to include `"propensity-cell"`;
   Phase 3 `calibrate_nonresponse()` added to deliverables and source file map;
   Phase 3 unlock updated for both propensity stubs
-- `plans/error-messages.md`: `surveyweights_error_propensity_requires_phase2`
+- `plans/error-messages.md`: `surveywts_error_propensity_requires_phase2`
   condition updated to cover both `"propensity"` and `"propensity-cell"` methods
 - `plans/decisions-phase-0.md`: this entry
 
@@ -111,7 +111,7 @@ This session designed the `method` argument and associated parameters.
   defaults applied internally before merging with user-supplied values:
   - `"anesrake"` defaults: `maxit = 1000, improvement = 0.01, pval = 0.05, min_cell_n = 0L, variable_select = "total"`
   - `"survey"` defaults: `maxit = 100, epsilon = 1e-7`
-  - Parameters from the wrong method trigger `surveyweights_warning_control_param_ignored`
+  - Parameters from the wrong method trigger `surveywts_warning_control_param_ignored`
 - **Rationale:** Single list keeps the signature clean. Method-dependent defaults
   mean users don't need to override `maxit` when switching methods. Warning on
   wrong-method params catches mistakes without being fatal.
@@ -165,7 +165,7 @@ Changes applied to:
   error/warning table, §II.d control merge semantics, §XI `.calibrate_engine()`,
   §XII.G new warning template, §XIII rake() test plan (items 21–26)
 - `plans/impl-phase-0.md` (v1.1 → v1.2): PR 6 files, acceptance criteria, notes
-- `plans/error-messages.md`: new `surveyweights_warning_control_param_ignored` row
+- `plans/error-messages.md`: new `surveywts_warning_control_param_ignored` row
 - `plans/decisions-phase-0.md`: this entry
 
 ---
@@ -198,28 +198,28 @@ was architecturally sound but had 5 blocking issues, 10 required issues, and
 - Options considered:
   - **Error (A):** forces explicit alignment; prevents silent misspecification
   - **Warning (B):** permissive; users may not notice misspecification
-- **Decision:** A — error (`surveyweights_error_population_cell_not_in_data`)
+- **Decision:** A — error (`surveywts_error_population_cell_not_in_data`)
 - **Rationale:** Extra population cells indicate a misspecified frame; silent ignorance is a trap
 
 **Q: Should 0-row input error or return vacuously (Issue 5)?**
 - Options considered:
   - **Error (A):** calibration on empty data is mathematically undefined
   - **Return 0-row output (B):** vacuous success
-- **Decision:** A — error (`surveyweights_error_empty_data`) for all four functions
+- **Decision:** A — error (`surveywts_error_empty_data`) for all four functions
 - **Rationale:** Calibration/nonresponse adjustment has no meaningful result on empty data
 
 **Q: How should NA in auxiliary variables be handled (Issue 6)?**
 - Options considered:
-  - **Consistent error across all functions (A):** `surveyweights_error_variable_has_na`
+  - **Consistent error across all functions (A):** `surveywts_error_variable_has_na`
   - **Per-function behavior (B):** NA as level for calibration; exclusion for nonresponse
-- **Decision:** A — uniform error; added `surveyweights_error_response_status_has_na` for the response indicator specifically
+- **Decision:** A — uniform error; added `surveywts_error_response_status_has_na` for the response indicator specifically
 - **Rationale:** Consistent, explicit; users should clean NAs before calling
 
 **Q: Does the categorical restriction apply to rake() and poststratify() (Issue 7)?**
 - Options considered:
   - **Apply to rake(), allow numeric strata in poststratify() (A)**
   - **Apply to both (B)**
-- **Decision:** A — renamed error to `surveyweights_error_variable_not_categorical` (used by calibrate and rake); poststratify documents that numeric strata are valid (it is a join-like operation)
+- **Decision:** A — renamed error to `surveywts_error_variable_not_categorical` (used by calibrate and rake); poststratify documents that numeric strata are valid (it is a join-like operation)
 - **Rationale:** IPF requires categorical margins; poststratify is a cell-join, not a regression calibration
 
 **Q: What is the computational foundation — full delegation to survey package or independent implementation (Architectural)**
@@ -338,14 +338,14 @@ per section.
   The spec is the truth document; helpers used by two+ functions must be spec'd.
 
 **Q: Should `rake()` throw `population_level_missing` (Issue 3)?**
-- **Decision:** Yes — add `surveyweights_error_population_level_missing` to rake()'s
+- **Decision:** Yes — add `surveywts_error_population_level_missing` to rake()'s
   error table (§VII) and message template (§XII.C).
 - **Rationale:** If a raking variable has a data level absent from the margins, IPF
   silently produces wrong results. Consistent error behavior with `calibrate()` is safer
   than a silent asymmetry.
 
 **Q: How to handle non-positive count targets (Issue 4)?**
-- **Decision:** Extend `surveyweights_error_population_totals_invalid` to cover both
+- **Decision:** Extend `surveywts_error_population_totals_invalid` to cover both
   `type = "prop"` and `type = "count"` cases. Update message templates in §XII.B, C, D.
 - **Rationale:** The condition (invalid target value) is closely related. Extending the
   existing class keeps the error surface smaller.
@@ -353,7 +353,7 @@ per section.
 ### Code Quality Decisions
 
 **Q: How should renaming the weight column work (Issue 5)?**
-- **Decision:** `rename.weighted_df()` lives in `surveytidy` (not `surveyweights`).
+- **Decision:** `rename.weighted_df()` lives in `surveytidy` (not `surveywts`).
   The spec §IV notes that renaming is treated as dropping in `dplyr_reconstruct`.
   The `weight_col_dropped` warning message in §XII.G adds a `"v"` hint to load
   `surveytidy` for rename-aware behavior.
@@ -384,7 +384,7 @@ per section.
 **Q: Add factor variable tests to calibrate/rake (Issue 9)?**
 - **Decision:** Add inline factor happy path test to each (item 1b in calibrate,
   item 1b in rake). Use `as.factor()` inline in the test.
-- **Rationale:** The spec says "character or factor" but make_surveyweights_data() only
+- **Rationale:** The spec says "character or factor" but make_surveywts_data() only
   returns characters. Without this test, a character-only implementation ships silently.
 
 **Q: Add `population_level_missing` test to rake() (Issue 10)?**
@@ -405,12 +405,12 @@ per section.
 ### Remaining Gap Decisions
 
 **Q: `control$maxit = 0` behavior (Issue 13)?**
-- **Decision:** Error immediately — fires `surveyweights_error_calibration_not_converged`
+- **Decision:** Error immediately — fires `surveywts_error_calibration_not_converged`
   with a note that 0 iterations means no calibration was attempted. Documented in §II.d.
 - **Rationale:** Zero iterations is almost certainly a user mistake; fail loudly.
 
 **Q: Duplicate rows in `population` for `poststratify()` (Issue 14)?**
-- **Decision:** Error — add `surveyweights_error_population_cell_duplicate` to
+- **Decision:** Error — add `surveywts_error_population_cell_duplicate` to
   `.validate_population_cells()`, §VIII error table, §XII.D, and error-messages.md.
   Add test item 8d.
 - **Note:** `survey::postStratify()` silently uses the first match; this package
@@ -459,9 +459,9 @@ suggestions (parent validator assumption, diagnostic class validation).
 
 **Q: What error class should cover "population level present in margins/population but absent from data" (Issue 21)?**
 - Options considered:
-  - **New class `surveyweights_error_population_level_extra` for calibrate()/rake() (A):** keeps poststratify's "cell" naming separate from calibrate/rake's "level" naming
+  - **New class `surveywts_error_population_level_extra` for calibrate()/rake() (A):** keeps poststratify's "cell" naming separate from calibrate/rake's "level" naming
   - **Rename poststratify's class to generalize (B):** fewer classes but conflates different concepts
-- **Decision:** A — new `surveyweights_error_population_level_extra`; added to calibrate() prose, calibrate() error table, rake() behavior rules (new rule 4, renumbered 4→5→6→7), rake() error table, and master error table
+- **Decision:** A — new `surveywts_error_population_level_extra`; added to calibrate() prose, calibrate() error table, rake() behavior rules (new rule 4, renumbered 4→5→6→7), rake() error table, and master error table
 - **Rationale:** Poststratify works on joint cells; calibrate/rake work on per-variable levels — the concepts are distinct enough to warrant separate classes
 
 **Q: Should diagnostic functions (`effective_sample_size()`, `weight_variability()`, `summarize_weights()`) validate input class (Issue 28)?**
@@ -474,7 +474,7 @@ suggestions (parent validator assumption, diagnostic class validation).
 ### Outcome
 
 All 8 Pass 2 issues resolved. Spec updated with: new error class
-`surveyweights_error_population_level_extra` (calibrate/rake), population_totals_invalid
+`surveywts_error_population_level_extra` (calibrate/rake), population_totals_invalid
 added to poststratify error table and test plans, explicit rake() test plan (replacing
 ambiguous reference), diagnostics test plan completed (weights_not_numeric, unsupported_class),
 poststratify weight validation error tests added, stale warning table threshold corrected,
@@ -533,7 +533,7 @@ All 14 Pass 3 issues resolved. Changes applied to:
   (6 error classes; items 7b/7c/7d explicit; item 3b survey_taylor), Quality Gate
   (rake-anesrake.R in vendored-file check)
 - `plans/error-messages.md`: new "Messages" section with
-  `surveyweights_message_already_calibrated`
+  `surveywts_message_already_calibrated`
 
 Plan is approved and ready for implementation. Start with `/r-implement` at PR 3
 (PRs 1 and 2 are already merged).
@@ -551,12 +551,12 @@ output column retention) was deferred to its own session.
 
 ### Questions & Decisions
 
-**Q: Should surveyweights define its own `survey_calibrated` or use surveycore's (Issue 29)?**
+**Q: Should surveywts define its own `survey_calibrated` or use surveycore's (Issue 29)?**
 - Options considered: use surveycore's class directly (A); subclass it (B); define a peer class (C)
 - **Decision:** A — use `surveycore::survey_calibrated` directly
 - **Rationale:** surveycore already exports the class with `@calibration` property. Defining
   a parallel class would create two S7 classes with incompatible fully-qualified names,
-  breaking `S7::S7_inherits()` across the ecosystem. surveyweights' job is to produce
+  breaking `S7::S7_inherits()` across the ecosystem. surveywts' job is to produce
   correctly configured instances, not to redefine the class.
 
 **Q: How do test items #8 and #9 change given surveycore's class is more permissive (Issue 30)?**
@@ -572,7 +572,7 @@ output column retention) was deferred to its own session.
 
 **Q: Should rake() anesrake immediate convergence be silent or emit a message (Issue 36)?**
 - Options considered: A (silent success); A+ (silent success + `cli_inform()`)
-- **Decision:** A+ — emit `surveyweights_message_already_calibrated` via `cli_inform()`
+- **Decision:** A+ — emit `surveywts_message_already_calibrated` via `cli_inform()`
 - **Rationale:** "Nothing happened" is easy to miss. The message surfaces the no-op at
   call time while remaining suppressible with `suppressMessages()`. Has a class for
   programmatic handling via `withCallingHandlers()`.
@@ -588,7 +588,7 @@ output column retention) was deferred to its own session.
   rewrite to use surveycore's class), §IV step increment rule, §VII behavior rule 8
   (already_calibrated), §X diagnostic error tables, §XI `.calibrate_engine()` return type
   and parameter routing note, `.update_survey_weights()` signature simplified, §XII.C
-  method-dependent convergence messages, §XII.G `surveyweights_message_already_calibrated`,
+  method-dependent convergence messages, §XII.G `surveywts_message_already_calibrated`,
   §XIII test items 7c/7d (diagnostics), 26b (rake), 1c (poststratify), class test #8/#9
   updated, §XIV GAPs #1–4 and #6 marked resolved
 - `plans/spec-review-phase-0.md`: Pass 3 resolution status table added

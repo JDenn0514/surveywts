@@ -52,7 +52,7 @@
 #                NULL → uniform (sigma2 = 1 for all observations).
 #
 # Returns: numeric vector of g-weights (length n); new_weights = ww * g.
-# Errors with a condition of class "surveyweights_error_calibration_singular"
+# Errors with a condition of class "surveywts_error_calibration_singular"
 # if the calibration matrix is computationally singular.
 
 .greg_linear <- function(mm, ww, population, sigma2 = NULL) {

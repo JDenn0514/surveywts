@@ -1,7 +1,7 @@
 bibentry(
   bibtype = "Manual",
-  title   = "{surveyweights}: Tools for Survey Weighting and Calibration",
+  title   = "{surveywts}: Tools for Survey Weighting and Calibration",
   author  = person("Jacob", "Dennen"),
   year    = format(Sys.Date(), "%Y"),
-  url     = "https://github.com/JDenn0514/surveyweights"
+  url     = "https://github.com/JDenn0514/surveywts"
 )

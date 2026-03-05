@@ -125,7 +125,7 @@ Read each file. These are the source material for the NEWS.md section.
 Write a draft NEWS.md section. Format:
 
 ```markdown
-# surveyweights X.Y.Z
+# surveywts X.Y.Z
 
 ## New features / improvements
 
@@ -148,7 +148,7 @@ Once the user approves the draft:
 ### Write NEWS.md
 
 Insert the new section at the very top of `NEWS.md`, above any existing
-`# surveyweights` header.
+`# surveywts` header.
 
 Verify the file structure looks correct after writing: new section at top,
 previous version's section immediately below.
@@ -216,7 +216,7 @@ PR body:
 ```markdown
 ## What
 
-Release surveyweights X.Y.Z.
+Release surveywts X.Y.Z.
 
 ## What's in this release
 

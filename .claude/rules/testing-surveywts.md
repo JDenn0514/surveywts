@@ -1,10 +1,10 @@
-# surveyweights Testing: Package-Specific Standards
+# surveywts Testing: Package-Specific Standards
 
 **Version:** 1.0 — Phase 0 complete
 **Status:** Stable for Phase 0
 
 Extends `testing-standards.md`. Read that document first; this file covers
-only what is specific to surveyweights.
+only what is specific to surveywts.
 
 ---
 
@@ -13,7 +13,7 @@ only what is specific to surveyweights.
 | Decision | Choice |
 |----------|--------|
 | Invariant checker | `test_invariants(obj)` — defined in `helper-test-data.R` |
-| Synthetic data generator | `make_surveyweights_data(n, seed, include_nonrespondents)` |
+| Synthetic data generator | `make_surveywts_data(n, seed, include_nonrespondents)` |
 | Layer 1 errors (S7 validators) | `class=` only — no snapshot |
 | Layer 3 errors (constructors/functions) | Dual: `expect_error(class=)` + `expect_snapshot(error=TRUE)` |
 | Weight computation tolerance | `1e-10` |
@@ -76,7 +76,7 @@ Messages are not CLI-formatted. Test with `class=` only — no snapshot.
 test_that("survey_calibrated validator rejects non-positive weights", {
   expect_error(
     survey_calibrated(...),
-    class = "surveyweights_error_weights_nonpositive"
+    class = "surveywts_error_weights_nonpositive"
   )
 })
 ```
@@ -86,13 +86,13 @@ test_that("survey_calibrated validator rejects non-positive weights", {
 
 ```r
 test_that("calibrate() rejects negative weights", {
-  df <- make_surveyweights_data(seed = 1)
+  df <- make_surveywts_data(seed = 1)
   df$base_weight[1] <- -1
 
   expect_error(
     calibrate(df, variables = c(age_group), population = pop,
               weights = base_weight),
-    class = "surveyweights_error_weights_nonpositive"
+    class = "surveywts_error_weights_nonpositive"
   )
   expect_snapshot(
     error = TRUE,
@@ -106,12 +106,12 @@ test_that("calibrate() rejects negative weights", {
 
 ## Synthetic Data Generator
 
-`make_surveyweights_data()` is defined in `tests/testthat/helper-test-data.R`.
+`make_surveywts_data()` is defined in `tests/testthat/helper-test-data.R`.
 
 **Signature:**
 
 ```r
-make_surveyweights_data(n = 500, seed = 42, include_nonrespondents = FALSE)
+make_surveywts_data(n = 500, seed = 42, include_nonrespondents = FALSE)
 ```
 
 **Returns:** A plain `data.frame` with columns:

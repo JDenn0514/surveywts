@@ -1,21 +1,21 @@
-# surveyweights R Package Conventions
+# surveywts R Package Conventions
 
 **Version:** 1.0 — Phase 0 API complete
 **Status:** Stable for Phase 0
 
 This document extends the **generic R package conventions** (`r-package-conventions.md`)
-with surveyweights-specific examples and detailed guidance.
+with surveywts-specific examples and detailed guidance.
 
 **Read `r-package-conventions.md` first, then this document.**
 
 ---
 
-## Quick Reference (surveyweights-specific)
+## Quick Reference (surveywts-specific)
 
 | Decision | Choice | Example |
 |----------|--------|---------|
-| Error prefix | `surveyweights_error_*` | `surveyweights_error_weights_nonpositive` |
-| Warning prefix | `surveyweights_warning_*` | `surveyweights_warning_weight_col_dropped` |
+| Error prefix | `surveywts_error_*` | `surveywts_error_weights_nonpositive` |
+| Warning prefix | `surveywts_warning_*` | `surveywts_warning_weight_col_dropped` |
 | Internal constructor return | Visible (the new object) | `.new_survey_calibrated()` |
 | Internal validator return | `invisible(TRUE)` on success | `.validate_weights()` |
 | Print method return | `invisible(x)` | `print.weighted_df()`, S7 print |
@@ -130,7 +130,7 @@ The weight column is always present as a regular column in the data frame.
 
 **dplyr compatibility:** `dplyr_reconstruct.weighted_df()` preserves the
 `weighted_df` class when the weight column is retained; emits
-`surveyweights_warning_weight_col_dropped` and returns a plain tibble when
+`surveywts_warning_weight_col_dropped` and returns a plain tibble when
 the weight column is removed.
 
 ---

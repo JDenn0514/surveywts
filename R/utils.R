@@ -157,7 +157,7 @@
           "e.g., {.code weights = wt_col}."
         )
       ),
-      class = "surveyweights_error_weights_not_found"
+      class = "surveywts_error_weights_not_found"
     )
   }
 
@@ -172,7 +172,7 @@
           "Use {.code as.numeric({.field {weight_col}})} to convert."
         )
       ),
-      class = "surveyweights_error_weights_not_numeric"
+      class = "surveywts_error_weights_not_numeric"
     )
   }
 
@@ -187,7 +187,7 @@
         "i" = "All starting weights must be strictly positive (> 0).",
         "v" = "Remove or replace non-positive weights before proceeding."
       ),
-      class = "surveyweights_error_weights_nonpositive"
+      class = "surveywts_error_weights_nonpositive"
     )
   }
 
@@ -202,7 +202,7 @@
         "i" = "Weights must be fully observed.",
         "v" = "Remove rows with missing weights before proceeding."
       ),
-      class = "surveyweights_error_weights_na"
+      class = "surveywts_error_weights_na"
     )
   }
 
@@ -244,7 +244,7 @@
             "supported in Phase 0."
           )
         ),
-        class = "surveyweights_error_variable_not_categorical"
+        class = "surveywts_error_variable_not_categorical"
       )
     }
 
@@ -265,7 +265,7 @@
             "calling {.fn {fn_name}}."
           )
         ),
-        class = "surveyweights_error_variable_has_na"
+        class = "surveywts_error_variable_has_na"
       )
     }
   }
@@ -335,7 +335,7 @@
             "{.arg {target_name}}."
           )
         ),
-        class = "surveyweights_error_population_level_missing"
+        class = "surveywts_error_population_level_missing"
       )
     }
 
@@ -358,7 +358,7 @@
             "{.arg {target_name}}."
           )
         ),
-        class = "surveyweights_error_population_level_extra"
+        class = "surveywts_error_population_level_extra"
       )
     }
 
@@ -382,7 +382,7 @@
               "{.code {target_name}${.field {var}}}."
             )
           ),
-          class = "surveyweights_error_population_totals_invalid"
+          class = "surveywts_error_population_totals_invalid"
         )
       }
     } else {
@@ -404,7 +404,7 @@
               "{.code {target_name}${.field {var}}}."
             )
           ),
-          class = "surveyweights_error_population_totals_invalid"
+          class = "surveywts_error_population_totals_invalid"
         )
       }
     }
@@ -491,7 +491,7 @@
       after = after_stats
     ),
     convergence = convergence,
-    package_version = as.character(utils::packageVersion("surveyweights"))
+    package_version = as.character(utils::packageVersion("surveywts"))
   )
 }
 
@@ -514,9 +514,9 @@
     cli::cli_abort(
       c(
         "x" = "Internal error: weight column {.field {weight_col}} not in data.",
-        "i" = "This is a bug in surveyweights. Please report it."
+        "i" = "This is a bug in surveywts. Please report it."
       ),
-      class = "surveyweights_error_internal"
+      class = "surveywts_error_internal"
     )
   }
   # nocov end
@@ -607,7 +607,7 @@
 # )
 # For "poststratify", convergence = NULL (non-iterative).
 #
-# Throws surveyweights_error_calibration_not_converged on failure.
+# Throws surveywts_error_calibration_not_converged on failure.
 #
 # NOTE (GAP #6): calibration_spec format may be refined during implementation
 # of PRs 5–7. Document departures here.
@@ -732,7 +732,7 @@
           "Raking converged in 1 sweep: all variables already met their ",
           "margins. Weights were not adjusted."
         )),
-        class = "surveyweights_message_already_calibrated"
+        class = "surveywts_message_already_calibrated"
       )
     } else if (!result$converged) {
       .throw_not_converged(
@@ -778,9 +778,9 @@
   cli::cli_abort(
     c(
       "x" = "Internal error: unknown calibration type {.val {type}}.",
-      "i" = "This is a bug in surveyweights. Please report it."
+      "i" = "This is a bug in surveywts. Please report it."
     ),
-    class = "surveyweights_error_internal"
+    class = "surveywts_error_internal"
   )
   # nocov end
 }
@@ -798,7 +798,7 @@
   do.call(cbind, cols)
 }
 
-# Throw surveyweights_error_calibration_not_converged for the maxit = 0 case.
+# Throw surveywts_error_calibration_not_converged for the maxit = 0 case.
 # context: the calibration method (linear, logit, ipf, anesrake, poststratify)
 .throw_not_converged_zero_maxit <- function(method, control) {
   if (method %in% c("linear", "logit")) {
@@ -813,7 +813,7 @@
           "(default: 50)."
         )
       ),
-      class = "surveyweights_error_calibration_not_converged"
+      class = "surveywts_error_calibration_not_converged"
     )
   } else {
     cli::cli_abort(
@@ -824,12 +824,12 @@
           "Set {.code control$maxit} to a positive integer."
         )
       ),
-      class = "surveyweights_error_calibration_not_converged"
+      class = "surveywts_error_calibration_not_converged"
     )
   }
 }
 
-# Throw surveyweights_error_calibration_not_converged on actual non-convergence.
+# Throw surveywts_error_calibration_not_converged on actual non-convergence.
 # context: "calibrate", "rake_survey", "rake_anesrake"
 .throw_not_converged <- function(method, context, control, max_error) {
   # Round to 6 sig figs before embedding in the message to avoid platform-
@@ -852,7 +852,7 @@
           "are consistent with the sample."
         )
       ),
-      class = "surveyweights_error_calibration_not_converged"
+      class = "surveywts_error_calibration_not_converged"
     )
   } else if (context == "rake_survey") {
     cli::cli_abort(
@@ -871,7 +871,7 @@
           "are consistent with the sample."
         )
       ),
-      class = "surveyweights_error_calibration_not_converged"
+      class = "surveywts_error_calibration_not_converged"
     )
   } else if (context == "rake_anesrake") {
     improvement_pct <- max_error
@@ -890,7 +890,7 @@
           "{.code control$improvement} in the {.arg control} list."
         )
       ),
-      class = "surveyweights_error_calibration_not_converged"
+      class = "surveywts_error_calibration_not_converged"
     )
   }
 }

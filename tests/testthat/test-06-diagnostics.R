@@ -75,7 +75,7 @@ test_that("weight_variability() returns CV = 0 exactly for equal weights", {
 # ---------------------------------------------------------------------------
 
 test_that("effective_sample_size() auto-detects weights from weighted_df", {
-  df <- make_surveyweights_data(seed = 1)
+  df <- make_surveywts_data(seed = 1)
   pop_age <- c("18-34" = 1 / 3, "35-54" = 1 / 3, "55+" = 1 / 3)
   wdf <- calibrate(df, variables = c(age_group), population = list(age_group = pop_age))
 
@@ -89,7 +89,7 @@ test_that("effective_sample_size() auto-detects weights from weighted_df", {
 })
 
 test_that("weight_variability() auto-detects weights from weighted_df", {
-  df <- make_surveyweights_data(seed = 2)
+  df <- make_surveywts_data(seed = 2)
   pop_age <- c("18-34" = 1 / 3, "35-54" = 1 / 3, "55+" = 1 / 3)
   wdf <- calibrate(df, variables = c(age_group), population = list(age_group = pop_age))
 
@@ -104,7 +104,7 @@ test_that("weight_variability() auto-detects weights from weighted_df", {
 # ---------------------------------------------------------------------------
 
 test_that("effective_sample_size() auto-detects weights from survey_calibrated", {
-  df <- make_surveyweights_data(seed = 3)
+  df <- make_surveywts_data(seed = 3)
   svy <- .make_test_taylor_diag(df)
   pop_age <- c("18-34" = 1 / 3, "35-54" = 1 / 3, "55+" = 1 / 3)
   svc <- calibrate(svy, variables = c(age_group), population = list(age_group = pop_age))
@@ -122,7 +122,7 @@ test_that("effective_sample_size() auto-detects weights from survey_calibrated",
 # ---------------------------------------------------------------------------
 
 test_that("effective_sample_size() auto-detects weights from survey_taylor", {
-  df <- make_surveyweights_data(seed = 4)
+  df <- make_surveywts_data(seed = 4)
   svy <- .make_test_taylor_diag(df, weight_col = "base_weight")
 
   # Auto-detection reads @variables$weights = "base_weight"
@@ -138,7 +138,7 @@ test_that("effective_sample_size() auto-detects weights from survey_taylor", {
 # ---------------------------------------------------------------------------
 
 test_that("summarize_weights() returns single-row tibble when by = NULL", {
-  df <- make_surveyweights_data(seed = 5)
+  df <- make_surveywts_data(seed = 5)
 
   result <- summarize_weights(df, weights = base_weight)
 
@@ -151,7 +151,7 @@ test_that("summarize_weights() returns single-row tibble when by = NULL", {
 # ---------------------------------------------------------------------------
 
 test_that("summarize_weights() returns one row per group with by grouping", {
-  df <- make_surveyweights_data(seed = 6)
+  df <- make_surveywts_data(seed = 6)
 
   result <- summarize_weights(df, weights = base_weight, by = c(age_group))
 
@@ -170,7 +170,7 @@ test_that("effective_sample_size() throws unsupported_class for matrix input", {
 
   expect_error(
     effective_sample_size(m),
-    class = "surveyweights_error_unsupported_class"
+    class = "surveywts_error_unsupported_class"
   )
   expect_snapshot(error = TRUE, effective_sample_size(m))
 })
@@ -180,7 +180,7 @@ test_that("weight_variability() throws unsupported_class for list input", {
 
   expect_error(
     weight_variability(x),
-    class = "surveyweights_error_unsupported_class"
+    class = "surveywts_error_unsupported_class"
   )
   expect_snapshot(error = TRUE, weight_variability(x))
 })
@@ -194,7 +194,7 @@ test_that("effective_sample_size() throws weights_required for plain df with no 
 
   expect_error(
     effective_sample_size(df),
-    class = "surveyweights_error_weights_required"
+    class = "surveywts_error_weights_required"
   )
   expect_snapshot(error = TRUE, effective_sample_size(df))
 })
@@ -204,7 +204,7 @@ test_that("summarize_weights() throws weights_required for plain df with no weig
 
   expect_error(
     summarize_weights(df),
-    class = "surveyweights_error_weights_required"
+    class = "surveywts_error_weights_required"
   )
   expect_snapshot(error = TRUE, summarize_weights(df))
 })
@@ -218,7 +218,7 @@ test_that("effective_sample_size() throws weights_not_found for missing column",
 
   expect_error(
     effective_sample_size(df, weights = nonexistent_col),
-    class = "surveyweights_error_weights_not_found"
+    class = "surveywts_error_weights_not_found"
   )
   expect_snapshot(error = TRUE, effective_sample_size(df, weights = nonexistent_col))
 })
@@ -236,7 +236,7 @@ test_that("effective_sample_size() throws weights_not_numeric for character weig
 
   expect_error(
     effective_sample_size(df, weights = w),
-    class = "surveyweights_error_weights_not_numeric"
+    class = "surveywts_error_weights_not_numeric"
   )
   expect_snapshot(error = TRUE, effective_sample_size(df, weights = w))
 })
@@ -250,7 +250,7 @@ test_that("effective_sample_size() throws weights_nonpositive for zero weight va
 
   expect_error(
     effective_sample_size(df, weights = w),
-    class = "surveyweights_error_weights_nonpositive"
+    class = "surveywts_error_weights_nonpositive"
   )
   expect_snapshot(error = TRUE, effective_sample_size(df, weights = w))
 })
@@ -264,7 +264,7 @@ test_that("effective_sample_size() throws weights_na for NA in weight column", {
 
   expect_error(
     effective_sample_size(df, weights = w),
-    class = "surveyweights_error_weights_na"
+    class = "surveywts_error_weights_na"
   )
   expect_snapshot(error = TRUE, effective_sample_size(df, weights = w))
 })
@@ -274,7 +274,7 @@ test_that("effective_sample_size() throws weights_na for NA in weight column", {
 # ---------------------------------------------------------------------------
 
 test_that("summarize_weights() returns columns in correct order (no by)", {
-  df <- make_surveyweights_data(seed = 7)
+  df <- make_surveywts_data(seed = 7)
 
   result <- summarize_weights(df, weights = base_weight)
 
@@ -285,7 +285,7 @@ test_that("summarize_weights() returns columns in correct order (no by)", {
 })
 
 test_that("summarize_weights() returns group columns first with by grouping", {
-  df <- make_surveyweights_data(seed = 8)
+  df <- make_surveywts_data(seed = 8)
 
   result <- summarize_weights(df, weights = base_weight, by = c(age_group))
 

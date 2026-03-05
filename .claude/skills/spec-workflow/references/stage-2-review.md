@@ -70,8 +70,8 @@ For every function:
   console output shown as a verbatim example block, including any header line?
   Vague descriptions like "prints as a tibble" are flagged as REQUIRED unless
   they are an explicit intentional decision with a shown example.
-- Error table complete with class names in correct format (`surveyweights_error_*`,
-  `surveyweights_warning_*`)?
+- Error table complete with class names in correct format (`surveywts_error_*`,
+  `surveywts_warning_*`)?
 - All new error classes flagged as additions to `plans/error-messages.md`?
 - Edge case behaviors explicitly defined — not left as "reasonable behavior"?
 - `@variables` keys: are all keys always present (never absent, value `NULL`

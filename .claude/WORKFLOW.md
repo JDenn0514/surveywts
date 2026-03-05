@@ -1,4 +1,4 @@
-# surveyweights Development Workflow
+# surveywts Development Workflow
 
 How the skills fit together in practice.
 

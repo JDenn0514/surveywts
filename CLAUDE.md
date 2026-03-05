@@ -1,8 +1,8 @@
-# surveyweights Package Development
+# surveywts Package Development
 
 **Part of the surveyverse ecosystem.**
 
-surveyweights provides tools for survey weighting and calibration.
+surveywts provides tools for survey weighting and calibration.
 
 ---
 
@@ -26,8 +26,8 @@ Full roadmap at `plans/roadmap.md`.
 
 > To be filled in as Phase 0 API is designed. See `plans/` for specs.
 
-- Error classes: `surveyweights_error_{snake_case_condition}`
-- Warning classes: `surveyweights_warning_{snake_case_condition}`
+- Error classes: `surveywts_error_{snake_case_condition}`
+- Warning classes: `surveywts_warning_{snake_case_condition}`
 - Internal helpers: prefix with `.` (e.g., `.validate_weights()`)
 
 ## Key Implementation Rules
@@ -52,7 +52,7 @@ auto-rename on rename; track transformation history.
 ## R CMD Check Gotchas
 
 **Examples must load Imports packages explicitly.** R CMD check runs examples in a fresh session
-with only `library(surveyweights)` loaded. If an example calls a bare function from an Imports
+with only `library(surveywts)` loaded. If an example calls a bare function from an Imports
 package, add `library(pkg)` at the top of the block.
 
 ## Reference Documents
@@ -61,8 +61,8 @@ package, add `library(pkg)` at the top of the block.
 - `.claude/WORKFLOW.md` — how the skills fit together (planning arc → implementation loop)
 - `.claude/rules/code-style.md` — S7 patterns, cli errors, arg order, air formatter
 - `.claude/rules/r-package-conventions.md` — imports, NAMESPACE, roxygen2, export policy
-- `.claude/rules/surveyweights-conventions.md` — package-specific naming, families, visibility
+- `.claude/rules/surveywts-conventions.md` — package-specific naming, families, visibility
 - `.claude/rules/testing-standards.md` — test structure, coverage targets, assertion patterns
-- `.claude/rules/testing-surveyweights.md` — package-specific test invariants and data generators
+- `.claude/rules/testing-surveywts.md` — package-specific test invariants and data generators
 - `.claude/rules/github-strategy.md` — branching model, commit format, versioning
 - `.claude/rules/engineering-preferences.md` — DRY, edge cases, over/under-engineering

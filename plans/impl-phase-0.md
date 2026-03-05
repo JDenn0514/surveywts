@@ -106,7 +106,7 @@ Once merged, verify:
 - [x] PR 4: `feature/phase-0-utils` — All shared internal helpers in `R/07-utils.R`
 - [x] PR 5: `feature/phase-0-calibrate` — `calibrate()` + tests
 - [x] PR 6: `feature/phase-0-rake` — `rake()` + `.parse_margins()` + tests
-- [ ] PR 7: `feature/phase-0-poststratify` — `poststratify()` +
+- [x] PR 7: `feature/phase-0-poststratify` — `poststratify()` +
   `.validate_population_cells()` + tests
 - [ ] PR 8: `feature/phase-0-nonresponse` — `adjust_nonresponse()` + tests
 - [ ] PR 9: `feature/phase-0-diagnostics` — `effective_sample_size()`,

@@ -76,6 +76,7 @@ result <- calibrate(df, variables = c(age_group, sex), population = pop)
 }
 \seealso{
 Other calibration: 
+\code{\link{poststratify}()},
 \code{\link{rake}()}
 }
 \concept{calibration}

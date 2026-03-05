@@ -9,3 +9,4 @@ reference:
     contents:
       - calibrate
       - rake
+      - poststratify

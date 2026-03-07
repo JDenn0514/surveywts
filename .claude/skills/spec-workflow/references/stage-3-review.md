@@ -1,4 +1,4 @@
-# Stage 2: Adversarial Spec Review
+# Stage 3: Adversarial Spec Review
 
 You are a spec reviewer. Your job: find every gap, ambiguity,
 under-specification, over-engineering, and missing test case in the spec.
@@ -6,7 +6,7 @@ Be adversarial. The user does not want validation — they want problems found
 now, before code is written.
 
 This stage produces a **complete issue list saved to a file**. It is a batch
-pass — do not resolve issues here. Resolution happens in Stage 3.
+pass — do not resolve issues here. Resolution happens in Stage 4.
 
 ---
 
@@ -33,28 +33,38 @@ Find every place two functions describe the same behavior:
 
 ### Lens 2 — Test Completeness
 
-For every exported function, verify a test plan exists for each category:
+For every exported function, verify a test plan exists for the applicable
+categories. Not every category applies to every function — use judgment based
+on what the function does, and flag missing coverage for categories that
+clearly do apply.
 
-1. **Happy path** — standard inputs, expected output
-2. **Numerical oracle** — estimates match a reference implementation at the
-   appropriate tolerance (point: 1e-10, SE: 1e-8, CI: 1e-6)
-3. **Grouped analysis** — behavior with `group` argument specified
-4. **Domain estimation** — behavior when a domain column is present
-5. **Variance argument** — each supported variance type
-6. **label_values** — label output is correct when labels are set
-7. **label_vars** — variable label appears in output when `label_vars = TRUE`
-8. **meta() contract** — `meta()` column matches spec
-9. **name_style = "broom"** — tidy names when requested
-10. **Error paths** — every row in the error table covered by a test
-11. **Edge cases** — all-NA column, zero-weight rows, single-level groups
-12. **Multi-variable** — behavior with multiple variables at once
-13. **Print snapshot** — `print()` output matches expected format (snapshot
-    test); required for every result class that has a `print()` method
+**Core categories (apply to all exported functions):**
+1. **Happy path** — standard inputs, expected output (one block per supported
+   input class when the function accepts multiple)
+2. **Numerical correctness** — estimates match a reference implementation at
+   the tolerances specified in `testing-surveywts.md`
+3. **Error paths** — every row in the error table covered by a test
+4. **Edge cases** — all-NA column, zero-weight rows, single-level groups,
+   empty inputs
+
+**Conditional categories (apply when the function has this capability):**
+5. **Input class dispatch** — if the function accepts multiple input types
+   (e.g., `data.frame`, `weighted_df`, `survey_calibrated`), each tested
+   separately
+6. **Grouped analysis** — if the function has a `by =` or grouping argument,
+   behavior with grouping specified
+7. **Print snapshot** — `print()` output matches expected format (snapshot
+   test); required for every result class that has a `print()` method
+8. **Weighting history** — history correctly appended/preserved after the
+   operation; required for any function that modifies or carries forward
+   `weighting_history`
 
 Also check mechanic rules:
 
-- `test_invariants()` specified as first assertion in every constructor test block?
-- Dual pattern (class= + snapshot) specified for all Layer 3 (constructor) errors?
+- `test_invariants()` specified as first assertion in every constructor test
+  block?
+- Dual pattern (`class=` + snapshot) specified for all Layer 3 (constructor)
+  errors?
 - `class=` only for Layer 1 (S7 validator) errors — no snapshot?
 - `class=` required on every error and warning in the spec?
 
@@ -74,25 +84,35 @@ For every function:
   `surveywts_warning_*`)?
 - All new error classes flagged as additions to `plans/error-messages.md`?
 - Edge case behaviors explicitly defined — not left as "reasonable behavior"?
-- `@variables` keys: are all keys always present (never absent, value `NULL`
-  when unspecified) per `code-style.md §2`?
+- If the output is an S7 object: are `@variables` keys always present (never
+  absent, value `NULL` when unspecified) per `code-style.md §2`?
 - S7 membership tests use `S7::S7_inherits(x, ClassName)` with class object,
   never a string?
 
 ### Lens 4 — Edge Cases
 
-Do these scenarios appear explicitly somewhere in the spec?
+For every exported function, verify the following types of scenarios appear
+explicitly somewhere in the spec. Apply judgment — not every category applies
+to every function, but err toward checking.
 
-- NAs in weight column
-- NAs in strata column
-- NAs in PSU column
-- Zero-weight rows in `@data`
-- Single-level strata (degenerate for variance estimation)
-- Single PSU in a stratum
-- FPC values outside (0, 1]
-- Empty design (0 rows)
-- Domain estimation combined with grouping
-- `@variables` keys absent vs. `NULL` — are they distinguished?
+**General edge cases (consider for every function):**
+- NAs in any required input column
+- Zero or negative values in columns where positive values are required
+  (weight columns, count columns)
+- Empty input (0 rows)
+- Single-level categorical inputs (degenerate for grouping or variance
+  estimation)
+- Degenerate cases specific to the feature (what inputs make the computation
+  undefined or unstable?)
+
+**surveywts-specific edge cases (apply where relevant):**
+- For weight columns: zero-weight rows, negative weights, all-equal weights
+- For calibration/raking: zero sample cell counts, single-unit cells,
+  marginal inconsistency across raking variables
+- For S7 class construction: `@variables` keys absent vs. `NULL` — are they
+  distinguished?
+- For design-stage operations: NAs in strata/PSU/FPC columns; single PSU in
+  a stratum; FPC values outside (0, 1]
 
 "The implementation should handle edge cases gracefully" is not a spec.
 
@@ -107,6 +127,41 @@ actually happens, error classes named but absent from the error table.
 **Over-engineered:** abstraction layers without two real call sites in the spec,
 generalization for hypothetical future phases not in the current roadmap,
 performance optimization specified before correctness is established.
+
+### Lens 6 — API Coherence & User Expectations
+
+The function must do what its name and signature suggest, for every input type
+it accepts. This lens catches "technically works, deeply surprising" bugs — the
+kind that survive all tests but produce methodologically wrong workflows.
+
+**For every accepted input class:**
+- What class does the function return? Is it the same class as the input, a
+  narrower class, or a different class entirely? Any narrowing (e.g.,
+  `survey_taylor` → `survey_calibrated`) must be explicitly stated and must
+  either be the correct behavior or accompanied by a warning.
+- What information is preserved vs. discarded? If the input carries PSU/strata
+  structure, weighting history, or metadata that the output no longer contains,
+  the spec must say so explicitly — not leave it implicit.
+- Does the function *do* what its name implies for this input type? A function
+  called `calibrate()` applied to a `survey_taylor` should calibrate the
+  weights while preserving the design structure, not silently convert the object
+  to a different class.
+
+**For the API as a whole:**
+- Would a survey methodologist reading the function name and signature expect
+  the described behavior? If not, either the behavior or the name is wrong.
+- Is there a plausible workflow where a user chains this function with others
+  and gets a silently wrong result? (e.g., calibrate a `survey_taylor` → lose
+  the design → compute SEs using the wrong estimator → no error thrown)
+- Are default values for optional arguments the correct choice for the majority
+  of real survey use cases, or just a convenient programming default?
+- If the function accepts multiple input types with meaningfully different
+  behavior, is the behavioral difference surfaced to the user (via message,
+  return class, or attribute) rather than hidden?
+
+"Methodologically correct but confusing" is flagged as REQUIRED. "Technically
+correct but will cause user error in realistic workflows" is flagged as
+BLOCKING.
 
 ---
 
@@ -210,7 +265,7 @@ Ask yourself:
 
 - Have I applied all five lenses, not just the ones that found issues?
 - For every function contract: did I check argument order, the error table,
-  and all `@variables` key behaviors?
+  and edge case behaviors?
 - Have I flagged actual problems, not manufactured ones?
 - Is the overall assessment honest — does it match the issue count and severity?
 
@@ -226,5 +281,5 @@ honest, not performatively negative.
 3. End the session with:
 
    > "Pass [N] complete: {N} new issues ({X} blocking, {Y} required, {Z}
-   > suggestions). Start a new session with `/spec-workflow stage 3` to resolve
+   > suggestions). Start a new session with `/spec-workflow stage 4` to resolve
    > these interactively. Review appended to `plans/spec-review-{id}.md`."

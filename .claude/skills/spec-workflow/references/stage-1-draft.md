@@ -11,10 +11,10 @@ questions:
     header: "Phase"
     multiSelect: false
     options:
-      - label: "Phase 0 — Initial implementation"
-        description: "The first phase of surveywts. See CLAUDE.md for current phase status."
+      - label: "Current phase"
+        description: "The next phase in the roadmap. See CLAUDE.md for current phase status."
       - label: "Later phase"
-        description: "A subsequent phase building on Phase 0."
+        description: "A subsequent phase beyond the current one."
       - label: "Feature / bug fix"
         description: "A targeted feature or fix outside the main phase structure."
 

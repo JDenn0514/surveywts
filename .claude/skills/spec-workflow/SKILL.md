@@ -5,19 +5,24 @@ description: >
   running an adversarial review, or resolving spec issues interactively. Trigger
   whenever the user says "draft spec", "review the spec", "resolve spec issues",
   "start planning", or references a phase number (e.g. "phase 1", "phase 0.5").
-  Has three stages: Stage 1 (draft), Stage 2 (adversarial review), Stage 3
-  (resolve + decisions log). After the spec is approved, move to
-  /implementation-workflow.
+  Has four stages: Stage 1 (draft), Stage 2 (adversarial methodology review —
+  survey statistics correctness), Stage 3 (adversarial spec review — code
+  quality and completeness), Stage 4 (resolve + decisions log). After the spec
+  is approved, move to /implementation-workflow.
 ---
 
 # Surveyverse Spec Workflow
 
 This skill governs spec work for surveywts.
-Three stages, always in order:
+Four stages, always in order:
 
 1. **Stage 1 — Draft:** Write the spec sheet
-2. **Stage 2 — Review:** Adversarial batch pass; saves all issues to a file
-3. **Stage 3 — Resolve:** Interactively work through issues and log decisions
+2. **Stage 2 — Methodology Review:** Adversarial survey statistics pass; flags every
+   methodological flaw before code is written
+3. **Stage 3 — Spec Review:** Adversarial code-quality pass; flags gaps in contracts,
+   test plans, engineering level, and API coherence (does the function behave
+   as expected for every input type?)
+4. **Stage 4 — Resolve:** Interactively work through all issues and log decisions
 
 After the spec is approved, move to `/implementation-workflow`.
 
@@ -35,10 +40,12 @@ multiSelect: false
 options:
   - label: "Stage 1 — Draft the spec"
     description: "Write a new spec sheet from scratch."
-  - label: "Stage 2 — Adversarial review"
-    description: "Full batch pass over the spec; saves all issues to a file."
-  - label: "Stage 3 — Resolve issues"
-    description: "Interactively work through the review file issue by issue."
+  - label: "Stage 2 — Methodology review"
+    description: "Adversarial methodology pass: statistical correctness, algorithm validity, formula integrity. Saves all issues to a file. Skip if the feature involves no statistical computation (e.g., a print method or format change)."
+  - label: "Stage 3 — Adversarial spec review"
+    description: "Full batch pass over code quality, contracts, test plans, engineering level, and API coherence (does each function do what its name implies for every input type?). Saves all issues to a file."
+  - label: "Stage 4 — Resolve issues"
+    description: "Interactively work through all open issues (from Stage 2 and/or Stage 3) and log decisions."
 ```
 
 Then read the corresponding reference file before doing anything else:
@@ -46,8 +53,9 @@ Then read the corresponding reference file before doing anything else:
 | Stage | Reference file |
 |---|---|
 | 1 | `.claude/skills/spec-workflow/references/stage-1-draft.md` |
-| 2 | `.claude/skills/spec-workflow/references/stage-2-review.md` |
-| 3 | `.claude/skills/spec-workflow/references/stage-3-resolve.md` |
+| 2 | `.claude/skills/spec-workflow/references/stage-2-methodology.md` |
+| 3 | `.claude/skills/spec-workflow/references/stage-3-review.md` |
+| 4 | `.claude/skills/spec-workflow/references/stage-4-resolve.md` |
 
 ---
 
@@ -74,7 +82,8 @@ authoritative — the spec doesn't need to repeat it.
 The `{id}` matches the feature branch identifier (e.g., `phase-2`, `survey-srs`).
 
 ```
-Spec:              plans/spec-{id}.md
-Spec review:       plans/spec-review-{id}.md
-Decisions log:     plans/decisions-{id}.md
+Spec:                     plans/spec-{id}.md
+Methodology review:       plans/spec-methodology-{id}.md
+Spec review:              plans/spec-review-{id}.md
+Decisions log:            plans/decisions-{id}.md
 ```

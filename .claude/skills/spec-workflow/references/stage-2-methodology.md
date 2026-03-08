@@ -1,19 +1,22 @@
 # Stage 2: Adversarial Methodology Review
 
-You are reviewing a spec for statistical and methodological correctness. Your
-job: find every flaw in the underlying methodology before a line of code is
-written. Wrong math and invalid statistical assumptions produce silently wrong
-answers that pass all tests — that is far worse than a crash.
+## Trigger Condition
 
-This stage produces a **complete methodology issue list saved to a file**. It
-is a batch pass — do not resolve issues here. Resolution happens in Stage 4.
+Run this stage only when the spec contains **at least one** of:
+- A variance estimation section
+- An estimator definition (mean, total, proportion, calibrated weight, etc.)
+- Standard errors, confidence intervals, or test statistics
+- Iterative algorithms with convergence requirements
+- Formulas that must produce numerically exact results
+
+If none of these apply, declare Stage 2 not applicable, note the reason briefly
+in the output file, and skip to Stage 3.
 
 ---
 
 ## Scope Assessment
 
-Before applying the lenses, determine whether this feature involves statistical
-or mathematical computation. Answer the following:
+Before applying the lenses, answer the following to confirm which lenses apply:
 
 - Does this feature implement, modify, or extend a statistical or mathematical
   method?
@@ -30,6 +33,19 @@ reason briefly in the output file.
 **If any apply**, proceed with all five lenses below. Within each lens, skip
 sub-questions that genuinely don't apply to the feature being reviewed — but
 err toward checking rather than skipping.
+
+---
+
+## Your Role
+
+You are reviewing a spec for statistical and methodological correctness. Your
+job: find every flaw in the underlying methodology before a line of code is
+written. Wrong math and invalid statistical assumptions produce silently wrong
+answers that pass all tests — that is far worse than a crash.
+
+This stage produces a **complete methodology issue list saved to a file**. It
+is a batch pass — do not resolve issues here. Resolution happens in Stage 2
+Resolve.
 
 ---
 
@@ -270,12 +286,16 @@ Use this format for every issue:
 **Issue [N]: [Short title]**
 Severity: BLOCKING | REQUIRED | SUGGESTION
 Lens: [1–5 and lens name]
+Resolution type: UNAMBIGUOUS | JUDGMENT CALL
 
 [Concrete description. Quote or reference the spec text that is missing or
-wrong. State the specific methodological problem in plain language.]
+wrong. State the specific methodological problem in plain language.
+For UNAMBIGUOUS: state the correct formula or fix directly.
+For JUDGMENT CALL: state the options and their statistical trade-offs.]
 
 Options:
-- **[A]** [Description] — Effort: [low/medium/high], Risk: [low/medium/high], Impact: [what]
+- **[A]** [Description] — Effort: [low/medium/high], Risk: [low/medium/high],
+  Impact: [what], Maintenance: [ongoing burden]
 - **[B]** [Alternative description]
 - **[C] Do nothing** — [what stays wrong or ambiguous]
 
@@ -291,6 +311,13 @@ Options:
   wrong behavior or user confusion about methodology.
 - **SUGGESTION** — A documentation or clarity improvement; the implementation
   would likely still be correct without it.
+
+**Resolution types** (used by Stage 2 Resolve for batching):
+
+- **UNAMBIGUOUS** — There is one correct answer. Show the fix; ask once to
+  confirm the batch.
+- **JUDGMENT CALL** — Multiple statistically valid approaches exist. Ask the
+  user to decide.
 
 ---
 
@@ -334,6 +361,7 @@ _Omit this section on Pass 1._
 **Issue [N]: [title]**
 Severity: BLOCKING
 Lens: 1 — Method Validity
+Resolution type: UNAMBIGUOUS
 ...
 
 #### Lens 2 — Variance Estimation Validity
@@ -375,11 +403,26 @@ Ask yourself:
 - Have I checked every iterative procedure for a concrete convergence
   criterion?
 - Have I flagged unstated statistical assumptions, not just code-level gaps?
+- Have I assigned UNAMBIGUOUS or JUDGMENT CALL to every issue?
 - Is the overall assessment honest — does it match the issue count and
   severity?
 
 If the methodology is genuinely sound, say so. Adversarial means rigorous, not
 performatively negative.
+
+---
+
+## Mini-Pass Mode
+
+Use this mode when a wrong formula is discovered in Stage 3 or during
+implementation and the methodology lock needs a targeted update.
+
+1. Read only the affected section of the spec, not the full document.
+2. Apply only the relevant lenses to that section.
+3. Write a `### Mini-Pass [N] ([YYYY-MM-DD])` section and **append** it to
+   the existing `plans/spec-methodology-{id}.md` — never overwrite.
+4. End with: `"Mini-pass complete: {N} issues found. Resolve via Stage 2
+   Resolve targeting these issues only."`
 
 ---
 
@@ -392,6 +435,5 @@ performatively negative.
 
    > "Methodology review Pass [N] complete: {N} new issues ({X} blocking,
    > {Y} required, {Z} suggestions). Start a new session with
-   > `/spec-workflow stage 3` to run the adversarial spec review, or
-   > `/spec-workflow stage 4` to resolve issues directly. Review appended to
-   > `plans/spec-methodology-{id}.md`."
+   > `/spec-workflow stage 2 resolve` to lock the methodology before running
+   > the code review. Review appended to `plans/spec-methodology-{id}.md`."

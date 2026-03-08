@@ -5,24 +5,26 @@ description: >
   running an adversarial review, or resolving spec issues interactively. Trigger
   whenever the user says "draft spec", "review the spec", "resolve spec issues",
   "start planning", or references a phase number (e.g. "phase 1", "phase 0.5").
-  Has four stages: Stage 1 (draft), Stage 2 (adversarial methodology review —
-  survey statistics correctness), Stage 3 (adversarial spec review — code
-  quality and completeness), Stage 4 (resolve + decisions log). After the spec
-  is approved, move to /implementation-workflow.
+  Five stages in order: Stage 1 (draft), Stage 2 (adversarial methodology review —
+  survey statistics correctness), Stage 2 Resolve (lock methodology), Stage 3
+  (adversarial spec review — code quality and completeness), Stage 4 (resolve +
+  decisions log). After the spec is approved, move to /implementation-workflow.
 ---
 
 # Surveyverse Spec Workflow
 
 This skill governs spec work for surveywts.
-Four stages, always in order:
+Five stages, always in order:
 
 1. **Stage 1 — Draft:** Write the spec sheet
 2. **Stage 2 — Methodology Review:** Adversarial survey statistics pass; flags every
-   methodological flaw before code is written
-3. **Stage 3 — Spec Review:** Adversarial code-quality pass; flags gaps in contracts,
+   methodological flaw before code is written *(conditional — self-assesses applicability)*
+3. **Stage 2 Resolve — Lock Methodology:** Resolve all methodology issues; spec is
+   methodology-locked after this
+4. **Stage 3 — Spec Review:** Adversarial code-quality pass; flags gaps in contracts,
    test plans, engineering level, and API coherence (does the function behave
    as expected for every input type?)
-4. **Stage 4 — Resolve:** Interactively work through all issues and log decisions
+5. **Stage 4 — Resolve:** Interactively work through all issues and log decisions
 
 After the spec is approved, move to `/implementation-workflow`.
 
@@ -41,9 +43,11 @@ options:
   - label: "Stage 1 — Draft the spec"
     description: "Write a new spec sheet from scratch."
   - label: "Stage 2 — Methodology review"
-    description: "Adversarial methodology pass: statistical correctness, algorithm validity, formula integrity. Saves all issues to a file. Skip if the feature involves no statistical computation (e.g., a print method or format change)."
+    description: "Adversarial methodology pass: statistical correctness, algorithm validity, formula integrity. Saves all issues to a file. Self-assesses applicability — declares Stage 2 not applicable and skips to Stage 3 if the feature has no mathematical content."
+  - label: "Stage 2 Resolve — Resolve methodology issues"
+    description: "Work through the methodology review file issue by issue. Methodology-locks the spec after completion."
   - label: "Stage 3 — Adversarial spec review"
-    description: "Full batch pass over code quality, contracts, test plans, engineering level, and API coherence (does each function do what its name implies for every input type?). Saves all issues to a file."
+    description: "Full batch pass over code quality, contracts, test plans, engineering level, and API coherence. Saves all issues to a file."
   - label: "Stage 4 — Resolve issues"
     description: "Interactively work through all open issues (from Stage 2 and/or Stage 3) and log decisions."
 ```
@@ -54,6 +58,7 @@ Then read the corresponding reference file before doing anything else:
 |---|---|
 | 1 | `.claude/skills/spec-workflow/references/stage-1-draft.md` |
 | 2 | `.claude/skills/spec-workflow/references/stage-2-methodology.md` |
+| 2 Resolve | `.claude/skills/spec-workflow/references/stage-2-resolve.md` |
 | 3 | `.claude/skills/spec-workflow/references/stage-3-review.md` |
 | 4 | `.claude/skills/spec-workflow/references/stage-4-resolve.md` |
 

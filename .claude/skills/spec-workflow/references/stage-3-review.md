@@ -178,7 +178,8 @@ Severity: BLOCKING | REQUIRED | SUGGESTION
 or name the thing that is absent.]
 
 Options:
-- **[A]** [Description] — Effort: [low/medium/high], Risk: [low/medium/high], Impact: [what]
+- **[A]** [Description] — Effort: [low/medium/high], Risk: [low/medium/high],
+  Impact: [what], Maintenance: [ongoing burden]
 - **[B]** [Alternative description]
 - **[C] Do nothing** — [what stays broken or ambiguous]
 
@@ -263,9 +264,11 @@ contract that must be resolved before coding begins."]
 
 Ask yourself:
 
-- Have I applied all five lenses, not just the ones that found issues?
+- Have I applied all six lenses, not just the ones that found issues?
 - For every function contract: did I check argument order, the error table,
   and edge case behaviors?
+- For Lens 6: did I trace at least one realistic multi-function workflow and
+  verify it produces the right result without silent surprises?
 - Have I flagged actual problems, not manufactured ones?
 - Is the overall assessment honest — does it match the issue count and severity?
 

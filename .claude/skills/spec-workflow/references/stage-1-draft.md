@@ -40,6 +40,10 @@ questions:
 Wait for the user to provide any referenced documents. Read all provided
 context before writing a single line of the spec.
 
+Confirm the `{id}` with the user if not obvious from context. Default patterns:
+"phase 1" → `phase-1`, "calibration" → `calibration`. The output file will be
+`plans/spec-{id}.md` — establish this before writing anything.
+
 ---
 
 ## Spec Structure
@@ -88,5 +92,7 @@ Model every spec on the Phase 1 structure. Required sections:
 
 Tell the user:
 
-> "This is a first draft. I expect there are gaps — run Stage 2 in a new
-> session to get an adversarial review before we resolve anything."
+> "This is a first draft. I expect there are gaps. Next steps:
+> - Run Stage 2 (methodology review) in a new session — it will self-assess
+>   whether the feature needs a statistical pass and skip to Stage 3 if not.
+> - Do not resolve anything until both reviews are complete."

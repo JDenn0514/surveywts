@@ -1,17 +1,32 @@
-# Stage 3: Resolve Issues + Log Decisions
+# Stage 4: Resolve Issues + Log Decisions
+
+## Contents
+- Before Starting
+- Choose a Batch Size
+- Working Through the Issues
+- Issue Format
+- Applying Fixes
+- Decisions Log
+- After Resolution
+
+---
 
 ## Before Starting
 
 Check for a spec-review file at `plans/spec-review-{id}.md`.
 
 **If the file exists:** Work through those issues in order. Do not do a fresh
-review pass — the adversarial review is already done. Skip to the review mode
-question below.
+review pass — the adversarial review is already done.
+
+Note: methodology issues (from `plans/spec-methodology-{id}.md`) should
+already be resolved by Stage 2 Resolve and are not re-raised here. If a
+code-level decision has introduced a new statistical error, flag it and
+suggest running a targeted Stage 2 mini-pass on that section only.
 
 **If no file exists:** Tell the user:
 
 > "No spec-review file found at `plans/spec-review-{id}.md`.
-> Run Stage 2 first to get a saved issue list, then come back here to
+> Run Stage 3 first to get a saved issue list, then come back here to
 > resolve them. Alternatively, confirm you want an informal review pass
 > without a saved issue list."
 
@@ -41,26 +56,36 @@ Wait for the answer before presenting any issues.
 Work through the issues **in the order they appear in the review file** —
 do not re-group or re-sequence them.
 
-Present a batch (4 or 1 depending on the chosen mode). For each issue in the
-batch, show the issue text and options, then wait for the user's direction.
-After the user has resolved all issues in the batch, ask:
-
+**In BIG mode (4 at a time):** Show all issues in the batch as markdown text
+first, then use `AskUserQuestion` for each issue in the batch sequentially.
+Apply fixes after all decisions in the batch are collected. After applying
+each fix, check whether it materially changes the framing of any remaining
+issues in the batch — if so, re-present the affected issue with updated
+context before applying its fix. Then ask:
 > "Ready for the next batch?"
 
-Then present the next batch. Do not apply fixes speculatively — wait for
-explicit direction on each issue.
+**In SMALL mode (1 at a time):** Show the issue text, use `AskUserQuestion`,
+apply the fix immediately, then move to the next issue.
+
+Do not apply fixes speculatively — wait for the `AskUserQuestion` response
+on each issue before editing the spec.
 
 ---
 
 ## Issue Format
 
-For each issue (whether from the review file or found during this session):
+Show each issue as markdown, then immediately use `AskUserQuestion`. The
+**recommended option must be first**. Every option **must be labeled** with
+the issue number and letter so the user always knows what they're selecting.
+
+Present the issue text:
 
 ```
 **Issue [N]: [Short title]**
+Severity: BLOCKING | REQUIRED | SUGGESTION
+[Rule violated, e.g. "Violates code-style.md §3."]
 
-[Concrete description, with section/spec reference. Cite rule file if applicable,
-e.g. "Violates code-style.md §3."]
+[Concrete description, with section/spec reference.]
 
 Options:
 - **[A]** [Description] — Effort: [low/medium/high], Risk: [low/medium/high],
@@ -68,9 +93,22 @@ Options:
 - **[B]** [Description]
 - **[C] Do nothing** — [consequences of not addressing this]
 
-**Recommendation: [A/B/C]** — [Why, mapped to engineering-preferences.md.]
+**Recommendation: Option [A/B/C]** — [Why, mapped to engineering-preferences.md.]
+```
 
-> Do you agree with option [letter], or would you prefer a different direction?
+Then call AskUserQuestion:
+
+```
+question: "Issue [N] — [Short title]: which option?"
+header: "Issue [N]"
+multiSelect: false
+options:
+  - label: "Issue [N] — Option [Rec]: [short label] (Recommended)"
+    description: "[effort/risk/impact/maintenance summary]"
+  - label: "Issue [N] — Option [Alt]: [short label]"
+    description: "[trade-offs]"
+  - label: "Issue [N] — Option C: Do nothing"
+    description: "[consequences]"
 ```
 
 ---
@@ -102,7 +140,7 @@ entry below all previous entries. Create the file with this header only if
 it doesn't exist yet:
 
 ```markdown
-# Decisions Log — [package] [id]
+# Decisions Log — surveywts [id]
 
 This file records planning decisions made during [id].
 Each entry corresponds to one planning session.
@@ -137,3 +175,14 @@ Entry format:
 
 Only log decisions — not implementation details already determined by the spec
 or a rule file. If the answer was predetermined, there is no decision to log.
+
+---
+
+## After Resolution
+
+1. Update the spec version in the header block.
+2. End the session with:
+
+   > "Code review resolved. {N} issues resolved ({X} blocking, {Y} required,
+   > {Z} suggestions). Spec at version [X.Y] is approved. Start
+   > `/implementation-workflow` in a new session to build the implementation plan."

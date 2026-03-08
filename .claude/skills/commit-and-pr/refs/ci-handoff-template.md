@@ -9,6 +9,7 @@ Run:    #<run-id>
 PR:     #<pr-number> (<pr-url>)
 Job:    <job-name> (e.g., R CMD Check / ubuntu-latest / release)
 Step:   <step-name>
+Type:   <test failure | R CMD check error | platform-specific>
 
 Error:
 <last 40 lines of --log-failed output>

@@ -5,13 +5,13 @@ description: >
   running an adversarial review, or resolving spec issues interactively. Trigger
   whenever the user says "draft spec", "review the spec", "resolve spec issues",
   "start planning", or references a phase number (e.g. "phase 1", "phase 0.5").
-  Five stages in order: Stage 1 (draft), Stage 2 (adversarial methodology review —
-  survey statistics correctness), Stage 2 Resolve (lock methodology), Stage 3
-  (adversarial spec review — code quality and completeness), Stage 4 (resolve +
-  decisions log). After the spec is approved, move to /implementation-workflow.
+  Five-stage workflow: draft → methodology review → resolve → spec review → resolve + log.
+  After Stage 4 is complete, move to /implementation-workflow.
 ---
 
 # Surveyverse Spec Workflow
+
+**Announce at start:** "Running spec-workflow Stage N — [stage name]."
 
 This skill governs spec work for surveywts.
 Five stages, always in order:
@@ -26,7 +26,34 @@ Five stages, always in order:
    as expected for every input type?)
 5. **Stage 4 — Resolve:** Interactively work through all issues and log decisions
 
-After the spec is approved, move to `/implementation-workflow`.
+Stages 2 and 2 Resolve are conditional — skip them if the spec contains no
+variance estimation, estimators, or statistical inference.
+
+```dot
+digraph spec_stages {
+    rankdir=LR;
+    S1 [label="Stage 1\nDraft", shape=box];
+    S2 [label="Stage 2\nMethodology", shape=box];
+    S2R [label="Stage 2 Resolve\nLock Methodology", shape=box];
+    S3 [label="Stage 3\nSpec Review", shape=box];
+    S4 [label="Stage 4\nResolve + Log", shape=box];
+    done [label="→ /implementation-workflow", shape=doublecircle];
+
+    S1 -> S2;
+    S2 -> S2R [label="issues found"];
+    S2 -> S3 [label="N/A"];
+    S2R -> S3;
+    S3 -> S4 [label="issues found"];
+    S3 -> done [label="clean"];
+    S4 -> done;
+}
+```
+
+<HARD-GATE>
+Do not hand off to `/implementation-workflow` until Stage 4 is complete, all issues
+are resolved, and `plans/decisions-{id}.md` is populated. The spec must be
+methodology-locked and code-quality-reviewed before any R code is written.
+</HARD-GATE>
 
 ---
 
@@ -47,7 +74,7 @@ options:
   - label: "Stage 2 Resolve — Resolve methodology issues"
     description: "Work through the methodology review file issue by issue. Methodology-locks the spec after completion."
   - label: "Stage 3 — Adversarial spec review"
-    description: "Full batch pass over code quality, contracts, test plans, engineering level, and API coherence. Saves all issues to a file."
+    description: "Full batch pass over code quality, contracts, test plans, engineering level, and API coherence. Can run multiple times if new issues are discovered."
   - label: "Stage 4 — Resolve issues"
     description: "Interactively work through all open issues (from Stage 2 and/or Stage 3) and log decisions."
 ```
@@ -61,6 +88,18 @@ Then read the corresponding reference file before doing anything else:
 | 2 Resolve | `.claude/skills/spec-workflow/references/stage-2-resolve.md` |
 | 3 | `.claude/skills/spec-workflow/references/stage-3-review.md` |
 | 4 | `.claude/skills/spec-workflow/references/stage-4-resolve.md` |
+
+## Common Shortcuts to Resist
+
+These are the rationalizations most likely to cause a premature handoff. Violating
+the letter of the stage order is violating the spirit of it.
+
+| Rationalization | Why it fails |
+|---|---|
+| "This feature has no math — Stage 2 is N/A" | Stage 2 self-assesses; don't skip it yourself. Read the reference and let it decide. |
+| "The spec is clear enough, Stage 3 would just nitpick" | Stage 3 catches API coherence gaps and underspecified edge cases — not nitpicks. |
+| "We can resolve that ambiguity in implementation" | Ambiguity discovered in implementation is a spec bug. Resolve it here. |
+| "All issues are minor, I'll log decisions later" | `plans/decisions-{id}.md` must be populated before handing off. Log them now. |
 
 ---
 
@@ -92,3 +131,8 @@ Methodology review:       plans/spec-methodology-{id}.md
 Spec review:              plans/spec-review-{id}.md
 Decisions log:            plans/decisions-{id}.md
 ```
+
+**Determining `{id}`:** Infer from user context first (e.g., "phase 0 spec" →
+`phase-0`, "calibration spec" → `calibration`). If the spec file already exists,
+derive `{id}` from its filename. If ambiguous, ask the user before reading or
+writing any file.

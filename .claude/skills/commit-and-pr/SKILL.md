@@ -121,6 +121,30 @@ Required results:
 - `devtools::check()` — 0 errors, 0 warnings, ≤2 notes
 - `devtools::test()` — no failures
 
+### Conditional quality gates (run after devtools checks pass)
+
+**Error class audit** — run if this branch adds any `cli_abort()` or `cli_warn()` calls:
+
+```bash
+git diff develop..HEAD -- R/ | grep -q "cli_abort\|cli_warn" && echo "AUDIT NEEDED" || echo "SKIP"
+```
+
+If `AUDIT NEEDED`: invoke the `error-class-auditor` subagent. If it flags any
+calls missing `class=`, using wrong prefixes, or referencing undocumented classes,
+**STOP** and report the findings. Ask the user to fix in `r-implement`, then
+re-invoke `commit-and-pr`.
+
+**Coverage check** — run if this branch adds any new exported functions:
+
+```bash
+git diff develop..HEAD -- R/ | grep -q "^+#' @export" && echo "COVERAGE NEEDED" || echo "SKIP"
+```
+
+If `COVERAGE NEEDED`: invoke the `coverage-gap-finder` subagent. If it finds
+uncovered lines in the new code that are not marked `# nocov`, **STOP** and
+report the gaps. Ask the user to add tests in `r-implement`, then re-invoke
+`commit-and-pr`.
+
 ---
 
 ## Step 4: Stage and Commit

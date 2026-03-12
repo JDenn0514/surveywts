@@ -18,7 +18,7 @@
 #' for categorical auxiliary variables.
 #'
 #' @param data A `data.frame`, `weighted_df`, `survey_taylor`, or
-#'   `survey_calibrated`. `survey_replicate` → error. Any other class → error.
+#'   `survey_nonprob`. `survey_replicate` → error. Any other class → error.
 #' @param variables <[`tidy-select`][tidyselect::language]> Columns to
 #'   calibrate on. Must be categorical (character or factor). Specify as a
 #'   bare name or `c(var1, var2, ...)`.
@@ -43,8 +43,8 @@
 #'
 #' @return
 #'   - `data.frame` or `weighted_df` input → `weighted_df`
-#'   - `survey_taylor` or `survey_calibrated` input → same class as input
-#'     (`survey_taylor` or `survey_calibrated`; class is preserved)
+#'   - `survey_taylor` or `survey_nonprob` input → same class as input
+#'     (`survey_taylor` or `survey_nonprob`; class is preserved)
 #'
 #'   The weight column in the output contains calibrated weights. A history
 #'   entry with `operation = "calibration"` is appended to
@@ -253,7 +253,7 @@ calibrate <- function(
 
   is_supported <- inherits(data, "data.frame") ||
     S7::S7_inherits(data, surveycore::survey_taylor) ||
-    S7::S7_inherits(data, surveycore::survey_calibrated)
+    S7::S7_inherits(data, surveycore::survey_nonprob)
 
   if (!is_supported) {
     cls <- class(data)[[1L]]
@@ -261,7 +261,7 @@ calibrate <- function(
       c(
         "x" = paste0(
           "{.arg data} must be a data frame, {.cls weighted_df}, ",
-          "{.cls survey_taylor}, or {.cls survey_calibrated}."
+          "{.cls survey_taylor}, or {.cls survey_nonprob}."
         ),
         "i" = "Got {.cls {cls}}."
       ),
@@ -278,7 +278,7 @@ calibrate <- function(
   if (inherits(x, "weighted_df")) {
     attr(x, "weighting_history") %||% list()
   } else if (S7::S7_inherits(x, surveycore::survey_taylor) ||
-               S7::S7_inherits(x, surveycore::survey_calibrated)) {
+               S7::S7_inherits(x, surveycore::survey_nonprob)) {
     x@metadata@weighting_history %||% list()
   } else {
     list()

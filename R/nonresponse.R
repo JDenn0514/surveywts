@@ -21,7 +21,7 @@
 #' Only respondent rows are returned.
 #'
 #' @param data A `data.frame`, `weighted_df`, `survey_taylor`, or
-#'   `survey_calibrated`. Must include BOTH respondents and nonrespondents.
+#'   `survey_nonprob`. Must include BOTH respondents and nonrespondents.
 #'   `survey_replicate` → error. Any other class → error.
 #' @param response_status Bare name (NSE). Binary response indicator column.
 #'   Must be `logical` or integer `0`/`1`. `1` / `TRUE` = respondent.
@@ -46,7 +46,7 @@
 #' @return
 #'   - `data.frame` or `weighted_df` input → `weighted_df` (respondents only)
 #'   - `survey_taylor` input → `survey_taylor` (same class; respondents only)
-#'   - `survey_calibrated` input → `survey_calibrated` (same class;
+#'   - `survey_nonprob` input → `survey_nonprob` (same class;
 #'     respondents only)
 #'
 #'   The weight column in the output contains adjusted weights. A history entry

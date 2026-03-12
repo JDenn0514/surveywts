@@ -33,7 +33,7 @@ those rules, it states the outcome without re-explaining the rule.
 | Component | Type | Exported? |
 |-----------|------|-----------|
 | `weighted_df` | S3 class | Yes (class object; no user constructor) |
-| `survey_calibrated` (from `surveycore`) | S7 class (defined in surveycore; instances produced by surveywts) | No — class is exported from surveycore; no re-export needed |
+| `survey_nonprob` (from `surveycore`) | S7 class (defined in surveycore; instances produced by surveywts) | No — class is exported from surveycore; no re-export needed |
 | `calibrate()` | Function | Yes |
 | `rake()` | Function | Yes |
 | `poststratify()` | Function | Yes |
@@ -64,7 +64,7 @@ partially, unless marked as a stub:
 | `data.frame` | `weighted_df` | `weighted_df` |
 | `weighted_df` | `weighted_df` | `weighted_df` |
 | `survey_taylor` | `survey_taylor` (same class) | `survey_taylor` (same class) |
-| `survey_calibrated` | `survey_calibrated` (same class) | `survey_calibrated` (same class) |
+| `survey_nonprob` | `survey_nonprob` (same class) | `survey_nonprob` (same class) |
 | `survey_replicate` | Error: `surveywts_error_replicate_not_supported` | Error: `surveywts_error_replicate_not_supported` |
 | Any other | Error: `surveywts_error_unsupported_class` | Error: `surveywts_error_unsupported_class` |
 
@@ -72,7 +72,7 @@ partially, unless marked as a stub:
 append to the weighting history, but preserve the input class. Class encodes
 the variance estimation method; calibrating a `survey_taylor` design updates
 the weights but leaves PSUs, strata, and FPC intact, so Taylor linearization
-remains the correct variance formula. Promoting to `survey_calibrated` would
+remains the correct variance formula. Promoting to `survey_nonprob` would
 silently discard the design structure and force SRS-based variance.
 
 ---
@@ -83,7 +83,7 @@ silently discard the design structure and force SRS-based variance.
 
 ```
 R/
-├── 00-classes.R          # weighted_df S3 class definition only — survey_calibrated is defined in surveycore
+├── 00-classes.R          # weighted_df S3 class definition only — survey_nonprob is defined in surveycore
 ├── 02-calibrate.R        # calibrate()
 ├── 03-rake.R             # rake() + .parse_margins()
 ├── 04-poststratify.R     # poststratify() + .validate_population_cells() (private, not in 07-utils.R)
@@ -119,7 +119,7 @@ tests/
 surveycore::survey_base  (abstract)
   ├── surveycore::survey_taylor
   ├── surveycore::survey_replicate
-  └── surveycore::survey_calibrated   ← defined in surveycore; instances produced by surveywts
+  └── surveycore::survey_nonprob   ← defined in surveycore; instances produced by surveywts
 
 S3 (independent of S7 hierarchy):
   weighted_df  ← c("weighted_df", "tbl_df", "tbl", "data.frame")
@@ -127,7 +127,7 @@ S3 (independent of S7 hierarchy):
 
 **`surveywts-package.R`** must define `.onLoad()` calling `S7::methods_register()`
 to register all S7 method dispatch at package load time. Without this, S7 print and
-summary methods for `survey_calibrated` will silently fail to dispatch at runtime.
+summary methods for `survey_nonprob` will silently fail to dispatch at runtime.
 
 ```r
 .onLoad <- function(libname, pkgname) {
@@ -146,7 +146,7 @@ All internal helpers live in `R/07-utils.R` (used in 2+ source files per
 
 ```r
 .make_weighted_df(data, weight_col, history = list())
-.new_survey_calibrated(design, updated_weights, history_entry)
+.new_survey_nonprob(design, updated_weights, history_entry)
 .calibrate_engine(data, weights_vec, calibration_spec, method, control)
 .make_history_entry(operation, call_str, parameters, before_stats, after_stats,
                     convergence = NULL)
@@ -171,7 +171,7 @@ Imports:
     dplyr (>= 1.1.0),       # dplyr_reconstruct() generic for weighted_df compatibility
     rlang (>= 1.1.0),       # enquo(), as_name(), check_required()
     S7 (>= 0.2.0),          # S7::new_class(), S7::method(), S7::S7_inherits()
-    surveycore (>= 0.1.0),  # survey_base, survey_taylor, survey_calibrated parent class
+    surveycore (>= 0.1.0),  # survey_base, survey_taylor, survey_nonprob parent class
     tibble (>= 3.2.0)       # as_tibble(), tibble() for weighted_df and summarize output
 Suggests:
     anesrake (>= 0.92),     # Numerical correctness tests for rake(method="anesrake") (skip_if_not_installed)
@@ -238,7 +238,7 @@ these rows with "See §II.d" in place of the description.
 
 | Arg | Type | Default | Description |
 |-----|------|---------|-------------|
-| `data` | `data.frame`, `weighted_df`, `survey_taylor`, `survey_calibrated` | required | Input dataset or survey design. `survey_replicate` → `surveywts_error_replicate_not_supported`. Any other class → `surveywts_error_unsupported_class`. |
+| `data` | `data.frame`, `weighted_df`, `survey_taylor`, `survey_nonprob` | required | Input dataset or survey design. `survey_replicate` → `surveywts_error_replicate_not_supported`. Any other class → `surveywts_error_unsupported_class`. |
 | `weights` | bare name (NSE) | `NULL` | Weight column name. `NULL` → uniform weights (1/n for all rows). For `weighted_df`, auto-detected from `attr(data, "weight_col")`. For survey objects, auto-detected from `@variables$weights`. When specified, the column must be numeric, strictly positive, and contain no `NA`. |
 
 ### Common Validation Rules
@@ -348,7 +348,7 @@ an interface contract; implementation belongs in a separate surveycore PR.
 
 | Property / method | Where used in surveywts |
 |---|---|
-| `survey_base` S7 class (parent for `survey_calibrated`) | `R/00-classes.R` |
+| `survey_base` S7 class (parent for `survey_nonprob`) | `R/00-classes.R` |
 | `@data` property on `survey_taylor` | Weight extraction, data update |
 | `@variables` list (ids, weights, strata, fpc) on `survey_taylor` | Design variable lookup |
 | `@metadata` with `weighting_history` list property | History tracking |
@@ -511,23 +511,23 @@ and chained calls would produce duplicate step numbers.
 
 ---
 
-## V. `survey_calibrated` S7 Class
+## V. `survey_nonprob` S7 Class
 
 ### Definition and Ownership
 
-`surveywts` does **not** define `survey_calibrated`. It uses
-`surveycore::survey_calibrated` directly, which is already defined and exported
+`surveywts` does **not** define `survey_nonprob`. It uses
+`surveycore::survey_nonprob` directly, which is already defined and exported
 from surveycore. surveywts' role is to produce correctly configured instances
 of that class.
 
-This eliminates a namespace conflict: defining a parallel `surveywts::survey_calibrated`
+This eliminates a namespace conflict: defining a parallel `surveywts::survey_nonprob`
 extending `survey_base` would create two S7 classes with the same name but different
 fully-qualified names — `S7::S7_inherits()` checks would fail across the ecosystem.
 
 surveycore's class structure (confirmed from source — GAP #1 resolved):
 
 ```
-<surveycore::survey_calibrated> class
+<surveycore::survey_nonprob> class
 @ parent: <surveycore::survey_base>
 @ properties:
   $ data       : S3<data.frame>
@@ -538,7 +538,7 @@ surveycore's class structure (confirmed from source — GAP #1 resolved):
   $ calibration: <ANY>    ← set to NULL by surveywts; history in @metadata@weighting_history
 ```
 
-`survey_calibrated` does NOT extend `survey_taylor`. It extends `survey_base`
+`survey_nonprob` does NOT extend `survey_taylor`. It extends `survey_base`
 to avoid accidentally inheriting Taylor-specific dispatch that would be
 incorrect post-calibration.
 
@@ -551,7 +551,7 @@ incorrect post-calibration.
 | `@metadata` | surveycore metadata class | `survey_base` | Labels, weighting history, etc. |
 | `@groups` | `character` | `survey_base` | Grouping variables (empty by default) |
 | `@call` | `ANY` | `survey_base` | Construction call |
-| `@calibration` | `ANY` | `survey_calibrated` | Left `NULL` by surveywts; provenance stored in `@metadata@weighting_history` |
+| `@calibration` | `ANY` | `survey_nonprob` | Left `NULL` by surveywts; provenance stored in `@metadata@weighting_history` |
 
 `@variables$weights`: character scalar — the name of the weight column in `@data`.
 (Confirmed from surveycore source — GAP #3 resolved.)
@@ -561,7 +561,7 @@ incorrect post-calibration.
 
 ### S7 Validator (surveycore's)
 
-surveycore's `survey_calibrated` validator enforces:
+surveycore's `survey_nonprob` validator enforces:
 1. `@variables$weights` is a character scalar.
 2. The column named by `@variables$weights` exists in `@data`.
 3. The weight column is numeric.
@@ -584,10 +584,10 @@ input class. It lives in `R/utils.R`.
 ### Print Method
 
 ```r
-S7::method(print, surveycore::survey_calibrated) <- function(x, n = 10, ...) { ... }
+S7::method(print, surveycore::survey_nonprob) <- function(x, n = 10, ...) { ... }
 ```
 
-Registered in surveywts for `surveycore::survey_calibrated`. This is valid S7
+Registered in surveywts for `surveycore::survey_nonprob`. This is valid S7
 behavior — any package may register methods for a class defined elsewhere.
 
 **Verbatim console output format:**
@@ -602,8 +602,8 @@ behavior — any package may register methods for a class defined elsewhere.
 ```
 
 **Variance method label:** The string `"Taylor linearization"` is hardcoded in the
-print method for Phase 0. This is correct because `survey_calibrated` only accepts
-`survey_taylor` or `survey_calibrated` input in Phase 0 (not `survey_replicate`).
+print method for Phase 0. This is correct because `survey_nonprob` only accepts
+`survey_taylor` or `survey_nonprob` input in Phase 0 (not `survey_replicate`).
 Phase 1 will revisit this when replicate-weight designs become a supported input.
 
 Returns `invisible(x)`.
@@ -1008,7 +1008,7 @@ adjust_nonresponse(
 | `data.frame` | `weighted_df` |
 | `weighted_df` | `weighted_df` |
 | `survey_taylor` | `survey_taylor` (same class — no variance method change) |
-| `survey_calibrated` | `survey_calibrated` (same class) |
+| `survey_nonprob` | `survey_nonprob` (same class) |
 | `survey_replicate` | Error: `surveywts_error_replicate_not_supported` |
 
 **Row filtering:** Output contains only rows where `response_status == 1` (or
@@ -1155,7 +1155,7 @@ Extracts the weight vector from any supported input class.
 
 ```r
 .get_weight_vec <- function(x, weights_quo) {
-  # x: data.frame, weighted_df, survey_taylor, or survey_calibrated
+  # x: data.frame, weighted_df, survey_taylor, or survey_nonprob
   # weights_quo: quosure from rlang::enquo(weights) in the calling function
   # Returns: numeric vector of weights
   # If weights_quo is NULL and x is weighted_df or survey object: auto-detect
@@ -1323,7 +1323,7 @@ promotes class).
 ```
 
 No `output_class` parameter. Calibration functions that need to produce a
-`survey_calibrated` output use `.new_survey_calibrated()` instead — that is
+`survey_nonprob` output use `.new_survey_nonprob()` instead — that is
 the correct path for class promotion.
 
 ---
@@ -1342,7 +1342,7 @@ specific function name.
 
 | Class | Trigger | Message template |
 |-------|---------|-----------------|
-| `surveywts_error_unsupported_class` | `data` is not a supported class | `x`: `data` must be a data frame, {.cls weighted_df}, {.cls survey_taylor}, or {.cls survey_calibrated}. `i`: Got {.cls {class(data)[[1]]}}. |
+| `surveywts_error_unsupported_class` | `data` is not a supported class | `x`: `data` must be a data frame, {.cls weighted_df}, {.cls survey_taylor}, or {.cls survey_nonprob}. `i`: Got {.cls {class(data)[[1]]}}. |
 | `surveywts_error_replicate_not_supported` | `data` is `survey_replicate` | `x`: {.cls survey_replicate} objects are not supported in Phase 0. `i`: Replicate-weight support requires Phase 1. `v`: Use a {.cls survey_taylor} design, or wait for Phase 1. |
 | `surveywts_error_empty_data` | `nrow(data) == 0` | `x`: {.arg data} has 0 rows. `i`: This operation is undefined on empty data. `v`: Ensure {.arg data} has at least one row. |
 | `surveywts_error_weights_not_found` | Named weight column missing from `data` | `x`: Weight column {.field {weights_var}} not found in `data`. `i`: Available columns: {.and {.field {names(data)}}}. `v`: Pass the column name as a bare name, e.g., {.code weights = wt_col}. |
@@ -1464,8 +1464,8 @@ test_invariants <- function(obj) {
     testthat::expect_true(is.numeric(obj[[wt_col]]))
     testthat::expect_true(is.list(attr(obj, "weighting_history")))
   }
-  # Applies for survey_calibrated:
-  if (S7::S7_inherits(obj, survey_calibrated)) {
+  # Applies for survey_nonprob:
+  if (S7::S7_inherits(obj, survey_nonprob)) {
     testthat::expect_true(is.character(obj@variables$weights))
     testthat::expect_true(obj@variables$weights %in% names(obj@data))
     testthat::expect_true(is.numeric(obj@data[[obj@variables$weights]]))
@@ -1507,8 +1507,8 @@ the dual pattern: `expect_error(class = ...)` + `expect_snapshot(error = TRUE, .
 # 2a. Happy path — multiple variables in population explicitly verified
 #     (assert length(population) == 3, all variables calibrated correctly)
 # 3. Happy path — weighted_df input → weighted_df output (history accumulates)
-# 4. Happy path — survey_calibrated input → survey_calibrated (re-calibration)
-#    Construct survey_calibrated input directly via surveycore::survey_calibrated()
+# 4. Happy path — survey_nonprob input → survey_nonprob (re-calibration)
+#    Construct survey_nonprob input directly via surveycore::survey_nonprob()
 # 5. Happy path — method = "logit"
 # 6. Happy path — type = "count"
 # 7. Numerical correctness — matches survey::calibrate() within 1e-8 tolerance
@@ -1547,8 +1547,8 @@ the dual pattern: `expect_error(class = ...)` + `expect_snapshot(error = TRUE, .
 # 2a. Happy path — multiple margins explicitly verified
 #     (assert length(margins) == 3, all variables calibrated correctly)
 # 3. Happy path — weighted_df input → weighted_df output (history accumulates)
-# 4. Happy path — survey_calibrated input → survey_calibrated (re-raking)
-#    Construct survey_calibrated input directly via surveycore::survey_calibrated()
+# 4. Happy path — survey_nonprob input → survey_nonprob (re-raking)
+#    Construct survey_nonprob input directly via surveycore::survey_nonprob()
 # 5. Happy path — type = "count"
 # 6. Happy path — margins as named list
 # 7. Happy path — margins as long data frame
@@ -1608,11 +1608,11 @@ the dual pattern: `expect_error(class = ...)` + `expect_snapshot(error = TRUE, .
 
 **`poststratify()`:**
 ```
-# 1–4. Happy paths (df, weighted_df, survey_taylor, survey_calibrated)
+# 1–4. Happy paths (df, weighted_df, survey_taylor, survey_nonprob)
 #       (all use default type = "count"; population targets are counts, not proportions)
 #       Assert in item 1: attr(result, "weight_col") == ".weight" when weights = NULL
-#       Items 3–4 (survey_taylor, survey_calibrated): class is preserved.
-#       For item 4, construct survey_calibrated directly via surveycore::survey_calibrated()
+#       Items 3–4 (survey_taylor, survey_nonprob): class is preserved.
+#       For item 4, construct survey_nonprob directly via surveycore::survey_nonprob()
 # 1c. Happy path — type = "count" is the default: call succeeds without specifying type;
 #     call fails with population_totals_invalid when proportions-formatted population
 #     is passed without type = "prop" (verifies the default is "count", not "prop")
@@ -1645,8 +1645,8 @@ the dual pattern: `expect_error(class = ...)` + `expect_snapshot(error = TRUE, .
 #     same output as integer; guards against naive == 1L implementation
 # 2. Happy path — survey_taylor input → survey_taylor (same class)
 # 2b. Happy path — weighted_df input → weighted_df output
-# 2c. Happy path — survey_calibrated input → survey_calibrated output
-#     Construct survey_calibrated input directly via surveycore::survey_calibrated()
+# 2c. Happy path — survey_nonprob input → survey_nonprob output
+#     Construct survey_nonprob input directly via surveycore::survey_nonprob()
 # 3. Happy path — by = NULL (global redistribution)
 # 4. Happy path — by = c(age_group, sex) (within-class redistribution)
 # 5. Weight conservation — sum of weights before == sum of respondent weights after
@@ -1687,7 +1687,7 @@ the dual pattern: `expect_error(class = ...)` + `expect_snapshot(error = TRUE, .
 #     Tests pre-weighting state and mathematical identity of both formulas
 #     (applies to both effective_sample_size() and weight_variability())
 # 2. Auto-detected weights for weighted_df input
-# 3. Auto-detected weights for survey_calibrated input
+# 3. Auto-detected weights for survey_nonprob input
 # 3b. Auto-detected weights for survey_taylor input
 # 4. summarize_weights — by = NULL returns single-row tibble
 # 5. summarize_weights — by grouping returns correct number of rows
@@ -1703,7 +1703,7 @@ the dual pattern: `expect_error(class = ...)` + `expect_snapshot(error = TRUE, .
 #    (group columns precede these when by is non-NULL)
 ```
 
-**`weighted_df` class and `survey_calibrated` class:**
+**`weighted_df` class and `survey_nonprob` class:**
 ```
 # 1. dplyr_reconstruct — select() preserving weight col → weighted_df returned
 # 2. dplyr_reconstruct — select(-weight_col) → plain tibble + warning
@@ -1722,11 +1722,11 @@ the dual pattern: `expect_error(class = ...)` + `expect_snapshot(error = TRUE, .
 #     (snapshot test; this is the state every new user sees on first use)
 # 5. History is empty on initial creation
 # 6. Class vector is correct: c("weighted_df", "tbl_df", "tbl", "data.frame")
-# 7. survey_calibrated print — snapshot test (output matches verbatim example in Section V)
-# 8. survey_calibrated S7 validator — rejects non-positive weights
+# 7. survey_nonprob print — snapshot test (output matches verbatim example in Section V)
+# 8. survey_nonprob S7 validator — rejects non-positive weights
 #    class = "surveycore_error_weights_nonpositive" (surveycore's class, not surveywts_error_*)
 #    class= only, no snapshot — message is not CLI-formatted
-# 9. survey_calibrated S7 validator — rejects weight column where ALL values are NA
+# 9. survey_nonprob S7 validator — rejects weight column where ALL values are NA
 #    (surveycore's validator permits individual NAs; errors only when length(non_na) == 0)
 #    class = "surveycore_error_weights_na" (surveycore's class, not surveywts_error_*)
 #    class= only, no snapshot
@@ -1775,7 +1775,7 @@ All snapshot failures block PRs.
 
 | # | Section | Status | Description |
 |---|---------|--------|-------------|
-| 1 | II, V | ✅ Resolved | `survey_base` properties confirmed: `@data`, `@metadata`, `@variables`, `@groups`, `@call`. `survey_calibrated` defined in surveycore (not surveywts). See §V. |
+| 1 | II, V | ✅ Resolved | `survey_base` properties confirmed: `@data`, `@metadata`, `@variables`, `@groups`, `@call`. `survey_nonprob` defined in surveycore (not surveywts). See §V. |
 | 2 | III | ✅ Resolved | `survey_weighting_history(x)` confirmed exported from surveycore; `@metadata@weighting_history` already exists as a list property. |
 | 3 | III | ✅ Resolved | `@variables$weights` confirmed as character scalar (column name). surveycore validator reads `self@data[[self@variables$weights]]`. |
 | 4 | II.b | ✅ Resolved | surveycore installed with all prerequisite features; `0.1.0` minimum version confirmed. |

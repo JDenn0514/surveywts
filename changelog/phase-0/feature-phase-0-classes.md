@@ -1,4 +1,4 @@
-# feat(classes): add weighted_df S3 class and survey_calibrated print method
+# feat(classes): add weighted_df S3 class and survey_nonprob print method
 
 **Date**: 2026-03-04
 **Branch**: feature/phase-0-classes
@@ -15,10 +15,10 @@
   `select.weighted_df()`, `rename.weighted_df()`, `mutate.weighted_df()`
   — all emit `surveywts_warning_weight_col_dropped` and downgrade to a
   plain tibble when the weight column is removed
-- Add `.new_survey_calibrated()` internal constructor that wraps
-  `surveycore::survey_calibrated()`, preserving design variables and
+- Add `.new_survey_nonprob()` internal constructor that wraps
+  `surveycore::survey_nonprob()`, preserving design variables and
   appending history entries to `@metadata@weighting_history`
-- Add S7 `print` method for `surveycore::survey_calibrated` showing
+- Add S7 `print` method for `surveycore::survey_nonprob` showing
   dimensions, variance method, design variables (IDs/strata/weights), and
   weighting history
 - Add `.format_history_step()` internal helper (shared between
@@ -33,8 +33,8 @@
 
 - `R/00-classes.R` — `weighted_df` class definition, print method, and all
   dplyr integration methods
-- `R/01-constructors.R` — `.new_survey_calibrated()` internal constructor
-- `R/methods-print.R` — S7 print method for `surveycore::survey_calibrated`
+- `R/01-constructors.R` — `.new_survey_nonprob()` internal constructor
+- `R/methods-print.R` — S7 print method for `surveycore::survey_nonprob`
 - `tests/testthat/test-00-classes.R` — full test suite for all class
   behavior (dplyr compat, print snapshots, validator errors)
 - `tests/testthat/_snaps/00-classes.md` — approved snapshots for print

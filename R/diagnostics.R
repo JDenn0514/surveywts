@@ -20,7 +20,7 @@
 #' \deqn{ESS = \frac{(\sum w)^2}{\sum w^2}}
 #'
 #' @param x A `data.frame`, `weighted_df`, `survey_taylor`, or
-#'   `survey_calibrated`. For `weighted_df` and survey objects, the weight
+#'   `survey_nonprob`. For `weighted_df` and survey objects, the weight
 #'   column is auto-detected.
 #' @param weights Bare name (NSE). Weight column. Auto-detected for
 #'   `weighted_df` and survey objects. Required for plain `data.frame`.
@@ -156,7 +156,7 @@ summarize_weights <- function(x, weights = NULL, by = NULL) {
 .diag_validate_input <- function(x, weights_quo) {
   is_supported <- is.data.frame(x) ||
     S7::S7_inherits(x, surveycore::survey_taylor) ||
-    S7::S7_inherits(x, surveycore::survey_calibrated)
+    S7::S7_inherits(x, surveycore::survey_nonprob)
 
   if (!is_supported) {
     cls <- class(x)[[1L]]
@@ -164,7 +164,7 @@ summarize_weights <- function(x, weights = NULL, by = NULL) {
       c(
         "x" = paste0(
           "{.arg x} must be a data frame, {.cls weighted_df}, ",
-          "{.cls survey_taylor}, or {.cls survey_calibrated}."
+          "{.cls survey_taylor}, or {.cls survey_nonprob}."
         ),
         "i" = "Got {.cls {cls}}."
       ),

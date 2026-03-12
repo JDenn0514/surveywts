@@ -142,7 +142,7 @@ test_that("poststratify() preserves survey_taylor class for survey_taylor input"
 
   test_invariants(result)
   expect_true(S7::S7_inherits(result, surveycore::survey_taylor))
-  expect_false(S7::S7_inherits(result, surveycore::survey_calibrated))
+  expect_false(S7::S7_inherits(result, surveycore::survey_nonprob))
   # Design vars are unchanged
   expect_identical(result@variables$ids,    design@variables$ids)
   expect_identical(result@variables$strata, design@variables$strata)
@@ -155,15 +155,15 @@ test_that("poststratify() preserves survey_taylor class for survey_taylor input"
 })
 
 # ---------------------------------------------------------------------------
-# 4. Happy path — survey_calibrated → survey_calibrated
+# 4. Happy path — survey_nonprob → survey_nonprob
 # ---------------------------------------------------------------------------
 
-test_that("poststratify() accepts and returns survey_calibrated", {
+test_that("poststratify() accepts and returns survey_nonprob", {
   df  <- make_surveywts_data(seed = 5)
   pop <- .make_pop_ps()
 
-  # Construct survey_calibrated directly (not via calibrate())
-  sc_input <- surveycore::survey_calibrated(
+  # Construct survey_nonprob directly (not via calibrate())
+  sc_input <- surveycore::survey_nonprob(
     data = df,
     variables = list(
       ids = NULL, strata = NULL, fpc = NULL,
@@ -178,7 +178,7 @@ test_that("poststratify() accepts and returns survey_calibrated", {
   result <- poststratify(sc_input, strata = c(age_group, sex), population = pop)
 
   test_invariants(result)
-  expect_true(S7::S7_inherits(result, surveycore::survey_calibrated))
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
   expect_identical(length(result@metadata@weighting_history), 1L)
 })
 

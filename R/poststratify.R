@@ -20,7 +20,7 @@
 #' `poststratify()` matches exact cross-tabulation cells in a single pass.
 #'
 #' @param data A `data.frame`, `weighted_df`, `survey_taylor`, or
-#'   `survey_calibrated`. `survey_replicate` -> error. Any other class -> error.
+#'   `survey_nonprob`. `survey_replicate` -> error. Any other class -> error.
 #' @param strata <[`tidy-select`][tidyselect::language]> Stratification
 #'   variables that jointly define the cells. Specify as a bare name or
 #'   `c(var1, var2, ...)`. Unlike [calibrate()] and [rake()], strata
@@ -42,8 +42,8 @@
 #'
 #' @return
 #'   - `data.frame` or `weighted_df` input -> `weighted_df`
-#'   - `survey_taylor` or `survey_calibrated` input -> same class as input
-#'     (`survey_taylor` or `survey_calibrated`; class is preserved)
+#'   - `survey_taylor` or `survey_nonprob` input -> same class as input
+#'     (`survey_taylor` or `survey_nonprob`; class is preserved)
 #'
 #'   The weight column in the output contains post-stratified weights. A
 #'   history entry with `operation = "poststratify"` is appended to

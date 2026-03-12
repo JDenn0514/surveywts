@@ -123,10 +123,10 @@ produces biased standard errors. Flag any of the following:
 
 **When reviewing calibration features:**
 - For each accepted input class (`data.frame`, `weighted_df`, `survey_taylor`,
-  `survey_calibrated`): does the spec state what happens to the variance
+  `survey_nonprob`): does the spec state what happens to the variance
   structure? A `survey_taylor` carries PSU/strata/FPC information that
   determines the variance estimator. If calibration silently converts it to
-  `survey_calibrated`, the Taylor design is lost and linearized SEs can no
+  `survey_nonprob`, the Taylor design is lost and linearized SEs can no
   longer be computed correctly. The spec must state, for each input class,
   (a) what is preserved, (b) what is discarded, and (c) whether the user is
   warned about any loss.

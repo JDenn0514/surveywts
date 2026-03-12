@@ -10,14 +10,14 @@ surveywts provides tools for survey weighting and calibration.
 
 | Phase | Tag | Status | Notes |
 |-------|-----|--------|-------|
-| Phase 0 — Calibration Core | `v0.1.0` | 🔜 Next | `survey_calibrated`, `calibrate()`, `rake()`, `poststratify()`, basic diagnostics |
-| Phase 1 — Replicate Weights | `v0.2.0` | ⬜ Pending | All `create_*_weights()` functions; unlocks bootstrap variance in `survey_calibrated` |
+| Phase 0 — Calibration Core | `v0.1.0` | ✅ Complete | `survey_nonprob`, `calibrate()`, `rake()`, `poststratify()`, basic diagnostics |
+| Phase 1 — Replicate Weights | `v0.2.0` | 🔜 Next | All `create_*_weights()` functions; unlocks bootstrap variance in `survey_nonprob` |
 | Phase 2 — Nonresponse & Advanced Calibration | `v0.3.0` | ⬜ Pending | `calibrate_to_sample()`, weighting-class nonresponse |
 | Phase 3 — Propensity Score Weighting | `v0.4.0` | ⬜ Pending | IPW for causal inference; unlocks propensity nonresponse |
 | Phase 4 — Diagnostics & Utilities | `v0.5.0` | ⬜ Pending | Balance assessment, `trim_weights()`, `stabilize_weights()` |
 | Phase 5 — Polish & CRAN | `v1.0.0` | ⬜ Pending | Vignettes, `--as-cran` clean, pkgdown |
 
-**Next action:** Begin Phase 0. Start with `/spec-workflow` to draft the spec.
+**Next action:** Begin Phase 1. Start with `/spec-workflow` to draft the spec.
 Full roadmap at `plans/roadmap.md`.
 
 ---

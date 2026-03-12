@@ -30,25 +30,25 @@ Options:
 
 ---
 
-#### Section: V (survey_calibrated Print Method)
+#### Section: V (survey_nonprob Print Method)
 
 **Issue 2: Print method shows variance method with no mechanism specified**
 Severity: BLOCKING
 Violates spec completeness — behavior stated without a mechanism.
 
-The verbatim output for `survey_calibrated` print shows:
+The verbatim output for `survey_nonprob` print shows:
 ```
 # Variance method: Taylor linearization
 ```
 
-But `survey_calibrated` extends `survey_base`, NOT `survey_taylor`. The spec does not specify:
+But `survey_nonprob` extends `survey_base`, NOT `survey_taylor`. The spec does not specify:
 1. Where the variance method string comes from
 2. Whether `survey_base` has a variance method property
 3. How to determine the variance method label ("Taylor linearization") from the class
 
 Options:
-- **[A]** Specify that `survey_calibrated` always displays "Taylor linearization" because Phase 0 calibration only supports Taylor-based designs as input; hardcode the string — Effort: low, Risk: low, Impact: correct for Phase 0; revisit in Phase 1
-- **[B]** Add a `@variance_method` property to `survey_calibrated` set to `"taylor"` by `.new_survey_calibrated()`, and print based on that value — Effort: low, Risk: low, Impact: forward-compatible
+- **[A]** Specify that `survey_nonprob` always displays "Taylor linearization" because Phase 0 calibration only supports Taylor-based designs as input; hardcode the string — Effort: low, Risk: low, Impact: correct for Phase 0; revisit in Phase 1
+- **[B]** Add a `@variance_method` property to `survey_nonprob` set to `"taylor"` by `.new_survey_nonprob()`, and print based on that value — Effort: low, Risk: low, Impact: forward-compatible
 - **[C] Do nothing** — Implementer guesses; print method silently hard-codes or reads from surveycore in an unspecified way
 
 **Recommendation: A** — Phase 0 only accepts `survey_taylor` input; hardcoding is honest and correct. Document that Phase 1 will revisit.
@@ -61,7 +61,7 @@ Options:
 Severity: BLOCKING
 Violates `r-package-conventions.md` — version-pinned Imports required, spec is the authoritative Phase 0 artifact.
 
-The spec references multiple external packages by name (`surveycore`, `S7`, `rlang`, `dplyr`, `tibble`) but never lists what goes in `Imports` or `Suggests`, or what minimum versions are required. `dplyr_reconstruct.weighted_df()` requires dplyr in Imports; `survey_calibrated` extending `survey_base` requires surveycore in Imports. The implementer has no authoritative source for the dependency list.
+The spec references multiple external packages by name (`surveycore`, `S7`, `rlang`, `dplyr`, `tibble`) but never lists what goes in `Imports` or `Suggests`, or what minimum versions are required. `dplyr_reconstruct.weighted_df()` requires dplyr in Imports; `survey_nonprob` extending `survey_base` requires surveycore in Imports. The implementer has no authoritative source for the dependency list.
 
 Options:
 - **[A]** Add a "Package Dependencies" section to the spec listing each `Imports` package with the minimum version pinned — Effort: low, Risk: low, Impact: removes implementer guesswork
@@ -153,16 +153,16 @@ Options:
 
 ---
 
-#### Section: XIII (Test Plan — survey_calibrated print snapshot)
+#### Section: XIII (Test Plan — survey_nonprob print snapshot)
 
-**Issue 8: survey_calibrated print method has no snapshot test in the test plan**
+**Issue 8: survey_nonprob print method has no snapshot test in the test plan**
 Severity: REQUIRED
 Violates `testing-standards.md §2`: print snapshot tests are explicitly required for every result class that has a `print()` method.
 
-The spec provides a verbatim print example for `survey_calibrated` (Section V), and print snapshot tests are explicitly required by the testing standards. The test plan in Section XIII covers `test-00-classes.R` but lists no snapshot test for `survey_calibrated`'s print method.
+The spec provides a verbatim print example for `survey_nonprob` (Section V), and print snapshot tests are explicitly required by the testing standards. The test plan in Section XIII covers `test-00-classes.R` but lists no snapshot test for `survey_nonprob`'s print method.
 
 Options:
-- **[A]** Add to `test-00-classes.R` test plan: `# Print snapshot — survey_calibrated print output matches verbatim example` — Effort: trivial, Risk: low, Impact: ensures print method is tested
+- **[A]** Add to `test-00-classes.R` test plan: `# Print snapshot — survey_nonprob print output matches verbatim example` — Effort: trivial, Risk: low, Impact: ensures print method is tested
 - **[B]** Add the test to a new test file `test-05-print.R` — Effort: trivial, Risk: low
 - **[C] Do nothing** — Print method exists with no snapshot test; message can drift undetected
 
@@ -238,12 +238,12 @@ Options:
 
 #### Section: XIII (adjust_nonresponse() Test Plan)
 
-**Issue 13: adjust_nonresponse() test plan missing weighted_df and survey_calibrated happy path tests**
+**Issue 13: adjust_nonresponse() test plan missing weighted_df and survey_nonprob happy path tests**
 Severity: REQUIRED
-The output contract (Section IX) states `adjust_nonresponse()` accepts `data.frame`, `weighted_df`, `survey_taylor`, and `survey_calibrated` inputs. The test plan covers data.frame (test #1) and survey_taylor (test #2) but has no happy path test for `weighted_df` or `survey_calibrated` inputs. All four supported input types require their own happy path per `testing-standards.md §2`.
+The output contract (Section IX) states `adjust_nonresponse()` accepts `data.frame`, `weighted_df`, `survey_taylor`, and `survey_nonprob` inputs. The test plan covers data.frame (test #1) and survey_taylor (test #2) but has no happy path test for `weighted_df` or `survey_nonprob` inputs. All four supported input types require their own happy path per `testing-standards.md §2`.
 
 Options:
-- **[A]** Add to test plan: `# 2b. Happy path — weighted_df input → weighted_df output` and `# 2c. Happy path — survey_calibrated input → survey_calibrated output` — Effort: trivial, Risk: low, Impact: full input-type coverage
+- **[A]** Add to test plan: `# 2b. Happy path — weighted_df input → weighted_df output` and `# 2c. Happy path — survey_nonprob input → survey_nonprob output` — Effort: trivial, Risk: low, Impact: full input-type coverage
 - **[B]** Note that calibrate() tests already cover these types and the "same class matrix" implies coverage — Effort: trivial, Risk: medium (tests may never be written)
 - **[C] Do nothing** — Two input types have no test coverage
 
@@ -273,7 +273,7 @@ Options:
 
 **Issue 15: .onLoad() / S7::methods_register() not specified in the spec**
 Severity: REQUIRED
-`survey_calibrated` is an S7 class with an S7-registered print method (`S7::method(print, survey_calibrated) <- ...`). For S7 method dispatch to work at runtime, `S7::methods_register()` must be called in `.onLoad()`. The spec lists `surveywts-package.R` in the source file organization table but specifies no content for it.
+`survey_nonprob` is an S7 class with an S7-registered print method (`S7::method(print, survey_nonprob) <- ...`). For S7 method dispatch to work at runtime, `S7::methods_register()` must be called in `.onLoad()`. The spec lists `surveywts-package.R` in the source file organization table but specifies no content for it.
 
 From CLAUDE.md: "S7::methods_register() in `.onLoad()`" — this rule exists at the package level but the spec is silent on it.
 
@@ -371,7 +371,7 @@ Options:
 
 **Total issues:** 20
 
-**Overall assessment:** The spec is architecturally sound and unusually thorough in its error contracts and test plan — but has five blocking issues that must be resolved before implementation: the consistent argument order violation across all three calibration functions (which the spec incorrectly claims is compliant with code-style.md), an undefined mechanism for the survey_calibrated print method's variance label, missing package dependency specification, an unresolved GAP in poststratify() about warning vs error for extra population cells, and undefined behavior for 0-row inputs. Resolution of these five blockers should take less than a day; the spec is otherwise implementable.
+**Overall assessment:** The spec is architecturally sound and unusually thorough in its error contracts and test plan — but has five blocking issues that must be resolved before implementation: the consistent argument order violation across all three calibration functions (which the spec incorrectly claims is compliant with code-style.md), an undefined mechanism for the survey_nonprob print method's variance label, missing package dependency specification, an unresolved GAP in poststratify() about warning vs error for extra population cells, and undefined behavior for 0-row inputs. Resolution of these five blockers should take less than a day; the spec is otherwise implementable.
 
 ---
 
@@ -388,12 +388,12 @@ Options:
 | 5 | 0-row data behavior not specified in any function's Behavior Rules | ✅ Resolved |
 | 6 | NA in auxiliary/by/strata/response_status variables — behavior undefined | ✅ Resolved |
 | 7 | Categorical-variable-only restriction stated only for calibrate(), not rake() or poststratify() | ✅ Resolved |
-| 8 | survey_calibrated print method has no snapshot test in the test plan | ✅ Resolved |
+| 8 | survey_nonprob print method has no snapshot test in the test plan | ✅ Resolved |
 | 9 | History accumulation tests missing from rake() and poststratify() test plans | ✅ Resolved |
 | 10 | history entry parameters$population format is undefined | ✅ Resolved |
 | 11 | min_cell threshold for class_near_empty warning is hardcoded with no rationale | ✅ Resolved |
 | 12 | effective_sample_size() and weight_variability() return value names not specified | ✅ Resolved |
-| 13 | adjust_nonresponse() test plan missing weighted_df and survey_calibrated happy path tests | ✅ Resolved |
+| 13 | adjust_nonresponse() test plan missing weighted_df and survey_nonprob happy path tests | ✅ Resolved |
 | 14 | Error message template incorrectly suggests rake() for continuous variables | ✅ Resolved |
 | 15 | .onLoad() / S7::methods_register() not specified in the spec | ✅ Resolved |
 | 16 | Multi-variable happy path not explicit in calibrate() test plan | ✅ Resolved |
@@ -438,7 +438,7 @@ Violates `testing-standards.md §2` — test plan must be unambiguous; each test
 Additionally, test item #2a from calibrate() reads `"assert length(population) == 3, all variables calibrated correctly"` — for rake() this should reference `margins`, not `population`. The phrasing is calibrate()-specific and doesn't translate cleanly.
 
 Options:
-- **[A]** Replace the reference with explicit items: `# 1. Happy path — data.frame → weighted_df` / `# 2. Happy path — survey_taylor → survey_calibrated` / `# 2a. Happy path — multiple margins explicitly verified (assert length(margins) == 3)` / `# 3. Happy path — weighted_df → weighted_df (history accumulates)` / `# 4. Happy path — survey_calibrated → survey_calibrated` / `# 5. Happy path — type = "count"` — Effort: low, Risk: low, Impact: unambiguous test plan
+- **[A]** Replace the reference with explicit items: `# 1. Happy path — data.frame → weighted_df` / `# 2. Happy path — survey_taylor → survey_nonprob` / `# 2a. Happy path — multiple margins explicitly verified (assert length(margins) == 3)` / `# 3. Happy path — weighted_df → weighted_df (history accumulates)` / `# 4. Happy path — survey_nonprob → survey_nonprob` / `# 5. Happy path — type = "count"` — Effort: low, Risk: low, Impact: unambiguous test plan
 - **[B]** Add a clarifying note: `"# Tests 1–4 and 6 apply; test #5 (method = 'logit') does not apply — rake() has no method argument. 2a: verify length(margins) == 3 not length(population)."` — Effort: trivial, Risk: low
 - **[C] Do nothing** — Implementer may write a test that attempts `rake(..., method = "logit")`, which will fail or be skipped
 
@@ -524,21 +524,21 @@ Options:
 
 ---
 
-#### Section: V (survey_calibrated Validator — Reliance on Parent Validator)
+#### Section: V (survey_nonprob Validator — Reliance on Parent Validator)
 
-**Issue 27: survey_calibrated S7 validator doesn't state whether it relies on survey_base's validator for @variables key invariants**
+**Issue 27: survey_nonprob S7 validator doesn't state whether it relies on survey_base's validator for @variables key invariants**
 Severity: SUGGESTION
 Violates `engineering-preferences.md §5` (explicit over clever) — an unstated assumption about parent behavior.
 
-The Section V validator for `survey_calibrated` checks `@variables$weights` exists, is a character scalar, and the weight column is valid. But `@variables` must also contain `ids`, `strata`, `fpc`, and `nest` keys (from the class hierarchy spec). The spec is silent on whether `survey_base`'s validator (from surveycore) already enforces this, or whether `survey_calibrated` needs to add these checks.
+The Section V validator for `survey_nonprob` checks `@variables$weights` exists, is a character scalar, and the weight column is valid. But `@variables` must also contain `ids`, `strata`, `fpc`, and `nest` keys (from the class hierarchy spec). The spec is silent on whether `survey_base`'s validator (from surveycore) already enforces this, or whether `survey_nonprob` needs to add these checks.
 
-If surveycore's `survey_base` validator does NOT check for required keys, then `survey_calibrated` objects could have a malformed `@variables` list with no validator catching it — causing silent attribute-lookup errors in the print method and downstream survey analysis.
+If surveycore's `survey_base` validator does NOT check for required keys, then `survey_nonprob` objects could have a malformed `@variables` list with no validator catching it — causing silent attribute-lookup errors in the print method and downstream survey analysis.
 
 This is Open GAP #1 dependent (verify surveycore source), but the spec should acknowledge the dependency explicitly rather than leaving it implicit.
 
 Options:
 - **[A]** Add a note to the validator section: _"@variables key presence (`ids`, `strata`, `fpc`, `nest`) is assumed to be enforced by the `survey_base` parent validator from surveycore. Verify against surveycore source (Open GAP #1). If not validated by the parent, add corresponding checks here."_ — Effort: trivial, Risk: low, Impact: removes an implicit assumption
-- **[B]** Proactively add checks for all required @variables keys to the survey_calibrated validator — Effort: low, Risk: low (defensive), Impact: guaranteed coverage regardless of surveycore
+- **[B]** Proactively add checks for all required @variables keys to the survey_nonprob validator — Effort: low, Risk: low (defensive), Impact: guaranteed coverage regardless of surveycore
 - **[C] Do nothing** — Implementer may miss this dependency
 
 **Recommendation: A** — A one-sentence note removes ambiguity at zero cost. Option B is also good but may duplicate surveycore's work — confirm GAP #1 first.
@@ -551,7 +551,7 @@ Options:
 Severity: SUGGESTION
 Violates `engineering-preferences.md §4` — handle edge cases explicitly.
 
-`effective_sample_size()`, `weight_variability()`, `summarize_weights()` accept `data.frame`, `weighted_df`, `survey_taylor`, and `survey_calibrated`. The master error table (Section XII) lists `surveywts_error_unsupported_class` as thrown by "All calibration/NR functions" — diagnostics are explicitly excluded. If a user passes a `matrix`, `list`, or an object from another survey package, they get an uninformative R error rather than a clear typed `surveywts_error_unsupported_class`.
+`effective_sample_size()`, `weight_variability()`, `summarize_weights()` accept `data.frame`, `weighted_df`, `survey_taylor`, and `survey_nonprob`. The master error table (Section XII) lists `surveywts_error_unsupported_class` as thrown by "All calibration/NR functions" — diagnostics are explicitly excluded. If a user passes a `matrix`, `list`, or an object from another survey package, they get an uninformative R error rather than a clear typed `surveywts_error_unsupported_class`.
 
 The Section X error tables don't include `unsupported_class`. The quality gates don't require it. This is consistent within the spec — it's an intentional omission — but it creates a user experience gap.
 
@@ -590,7 +590,7 @@ Options:
 | 24 | `surveywts_error_population_totals_invalid` missing from poststratify() error table | ✅ Resolved |
 | 25 | poststratify() test plan omits explicit weight validation error tests | ✅ Resolved |
 | 26 | Master warning table for `class_near_empty` still says "fewer than 5 respondents" | ✅ Resolved |
-| 27 | survey_calibrated validator doesn't state whether it relies on survey_base's validator | ✅ Resolved |
+| 27 | survey_nonprob validator doesn't state whether it relies on survey_base's validator | ✅ Resolved |
 | 28 | Diagnostic functions have no unsupported_class protection | ✅ Resolved |
 
 All 8 Pass 2 issues were resolved.
@@ -599,7 +599,7 @@ All 8 Pass 2 issues were resolved.
 
 Before reviewing new issues: the surveycore package was inspected directly. The following GAPs from the spec's §XIV are now fully resolvable:
 
-**GAP #1 — RESOLVED with surprises.** `survey_base` confirmed properties: `@data`, `@metadata`, `@variables`, `@groups`, `@call`. The spec's §V properties table omits `@groups` (character) and `@call` (ANY). More critically: surveycore already exports `survey_calibrated` as a full class with additional `@calibration` property (see Issue 29 below).
+**GAP #1 — RESOLVED with surprises.** `survey_base` confirmed properties: `@data`, `@metadata`, `@variables`, `@groups`, `@call`. The spec's §V properties table omits `@groups` (character) and `@call` (ANY). More critically: surveycore already exports `survey_nonprob` as a full class with additional `@calibration` property (see Issue 29 below).
 
 **GAP #2 — RESOLVED.** `survey_weighting_history(x)` is exported from surveycore and returns `x@metadata@weighting_history`. The `weighting_history` property already exists in `survey_metadata` as a list with default `list()`. The surveycore prerequisite PR has already been merged.
 
@@ -613,16 +613,16 @@ Before reviewing new issues: the surveycore package was inspected directly. The 
 
 ### New Issues
 
-#### Section: V (survey_calibrated — Architectural Conflict)
+#### Section: V (survey_nonprob — Architectural Conflict)
 
-**Issue 29: `surveycore` already defines and exports `survey_calibrated` — redefining it in `surveywts` creates a namespace conflict**
+**Issue 29: `surveycore` already defines and exports `survey_nonprob` — redefining it in `surveywts` creates a namespace conflict**
 Severity: BLOCKING
 No rule file cited — this is a fundamental architectural discovery from the surveycore source inspection.
 
-The spec (§V, §I deliverables table, §II class hierarchy) plans to define `surveywts::survey_calibrated` in this package. But surveycore already defines and exports `surveycore::survey_calibrated` with this structure:
+The spec (§V, §I deliverables table, §II class hierarchy) plans to define `surveywts::survey_nonprob` in this package. But surveycore already defines and exports `surveycore::survey_nonprob` with this structure:
 
 ```
-<surveycore::survey_calibrated> class
+<surveycore::survey_nonprob> class
 @ parent: <surveycore::survey_base>
 @ properties:
   $ data       : S3<data.frame>
@@ -633,27 +633,27 @@ The spec (§V, §I deliverables table, §II class hierarchy) plans to define `su
   $ calibration: <ANY>    ← NOT in spec
 ```
 
-surveycore also exports `as_survey_calibrated(data, weights, calibration = NULL)` which constructs it. S7 uses fully qualified class names — `surveycore::survey_calibrated` and `surveywts::survey_calibrated` would be different classes. Defining both creates:
-- Interoperability problems: `S7::S7_inherits(x, surveycore::survey_calibrated)` returns FALSE for surveywts-produced objects
-- Export collisions if both packages are loaded and users type `survey_calibrated`
-- Confusion: two classes named `survey_calibrated` in the ecosystem
+surveycore also exports `as_survey_nonprob(data, weights, calibration = NULL)` which constructs it. S7 uses fully qualified class names — `surveycore::survey_nonprob` and `surveywts::survey_nonprob` would be different classes. Defining both creates:
+- Interoperability problems: `S7::S7_inherits(x, surveycore::survey_nonprob)` returns FALSE for surveywts-produced objects
+- Export collisions if both packages are loaded and users type `survey_nonprob`
+- Confusion: two classes named `survey_nonprob` in the ecosystem
 
 The `@calibration` property on surveycore's class suggests it was designed to hold calibration provenance. Whether surveywts should (a) use surveycore's class directly, (b) subclass it, or (c) define its own class with a different name is an architectural decision that must be made before any implementation begins.
 
 Options:
-- **[A]** Use `surveycore::survey_calibrated` directly — surveywts is the package that fills in `@calibration` and `@metadata@weighting_history`; no new class defined in surveywts — Effort: medium (rewrite §V, §I deliverables, §II class hierarchy), Risk: low, Impact: single ecosystem class; no namespace conflict
-- **[B]** Define `surveywts::survey_calibrated` as a child class of `surveycore::survey_calibrated` — extends it with surveywts-specific properties — Effort: medium, Risk: medium (double inheritance adds complexity), Impact: distinguishable class; inherits surveycore dispatch
-- **[C]** Keep spec as-is (define `surveywts::survey_calibrated` as a peer class extending `survey_base`) — Effort: low, Risk: high (naming collision with surveycore's class; ecosystem confusion)
+- **[A]** Use `surveycore::survey_nonprob` directly — surveywts is the package that fills in `@calibration` and `@metadata@weighting_history`; no new class defined in surveywts — Effort: medium (rewrite §V, §I deliverables, §II class hierarchy), Risk: low, Impact: single ecosystem class; no namespace conflict
+- **[B]** Define `surveywts::survey_nonprob` as a child class of `surveycore::survey_nonprob` — extends it with surveywts-specific properties — Effort: medium, Risk: medium (double inheritance adds complexity), Impact: distinguishable class; inherits surveycore dispatch
+- **[C]** Keep spec as-is (define `surveywts::survey_nonprob` as a peer class extending `survey_base`) — Effort: low, Risk: high (naming collision with surveycore's class; ecosystem confusion)
 
 **Recommendation: A** — The surveyverse ecosystem should have one calibrated survey class. surveycore already owns it. surveywts' job is to produce properly configured instances of that class, not to redefine it. The `@calibration` property can hold calibration provenance if needed, or be left NULL with history tracked in `@metadata@weighting_history` (already implemented in surveycore).
 
 ---
 
-**Issue 30: `surveycore::survey_calibrated` S7 validator is more permissive than spec requires — test items 8 and 9 in §XIII will fail**
+**Issue 30: `surveycore::survey_nonprob` S7 validator is more permissive than spec requires — test items 8 and 9 in §XIII will fail**
 Severity: BLOCKING
 Violates the testing contract: the spec's validator behavior tests are written for a validator that does not exist in the actual class.
 
-surveycore's `survey_calibrated` validator:
+surveycore's `survey_nonprob` validator:
 1. Allows NA weights — checks `non_na <- wt_col[!is.na(wt_col)]` and only errors if `length(non_na) == 0` (ALL weights NA). Individual NA weights are permitted.
 2. Uses error classes `surveycore_error_*` — NOT `surveywts_error_*`
 
@@ -661,7 +661,7 @@ The spec's §V validator and test plan both assert:
 - Test #8: validator rejects non-positive weights → `class = "surveywts_error_weights_nonpositive"` (actual class: `surveycore_error_weights_nonpositive`)
 - Test #9: validator rejects NA in weight column → `class = "surveywts_error_weights_na"` (surveycore's validator does NOT reject individual NAs — it only rejects all-NA)
 
-If surveywts uses `surveycore::survey_calibrated` (Resolution A from Issue 29), both tests are wrong: wrong error classes (surveycore's not surveywts'), and test #9 cannot pass because the NA rejection behavior specified doesn't exist.
+If surveywts uses `surveycore::survey_nonprob` (Resolution A from Issue 29), both tests are wrong: wrong error classes (surveycore's not surveywts'), and test #9 cannot pass because the NA rejection behavior specified doesn't exist.
 
 Options:
 - **[A]** If using surveycore's class (Issue 29 option A): update test items #8 and #9 to use `surveycore_error_*` class names; remove test #9 or change it to test "all-NA weights rejected" instead of "single NA rejected"; accept that per-NA validation happens at the function call level, not the class validator — Effort: low, Risk: low, Impact: correct tests
@@ -861,27 +861,27 @@ Options:
 
 #### Section: V / XI (Engineering Level)
 
-**Issue 38: `.update_survey_weights(output_class = "survey_calibrated")` is dead code per §V**
+**Issue 38: `.update_survey_weights(output_class = "survey_nonprob")` is dead code per §V**
 Severity: SUGGESTION
 Violates `engineering-preferences.md §3` — no abstraction layer without two real call sites.
 
-§V states: "The calibration user-facing functions (calibrate(), rake(), poststratify()) call [.new_survey_calibrated()] when input is a survey object."
+§V states: "The calibration user-facing functions (calibrate(), rake(), poststratify()) call [.new_survey_nonprob()] when input is a survey object."
 
-§XI defines `.update_survey_weights(design, new_weights_vec, history_entry, output_class = c("same", "survey_calibrated"))`.
+§XI defines `.update_survey_weights(design, new_weights_vec, history_entry, output_class = c("same", "survey_nonprob"))`.
 
-The `"survey_calibrated"` value in `output_class` is never reached:
-- Calibration functions use `.new_survey_calibrated()` (§V)
+The `"survey_nonprob"` value in `output_class` is never reached:
+- Calibration functions use `.new_survey_nonprob()` (§V)
 - `adjust_nonresponse()` uses `.update_survey_weights(output_class = "same")`
-- For `survey_calibrated` input to `adjust_nonresponse()`, `"same"` returns `survey_calibrated` anyway
+- For `survey_nonprob` input to `adjust_nonresponse()`, `"same"` returns `survey_nonprob` anyway
 
-`output_class = "survey_calibrated"` exists but has no call site in the spec. This may be an artifact of an earlier design where `.update_survey_weights()` was the unified function. Keeping a dead code path adds confusion for implementers.
+`output_class = "survey_nonprob"` exists but has no call site in the spec. This may be an artifact of an earlier design where `.update_survey_weights()` was the unified function. Keeping a dead code path adds confusion for implementers.
 
 Options:
-- **[A]** Remove `output_class` parameter from `.update_survey_weights()` — it always returns "same class"; calibration functions use `.new_survey_calibrated()` for class promotion — Effort: trivial, Risk: low, Impact: simpler contract; no dead code
-- **[B]** Keep `output_class` but add a note: "The 'survey_calibrated' value is reserved for future use" — Effort: trivial, Risk: low, Impact: documents the dead code
-- **[C] Do nothing** — Implementer may implement `output_class = "survey_calibrated"` path unnecessarily
+- **[A]** Remove `output_class` parameter from `.update_survey_weights()` — it always returns "same class"; calibration functions use `.new_survey_nonprob()` for class promotion — Effort: trivial, Risk: low, Impact: simpler contract; no dead code
+- **[B]** Keep `output_class` but add a note: "The 'survey_nonprob' value is reserved for future use" — Effort: trivial, Risk: low, Impact: documents the dead code
+- **[C] Do nothing** — Implementer may implement `output_class = "survey_nonprob"` path unnecessarily
 
-**Recommendation: A** — This is contingent on Issue 29's resolution (if surveycore's class is used directly, the `.new_survey_calibrated()` function may also be refactored, at which point the relationship between these two helpers needs a fresh look).
+**Recommendation: A** — This is contingent on Issue 29's resolution (if surveycore's class is used directly, the `.new_survey_nonprob()` function may also be refactored, at which point the relationship between these two helpers needs a fresh look).
 
 ---
 
@@ -956,13 +956,13 @@ Options:
 - GAP #5: Already handled by test item 5b and quality gate
 - GAP #6: See Issue 39 (SUGGESTION)
 
-**Overall assessment:** Three passes of intensive review have progressively tightened this spec. The most critical finding of Pass 3 is Issue 29: `surveycore` already owns `survey_calibrated` with a different structure than the spec assumes — defining a parallel class in surveywts would create ecosystem fragmentation. Resolving this architectural question (use surveycore's class vs. define a new one) unlocks resolution of Issues 30 and 38 as well. The remaining issues are either mechanical fixes (add anesrake to Suggests, fix error message for anesrake convergence, specify step increment rule) or are needed before the spec can be considered implementation-ready. Issue 31 (engine return type) is a clean internal inconsistency with a clear fix. The spec remains excellent in breadth and detail — these are edge-of-the-design issues, not structural failures.
+**Overall assessment:** Three passes of intensive review have progressively tightened this spec. The most critical finding of Pass 3 is Issue 29: `surveycore` already owns `survey_nonprob` with a different structure than the spec assumes — defining a parallel class in surveywts would create ecosystem fragmentation. Resolving this architectural question (use surveycore's class vs. define a new one) unlocks resolution of Issues 30 and 38 as well. The remaining issues are either mechanical fixes (add anesrake to Suggests, fix error message for anesrake convergence, specify step increment rule) or are needed before the spec can be considered implementation-ready. Issue 31 (engine return type) is a clean internal inconsistency with a clear fix. The spec remains excellent in breadth and detail — these are edge-of-the-design issues, not structural failures.
 
 ### Resolution Status (Pass 3)
 
 | # | Title | Status |
 |---|---|---|
-| 29 | `surveycore` already defines `survey_calibrated` — namespace conflict | ✅ Resolved — use surveycore's class directly |
+| 29 | `surveycore` already defines `survey_nonprob` — namespace conflict | ✅ Resolved — use surveycore's class directly |
 | 30 | surveycore validator more permissive than spec — test items #8 and #9 wrong | ✅ Resolved — updated to `surveycore_error_*` classes; test #9 = all-NA |
 | 31 | `.calibrate_engine()` returns numeric vector but needs convergence metadata | ✅ Resolved — return type changed to `list(weights, convergence)` |
 | 32 | `anesrake` not in Suggests despite test #24 requiring it | ✅ Resolved — added to Suggests; added `rake-anesrake.R` to §II.c |
@@ -971,7 +971,7 @@ Options:
 | 35 | `rake()` convergence error message incorrect for `method = "anesrake"` | ✅ Resolved — method-dependent message templates added to §XII.C |
 | 36 | `rake()` anesrake: behavior undefined when all variables pass chi-square threshold | ✅ Resolved — immediate convergence = success; `surveywts_message_already_calibrated` emitted |
 | 37 | `adjust_nonresponse()` output doesn't specify whether `response_status` column retained | ⏸ Deferred — `adjust_nonresponse()` output contract review to its own session |
-| 38 | `.update_survey_weights(output_class = "survey_calibrated")` is dead code | ✅ Resolved — `output_class` parameter removed from spec |
+| 38 | `.update_survey_weights(output_class = "survey_nonprob")` is dead code | ✅ Resolved — `output_class` parameter removed from spec |
 | 39 | `.calibrate_engine()` `calibration_spec` missing anesrake-specific fields | ✅ Resolved — noted that anesrake params travel through `control`, not `calibration_spec` |
 
 ---

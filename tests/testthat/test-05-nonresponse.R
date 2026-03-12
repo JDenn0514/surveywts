@@ -85,8 +85,8 @@ test_that("adjust_nonresponse() returns survey_taylor for survey_taylor input", 
 
   test_invariants(result)
   expect_true(S7::S7_inherits(result, surveycore::survey_taylor))
-  # Does NOT promote to survey_calibrated (same class returned)
-  expect_false(S7::S7_inherits(result, surveycore::survey_calibrated))
+  # Does NOT promote to survey_nonprob (same class returned)
+  expect_false(S7::S7_inherits(result, surveycore::survey_nonprob))
   # Only respondent rows
   expect_true(nrow(result@data) < nrow(df))
 })
@@ -107,14 +107,14 @@ test_that("adjust_nonresponse() returns weighted_df for weighted_df input", {
 })
 
 # ---------------------------------------------------------------------------
-# 2c. Happy path — survey_calibrated input → survey_calibrated
+# 2c. Happy path — survey_nonprob input → survey_nonprob
 # ---------------------------------------------------------------------------
 
-test_that("adjust_nonresponse() returns survey_calibrated for survey_calibrated input", {
+test_that("adjust_nonresponse() returns survey_nonprob for survey_nonprob input", {
   df <- make_surveywts_data(seed = 5, include_nonrespondents = TRUE)
 
-  # Construct survey_calibrated directly (not via calibrate())
-  calibrated <- surveycore::survey_calibrated(
+  # Construct survey_nonprob directly (not via calibrate())
+  calibrated <- surveycore::survey_nonprob(
     data = df,
     variables = list(
       ids = NULL, strata = NULL, fpc = NULL,
@@ -129,7 +129,7 @@ test_that("adjust_nonresponse() returns survey_calibrated for survey_calibrated 
   result <- adjust_nonresponse(calibrated, response_status = responded)
 
   test_invariants(result)
-  expect_true(S7::S7_inherits(result, surveycore::survey_calibrated))
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
   # Same class — does NOT downgrade or change class
   expect_true(nrow(result@data) < nrow(df))
 })

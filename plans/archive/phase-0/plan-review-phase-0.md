@@ -141,7 +141,7 @@ Options:
 Severity: REQUIRED
 Violates dependency ordering: every PR from PR 4 onward references surveycore classes at runtime or via `S7::S7_inherits()`, but only PR 3's `Depends on` field explicitly lists the surveycore prerequisite.
 
-PR 4's `.update_survey_weights()` calls `S7::S7_inherits(design, survey_taylor)` and `S7::S7_inherits(design, survey_calibrated)`. Both classes require surveycore to be installed. An implementer reading only PR 4's card would not see the surveycore dependency and might attempt to implement it without the prerequisite PR merged.
+PR 4's `.update_survey_weights()` calls `S7::S7_inherits(design, survey_taylor)` and `S7::S7_inherits(design, survey_nonprob)`. Both classes require surveycore to be installed. An implementer reading only PR 4's card would not see the surveycore dependency and might attempt to implement it without the prerequisite PR merged.
 
 This is transitive through the dependency chain (PR 4 depends on PR 3, which depends on surveycore), but implicit dependencies create confusion. The prerequisite is the most important blocking condition in the entire plan.
 
@@ -346,7 +346,7 @@ Issue 4 extended the error class; all three affected functions need count-target
 
 **Issue 12: `survey_taylor` input missing from diagnostics happy paths**
 Severity: SUGGESTION
-Only `survey_calibrated` was tested; `survey_taylor` is a distinct input class.
+Only `survey_nonprob` was tested; `survey_taylor` is a distinct input class.
 **Resolution:** Added item 3b to diagnostics test list.
 
 ### Remaining Gap Issues
@@ -426,10 +426,10 @@ The plan's "Shared helpers" section defines:
 
 ```
 .update_survey_weights(design, new_weights_vec, history_entry,
-  output_class = c("same", "survey_calibrated"))
+  output_class = c("same", "survey_nonprob"))
 ```
 
-And the PR 4 acceptance criterion reads: "`.update_survey_weights()` calls `.new_survey_calibrated()` for `output_class = "survey_calibrated"`."
+And the PR 4 acceptance criterion reads: "`.update_survey_weights()` calls `.new_survey_nonprob()` for `output_class = "survey_nonprob"`."
 
 The spec §XI defines the function as:
 
@@ -437,12 +437,12 @@ The spec §XI defines the function as:
 .update_survey_weights <- function(design, new_weights_vec, history_entry)
 ```
 
-And explicitly states: **"No `output_class` parameter. Calibration functions that need to produce a `survey_calibrated` output use `.new_survey_calibrated()` instead — that is the correct path for class promotion."**
+And explicitly states: **"No `output_class` parameter. Calibration functions that need to produce a `survey_nonprob` output use `.new_survey_nonprob()` instead — that is the correct path for class promotion."**
 
-An implementer following the plan would implement a 4-argument function with a dispatch branch. An implementer following the spec would implement a 3-argument function where calibration functions call `.new_survey_calibrated()` directly. These produce different architectures with different call sites in PRs 5–7 vs PR 8.
+An implementer following the plan would implement a 4-argument function with a dispatch branch. An implementer following the spec would implement a 3-argument function where calibration functions call `.new_survey_nonprob()` directly. These produce different architectures with different call sites in PRs 5–7 vs PR 8.
 
 Options:
-- **[A]** Remove `output_class` from the plan's helper signature and PR 4 acceptance criteria; update the PR 4 description to state that calibration functions call `.new_survey_calibrated()` directly, and `.update_survey_weights()` is only used by `adjust_nonresponse()` (which never promotes class) — Effort: low, Risk: low, Impact: spec-conformant architecture
+- **[A]** Remove `output_class` from the plan's helper signature and PR 4 acceptance criteria; update the PR 4 description to state that calibration functions call `.new_survey_nonprob()` directly, and `.update_survey_weights()` is only used by `adjust_nonresponse()` (which never promotes class) — Effort: low, Risk: low, Impact: spec-conformant architecture
 - **[B]** Update the spec to add `output_class` back — Effort: low, Risk: medium (spec was deliberately simplified in a prior session); would need spec re-review
 - **[C] Do nothing** — Implementer must guess which document is authoritative; whichever they choose, the call sites in 4 function files will be wrong
 
@@ -480,8 +480,8 @@ Violates testing-standards.md: "class= on every expect_error()" must match the a
 
 The plan's PR 3 AC says:
 
-> 8. `survey_calibrated` validator rejects non-positive weights (`class=` only)
-> 9. `survey_calibrated` validator rejects NA weights (`class=` only)
+> 8. `survey_nonprob` validator rejects non-positive weights (`class=` only)
+> 9. `survey_nonprob` validator rejects NA weights (`class=` only)
 
 The spec §XIII clarifies:
 
@@ -507,7 +507,7 @@ Options:
 Severity: REQUIRED
 Violates spec coverage: two spec §XIII test items have no corresponding acceptance criterion in PR 5.
 
-The plan's PR 5 happy-path list: "data.frame→weighted_df, survey_taylor→survey_calibrated, weighted_df→weighted_df (history), survey_calibrated→survey_calibrated, method='logit', type='count', multi-variable population verified." This maps to items 1, 2, 2a, 3, 4, 5, 6. **Item 1b** (factor-typed `variables` column) is absent.
+The plan's PR 5 happy-path list: "data.frame→weighted_df, survey_taylor→survey_nonprob, weighted_df→weighted_df (history), survey_nonprob→survey_nonprob, method='logit', type='count', multi-variable population verified." This maps to items 1, 2, 2a, 3, 4, 5, 6. **Item 1b** (factor-typed `variables` column) is absent.
 
 The plan's error-path list: "variable_not_categorical, variable_has_na, population_variable_not_found, population_level_missing, population_level_extra, population_totals_invalid, calibration_not_converged." This maps to items 9–14. **Item 13b** (type="count", target ≤ 0) is absent — "population_totals_invalid" appears once but the spec requires two distinct test blocks (item 13: type="prop" targets don't sum to 1; item 13b: type="count" target ≤ 0).
 
@@ -618,10 +618,10 @@ The plan's PR 9 AC says: "Dual pattern on all Layer 3 errors; 4 error classes te
 
 Spec §X states: "Diagnostics call `.validate_weights()` before computing. This means all four weight validation errors apply (same as calibration functions)." The four weight errors are: `weights_not_found`, `weights_not_numeric`, `weights_nonpositive`, `weights_na`. Plus `unsupported_class` and `weights_required` = **6 total** for ESS and CV. The spec §XIII items 7b (not_numeric), 7c (nonpositive), 7d (na) are separate test blocks explicitly listed; the plan's AC doesn't name them.
 
-**Item 3b** (auto-detected weights for `survey_taylor`) is listed in the spec but absent from the plan's bulleted AC. The plan says "Auto-detected weights for survey_calibrated input" (item 3) but doesn't mention `survey_taylor`. Both are required; `survey_taylor` auto-detection uses a different code path (`@variables$weights`) and must be explicitly tested.
+**Item 3b** (auto-detected weights for `survey_taylor`) is listed in the spec but absent from the plan's bulleted AC. The plan says "Auto-detected weights for survey_nonprob input" (item 3) but doesn't mention `survey_taylor`. Both are required; `survey_taylor` auto-detection uses a different code path (`@variables$weights`) and must be explicitly tested.
 
 Options:
-- **[A]** Update PR 9 AC to: "6 error classes for `effective_sample_size()`/`weight_variability()` (unsupported_class, weights_required, weights_not_found, weights_not_numeric, weights_nonpositive, weights_na); all use dual pattern; item 3b (survey_taylor auto-detect) required alongside item 3 (survey_calibrated)" — Effort: trivial, Risk: low
+- **[A]** Update PR 9 AC to: "6 error classes for `effective_sample_size()`/`weight_variability()` (unsupported_class, weights_required, weights_not_found, weights_not_numeric, weights_nonpositive, weights_na); all use dual pattern; item 3b (survey_taylor auto-detect) required alongside item 3 (survey_nonprob)" — Effort: trivial, Risk: low
 - **[B] Do nothing** — "items 1–8" covers 7b/7c/7d implicitly; 3b is easy to add at implementation time
 
 **Recommendation: A** — Under-specifying error coverage for diagnostics is the pattern most likely to result in skipped tests. The explicit count "4" anchors an implementer's work prematurely.
@@ -630,16 +630,16 @@ Options:
 
 #### Section: PR 3 / PR 4 — S7 Method File Organization
 
-**Issue 10: No designated file for `S7::method(print, surveycore::survey_calibrated)` — code-style.md requires a dedicated methods file**
+**Issue 10: No designated file for `S7::method(print, surveycore::survey_nonprob)` — code-style.md requires a dedicated methods file**
 Severity: REQUIRED
 Violates code-style.md §2: "Methods are grouped by type in dedicated files (`04-methods-print.R`, etc.) — not co-located with class definitions."
 
-The plan's source file structure has no `methods-print.R` or equivalent. The plan's PR 3 section assigns `R/00-classes.R` to "`weighted_df` S3 class + `survey_calibrated` S7 class + validator." But `survey_calibrated` is defined in surveycore, not here. So `00-classes.R` in surveywts contains the `weighted_df` S3 class and its S3 methods (`print.weighted_df`, `dplyr_reconstruct.weighted_df`). The S7 method `S7::method(print, surveycore::survey_calibrated)` has no home.
+The plan's source file structure has no `methods-print.R` or equivalent. The plan's PR 3 section assigns `R/00-classes.R` to "`weighted_df` S3 class + `survey_nonprob` S7 class + validator." But `survey_nonprob` is defined in surveycore, not here. So `00-classes.R` in surveywts contains the `weighted_df` S3 class and its S3 methods (`print.weighted_df`, `dplyr_reconstruct.weighted_df`). The S7 method `S7::method(print, surveycore::survey_nonprob)` has no home.
 
 code-style.md §2 is explicit: `00-s7-classes.R` = class definitions only; `04-methods-print.R` = all S7 `print`/`summary` methods. Putting the S7 print method in `00-classes.R` alongside S3 class code violates both halves of this rule. Without a designated file in the plan, the implementer will put the S7 method in an ad hoc location or mix it with the S3 class code.
 
 Options:
-- **[A]** Add `R/methods-print.R` (or `R/04-methods-print.R`) to the plan's source file structure as the home for `S7::method(print, surveycore::survey_calibrated)`; include it in PR 3's file list since it ships alongside the print snapshot test — Effort: low, Risk: low, Impact: code-style.md compliance; clean separation of class definition and method registration
+- **[A]** Add `R/methods-print.R` (or `R/04-methods-print.R`) to the plan's source file structure as the home for `S7::method(print, surveycore::survey_nonprob)`; include it in PR 3's file list since it ships alongside the print snapshot test — Effort: low, Risk: low, Impact: code-style.md compliance; clean separation of class definition and method registration
 - **[B]** Explicitly note in PR 3: "exception to code-style.md §2 for Phase 0 — the single S7 print method lives in `00-classes.R` alongside the S3 print method to avoid a one-method file; promote to `methods-print.R` in Phase 1 when more S7 methods exist" — Effort: trivial, Risk: low, Impact: intentional deviation, documented
 - **[C] Do nothing** — Implementer places the S7 method arbitrarily; may violate code-style.md silently
 

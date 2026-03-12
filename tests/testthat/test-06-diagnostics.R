@@ -100,10 +100,10 @@ test_that("weight_variability() auto-detects weights from weighted_df", {
 })
 
 # ---------------------------------------------------------------------------
-# 3. Auto-detected weights for survey_calibrated input
+# 3. Auto-detected weights for survey_nonprob input
 # ---------------------------------------------------------------------------
 
-test_that("effective_sample_size() auto-detects weights from survey_calibrated", {
+test_that("effective_sample_size() auto-detects weights from survey_nonprob", {
   df <- make_surveywts_data(seed = 3)
   svy <- .make_test_taylor_diag(df)
   pop_age <- c("18-34" = 1 / 3, "35-54" = 1 / 3, "55+" = 1 / 3)

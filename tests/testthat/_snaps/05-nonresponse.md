@@ -4,7 +4,7 @@
       adjust_nonresponse(m, response_status = x)
     Condition
       Error in `.check_input_class()`:
-      x `data` must be a data frame, <weighted_df>, <survey_taylor>, or <survey_calibrated>.
+      x `data` must be a data frame, <weighted_df>, <survey_taylor>, or <survey_nonprob>.
       i Got <matrix>.
 
 # adjust_nonresponse() rejects empty data frame (SE-2)

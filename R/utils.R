@@ -28,7 +28,7 @@
 
 # Format one history entry as a single display line.
 # Used by print.weighted_df() (classes.R) and the S7 print method
-# for survey_calibrated (methods-print.R). Moved from classes.R in PR 4.
+# for survey_nonprob (methods-print.R). Moved from classes.R in PR 4.
 .format_history_step <- function(entry) {
   op <- entry$operation
   params <- entry$parameters
@@ -76,7 +76,7 @@
 # this is the authoritative default per spec §II.d.
 #
 # Arguments:
-#   x           : data.frame, weighted_df, survey_taylor, or survey_calibrated
+#   x           : data.frame, weighted_df, survey_taylor, or survey_nonprob
 #   weights_quo : quosure from rlang::enquo(weights) in the calling function
 #
 # Returns: character(1)
@@ -90,7 +90,7 @@
   }
 
   if (S7::S7_inherits(x, surveycore::survey_taylor) ||
-      S7::S7_inherits(x, surveycore::survey_calibrated)) {
+      S7::S7_inherits(x, surveycore::survey_nonprob)) {
     return(x@variables$weights)
   }
 
@@ -107,7 +107,7 @@
 # (1 / nrow(x)) — these are the starting weights before calibration.
 #
 # Arguments:
-#   x           : data.frame, weighted_df, survey_taylor, or survey_calibrated
+#   x           : data.frame, weighted_df, survey_taylor, or survey_nonprob
 #   weights_quo : quosure from rlang::enquo(weights) in the calling function
 #
 # Returns: numeric vector (length nrow(data))
@@ -128,7 +128,7 @@
   }
 
   if (S7::S7_inherits(x, surveycore::survey_taylor) ||
-      S7::S7_inherits(x, surveycore::survey_calibrated)) {
+      S7::S7_inherits(x, surveycore::survey_nonprob)) {
     return(data_df[[x@variables$weights]])
   }
 
@@ -539,7 +539,7 @@
 # poststratify(), and adjust_nonresponse().
 #
 # Arguments:
-#   design          : survey_taylor or survey_calibrated
+#   design          : survey_taylor or survey_nonprob
 #   new_weights_vec : numeric vector (length = nrow(design@data))
 #   history_entry   : list from .make_history_entry()
 #

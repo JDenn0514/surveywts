@@ -188,7 +188,7 @@ Changelog entry format (required before every PR) is defined in
 
 | Tag | DESCRIPTION version | What it means |
 |-----|---------------------|---------------|
-| `v0.1.0` | `0.1.0` | Phase 0 complete — `weighted_df`, `survey_calibrated`, `calibrate()`, `rake()`, `poststratify()`, basic diagnostics |
+| `v0.1.0` | `0.1.0` | Phase 0 complete — `weighted_df`, `survey_nonprob`, `calibrate()`, `rake()`, `poststratify()`, basic diagnostics |
 | `v0.2.0` | `0.2.0` | Phase 1 complete — replicate weight generation + bootstrap variance |
 | `v0.3.0` | `0.3.0` | Phase 2 complete — propensity score weighting |
 | `v0.4.0` | `0.4.0` | Phase 3 complete — advanced calibration |

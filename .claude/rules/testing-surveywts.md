@@ -37,7 +37,7 @@ only what is specific to surveywts.
 
 ## `test_invariants()` — required in every constructor test
 
-Every `test_that()` block that creates a `weighted_df` or `survey_calibrated`
+Every `test_that()` block that creates a `weighted_df` or `survey_nonprob`
 object must call `test_invariants(obj)` as its **first** assertion.
 
 Definition (from `tests/testthat/helper-test-data.R`):
@@ -51,8 +51,8 @@ test_invariants <- function(obj) {
     testthat::expect_true(is.numeric(obj[[wt_col]]))
     testthat::expect_true(is.list(attr(obj, "weighting_history")))
   }
-  if (exists("survey_calibrated") &&
-        S7::S7_inherits(obj, survey_calibrated)) {
+  if (exists("survey_nonprob") &&
+        S7::S7_inherits(obj, survey_nonprob)) {
     testthat::expect_true(is.character(obj@variables$weights))
     testthat::expect_true(obj@variables$weights %in% names(obj@data))
     testthat::expect_true(is.numeric(obj@data[[obj@variables$weights]]))
@@ -61,8 +61,8 @@ test_invariants <- function(obj) {
 }
 ```
 
-The `exists("survey_calibrated")` guard allows `test_invariants()` to load
-from `helper-test-data.R` before PR 3 lands (when `survey_calibrated` is not
+The `exists("survey_nonprob")` guard allows `test_invariants()` to load
+from `helper-test-data.R` before PR 3 lands (when `survey_nonprob` is not
 yet defined).
 
 ---
@@ -73,9 +73,9 @@ yet defined).
 Messages are not CLI-formatted. Test with `class=` only — no snapshot.
 
 ```r
-test_that("survey_calibrated validator rejects non-positive weights", {
+test_that("survey_nonprob validator rejects non-positive weights", {
   expect_error(
-    survey_calibrated(...),
+    survey_nonprob(...),
     class = "surveywts_error_weights_nonpositive"
   )
 })
@@ -155,14 +155,14 @@ the relevant `test_that()` block (never at file level).
 # 1. weighted_df — class vector, attributes, print snapshot
 # 2. weighted_df — dplyr_reconstruct preserves weight col → weighted_df
 # 3. weighted_df — dplyr_reconstruct drops weight col → plain tibble + warning
-# 4. survey_calibrated — print snapshot
-# 5. survey_calibrated — S7 validator errors (class= only, no snapshot)
+# 4. survey_nonprob — print snapshot
+# 5. survey_nonprob — S7 validator errors (class= only, no snapshot)
 ```
 
 ### Calibration / nonresponse function test files (`test-02-*.R` through `test-05-*.R`)
 ```
 # 1. Happy paths (one block per input class: data.frame, weighted_df,
-#    survey_taylor, survey_calibrated)
+#    survey_taylor, survey_nonprob)
 # 2. Numerical correctness (skip_if_not_installed inside block)
 # 3. Standard error paths SE-1 through SE-7
 # 4. Function-specific error paths (one block per error class)
@@ -173,7 +173,7 @@ the relevant `test_that()` block (never at file level).
 ### Diagnostics test file (`test-06-diagnostics.R`)
 ```
 # 1. Correctness vs hand calculation
-# 2. Weight auto-detection (weighted_df, survey_calibrated, survey_taylor)
+# 2. Weight auto-detection (weighted_df, survey_nonprob, survey_taylor)
 # 3. summarize_weights() — by = NULL and by = grouping
 # 4. Error paths
 ```

@@ -15,7 +15,7 @@ adjust_nonresponse(
 }
 \arguments{
 \item{data}{A \code{data.frame}, \code{weighted_df}, \code{survey_taylor}, or
-\code{survey_calibrated}. Must include BOTH respondents and nonrespondents.
+\code{survey_nonprob}. Must include BOTH respondents and nonrespondents.
 \code{survey_replicate} → error. Any other class → error.}
 
 \item{response_status}{Bare name (NSE). Binary response indicator column.
@@ -48,7 +48,7 @@ Either condition alone triggers the warning.
 \itemize{
 \item \code{data.frame} or \code{weighted_df} input → \code{weighted_df} (respondents only)
 \item \code{survey_taylor} input → \code{survey_taylor} (same class; respondents only)
-\item \code{survey_calibrated} input → \code{survey_calibrated} (same class;
+\item \code{survey_nonprob} input → \code{survey_nonprob} (same class;
 respondents only)
 }
 

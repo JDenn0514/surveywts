@@ -7,7 +7,7 @@
 ## Changes
 
 - Add `make_surveywts_data()` synthetic data generator with `n`, `seed`, and `include_nonrespondents` parameters; produces realistic unequal-sized groups with log-normally distributed weights
-- Add `test_invariants()` helper that asserts structural correctness of `weighted_df` and `survey_calibrated` objects; guarded so it loads before Phase 0 classes land
+- Add `test_invariants()` helper that asserts structural correctness of `weighted_df` and `survey_nonprob` objects; guarded so it loads before Phase 0 classes land
 - Mark PR 2 acceptance criteria complete in `plans/impl-phase-0.md`
 
 ## Files Modified

@@ -49,7 +49,7 @@ clearly do apply.
 
 **Conditional categories (apply when the function has this capability):**
 5. **Input class dispatch** — if the function accepts multiple input types
-   (e.g., `data.frame`, `weighted_df`, `survey_calibrated`), each tested
+   (e.g., `data.frame`, `weighted_df`, `survey_nonprob`), each tested
    separately
 6. **Grouped analysis** — if the function has a `by =` or grouping argument,
    behavior with grouping specified
@@ -137,7 +137,7 @@ kind that survive all tests but produce methodologically wrong workflows.
 **For every accepted input class:**
 - What class does the function return? Is it the same class as the input, a
   narrower class, or a different class entirely? Any narrowing (e.g.,
-  `survey_taylor` → `survey_calibrated`) must be explicitly stated and must
+  `survey_taylor` → `survey_nonprob`) must be explicitly stated and must
   either be the correct behavior or accompanied by a warning.
 - What information is preserved vs. discarded? If the input carries PSU/strata
   structure, weighting history, or metadata that the output no longer contains,

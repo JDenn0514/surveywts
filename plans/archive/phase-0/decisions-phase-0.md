@@ -187,12 +187,12 @@ was architecturally sound but had 5 blocking issues, 10 required issues, and
 - **Decision:** A — fix all three signatures
 - **Rationale:** Required by `code-style.md §4`; breaking change to fix after implementation
 
-**Q: How should survey_calibrated print method determine the variance label (Issue 2)?**
+**Q: How should survey_nonprob print method determine the variance label (Issue 2)?**
 - Options considered:
   - **Hardcode "Taylor linearization" (A):** honest for Phase 0 (only survey_taylor input accepted)
   - **Add @variance_method property (B):** forward-compatible but adds complexity
 - **Decision:** A — hardcode for Phase 0; document that Phase 1 revisits
-- **Rationale:** Phase 0 only accepts survey_taylor and survey_calibrated input; hardcoding is correct
+- **Rationale:** Phase 0 only accepts survey_taylor and survey_nonprob input; hardcoding is correct
 
 **Q: Should poststratify() warn or error for population cells not in data (Issue 4)?**
 - Options considered:
@@ -399,7 +399,7 @@ per section.
 
 **Q: Add `survey_taylor` input test to diagnostics (Issue 12)?**
 - **Decision:** Add test item #3b to diagnostics test list.
-- **Rationale:** Only `survey_calibrated` was tested; `survey_taylor` uses the same
+- **Rationale:** Only `survey_nonprob` was tested; `survey_taylor` uses the same
   extraction path but tests an independent code path.
 
 ### Remaining Gap Decisions
@@ -499,12 +499,12 @@ not tracked in error-messages.md).
 **Q: Should `.update_survey_weights()` have an `output_class` parameter (Issue 1)?**
 - Options considered: remove from plan (A); add back to spec (B)
 - **Decision:** A — remove `output_class` from plan; calibration functions call
-  `.new_survey_calibrated()` directly; `.update_survey_weights()` is only used by
+  `.new_survey_nonprob()` directly; `.update_survey_weights()` is only used by
   `adjust_nonresponse()` (which never promotes class)
 - **Rationale:** Spec was deliberately simplified in a prior session. Plan was not
   synchronized. Spec is authoritative.
 
-**Q: Where should `S7::method(print, surveycore::survey_calibrated)` live (Issue 10)?**
+**Q: Where should `S7::method(print, surveycore::survey_nonprob)` live (Issue 10)?**
 - Options considered: add `R/methods-print.R` (A); document exception in `00-classes.R` (B)
 - **Decision:** A — add `R/methods-print.R` to source file structure and PR 3 file list
 - **Rationale:** code-style.md §2 has no minimum-methods exemption. A one-method file
@@ -545,15 +545,15 @@ Plan is approved and ready for implementation. Start with `/r-implement` at PR 3
 ### Context
 
 Resolving issues from `plans/spec-review-phase-0.md` (Pass 3). The pass surfaced one
-architectural discovery (surveycore already owns `survey_calibrated`), two blocking
+architectural discovery (surveycore already owns `survey_nonprob`), two blocking
 internal inconsistencies, and ten required/suggestion gaps. Issue 37 (`adjust_nonresponse()`
 output column retention) was deferred to its own session.
 
 ### Questions & Decisions
 
-**Q: Should surveywts define its own `survey_calibrated` or use surveycore's (Issue 29)?**
+**Q: Should surveywts define its own `survey_nonprob` or use surveycore's (Issue 29)?**
 - Options considered: use surveycore's class directly (A); subclass it (B); define a peer class (C)
-- **Decision:** A — use `surveycore::survey_calibrated` directly
+- **Decision:** A — use `surveycore::survey_nonprob` directly
 - **Rationale:** surveycore already exports the class with `@calibration` property. Defining
   a parallel class would create two S7 classes with incompatible fully-qualified names,
   breaking `S7::S7_inherits()` across the ecosystem. surveywts' job is to produce

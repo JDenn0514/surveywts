@@ -70,8 +70,8 @@ test_invariants <- function(obj) {
     testthat::expect_true(is.numeric(obj[[wt_col]]))
     testthat::expect_true(is.list(attr(obj, "weighting_history")))
   }
-  if (exists("survey_calibrated") &&
-        S7::S7_inherits(obj, survey_calibrated)) {
+  if (exists("survey_nonprob") &&
+        S7::S7_inherits(obj, survey_nonprob)) {
     testthat::expect_true(is.character(obj@variables$weights))
     testthat::expect_true(obj@variables$weights %in% names(obj@data))
     testthat::expect_true(is.numeric(obj@data[[obj@variables$weights]]))

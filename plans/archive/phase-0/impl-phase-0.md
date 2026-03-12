@@ -11,7 +11,7 @@
 ## Overview
 
 This plan delivers Phase 0 of surveywts: the `weighted_df` S3 class,
-the `survey_calibrated` S7 class, three calibration functions
+the `survey_nonprob` S7 class, three calibration functions
 (`calibrate()`, `rake()`, `poststratify()`), one nonresponse function
 (`adjust_nonresponse()`), and three diagnostics (`effective_sample_size()`,
 `weight_variability()`, `summarize_weights()`).
@@ -38,7 +38,7 @@ R/
 ├── 06-diagnostics.R     # effective_sample_size(), weight_variability(),
 │                        #   summarize_weights()
 ├── 07-utils.R           # Shared internal helpers (used by 2+ source files)
-├── methods-print.R      # S7::method(print, surveycore::survey_calibrated)
+├── methods-print.R      # S7::method(print, surveycore::survey_nonprob)
 │                        #   per code-style.md §2 (S7 methods in dedicated file)
 ├── vendor/
 │   ├── calibrate-greg.R # Vendored GREG/logit calibration from survey::calibrate()
@@ -100,7 +100,7 @@ Once merged, verify:
 - [x] PR 1: `feature/phase-0-infra` — DESCRIPTION, vendored algorithm files,
   VENDORED.md, package docs
 - [x] PR 2: `feature/phase-0-test-helpers` — Test helper file and rule stubs
-- [x] PR 3: `feature/phase-0-classes` — `weighted_df` S3 class + `survey_calibrated`
+- [x] PR 3: `feature/phase-0-classes` — `weighted_df` S3 class + `survey_nonprob`
   S7 class + internal constructor + class tests
 - [x] PR 4: `feature/phase-0-utils` — All shared internal helpers in `R/07-utils.R`
 - [x] PR 5: `feature/phase-0-calibrate` — `calibrate()` + tests
@@ -192,7 +192,7 @@ to exist. PRs 8 and 9 also depend only on PR 4.
 - [x] `make_surveywts_data(include_nonrespondents = TRUE)` adds `responded`
   column (integer 0/1) with realistic split (≥ 20% nonrespondents)
 - [x] `test_invariants()` defined exactly as in spec §XIII (checks `weighted_df`
-  and `survey_calibrated` invariants; uses `S7::S7_inherits()`, not `inherits()`)
+  and `survey_nonprob` invariants; uses `S7::S7_inherits()`, not `inherits()`)
 - [x] `.claude/rules/surveywts-conventions.md` and
   `.claude/rules/testing-surveywts.md` committed directly to `develop`
   before opening this PR (not part of the feature branch diff)
@@ -201,9 +201,9 @@ to exist. PRs 8 and 9 also depend only on PR 4.
 - `make_surveywts_data()` must produce realistic imbalance — not equal-sized
   groups. Use `set.seed(seed)` at the top; use `sample(...)` with unequal
   `prob =` arguments for demographic groups.
-- `test_invariants()` must reference the exported `survey_calibrated` class
+- `test_invariants()` must reference the exported `survey_nonprob` class
   object by name. It will not yet be available at testthat load time; use
-  `if (exists("survey_calibrated"))` guard for the S7 branch until PR 3 lands.
+  `if (exists("survey_nonprob"))` guard for the S7 branch until PR 3 lands.
 - The file map in `testing-surveywts.md` must reflect the split file
   structure from this plan, not the single-file structure in spec §II.
 
@@ -216,10 +216,10 @@ to exist. PRs 8 and 9 also depend only on PR 4.
 
 **Files (in TDD order — tests first):**
 - `tests/testthat/test-00-classes.R` — tests for `weighted_df` and
-  `survey_calibrated` (spec §XIII classes test items 1–9)
+  `survey_nonprob` (spec §XIII classes test items 1–9)
 - `R/00-classes.R` — `weighted_df` S3 class + `print.weighted_df()` +
   `dplyr_reconstruct.weighted_df()`
-- `R/methods-print.R` — `S7::method(print, surveycore::survey_calibrated)`;
+- `R/methods-print.R` — `S7::method(print, surveycore::survey_nonprob)`;
   per code-style.md §2, S7 print methods live in a dedicated file separate
   from class definitions
 - (Note: `R/01-constructors.R` was deleted. `.update_survey_weights()` in
@@ -244,28 +244,28 @@ to exist. PRs 8 and 9 also depend only on PR 4.
   4b. `print.weighted_df` snapshot with empty history → `# Weighting history: none`
   5. History is empty list on initial creation
   6. Class vector is `c("weighted_df", "tbl_df", "tbl", "data.frame")`
-  7. `survey_calibrated` print snapshot (matches verbatim in spec §V)
-  8. `survey_calibrated` validator rejects non-positive weights (`class=` only;
+  7. `survey_nonprob` print snapshot (matches verbatim in spec §V)
+  8. `survey_nonprob` validator rejects non-positive weights (`class=` only;
      class = `"surveycore_error_weights_nonpositive"`)
-  9. `survey_calibrated` validator rejects NA weights (`class=` only;
+  9. `survey_nonprob` validator rejects NA weights (`class=` only;
      class = `"surveycore_error_weights_na"`; trigger requires ALL values to be NA —
      surveycore permits individual NAs)
 - [ ] `test_invariants()` called in every test block that constructs a
-  `weighted_df` or `survey_calibrated`
+  `weighted_df` or `survey_nonprob`
 - [ ] `S7::S7_inherits()` used everywhere — no `inherits()` with string class names
-- [ ] `survey_calibrated` uses `S7::new_class("survey_calibrated", parent =
+- [ ] `survey_nonprob` uses `S7::new_class("survey_nonprob", parent =
   surveycore::survey_base, ...)` per spec §V
 - [ ] Validator checks exactly the 5 conditions in spec §V using S7's native
   mechanism (not `cli_abort()`)
 - [ ] `print.weighted_df()` delegates body to `NextMethod()` for tibble formatting
-- [ ] `S7::method(print, survey_calibrated)` lives in `R/methods-print.R`
+- [ ] `S7::method(print, survey_nonprob)` lives in `R/methods-print.R`
   and hardcodes `"Taylor linearization"` per spec §V (Issue 2, resolved Option A)
 - [ ] Both print methods return `invisible(x)`
 
 **Notes:**
 - Verify Open GAP #1 against surveycore source: does `survey_base`'s validator
   already enforce `@variables` key presence (`ids`, `strata`, `fpc`, `nest`)?
-  If not, add those checks to the `survey_calibrated` validator per spec §V.
+  If not, add those checks to the `survey_nonprob` validator per spec §V.
 - `dplyr_reconstruct.weighted_df()` must be registered with `@export` so dplyr
   can dispatch it. S3 method registration happens via roxygen2 `@export` — never
   via manual `NAMESPACE` edit.
@@ -348,7 +348,7 @@ to exist. PRs 8 and 9 also depend only on PR 4.
 - [ ] `.update_survey_weights()` takes exactly 3 arguments (`design`,
   `new_weights_vec`, `history_entry`) — no `output_class` parameter; only
   `adjust_nonresponse()` calls it; calibration functions use
-  `.new_survey_calibrated()` directly for class promotion
+  `.new_survey_nonprob()` directly for class promotion
 - [ ] No helpers are exported; all are `.`-prefixed
 - [ ] `.validate_population_cells()` is NOT in this file — it lives in
   `04-poststratify.R`
@@ -391,7 +391,7 @@ to exist. PRs 8 and 9 also depend only on PR 4.
   13d, 14b; item 19b is relocated to `test-03-rake.R` in PR 6):
   - Happy paths: data.frame→weighted_df (assert `attr(result,"weight_col")==".weight"`),
     survey_taylor→survey_taylor (class preserved), weighted_df→weighted_df (history),
-    survey_calibrated→survey_calibrated, 1b. factor-typed `variables` column,
+    survey_nonprob→survey_nonprob, 1b. factor-typed `variables` column,
     method="logit", type="count", multi-variable population verified
   - Numerical correctness vs `survey::calibrate()` within 1e-8 tolerance
     (inside `skip_if_not_installed("survey")` block)
@@ -457,7 +457,7 @@ to exist. PRs 8 and 9 also depend only on PR 4.
 - [ ] `devtools::document()` run; NAMESPACE and man/ in sync
 - [ ] All `rake()` test items from spec §XIII pass (items 1–26 plus 17b, 23b, 26c, chaining):
   - Happy paths: data.frame (assert `attr(result,"weight_col")==".weight"`),
-    survey_taylor (class preserved), weighted_df (history), survey_calibrated,
+    survey_taylor (class preserved), weighted_df (history), survey_nonprob,
     1b. factor-typed margin variable, type="count", margins as named list,
     margins as long data frame, mixed format, method = "survey" explicit,
     cap with both methods, cap = NULL
@@ -558,7 +558,7 @@ row, no extra population cells, target values valid for the given `type`. Return
 - [ ] `devtools::document()` run; NAMESPACE and man/ in sync
 - [ ] All `poststratify()` test items from spec §XIII pass (items 1–15):
   - Happy paths: data.frame (assert `attr(result,"weight_col")==".weight"`),
-    weighted_df, survey_taylor (class preserved), survey_calibrated
+    weighted_df, survey_taylor (class preserved), survey_nonprob
   - Item 1c: verify `type = "count"` is the default
   - Happy path: numeric strata column (integer age; verifies no categorical restriction)
   - Numerical correctness vs `survey::postStratify()` within 1e-8 tolerance
@@ -683,7 +683,7 @@ row, no extra population cells, target values valid for the given `type`. Return
   `weights_nonpositive` (item 7c), `weights_na` (item 7d) — items 7b/7c/7d
   each require a separate `test_that()` block
 - [ ] Item 3b: auto-detected weights for `survey_taylor` input tested separately
-  from item 3 (`survey_calibrated`) — `survey_taylor` uses `@variables$weights`
+  from item 3 (`survey_nonprob`) — `survey_taylor` uses `@variables$weights`
   and is a distinct code path
 - [ ] `unsupported_class` tested (item 5b): throw
   `surveywts_error_unsupported_class` for matrix/list input

@@ -12,8 +12,8 @@ into a single tidyverse-compatible, S7-based package.
 
 | Phase | Tag | Theme | Status |
 |-------|-----|-------|--------|
-| Phase 0 — Calibration Core | `v0.1.0` | `survey_calibrated` class, calibration methods, basic diagnostics | 🔜 Next |
-| Phase 1 — Replicate Weights | `v0.2.0` | All `create_*_weights()` functions; unlocks bootstrap variance in `survey_calibrated` | ⬜ Pending |
+| Phase 0 — Calibration Core | `v0.1.0` | `survey_nonprob` class, calibration methods, basic diagnostics | ✅ Complete |
+| Phase 1 — Replicate Weights | `v0.2.0` | All `create_*_weights()` functions; unlocks bootstrap variance in `survey_nonprob` | 🔜 Next |
 | Phase 2 — Nonresponse & Advanced Calibration | `v0.3.0` | Sample-based calibration, weighting-class nonresponse | ⬜ Pending |
 | Phase 3 — Propensity Score Weighting | `v0.4.0` | IPW for causal inference; unlocks propensity nonresponse | ⬜ Pending |
 | Phase 4 — Diagnostics & Utilities | `v0.5.0` | Balance assessment, weight trimming/stabilization, visual diagnostics | ⬜ Pending |
@@ -29,44 +29,62 @@ This is the minimum useful thing the package does.
 
 ### Deliverables
 
-**`survey_calibrated` S7 class + constructor**
-- Completes the skeleton from `surveycore` Phase 0
-- `@calibration` property: provenance record from calibration functions
-- `as_survey_calibrated(design, calibration, variance = c("srs", "bootstrap"))`
-  - `variance = "bootstrap"` deferred to Phase 1; raises
-    `surveywts_error_bootstrap_requires_replicates` until then
-- Estimation functions (`get_means()` etc.) dispatch on `survey_calibrated`
-  using SRS variance initially
+**`weighted_df` S3 class** (defined in surveywts)
+- S3 subclass of tibble: `c("weighted_df", "tbl_df", "tbl", "data.frame")`
+- Attributes: `weight_col` (character), `weighting_history` (list)
+- dplyr integration via `dplyr_reconstruct.weighted_df()`, `select.weighted_df()`,
+  `rename.weighted_df()`, `mutate.weighted_df()`
+- Never constructed directly by users — produced as output from calibration
+  and nonresponse functions when input is a plain `data.frame` or `weighted_df`
+
+**`survey_nonprob` S7 class + print method**
+- Class is defined in `surveycore`; surveywts provides a `print` method for it
+- Inherits `@data`, `@variables`, `@metadata` from `survey_base`
+- `@variables$weights`: name of the weight column in `@data`
+- Weighting history stored in `@metadata@weighting_history`
 
 **Calibration methods**
-- `calibrate(svy, formula, population, method = c("raking", "linear", "logit"))`
-  — general calibration to known totals
-- `rake(svy, formulas, population_margins)` — iterative proportional fitting
-  (separate user-facing function with multiple-margin argument structure)
-- `poststratify(svy, strata, population)` — cell-based exact calibration
+- `calibrate(data, variables, population, weights = NULL, method = c("linear", "logit"), type = c("prop", "count"), control = list(maxit = 50, epsilon = 1e-7))`
+  — general calibration via GREG; note: `"raking"` is NOT a method here (lives in `rake()`)
+- `rake(data, margins, weights = NULL, type = c("prop", "count"), method = c("anesrake", "survey"), cap = NULL, control = list())`
+  — iterative proportional fitting; two backends: `"anesrake"` (chi-square variable selection) and `"survey"` (IPF)
+- `poststratify(data, strata, population, weights = NULL, type = c("count", "prop"))`
+  — cell-based exact calibration; default `type = "count"`
 
-All three:
-- Write provenance to `@calibration` (structured list: method, formula,
-  population, timestamp, call)
-- Append to `@metadata@weighting_history`
-- Preserve all other metadata from the input design
-- Share an internal `.calibrate_engine()` helper (avoids DRY violation)
+All three append to `weighting_history` and share `.calibrate_engine()`.
 
-**Basic weight diagnostics** (small functions, high immediate value)
-- `effective_sample_size(svy)` — Kish's formula: `(sum(w))^2 / sum(w^2)`
-- `weight_variability(svy)` — coefficient of variation of weights
-- `summarize_weights(svy, by = NULL)` — distribution summary (mean, CV, min,
+**Bonus deliverable: `adjust_nonresponse()`** (promoted from Phase 2 into Phase 0)
+- `adjust_nonresponse(data, response_status, weights = NULL, by = NULL, method = c("weighting-class", "propensity-cell", "propensity"), control = list(min_cell = 20, max_adjust = 2.0))`
+- `method = "weighting-class"` fully implemented
+- `method = "propensity"` and `method = "propensity-cell"` are stubs (error until Phase 2/3)
+- Returns respondent rows only (nonrespondents dropped)
+
+**Basic weight diagnostics**
+- `effective_sample_size(x, weights = NULL)` — Kish's formula: `(sum(w))^2 / sum(w^2)`
+- `weight_variability(x, weights = NULL)` — coefficient of variation of weights
+- `summarize_weights(x, weights = NULL, by = NULL)` — distribution summary (mean, CV, min,
   max, percentiles); `by` allows within-group summaries
+
+**Vendored algorithms** (avoids heavy dependencies)
+- `survey` package: GREG linear/logit calibration, IPF raking
+- `anesrake` package: chi-square variable selection raking
 
 ### Source File Map
 
 | File | Contents |
 |------|----------|
-| `R/00-classes.R` | `survey_calibrated` S7 class + validator |
-| `R/01-constructors.R` | `as_survey_calibrated()` |
-| `R/02-calibrate.R` | `calibrate()`, `rake()`, `poststratify()` |
-| `R/03-diagnostics.R` | `effective_sample_size()`, `weight_variability()`, `summarize_weights()` |
-| `R/07-utils.R` | `.calibrate_engine()`, `.write_provenance()`, `.validate_population_totals()` |
+| `R/classes.R` | `weighted_df` S3 class + dplyr methods (`dplyr_reconstruct`, `select`, `rename`, `mutate`, `print`) |
+| `R/calibrate.R` | `calibrate()` |
+| `R/rake.R` | `rake()` |
+| `R/poststratify.R` | `poststratify()` |
+| `R/nonresponse.R` | `adjust_nonresponse()` (weighting-class implemented; propensity stubs) |
+| `R/diagnostics.R` | `effective_sample_size()`, `weight_variability()`, `summarize_weights()` |
+| `R/methods-print.R` | `print` method for `survey_nonprob` (S7 method, class from surveycore) |
+| `R/utils.R` | All shared internal helpers: `.get_weight_col_name()`, `.get_weight_vec()`, `.validate_weights()`, `.validate_calibration_variables()`, `.validate_population_marginals()`, `.compute_weight_stats()`, `.make_history_entry()`, `.make_weighted_df()`, `.update_survey_weights()`, `.calibrate_engine()`, `.build_model_matrix()`, `.format_history_step()`, `%\|\|%` |
+| `R/vendor-calibrate-greg.R` | Vendored: GREG linear & logit calibration (from `survey` pkg) |
+| `R/vendor-calibrate-ipf.R` | Vendored: IPF iterative proportional fitting (from `survey` pkg) |
+| `R/vendor-rake-anesrake.R` | Vendored: anesrake chi-square variable selection (from `anesrake` pkg) |
+| `R/surveywts-package.R` | Package documentation entry point |
 
 ### Test References
 
@@ -75,11 +93,11 @@ All three:
 
 ### Notes
 
-- First task in Phase 0: add `surveycore (>= 0.1.0)` to `DESCRIPTION Imports`
-- Define `make_surveywts_data()` and `test_invariants()` in
-  `tests/testthat/helper-test-data.R` before writing any source
-- Fill in stubs in `surveywts-conventions.md` and
-  `testing-surveywts.md` before implementation begins
+- `survey_nonprob` class is defined in `surveycore`; surveywts extends it
+  with a print method and uses it as the output type for calibration functions
+  when input is a `survey_taylor` or `survey_nonprob`
+- `adjust_nonresponse()` was promoted from Phase 2 into Phase 0; the
+  weighting-class method is fully implemented; propensity methods remain stubs
 
 ---
 
@@ -87,7 +105,7 @@ All three:
 
 **What users can do:** Convert any Taylor linearization design to a replicate
 design using six schemes. Also unlocks full bootstrap variance in
-`survey_calibrated` (re-calibrates on each replicate using stored provenance).
+`survey_nonprob` (re-calibrates on each replicate using stored provenance).
 
 ### Deliverables
 
@@ -104,9 +122,9 @@ design using six schemes. Also unlocks full bootstrap variance in
   appropriate `create_*` function based on `method`
 - `as_taylor_design(svy)` — collapses a replicate design to Taylor
 
-**Unlock `variance = "bootstrap"` in `survey_calibrated`**
+**Unlock `variance = "bootstrap"` in `survey_nonprob`**
 - Remove the Phase 0 stub error
-- `as_survey_calibrated(..., variance = "bootstrap")` now re-calibrates
+- `as_survey_nonprob(..., variance = "bootstrap")` now re-calibrates
   on each replicate using the provenance in `@calibration`
 
 ### Source File Map
@@ -139,13 +157,13 @@ estimated (not fixed). Adjust for unit nonresponse using weighting classes.
 - `calibrate_to_estimate(design, estimate, vcov_estimate, formula)` —
   when only a point estimate + covariance of the control total is available
 
-**Nonresponse adjustment**
-- `adjust_nonresponse(svy, response_status, method = c("weighting-class", "propensity-cell", "propensity"))`
-  - `method = "weighting-class"`: redistributes nonrespondent weights to
-    respondents within each response class proportionally (implemented Phase 0)
+**Nonresponse adjustment** (extends Phase 0 stubs)
+- `adjust_nonresponse()` was introduced in Phase 0 with `method = "weighting-class"`
+  fully implemented; Phase 2 unlocks the two propensity stubs:
   - `method = "propensity-cell"`: estimate response propensity via logistic
     regression → sort into quintile cells → redistribute within cells
-  - `method = "propensity"`: full IPW via logistic regression
+  - `method = "propensity"`: full IPW via logistic regression (delegates to Phase 3
+    `estimate_propensity()` + `create_propensity_weights()`)
 - `redistribute_weights(svy, reduce_if, increase_if, by = NULL)` — general
   weight redistribution primitive (exported standalone)
 

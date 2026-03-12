@@ -90,7 +90,7 @@ test_that("rake() preserves survey_taylor class for survey_taylor input", {
 
   test_invariants(result)
   expect_true(S7::S7_inherits(result, surveycore::survey_taylor))
-  expect_false(S7::S7_inherits(result, surveycore::survey_calibrated))
+  expect_false(S7::S7_inherits(result, surveycore::survey_nonprob))
   # Design vars are unchanged
   expect_identical(result@variables$ids,    design@variables$ids)
   expect_identical(result@variables$strata, design@variables$strata)
@@ -155,14 +155,14 @@ test_that("rake() on weighted_df accumulates weighting history", {
 })
 
 # ---------------------------------------------------------------------------
-# 4. Happy path — survey_calibrated input → survey_calibrated (re-raking)
+# 4. Happy path — survey_nonprob input → survey_nonprob (re-raking)
 # ---------------------------------------------------------------------------
 
-test_that("rake() on survey_calibrated returns survey_calibrated", {
+test_that("rake() on survey_nonprob returns survey_nonprob", {
   df <- make_surveywts_data(seed = 6)
 
-  # Construct survey_calibrated directly (not via rake())
-  sc_input <- surveycore::survey_calibrated(
+  # Construct survey_nonprob directly (not via rake())
+  sc_input <- surveycore::survey_nonprob(
     data = df,
     variables = list(
       ids = NULL, strata = NULL, fpc = NULL,
@@ -180,7 +180,7 @@ test_that("rake() on survey_calibrated returns survey_calibrated", {
   )
   sc2 <- rake(sc_input, margins = margins2)
   test_invariants(sc2)
-  expect_true(S7::S7_inherits(sc2, surveycore::survey_calibrated))
+  expect_true(S7::S7_inherits(sc2, surveycore::survey_nonprob))
   # History should have 1 entry (sc_input had no prior history)
   expect_identical(length(sc2@metadata@weighting_history), 1L)
 })

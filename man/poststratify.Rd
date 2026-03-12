@@ -14,7 +14,7 @@ poststratify(
 }
 \arguments{
 \item{data}{A \code{data.frame}, \code{weighted_df}, \code{survey_taylor}, or
-\code{survey_calibrated}. \code{survey_replicate} -> error. Any other class -> error.}
+\code{survey_nonprob}. \code{survey_replicate} -> error. Any other class -> error.}
 
 \item{strata}{<\code{\link[tidyselect:language]{tidy-select}}> Stratification
 variables that jointly define the cells. Specify as a bare name or
@@ -41,8 +41,8 @@ to 1.0. Note: default is \code{"count"}, unlike \code{\link[=calibrate]{calibrat
 \value{
 \itemize{
 \item \code{data.frame} or \code{weighted_df} input -> \code{weighted_df}
-\item \code{survey_taylor} or \code{survey_calibrated} input -> same class as input
-(\code{survey_taylor} or \code{survey_calibrated}; class is preserved)
+\item \code{survey_taylor} or \code{survey_nonprob} input -> same class as input
+(\code{survey_taylor} or \code{survey_nonprob}; class is preserved)
 }
 
 The weight column in the output contains post-stratified weights. A

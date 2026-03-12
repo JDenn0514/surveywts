@@ -14,8 +14,8 @@ workflow.
   Supports dplyr verbs (`select()`, `rename()`, `mutate()`) with automatic
   downgrade to a plain tibble (with a warning) if the weight column is removed.
 
-- `survey_calibrated` (from surveycore): surveywts implements `print()` for
-  `survey_calibrated` objects, displaying design variables and weighting history.
+- `survey_nonprob` (from surveycore): surveywts implements `print()` for
+  `survey_nonprob` objects, displaying design variables and weighting history.
 
 ### New functions
 
@@ -44,11 +44,11 @@ workflow.
   percentiles), optionally grouped by one or more variables.
 
 All functions accept `data.frame`, `weighted_df`, `survey_taylor`, and
-`survey_calibrated` inputs, and append a structured weighting history entry
+`survey_nonprob` inputs, and append a structured weighting history entry
 on every call.
 
 ### Bug fixes
 
 - `calibrate()`, `rake()`, and `poststratify()` now preserve the input class
-  (`survey_taylor` or `survey_calibrated`) rather than promoting all survey
-  object inputs to `survey_calibrated` (#10).
+  (`survey_taylor` or `survey_nonprob`) rather than promoting all survey
+  object inputs to `survey_nonprob` (#10).

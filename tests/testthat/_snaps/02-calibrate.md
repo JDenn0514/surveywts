@@ -4,7 +4,7 @@
       calibrate(matrix(1:6, 2, 3), variables = c(age_group), population = pop)
     Condition
       Error in `.check_input_class()`:
-      x `data` must be a data frame, <weighted_df>, <survey_taylor>, or <survey_calibrated>.
+      x `data` must be a data frame, <weighted_df>, <survey_taylor>, or <survey_nonprob>.
       i Got <matrix>.
 
 # calibrate() rejects 0-row data frame (SE-2)

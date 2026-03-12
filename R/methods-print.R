@@ -17,11 +17,11 @@
 }
 
 # ---------------------------------------------------------------------------
-# print method for survey_calibrated
+# print method for survey_nonprob
 # ---------------------------------------------------------------------------
 
-# Class defined in surveycore (surveycore::survey_calibrated).
-S7::method(print, surveycore::survey_calibrated) <- function(x, n = 10, ...) {
+# Class defined in surveycore (surveycore::survey_nonprob).
+S7::method(print, surveycore::survey_nonprob) <- function(x, n = 10, ...) {
   n_rows <- nrow(x@data)
   n_cols <- ncol(x@data)
   vars <- x@variables

@@ -8,7 +8,7 @@ summarize_weights(x, weights = NULL, by = NULL)
 }
 \arguments{
 \item{x}{A \code{data.frame}, \code{weighted_df}, \code{survey_taylor}, or
-\code{survey_calibrated}. For \code{weighted_df} and survey objects, the weight
+\code{survey_nonprob}. For \code{weighted_df} and survey objects, the weight
 column is auto-detected.}
 
 \item{weights}{Bare name (NSE). Weight column. Auto-detected for

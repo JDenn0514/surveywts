@@ -155,7 +155,8 @@ Follow this order for each sub-task:
 3. Write the R source file to make the tests pass
 4. Run `devtools::document()` if any roxygen2 tags changed
 5. Update `_pkgdown.yml` if any new functions were exported — add them to the
-   correct `reference:` section (match the `@family` tag used in roxygen)
+   correct `reference:` section (match the `@family` tag used in roxygen). If
+   any new vignettes were added to `vignettes/`, add them under `articles:`.
 
 **Red flags — stop immediately if:**
 - All new tests pass before any source code is written
@@ -166,11 +167,12 @@ Follow this order for each sub-task:
 
 ## Verification
 
-Run both checks after implementation:
+Run these checks after implementation:
 
 ```r
 devtools::test()
 devtools::check()
+pkgdown::check_pkgdown()
 ```
 
 **If either fails:** attempt to diagnose and fix, then re-run. After **3 failed attempts
@@ -239,7 +241,7 @@ Do not mark the section complete until ALL are true:
 
 - [ ] `devtools::test()` — no failures
 - [ ] `devtools::check()` — 0 errors, 0 warnings, ≤2 notes
-- [ ] `devtools::document()` run (if roxygen2 changed); `_pkgdown.yml` updated (if new exports)
+- [ ] `devtools::document()` run (if roxygen2 changed); `_pkgdown.yml` updated (if new exports or vignettes); `pkgdown::check_pkgdown()` passes
 - [ ] `plans/error-messages.md` updated (if new error classes added)
 - [ ] No `UseMethod()` on S7 objects; no missing `class=`; no `@importFrom`
 - [ ] `test_invariants()` first in every constructor test (see `testing-surveywts.md`); dual pattern on Layer 3 errors

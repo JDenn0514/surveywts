@@ -295,3 +295,54 @@ test_that("summarize_weights() returns group columns first with by grouping", {
       "min", "p25", "p50", "p75", "max", "ess")
   )
 })
+
+# ---------------------------------------------------------------------------
+# 9. summarize_weights() — grouping variable with dot in levels
+# ---------------------------------------------------------------------------
+
+test_that("summarize_weights() handles grouping variable with dot in levels", {
+  # Regression test: interaction() uses "." as separator, which collides
+  # with "." in factor levels like "Dr." or "U.S."
+  df <- data.frame(
+    title = c("Dr.", "Dr.", "Mr.", "Mr.", "Ms."),
+    w = c(1.2, 0.8, 1.5, 0.9, 1.1),
+    stringsAsFactors = FALSE
+  )
+
+  result <- summarize_weights(df, weights = w, by = c(title))
+
+  # Should have 3 rows — one per unique title
+  expect_equal(nrow(result), 3L)
+  expect_true("title" %in% names(result))
+  # Level values must not be mangled
+  expect_identical(sort(result$title), c("Dr.", "Mr.", "Ms."))
+})
+
+test_that("summarize_weights() preserves first-occurrence order in grouped output", {
+  df <- data.frame(
+    group = c("B", "A", "B", "A", "C"),
+    w = c(1.2, 0.8, 1.5, 0.9, 1.1),
+    stringsAsFactors = FALSE
+  )
+
+  result <- summarize_weights(df, weights = w, by = c(group))
+
+  # First-occurrence order: B, A, C (not alphabetical A, B, C)
+  expect_identical(result$group, c("B", "A", "C"))
+})
+
+test_that("summarize_weights() handles multi-column by with dots in levels", {
+  df <- data.frame(
+    title = c("Dr.", "Dr.", "Mr.", "Mr."),
+    dept = c("R&D", "R&D", "H.R.", "H.R."),
+    w = c(1.2, 0.8, 1.5, 0.9),
+    stringsAsFactors = FALSE
+  )
+
+  result <- summarize_weights(df, weights = w, by = c(title, dept))
+
+  # 2 unique combinations: Dr./R&D and Mr./H.R.
+  expect_equal(nrow(result), 2L)
+  expect_identical(result$title, c("Dr.", "Mr."))
+  expect_identical(result$dept, c("R&D", "H.R."))
+})

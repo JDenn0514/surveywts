@@ -121,12 +121,14 @@ summarize_weights <- function(x, weights = NULL, by = NULL) {
     w <- data_df[[weight_col]]
     tibble::as_tibble(.compute_weight_stats(w))
   } else {
-    group_factor <- if (length(by_names) == 1L) {
-      data_df[[by_names]]
-    } else {
-      interaction(lapply(by_names, function(v) data_df[[v]]), drop = TRUE)
-    }
-    groups <- split(seq_len(nrow(data_df)), group_factor)
+    cell_keys <- do.call(
+      paste,
+      c(lapply(by_names, function(v) as.character(data_df[[v]])), sep = "//")
+    )
+    groups <- split(seq_len(nrow(data_df)), cell_keys)
+    # Preserve first-occurrence order (not alphabetical from split())
+    key_order <- unique(cell_keys)
+    groups <- groups[key_order]
 
     result_dfs <- lapply(names(groups), function(gkey) {
       idx <- groups[[gkey]]

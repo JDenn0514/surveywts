@@ -34,8 +34,8 @@ S7::method(print, surveycore::survey_nonprob) <- function(x, n = 10, ...) {
     n_cols, "variables\n"
   )
 
-  # Variance method (hardcoded for Phase 0 — see spec §V)
-  cat("# Variance method: Taylor linearization\n")
+  # Variance method (hardcoded for Phase 0 — see spec §X)
+  cat("# Variance: model-assisted (SRS assumption)\n")
 
   # Design structure line
   ids_str <- .format_design_vars(vars$ids)

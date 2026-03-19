@@ -16,7 +16,7 @@ poststratify(
   strata,
   population,
   weights = NULL,
-  type = c("count", "prop")
+  type = c("prop", "count")
 )
 ```
 
@@ -24,9 +24,8 @@ poststratify(
 
 - data:
 
-  A `data.frame`, `weighted_df`, `survey_taylor`, or
-  `survey_calibrated`. `survey_replicate` -\> error. Any other class -\>
-  error.
+  A `data.frame`, `weighted_df`, `survey_taylor`, or `survey_nonprob`.
+  `survey_replicate` -\> error. Any other class -\> error.
 
 - strata:
 
@@ -59,9 +58,9 @@ poststratify(
 
 - type:
 
-  Character scalar. `"count"` (default): `target` values are population
-  counts. `"prop"`: `target` values are proportions summing to 1.0.
-  Note: default is `"count"`, unlike
+  Character scalar. `"prop"` (default): `target` values are proportions
+  summing to 1.0. `"count"`: `target` values are population counts.
+  Consistent with
   [`calibrate()`](https://jdenn0514.github.io/surveywts/reference/calibrate.md)
   and
   [`rake()`](https://jdenn0514.github.io/surveywts/reference/rake.md).
@@ -70,8 +69,8 @@ poststratify(
 
 - `data.frame` or `weighted_df` input -\> `weighted_df`
 
-- `survey_taylor` or `survey_calibrated` input -\> same class as input
-  (`survey_taylor` or `survey_calibrated`; class is preserved)
+- `survey_taylor` or `survey_nonprob` input -\> same class as input
+  (`survey_taylor` or `survey_nonprob`; class is preserved)
 
 The weight column in the output contains post-stratified weights. A
 history entry with `operation = "poststratify"` is appended to
@@ -91,10 +90,21 @@ df <- data.frame(
   sex = c("M", "M", "M", "F", "F", "F"),
   stringsAsFactors = FALSE
 )
-pop <- data.frame(
+
+# Proportion targets (default type = "prop")
+pop_prop <- data.frame(
+  age_group = c("18-34", "35-54", "55+", "18-34", "35-54", "55+"),
+  sex = c("M", "M", "M", "F", "F", "F"),
+  target = c(0.14, 0.18, 0.17, 0.15, 0.19, 0.17)
+)
+result <- poststratify(df, strata = c(age_group, sex), population = pop_prop)
+
+# Count targets (explicit type = "count")
+pop_count <- data.frame(
   age_group = c("18-34", "35-54", "55+", "18-34", "35-54", "55+"),
   sex = c("M", "M", "M", "F", "F", "F"),
   target = c(14000, 18000, 17000, 15000, 19000, 17000)
 )
-result <- poststratify(df, strata = c(age_group, sex), population = pop)
+result2 <- poststratify(df, strata = c(age_group, sex),
+  population = pop_count, type = "count")
 ```

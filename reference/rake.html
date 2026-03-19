@@ -15,7 +15,7 @@ IPF, epsilon-based convergence).'><meta property="og:image" content="https://jde
 
     <a class="navbar-brand me-2" href="../index.html">surveywts</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -67,7 +67,7 @@ IPF, epsilon-based convergence).</p>
 
 <dl><dt id="arg-data">data<a class="anchor" aria-label="anchor" href="#arg-data"></a></dt>
 <dd><p>A <code>data.frame</code>, <code>weighted_df</code>, <code>survey_taylor</code>, or
-<code>survey_calibrated</code>. <code>survey_replicate</code> → error. Any other class → error.</p></dd>
+<code>survey_nonprob</code>. <code>survey_replicate</code> → error. Any other class → error.</p></dd>
 
 
 <dt id="arg-margins">margins<a class="anchor" aria-label="anchor" href="#arg-margins"></a></dt>
@@ -136,8 +136,8 @@ ignored parameter.</p></dd>
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
 
 <ul><li><p><code>data.frame</code> or <code>weighted_df</code> input → <code>weighted_df</code></p></li>
-<li><p><code>survey_taylor</code> or <code>survey_calibrated</code> input → same class as input
-(<code>survey_taylor</code> or <code>survey_calibrated</code>; class is preserved)</p></li>
+<li><p><code>survey_taylor</code> or <code>survey_nonprob</code> input → same class as input
+(<code>survey_taylor</code> or <code>survey_nonprob</code>; class is preserved)</p></li>
 </ul><p>The weight column in the output contains raked weights. A history entry
 with <code>operation = "raking"</code> is appended to <code>weighting_history</code>.</p>
     </div>
@@ -175,8 +175,6 @@ below <code>control$epsilon</code>.</p>
 <span class="r-in"><span>  sex       <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"M"</span> <span class="op">=</span> <span class="fl">0.48</span>, <span class="st">"F"</span> <span class="op">=</span> <span class="fl">0.52</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">rake</span><span class="op">(</span><span class="va">df</span>, margins <span class="op">=</span> <span class="va">margins</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Raking converged in 1 sweep: all variables already met their margins. Weights</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   were not adjusted.</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

@@ -1,8 +1,10 @@
 # Adjust survey weights for unit nonresponse
 
 Redistributes the weights of nonrespondents to respondents within
-weighting classes defined by `by`. The adjustment formula within each
-cell `h` is:
+weighting classes defined by `by`. All rows (respondents and
+nonrespondents) are returned; nonrespondent weights are set to 0 and
+respondent weights are adjusted upward to conserve the total weight
+within each cell.
 
 ## Usage
 
@@ -21,9 +23,9 @@ adjust_nonresponse(
 
 - data:
 
-  A `data.frame`, `weighted_df`, `survey_taylor`, or
-  `survey_calibrated`. Must include BOTH respondents and nonrespondents.
-  `survey_replicate` → error. Any other class → error.
+  A `data.frame`, `weighted_df`, `survey_taylor`, or `survey_nonprob`.
+  Must include BOTH respondents and nonrespondents. `survey_replicate` →
+  error. Any other class → error.
 
 - response_status:
 
@@ -64,24 +66,50 @@ adjust_nonresponse(
 
 ## Value
 
-- `data.frame` or `weighted_df` input → `weighted_df` (respondents only)
+All rows (respondents and nonrespondents) are returned. Nonrespondent
+weights are set to 0; respondent weights are adjusted upward to conserve
+the total weight within each cell.
 
-- `survey_taylor` input → `survey_taylor` (same class; respondents only)
+- `data.frame` or `weighted_df` input -\> `weighted_df`
 
-- `survey_calibrated` input → `survey_calibrated` (same class;
-  respondents only)
+- `survey_nonprob` input -\> `survey_nonprob` (same class)
 
-The weight column in the output contains adjusted weights. A history
-entry with `operation = "nonresponse_weighting_class"` is appended to
-`weighting_history`.
+- `survey_taylor` input -\> `survey_taylor` (same class; respondent rows
+  only, because `survey_taylor` does not support zero weights)
+
+A history entry with `operation = "nonresponse_weighting_class"` is
+appended to `weighting_history`.
 
 ## Details
+
+The adjustment formula within each cell `h` is:
 
 \$\$w\_{i,new} = w_i \times \frac{\sum w_h}{\sum w\_{h,resp}}\$\$
 
 where \\\sum w_h\\ is the sum of all weights (respondents +
 nonrespondents) in cell `h` and \\\sum w\_{h,resp}\\ is the sum of
-respondent weights only. Only respondent rows are returned.
+respondent weights only.
+
+Zero-weight observations are retained for design-based variance
+estimation. Survey estimation functions (e.g.,
+[`survey::svymean()`](https://rdrr.io/pkg/survey/man/surveysummary.html))
+handle zero weights correctly – zero-weight units are excluded from
+point estimates but included in the design structure for variance
+estimation. For manual calculations, use `w[w > 0]` to exclude
+nonrespondents.
+
+Diagnostic functions
+([`effective_sample_size()`](https://jdenn0514.github.io/surveywts/reference/effective_sample_size.md),
+[`weight_variability()`](https://jdenn0514.github.io/surveywts/reference/weight_variability.md),
+[`summarize_weights()`](https://jdenn0514.github.io/surveywts/reference/summarize_weights.md))
+automatically filter to positive weights before computing statistics.
+
+Re-calibrating post-nonresponse data requires filtering to respondents
+first, because
+[`calibrate()`](https://jdenn0514.github.io/surveywts/reference/calibrate.md),
+[`rake()`](https://jdenn0514.github.io/surveywts/reference/rake.md), and
+[`poststratify()`](https://jdenn0514.github.io/surveywts/reference/poststratify.md)
+reject zero weights.
 
 ## Examples
 

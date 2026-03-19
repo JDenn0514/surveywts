@@ -22,9 +22,8 @@ calibrate(
 
 - data:
 
-  A `data.frame`, `weighted_df`, `survey_taylor`, or
-  `survey_calibrated`. `survey_replicate` → error. Any other class →
-  error.
+  A `data.frame`, `weighted_df`, `survey_taylor`, or `survey_nonprob`.
+  `survey_replicate` → error. Any other class → error.
 
 - variables:
 
@@ -70,8 +69,8 @@ calibrate(
 
 - `data.frame` or `weighted_df` input → `weighted_df`
 
-- `survey_taylor` or `survey_calibrated` input → same class as input
-  (`survey_taylor` or `survey_calibrated`; class is preserved)
+- `survey_taylor` or `survey_nonprob` input → same class as input
+  (`survey_taylor` or `survey_nonprob`; class is preserved)
 
 The weight column in the output contains calibrated weights. A history
 entry with `operation = "calibration"` is appended to

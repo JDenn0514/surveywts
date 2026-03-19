@@ -13,7 +13,7 @@ poststratify() matches exact cross-tabulation cells in a single pass."><meta pro
 
     <a class="navbar-brand me-2" href="../index.html">surveywts</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -52,7 +52,7 @@ variables. Unlike <code><a href="calibrate.html">calibrate()</a></code> and <cod
 <span>  <span class="va">strata</span>,</span>
 <span>  <span class="va">population</span>,</span>
 <span>  weights <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"count"</span>, <span class="st">"prop"</span><span class="op">)</span></span>
+<span>  type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"prop"</span>, <span class="st">"count"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -62,7 +62,7 @@ variables. Unlike <code><a href="calibrate.html">calibrate()</a></code> and <cod
 
 <dl><dt id="arg-data">data<a class="anchor" aria-label="anchor" href="#arg-data"></a></dt>
 <dd><p>A <code>data.frame</code>, <code>weighted_df</code>, <code>survey_taylor</code>, or
-<code>survey_calibrated</code>. <code>survey_replicate</code> -&gt; error. Any other class -&gt; error.</p></dd>
+<code>survey_nonprob</code>. <code>survey_replicate</code> -&gt; error. Any other class -&gt; error.</p></dd>
 
 
 <dt id="arg-strata">strata<a class="anchor" aria-label="anchor" href="#arg-strata"></a></dt>
@@ -89,17 +89,17 @@ column is named <code>".weight"</code>.</p></dd>
 
 
 <dt id="arg-type">type<a class="anchor" aria-label="anchor" href="#arg-type"></a></dt>
-<dd><p>Character scalar. <code>"count"</code> (default): <code>target</code> values are
-population counts. <code>"prop"</code>: <code>target</code> values are proportions summing
-to 1.0. Note: default is <code>"count"</code>, unlike <code><a href="calibrate.html">calibrate()</a></code> and <code><a href="rake.html">rake()</a></code>.</p></dd>
+<dd><p>Character scalar. <code>"prop"</code> (default): <code>target</code> values are
+proportions summing to 1.0. <code>"count"</code>: <code>target</code> values are population
+counts. Consistent with <code><a href="calibrate.html">calibrate()</a></code> and <code><a href="rake.html">rake()</a></code>.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
 
 <ul><li><p><code>data.frame</code> or <code>weighted_df</code> input -&gt; <code>weighted_df</code></p></li>
-<li><p><code>survey_taylor</code> or <code>survey_calibrated</code> input -&gt; same class as input
-(<code>survey_taylor</code> or <code>survey_calibrated</code>; class is preserved)</p></li>
+<li><p><code>survey_taylor</code> or <code>survey_nonprob</code> input -&gt; same class as input
+(<code>survey_taylor</code> or <code>survey_nonprob</code>; class is preserved)</p></li>
 </ul><p>The weight column in the output contains post-stratified weights. A
 history entry with <code>operation = "poststratify"</code> is appended to
 <code>weighting_history</code>.</p>
@@ -118,12 +118,23 @@ history entry with <code>operation = "poststratify"</code> is appended to
 <span class="r-in"><span>  sex <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"M"</span>, <span class="st">"M"</span>, <span class="st">"M"</span>, <span class="st">"F"</span>, <span class="st">"F"</span>, <span class="st">"F"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">pop</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Proportion targets (default type = "prop")</span></span></span>
+<span class="r-in"><span><span class="va">pop_prop</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  age_group <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"18-34"</span>, <span class="st">"35-54"</span>, <span class="st">"55+"</span>, <span class="st">"18-34"</span>, <span class="st">"35-54"</span>, <span class="st">"55+"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  sex <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"M"</span>, <span class="st">"M"</span>, <span class="st">"M"</span>, <span class="st">"F"</span>, <span class="st">"F"</span>, <span class="st">"F"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  target <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.14</span>, <span class="fl">0.18</span>, <span class="fl">0.17</span>, <span class="fl">0.15</span>, <span class="fl">0.19</span>, <span class="fl">0.17</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">poststratify</span><span class="op">(</span><span class="va">df</span>, strata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">age_group</span>, <span class="va">sex</span><span class="op">)</span>, population <span class="op">=</span> <span class="va">pop_prop</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Count targets (explicit type = "count")</span></span></span>
+<span class="r-in"><span><span class="va">pop_count</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  age_group <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"18-34"</span>, <span class="st">"35-54"</span>, <span class="st">"55+"</span>, <span class="st">"18-34"</span>, <span class="st">"35-54"</span>, <span class="st">"55+"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  sex <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"M"</span>, <span class="st">"M"</span>, <span class="st">"M"</span>, <span class="st">"F"</span>, <span class="st">"F"</span>, <span class="st">"F"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  target <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">14000</span>, <span class="fl">18000</span>, <span class="fl">17000</span>, <span class="fl">15000</span>, <span class="fl">19000</span>, <span class="fl">17000</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">poststratify</span><span class="op">(</span><span class="va">df</span>, strata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">age_group</span>, <span class="va">sex</span><span class="op">)</span>, population <span class="op">=</span> <span class="va">pop</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">result2</span> <span class="op">&lt;-</span> <span class="fu">poststratify</span><span class="op">(</span><span class="va">df</span>, strata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">age_group</span>, <span class="va">sex</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  population <span class="op">=</span> <span class="va">pop_count</span>, type <span class="op">=</span> <span class="st">"count"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

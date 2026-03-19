@@ -24,9 +24,8 @@ rake(
 
 - data:
 
-  A `data.frame`, `weighted_df`, `survey_taylor`, or
-  `survey_calibrated`. `survey_replicate` → error. Any other class →
-  error.
+  A `data.frame`, `weighted_df`, `survey_taylor`, or `survey_nonprob`.
+  `survey_replicate` → error. Any other class → error.
 
 - margins:
 
@@ -116,8 +115,8 @@ rake(
 
 - `data.frame` or `weighted_df` input → `weighted_df`
 
-- `survey_taylor` or `survey_calibrated` input → same class as input
-  (`survey_taylor` or `survey_calibrated`; class is preserved)
+- `survey_taylor` or `survey_nonprob` input → same class as input
+  (`survey_taylor` or `survey_nonprob`; class is preserved)
 
 The weight column in the output contains raked weights. A history entry
 with `operation = "raking"` is appended to `weighting_history`.
@@ -157,6 +156,4 @@ margins <- list(
   sex       = c("M" = 0.48, "F" = 0.52)
 )
 result <- rake(df, margins = margins)
-#> ℹ Raking converged in 1 sweep: all variables already met their margins. Weights
-#>   were not adjusted.
 ```

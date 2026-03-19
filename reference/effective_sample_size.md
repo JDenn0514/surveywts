@@ -13,9 +13,9 @@ effective_sample_size(x, weights = NULL)
 
 - x:
 
-  A `data.frame`, `weighted_df`, `survey_taylor`, or
-  `survey_calibrated`. For `weighted_df` and survey objects, the weight
-  column is auto-detected.
+  A `data.frame`, `weighted_df`, `survey_taylor`, or `survey_nonprob`.
+  For `weighted_df` and survey objects, the weight column is
+  auto-detected.
 
 - weights:
 

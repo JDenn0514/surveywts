@@ -11,7 +11,7 @@ for categorical auxiliary variables."><meta property="og:image" content="https:/
 
     <a class="navbar-brand me-2" href="../index.html">surveywts</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -61,7 +61,7 @@ for categorical auxiliary variables.</p>
 
 <dl><dt id="arg-data">data<a class="anchor" aria-label="anchor" href="#arg-data"></a></dt>
 <dd><p>A <code>data.frame</code>, <code>weighted_df</code>, <code>survey_taylor</code>, or
-<code>survey_calibrated</code>. <code>survey_replicate</code> → error. Any other class → error.</p></dd>
+<code>survey_nonprob</code>. <code>survey_replicate</code> → error. Any other class → error.</p></dd>
 
 
 <dt id="arg-variables">variables<a class="anchor" aria-label="anchor" href="#arg-variables"></a></dt>
@@ -106,8 +106,8 @@ are proportions. <code>"count"</code>: <code>population</code> values are counts
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
 
 <ul><li><p><code>data.frame</code> or <code>weighted_df</code> input → <code>weighted_df</code></p></li>
-<li><p><code>survey_taylor</code> or <code>survey_calibrated</code> input → same class as input
-(<code>survey_taylor</code> or <code>survey_calibrated</code>; class is preserved)</p></li>
+<li><p><code>survey_taylor</code> or <code>survey_nonprob</code> input → same class as input
+(<code>survey_taylor</code> or <code>survey_nonprob</code>; class is preserved)</p></li>
 </ul><p>The weight column in the output contains calibrated weights. A history
 entry with <code>operation = "calibration"</code> is appended to
 <code>weighting_history</code>.</p>

@@ -1,6 +1,95 @@
 # Changelog
 
+## surveywts 0.1.1
+
+### Breaking changes
+
+- [`adjust_nonresponse()`](https://jdenn0514.github.io/surveywts/reference/adjust_nonresponse.md)
+  now returns all rows with nonrespondent weights set to 0, instead of
+  dropping nonrespondent rows. This preserves design structure for
+  variance estimation. Code that uses `nrow(result)` to count
+  respondents should use `sum(result$weight_col > 0)` instead.
+
+- [`poststratify()`](https://jdenn0514.github.io/surveywts/reference/poststratify.md)
+  now defaults to `type = "prop"`, consistent with
+  [`calibrate()`](https://jdenn0514.github.io/surveywts/reference/calibrate.md)
+  and
+  [`rake()`](https://jdenn0514.github.io/surveywts/reference/rake.md).
+  Existing code that relies on the count default should add explicit
+  `type = "count"`.
+
+### Bug fixes
+
+- [`calibrate()`](https://jdenn0514.github.io/surveywts/reference/calibrate.md),
+  [`rake()`](https://jdenn0514.github.io/surveywts/reference/rake.md),
+  and
+  [`poststratify()`](https://jdenn0514.github.io/surveywts/reference/poststratify.md)
+  now delegate to
+  [`survey::calibrate()`](https://rdrr.io/pkg/survey/man/calibrate.html),
+  [`survey::rake()`](https://rdrr.io/pkg/survey/man/rake.html),
+  [`anesrake::anesrake()`](https://rdrr.io/pkg/anesrake/man/anesrake.html),
+  and
+  [`survey::postStratify()`](https://rdrr.io/pkg/survey/man/postStratify.html)
+  instead of vendored algorithm copies. This improves numerical
+  correctness and maintainability
+  ([\#16](https://github.com/JDenn0514/surveywts/issues/16)).
+
+- [`adjust_nonresponse()`](https://jdenn0514.github.io/surveywts/reference/adjust_nonresponse.md)
+  `response_status` argument now resolves via
+  [`tidyselect::eval_select()`](https://tidyselect.r-lib.org/reference/eval_select.html)
+  instead of
+  [`rlang::as_name()`](https://rlang.r-lib.org/reference/as_name.html),
+  supporting tidy-select semantics and providing a clearer error for
+  multi-column selection
+  ([\#15](https://github.com/JDenn0514/surveywts/issues/15)).
+
+- Input validation in
+  [`calibrate()`](https://jdenn0514.github.io/surveywts/reference/calibrate.md),
+  [`rake()`](https://jdenn0514.github.io/surveywts/reference/rake.md),
+  [`poststratify()`](https://jdenn0514.github.io/surveywts/reference/poststratify.md),
+  and
+  [`adjust_nonresponse()`](https://jdenn0514.github.io/surveywts/reference/adjust_nonresponse.md)
+  now uses `survey_base` inheritance checks instead of listing specific
+  class names
+  ([\#15](https://github.com/JDenn0514/surveywts/issues/15)).
+
+- [`summarize_weights()`](https://jdenn0514.github.io/surveywts/reference/summarize_weights.md)
+  grouped path now uses `paste(sep = "//")` instead of
+  [`interaction()`](https://rdrr.io/r/base/interaction.html), avoiding
+  separator collisions with factor levels containing dots (e.g.,
+  `"Dr."`) ([\#13](https://github.com/JDenn0514/surveywts/issues/13)).
+
+- `survey_nonprob` print method now shows
+  `"Variance: model-assisted (SRS assumption)"` instead of incorrectly
+  labelling it as Taylor linearization
+  ([\#13](https://github.com/JDenn0514/surveywts/issues/13)).
+
+### Internal
+
+- Moved shared helpers `.check_input_class()` and `.get_history()` to
+  `R/utils.R`; inlined `%||%` operator
+  ([\#12](https://github.com/JDenn0514/surveywts/issues/12)).
+
+- Moved `survey` from Suggests to Imports; added `anesrake` to Imports
+  ([\#16](https://github.com/JDenn0514/surveywts/issues/16)).
+
 ## surveywts 0.1.0
+
+### Breaking changes
+
+- [`adjust_nonresponse()`](https://jdenn0514.github.io/surveywts/reference/adjust_nonresponse.md)
+  now returns all rows with nonrespondent weights set to 0, instead of
+  dropping nonrespondent rows. This preserves design structure for
+  variance estimation. Code that uses `nrow(result)` to count
+  respondents should use `sum(result$weight_col > 0)` instead.
+
+- [`poststratify()`](https://jdenn0514.github.io/surveywts/reference/poststratify.md)
+  now defaults to `type = "prop"`, consistent with
+  [`calibrate()`](https://jdenn0514.github.io/surveywts/reference/calibrate.md)
+  and
+  [`rake()`](https://jdenn0514.github.io/surveywts/reference/rake.md).
+  Existing code that relies on the count default should add explicit
+  `type = "count"`.
 
 ### Phase 0: Weighting Core
 
@@ -17,8 +106,8 @@ weighting workflow.
   `rename()`, `mutate()`) with automatic downgrade to a plain tibble
   (with a warning) if the weight column is removed.
 
-- `survey_calibrated` (from surveycore): surveywts implements
-  [`print()`](https://rdrr.io/r/base/print.html) for `survey_calibrated`
+- `survey_nonprob` (from surveycore): surveywts implements
+  [`print()`](https://rdrr.io/r/base/print.html) for `survey_nonprob`
   objects, displaying design variables and weighting history.
 
 #### New functions
@@ -56,8 +145,8 @@ weighting workflow.
   optionally grouped by one or more variables.
 
 All functions accept `data.frame`, `weighted_df`, `survey_taylor`, and
-`survey_calibrated` inputs, and append a structured weighting history
-entry on every call.
+`survey_nonprob` inputs, and append a structured weighting history entry
+on every call.
 
 #### Bug fixes
 
@@ -65,6 +154,6 @@ entry on every call.
   [`rake()`](https://jdenn0514.github.io/surveywts/reference/rake.md),
   and
   [`poststratify()`](https://jdenn0514.github.io/surveywts/reference/poststratify.md)
-  now preserve the input class (`survey_taylor` or `survey_calibrated`)
-  rather than promoting all survey object inputs to `survey_calibrated`
+  now preserve the input class (`survey_taylor` or `survey_nonprob`)
+  rather than promoting all survey object inputs to `survey_nonprob`
   ([\#10](https://github.com/JDenn0514/surveywts/issues/10)).

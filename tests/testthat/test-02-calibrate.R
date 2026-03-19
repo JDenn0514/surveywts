@@ -626,11 +626,10 @@ test_that("calibrate() throws calibration_not_converged when maxit is reached", 
               method = "logit", control = list(maxit = 1, epsilon = 1e-20)),
     class = "surveywts_error_calibration_not_converged"
   )
-  expect_snapshot(
-    error = TRUE,
-    calibrate(df, variables = c(age_group, sex), population = pop,
-              method = "logit", control = list(maxit = 1, epsilon = 1e-20))
-  )
+  # No snapshot: survey::grake() embeds platform-specific floating-point
+
+  # values in its convergence message, causing cross-platform snapshot
+  # failures. The class= check above is sufficient.
 })
 
 # ---------------------------------------------------------------------------

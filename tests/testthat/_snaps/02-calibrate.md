@@ -148,17 +148,6 @@
       i When `type = "count"`, all targets must be strictly positive (> 0).
       v Remove or correct non-positive entries in `population$age_group`.
 
-# calibrate() throws calibration_not_converged when maxit is reached
-
-    Code
-      calibrate(df, variables = c(age_group, sex), population = pop, method = "logit",
-      control = list(maxit = 1, epsilon = 1e-20))
-    Condition
-      Error:
-      x Calibration did not converge after 1 iterations.
-      i survey::calibrate() reported: Failed to converge: eps=0.000618523715721471 in 2 iterations
-      v Increase `control$maxit`, relax `control$epsilon`, or verify population totals are consistent with the sample.
-
 # calibrate() with control$maxit = 0 throws not_converged with distinct note
 
     Code

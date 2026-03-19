@@ -15,10 +15,12 @@ Roxygen: list(markdown = TRUE)
 Depends:
     R (>= 4.3.0)
 Imports:
+    anesrake (>= 0.80),
     cli (>= 3.6.0),
     dplyr (>= 1.1.0),
     rlang (>= 1.1.0),
     S7 (>= 0.2.0),
+    survey (>= 4.2-1),
     surveycore (>= 0.1.0),
     tibble (>= 3.2.0),
     tidyselect (>= 1.2.0)
@@ -26,7 +28,6 @@ Suggests:
     covr,
     knitr,
     rmarkdown,
-    survey (>= 4.2-1),
     svrep (>= 0.6),
     testthat (>= 3.2.0),
     withr (>= 2.5.0)

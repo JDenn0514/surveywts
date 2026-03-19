@@ -230,7 +230,6 @@ test_that("adjust_nonresponse() matches hand calculation for 2-class example", {
 
 test_that("adjust_nonresponse() matches svrep::redistribute_weights() within 1e-8", {
   skip_if_not_installed("svrep")
-  skip_if_not_installed("survey")
 
   df <- make_surveywts_data(seed = 9, include_nonrespondents = TRUE)
 

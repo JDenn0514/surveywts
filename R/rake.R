@@ -139,6 +139,18 @@ rake <- function(
   type   <- rlang::arg_match(type)
   weights_quo <- rlang::enquo(weights)
 
+  # ---- Cap + method = "survey" guard (fail fast, before margin parsing) ----
+  if (!is.null(cap) && method == "survey") {
+    cli::cli_abort(
+      c(
+        "x" = "{.arg cap} is not supported when {.code method = \"survey\"}.",
+        "i" = "{.fn survey::rake} does not support per-step weight capping.",
+        "v" = "Use {.code method = \"anesrake\"} for raking with a weight cap."
+      ),
+      class = "surveywts_error_cap_not_supported_survey"
+    )
+  }
+
   # ---- Apply method-specific control defaults (before warning check) -------
   anesrake_defaults <- list(
     maxit = 1000L, improvement = 0.01, pval = 0.05,

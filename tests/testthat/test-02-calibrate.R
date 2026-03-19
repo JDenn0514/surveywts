@@ -236,7 +236,6 @@ test_that("calibrate() with type = 'count' accepts count targets", {
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() matches survey::calibrate() within 1e-8 tolerance", {
-  skip_if_not_installed("survey")
   skip_if_not_installed("MASS")
 
   df <- make_surveywts_data(n = 200, seed = 9)
@@ -627,11 +626,10 @@ test_that("calibrate() throws calibration_not_converged when maxit is reached", 
               method = "logit", control = list(maxit = 1, epsilon = 1e-20)),
     class = "surveywts_error_calibration_not_converged"
   )
-  expect_snapshot(
-    error = TRUE,
-    calibrate(df, variables = c(age_group, sex), population = pop,
-              method = "logit", control = list(maxit = 1, epsilon = 1e-20))
-  )
+  # No snapshot: survey::grake() embeds platform-specific floating-point
+
+  # values in its convergence message, causing cross-platform snapshot
+  # failures. The class= check above is sufficient.
 })
 
 # ---------------------------------------------------------------------------
@@ -799,9 +797,9 @@ test_that("calibrate() auto-detects weights from weighted_df when weights is NUL
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() with method='logit', type='count', large counts triggers GREG scale normalization", {
-  # Covers vendor-calibrate-greg.R lines 128-130 and 182 (.greg_logit only):
+  # Covers survey::grake() internal rescaling path:
   #   when min(scales) > 20 (scales = population / sample_total).
-  # The scale normalization is only in .greg_logit(), so method="logit" is required.
+  # The scale normalization is internal to survey::calibrate() logit path.
   # With n=500, base_weight~1, sample_total~150 per group.
   # scales = 300000/150 = 2000 >> 20 → triggers scale normalization.
   df <- make_surveywts_data(seed = 34)

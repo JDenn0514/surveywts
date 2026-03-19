@@ -307,20 +307,36 @@ test_that("print method for survey_nonprob produces expected output", {
 })
 
 # ---------------------------------------------------------------------------
-# 8. survey_nonprob S7 validator — rejects non-positive weights
+# 8. survey_nonprob S7 validator — rejects negative weights
 # ---------------------------------------------------------------------------
 
-test_that("survey_nonprob validator rejects non-positive weights", {
+test_that("survey_nonprob validator rejects negative weights", {
   # class= only, no snapshot (validator messages are not CLI-formatted)
+  # surveycore >= 0.6.1: negative weights throw surveycore_error_weights_negative
   expect_error(
     surveycore::survey_nonprob(
-      data = data.frame(x = 1:5, w = c(1.0, 0.0, 1.0, 1.0, 1.0)),
+      data = data.frame(x = 1:5, w = c(1.0, -1.0, 1.0, 1.0, 1.0)),
       variables = list(
         ids = NULL, strata = NULL, fpc = NULL, weights = "w", nest = FALSE
       )
     ),
-    class = "surveycore_error_weights_nonpositive"
+    class = "surveycore_error_weights_negative"
   )
+})
+
+# ---------------------------------------------------------------------------
+# 8b. survey_nonprob S7 validator — allows zero weights (surveycore >= 0.6.1)
+# ---------------------------------------------------------------------------
+
+test_that("survey_nonprob validator allows zero weights with some positive", {
+  # surveycore >= 0.6.1 relaxed condition 4: >= 0 && any > 0
+  obj <- surveycore::survey_nonprob(
+    data = data.frame(x = 1:5, w = c(1.0, 0.0, 1.0, 1.0, 1.0)),
+    variables = list(
+      ids = NULL, strata = NULL, fpc = NULL, weights = "w", nest = FALSE
+    )
+  )
+  expect_true(S7::S7_inherits(obj, surveycore::survey_nonprob))
 })
 
 # ---------------------------------------------------------------------------

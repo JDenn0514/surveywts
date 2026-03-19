@@ -1,5 +1,11 @@
 # surveywts 0.1.0
 
+## Breaking changes
+
+* `poststratify()` now defaults to `type = "prop"`, consistent with
+  `calibrate()` and `rake()`. Existing code that relies on the count default
+  should add explicit `type = "count"`.
+
 ## Phase 0: Weighting Core
 
 This is the first release of surveywts, implementing the core survey weighting

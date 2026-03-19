@@ -67,7 +67,8 @@ test_that("poststratify() returns weighted_df for data.frame input", {
   df  <- make_surveywts_data(seed = 1)
   pop <- .make_pop_ps()
 
-  result <- poststratify(df, strata = c(age_group, sex), population = pop)
+  result <- poststratify(df, strata = c(age_group, sex), population = pop,
+                         type = "count")
 
   test_invariants(result)
   expect_true(inherits(result, "weighted_df"))
@@ -76,32 +77,31 @@ test_that("poststratify() returns weighted_df for data.frame input", {
 })
 
 # ---------------------------------------------------------------------------
-# 1c. Happy path — type = "count" is the default
+# 1c. Happy path — type = "prop" is the default (consistent with calibrate/rake)
 # ---------------------------------------------------------------------------
 
-test_that("poststratify() default type is 'count', not 'prop'", {
+test_that("poststratify() default type is 'prop', consistent with calibrate/rake", {
   df  <- make_surveywts_data(seed = 2)
   pop_count <- .make_pop_ps("count")
   pop_prop  <- .make_pop_ps("prop")
 
-  # Succeeds with count-format population and no type argument (default = "count")
-  result_count <- poststratify(df, strata = c(age_group, sex),
-                               population = pop_count)
-  test_invariants(result_count)
-  expect_true(inherits(result_count, "weighted_df"))
-
-  # Succeeds with prop-format population when type = "prop" is explicit
+  # Succeeds with prop-format population and no type argument (default = "prop")
   result_prop <- poststratify(df, strata = c(age_group, sex),
-                              population = pop_prop, type = "prop")
+                              population = pop_prop)
   test_invariants(result_prop)
   expect_true(inherits(result_prop, "weighted_df"))
 
-  # Using count-format population (targets summing to 10000) as type = "prop"
-  # fails because 10000 doesn't sum to 1.0
-  pop_count_as_prop <- pop_count
+  # Succeeds with count-format population when type = "count" is explicit
+  result_count <- poststratify(df, strata = c(age_group, sex),
+                               population = pop_count, type = "count")
+  test_invariants(result_count)
+  expect_true(inherits(result_count, "weighted_df"))
+
+  # Using count-format population (targets summing to 10000) without type =
+  # "count" fails because the default "prop" requires targets summing to 1.0
   expect_error(
     poststratify(df, strata = c(age_group, sex),
-                 population = pop_count_as_prop, type = "prop"),
+                 population = pop_count),
     class = "surveywts_error_population_totals_invalid"
   )
 })
@@ -122,7 +122,7 @@ test_that("poststratify() returns weighted_df for weighted_df input", {
   )
 
   result <- poststratify(wdf, strata = c(age_group, sex), population = pop,
-                         weights = base_weight)
+                         weights = base_weight, type = "count")
 
   test_invariants(result)
   expect_true(inherits(result, "weighted_df"))
@@ -138,7 +138,8 @@ test_that("poststratify() preserves survey_taylor class for survey_taylor input"
   design <- .make_test_taylor_ps(df)
   pop    <- .make_pop_ps()
 
-  result <- poststratify(design, strata = c(age_group, sex), population = pop)
+  result <- poststratify(design, strata = c(age_group, sex), population = pop,
+                         type = "count")
 
   test_invariants(result)
   expect_true(S7::S7_inherits(result, surveycore::survey_taylor))
@@ -175,7 +176,8 @@ test_that("poststratify() accepts and returns survey_nonprob", {
     calibration = NULL
   )
 
-  result <- poststratify(sc_input, strata = c(age_group, sex), population = pop)
+  result <- poststratify(sc_input, strata = c(age_group, sex), population = pop,
+                         type = "count")
 
   test_invariants(result)
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
@@ -197,7 +199,8 @@ test_that("poststratify() accepts integer strata columns", {
     stringsAsFactors = FALSE
   )
 
-  result <- poststratify(df, strata = c(age_int), population = pop)
+  result <- poststratify(df, strata = c(age_int), population = pop,
+                         type = "count")
 
   test_invariants(result)
   expect_true(inherits(result, "weighted_df"))
@@ -214,7 +217,7 @@ test_that("poststratify() matches survey::postStratify() within 1e-8", {
   pop <- .make_pop_ps()
 
   result <- poststratify(df, strata = c(age_group, sex), population = pop,
-                         weights = base_weight)
+                         weights = base_weight, type = "count")
   sw_weights <- result[["base_weight"]]
 
   svy_design <- survey::svydesign(ids = ~1, weights = ~base_weight, data = df)
@@ -238,12 +241,14 @@ test_that("poststratify() matches survey::postStratify() within 1e-8", {
 test_that("poststratify() rejects unsupported input class (SE-1)", {
   pop <- .make_pop_ps()
   expect_error(
-    poststratify(matrix(1:4, 2, 2), strata = c(V1), population = pop),
+    poststratify(matrix(1:4, 2, 2), strata = c(V1), population = pop,
+                 type = "count"),
     class = "surveywts_error_unsupported_class"
   )
   expect_snapshot(
     error = TRUE,
-    poststratify(matrix(1:4, 2, 2), strata = c(V1), population = pop)
+    poststratify(matrix(1:4, 2, 2), strata = c(V1), population = pop,
+                 type = "count")
   )
 })
 
@@ -251,12 +256,14 @@ test_that("poststratify() rejects 0-row data frame (SE-2)", {
   df0 <- make_surveywts_data(seed = 1)[0, ]
   pop <- .make_pop_ps()
   expect_error(
-    poststratify(df0, strata = c(age_group, sex), population = pop),
+    poststratify(df0, strata = c(age_group, sex), population = pop,
+                 type = "count"),
     class = "surveywts_error_empty_data"
   )
   expect_snapshot(
     error = TRUE,
-    poststratify(df0, strata = c(age_group, sex), population = pop)
+    poststratify(df0, strata = c(age_group, sex), population = pop,
+                 type = "count")
   )
 })
 
@@ -265,12 +272,14 @@ test_that("poststratify() rejects survey_replicate input (SE-3)", {
   pop <- .make_pop_ps()
   rep_obj <- .make_test_replicate_ps(df)
   expect_error(
-    poststratify(rep_obj, strata = c(age_group, sex), population = pop),
+    poststratify(rep_obj, strata = c(age_group, sex), population = pop,
+                 type = "count"),
     class = "surveywts_error_replicate_not_supported"
   )
   expect_snapshot(
     error = TRUE,
-    poststratify(rep_obj, strata = c(age_group, sex), population = pop)
+    poststratify(rep_obj, strata = c(age_group, sex), population = pop,
+                 type = "count")
   )
 })
 
@@ -279,13 +288,13 @@ test_that("poststratify() rejects missing named weight column (SE-4)", {
   pop <- .make_pop_ps()
   expect_error(
     poststratify(df, strata = c(age_group, sex), population = pop,
-                 weights = no_such_col),
+                 weights = no_such_col, type = "count"),
     class = "surveywts_error_weights_not_found"
   )
   expect_snapshot(
     error = TRUE,
     poststratify(df, strata = c(age_group, sex), population = pop,
-                 weights = no_such_col)
+                 weights = no_such_col, type = "count")
   )
 })
 
@@ -295,13 +304,13 @@ test_that("poststratify() rejects non-numeric weight column (SE-5)", {
   pop       <- .make_pop_ps()
   expect_error(
     poststratify(df, strata = c(age_group, sex), population = pop,
-                 weights = bad_wt),
+                 weights = bad_wt, type = "count"),
     class = "surveywts_error_weights_not_numeric"
   )
   expect_snapshot(
     error = TRUE,
     poststratify(df, strata = c(age_group, sex), population = pop,
-                 weights = bad_wt)
+                 weights = bad_wt, type = "count")
   )
 })
 
@@ -311,13 +320,13 @@ test_that("poststratify() rejects non-positive weight column (SE-6)", {
   pop               <- .make_pop_ps()
   expect_error(
     poststratify(df, strata = c(age_group, sex), population = pop,
-                 weights = base_weight),
+                 weights = base_weight, type = "count"),
     class = "surveywts_error_weights_nonpositive"
   )
   expect_snapshot(
     error = TRUE,
     poststratify(df, strata = c(age_group, sex), population = pop,
-                 weights = base_weight)
+                 weights = base_weight, type = "count")
   )
 })
 
@@ -327,13 +336,13 @@ test_that("poststratify() rejects NA weight column (SE-7)", {
   pop                   <- .make_pop_ps()
   expect_error(
     poststratify(df, strata = c(age_group, sex), population = pop,
-                 weights = base_weight),
+                 weights = base_weight, type = "count"),
     class = "surveywts_error_weights_na"
   )
   expect_snapshot(
     error = TRUE,
     poststratify(df, strata = c(age_group, sex), population = pop,
-                 weights = base_weight)
+                 weights = base_weight, type = "count")
   )
 })
 
@@ -342,13 +351,13 @@ test_that("poststratify() empty_data fires before weights_not_found (SE-8)", {
   pop <- .make_pop_ps()
   expect_error(
     poststratify(df0, strata = c(age_group, sex), population = pop,
-                 weights = no_such_col),
+                 weights = no_such_col, type = "count"),
     class = "surveywts_error_empty_data"
   )
   expect_snapshot(
     error = TRUE,
     poststratify(df0, strata = c(age_group, sex), population = pop,
-                 weights = no_such_col)
+                 weights = no_such_col, type = "count")
   )
 })
 
@@ -361,12 +370,14 @@ test_that("poststratify() rejects NA in strata variable", {
   df$age_group[1L] <- NA_character_
   pop              <- .make_pop_ps()
   expect_error(
-    poststratify(df, strata = c(age_group, sex), population = pop),
+    poststratify(df, strata = c(age_group, sex), population = pop,
+                 type = "count"),
     class = "surveywts_error_variable_has_na"
   )
   expect_snapshot(
     error = TRUE,
-    poststratify(df, strata = c(age_group, sex), population = pop)
+    poststratify(df, strata = c(age_group, sex), population = pop,
+                 type = "count")
   )
 })
 
@@ -431,12 +442,14 @@ test_that("poststratify() rejects duplicate rows in population", {
     stringsAsFactors = FALSE
   )
   expect_error(
-    poststratify(df, strata = c(age_group, sex), population = pop_dup),
+    poststratify(df, strata = c(age_group, sex), population = pop_dup,
+                 type = "count"),
     class = "surveywts_error_population_cell_duplicate"
   )
   expect_snapshot(
     error = TRUE,
-    poststratify(df, strata = c(age_group, sex), population = pop_dup)
+    poststratify(df, strata = c(age_group, sex), population = pop_dup,
+                 type = "count")
   )
 })
 
@@ -453,12 +466,14 @@ test_that("poststratify() rejects population missing a data cell", {
     stringsAsFactors = FALSE
   )
   expect_error(
-    poststratify(df, strata = c(age_group, sex), population = pop_missing),
+    poststratify(df, strata = c(age_group, sex), population = pop_missing,
+                 type = "count"),
     class = "surveywts_error_population_cell_missing"
   )
   expect_snapshot(
     error = TRUE,
-    poststratify(df, strata = c(age_group, sex), population = pop_missing)
+    poststratify(df, strata = c(age_group, sex), population = pop_missing,
+                 type = "count")
   )
 })
 
@@ -475,12 +490,14 @@ test_that("poststratify() rejects population cells absent from data", {
     stringsAsFactors = FALSE
   )
   expect_error(
-    poststratify(df, strata = c(age_group, sex), population = pop_extra),
+    poststratify(df, strata = c(age_group, sex), population = pop_extra,
+                 type = "count"),
     class = "surveywts_error_population_cell_not_in_data"
   )
   expect_snapshot(
     error = TRUE,
-    poststratify(df, strata = c(age_group, sex), population = pop_extra)
+    poststratify(df, strata = c(age_group, sex), population = pop_extra,
+                 type = "count")
   )
 })
 
@@ -506,7 +523,7 @@ test_that("poststratify() weights_nonpositive fires before empty_stratum", {
   # validate_weights fires first (weights_nonpositive), not empty_stratum
   expect_error(
     poststratify(df, strata = c(age_group), population = pop,
-                 weights = base_weight),
+                 weights = base_weight, type = "count"),
     class = "surveywts_error_weights_nonpositive"
   )
 })
@@ -522,7 +539,8 @@ test_that("poststratify() works with a single strata variable", {
     target    = c(3000, 4000, 3000),
     stringsAsFactors = FALSE
   )
-  result <- poststratify(df, strata = c(age_group), population = pop_single)
+  result <- poststratify(df, strata = c(age_group), population = pop_single,
+                         type = "count")
 
   test_invariants(result)
   expect_true(inherits(result, "weighted_df"))
@@ -552,7 +570,8 @@ test_that("poststratify() history entry has correct structure", {
   df  <- make_surveywts_data(seed = 9)
   pop <- .make_pop_ps()
 
-  result  <- poststratify(df, strata = c(age_group, sex), population = pop)
+  result  <- poststratify(df, strata = c(age_group, sex), population = pop,
+                          type = "count")
   history <- attr(result, "weighting_history")
 
   expect_length(history, 1L)
@@ -561,7 +580,7 @@ test_that("poststratify() history entry has correct structure", {
   expect_identical(entry$step, 1L)
   expect_identical(entry$operation, "poststratify")
   expect_true(inherits(entry$timestamp, "POSIXct"))
-  expect_true(nchar(entry$call) > 0L)
+  expect_true(all(nchar(entry$call) > 0L))
   expect_type(entry$parameters, "list")
   expect_type(entry$weight_stats, "list")
   expect_true(!is.null(entry$weight_stats$before))
@@ -593,7 +612,8 @@ test_that("poststratify() step increments correctly in chained calls", {
     result1,
     strata = c(age_group, sex),
     population = pop,
-    weights = .weight
+    weights = .weight,
+    type = "count"
   )
 
   history <- attr(result2, "weighting_history")
@@ -620,11 +640,13 @@ test_that("poststratify() rejects population missing the 'target' column", {
   )
 
   expect_error(
-    poststratify(df, strata = c(age_group), population = pop_no_target),
+    poststratify(df, strata = c(age_group), population = pop_no_target,
+                 type = "count"),
     class = "surveywts_error_population_cell_missing"
   )
   expect_snapshot(
     error = TRUE,
-    poststratify(df, strata = c(age_group), population = pop_no_target)
+    poststratify(df, strata = c(age_group), population = pop_no_target,
+                 type = "count")
   )
 })

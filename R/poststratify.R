@@ -35,9 +35,9 @@
 #'   survey object `@variables$weights`. For plain `data.frame` with
 #'   `weights = NULL`, uniform starting weights are used and the output
 #'   column is named `".weight"`.
-#' @param type Character scalar. `"count"` (default): `target` values are
-#'   population counts. `"prop"`: `target` values are proportions summing
-#'   to 1.0. Note: default is `"count"`, unlike [calibrate()] and [rake()].
+#' @param type Character scalar. `"prop"` (default): `target` values are
+#'   proportions summing to 1.0. `"count"`: `target` values are population
+#'   counts. Consistent with [calibrate()] and [rake()].
 #'
 #' @return
 #'   - `data.frame` or `weighted_df` input -> `weighted_df`
@@ -54,12 +54,23 @@
 #'   sex = c("M", "M", "M", "F", "F", "F"),
 #'   stringsAsFactors = FALSE
 #' )
-#' pop <- data.frame(
+#'
+#' # Proportion targets (default type = "prop")
+#' pop_prop <- data.frame(
+#'   age_group = c("18-34", "35-54", "55+", "18-34", "35-54", "55+"),
+#'   sex = c("M", "M", "M", "F", "F", "F"),
+#'   target = c(0.14, 0.18, 0.17, 0.15, 0.19, 0.17)
+#' )
+#' result <- poststratify(df, strata = c(age_group, sex), population = pop_prop)
+#'
+#' # Count targets (explicit type = "count")
+#' pop_count <- data.frame(
 #'   age_group = c("18-34", "35-54", "55+", "18-34", "35-54", "55+"),
 #'   sex = c("M", "M", "M", "F", "F", "F"),
 #'   target = c(14000, 18000, 17000, 15000, 19000, 17000)
 #' )
-#' result <- poststratify(df, strata = c(age_group, sex), population = pop)
+#' result2 <- poststratify(df, strata = c(age_group, sex),
+#'   population = pop_count, type = "count")
 #'
 #' @family calibration
 #' @export
@@ -68,7 +79,7 @@ poststratify <- function(
   strata,
   population,
   weights = NULL,
-  type = c("count", "prop")
+  type = c("prop", "count")
 ) {
   # ---- Capture call and match arguments ------------------------------------
   call_str    <- deparse(match.call())

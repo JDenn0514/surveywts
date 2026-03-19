@@ -2,7 +2,7 @@
 
 **Version:** 0.2
 **Date:** 2026-03-11
-**Status:** Draft — Stage 2 Resolve in progress (7 of 13 issues resolved; 6 pending)
+**Status:** Draft — Stage 2 Resolve in progress (8 of 16 issues resolved; 5 blocking GAPs pending)
 **Branch identifier:** `phase-1`
 **Related files:** `plans/spec-review-phase-1.md` (after review),
 `plans/decisions-phase-1.md` (after resolve)
@@ -38,23 +38,26 @@ Those rules apply by reference.
 | `create_fay_weights()` | Function | Yes |
 | `create_gen_boot_weights()` | Function | Yes |
 | `create_sdr_weights()` | Function | Yes |
-| `as_replicate_design()` | Function | Yes |
+| `create_replicate_weights()` | Function | Yes |
 | `as_taylor_design()` | Function | Yes |
 
-> **Scope correction (2026-03-11):** "Bootstrap variance in `survey_nonprob`"
-> was originally listed as a Phase 1 deliverable. It has been removed. See
-> `plans/decisions-phase-1.md` for rationale. Summary: `survey_nonprob` is a
-> non-probability sample class (Phase 2.5 skeleton in surveycore) with no design
-> structure (no PSU IDs, no strata) — RWYB and all Phase 1 bootstrap methods
-> require design structure. Non-probability bootstrap variance is Phase 2.5 scope.
+> **Scope correction (2026-03-11, updated 2026-03-12):** The original scope note
+> stated that "Bootstrap variance in `survey_nonprob`" was removed from Phase 1.
+> That applies only to the **re-calibrated bootstrap** (Rao & Tarozzi 2004), which
+> requires calibration provenance infrastructure not yet in place (Phase 2.5 scope).
+> **Simple bootstrap** for `survey_nonprob` — resampling observations without
+> re-calibrating each replicate — is Phase 1 scope. `create_bootstrap_weights()`
+> and `create_jackknife_weights()` accept `survey_nonprob` input and produce
+> `survey_replicate` output. See §XI for the Phase 1 / Phase 2.5 split.
 
 ### Non-Deliverables (Phase 1)
 
 The following are explicitly out of scope:
 
-- `create_*_weights()` accepting `weighted_df` input — only `survey_taylor` and
-  `survey_nonprob` are supported
-- `as_replicate_design()` accepting `weighted_df` input — same restriction
+- `create_*_weights()` accepting `weighted_df` input — `survey_taylor`,
+  `survey_srs`, and `survey_nonprob` (for applicable methods) are the only
+  supported input classes
+- `create_replicate_weights()` accepting `weighted_df` input — same restriction
 - Variance estimation or analysis functions — Phase 1 only creates the weights
 - `trim_weights()`, `stabilize_weights()` (Phase 4)
 - `calibrate_to_survey()` (Phase 2)
@@ -69,21 +72,27 @@ input until a future phase specifies that behavior.
 
 ### Input/Output Class Matrix
 
-#### `create_*_weights()` and `as_replicate_design()`
+#### `create_*_weights()` and `create_replicate_weights()`
 
 | Input class | Output |
 |-------------|--------|
 | `survey_taylor` | `survey_replicate` |
-| `survey_nonprob` | Error: `surveywts_error_not_survey_design` (see note below) |
+| `survey_srs` | Method-dependent — see each function's §Error Table |
+| `survey_nonprob` | Method-dependent — see each function's §Error Table |
 | `survey_replicate` | Error: `surveywts_error_already_replicate` |
 | `data.frame`, `weighted_df` | Error: `surveywts_error_not_survey_design` |
 | Any other | Error: `surveywts_error_unsupported_class` |
 
-> **`survey_nonprob` rejection:** `survey_nonprob` is a non-probability
-> sample class with no design structure (no PSU IDs, no strata). All Phase 1
-> bootstrap and jackknife methods require a probability design. The error message
-> must include an `"i"` bullet: "Bootstrap variance for non-probability samples
-> (`survey_nonprob`) is planned for Phase 2.5."
+Per-function behavior for `survey_srs` and `survey_nonprob`:
+
+| Function | `survey_srs` | `survey_nonprob` |
+|----------|-------------|-----------------|
+| `create_bootstrap_weights()` | `survey_replicate` (treats obs as PSUs; pending unclustered-design GAP) | `survey_replicate` (resamples obs) |
+| `create_jackknife_weights()` | `survey_replicate` (treats obs as PSUs) | `survey_replicate` (treats obs as PSUs) |
+| `create_brr_weights()` | Error `surveywts_error_brr_requires_paired_design` | Error `surveywts_error_brr_requires_paired_design` |
+| `create_fay_weights()` | Error `surveywts_error_brr_requires_paired_design` | Error `surveywts_error_brr_requires_paired_design` |
+| `create_gen_boot_weights()` | Error `surveywts_error_no_psu_ids` | Error `surveywts_error_no_psu_ids` |
+| `create_sdr_weights()` | `survey_replicate` (treats obs as ordered units) | Error `surveywts_error_no_psu_ids` |
 
 #### `as_taylor_design()`
 
@@ -105,7 +114,7 @@ R/
 │                         # create_brr_weights(), create_fay_weights(),
 │                         # create_gen_boot_weights(), create_sdr_weights(),
 │                         # plus phase-local helpers
-├── conversion.R          # as_replicate_design(), as_taylor_design()
+├── conversion.R          # create_replicate_weights(), as_taylor_design()
 ├── vendor/
 │   └── replicate-*.R     # Vendored replication algorithms (see §II.b)
 └── [existing Phase 0 files unchanged]
@@ -117,10 +126,16 @@ Phase 1 adds these shared internal helpers to `R/utils.R` (used by 2+ source fil
 
 | Helper | Signature | Description |
 |--------|-----------|-------------|
-| `.extract_taylor_structure()` | `(svy)` | Extracts PSU ids, strata, weights, FPC, nest flag from a `survey_taylor`; returns a named list |
+| `.extract_taylor_structure()` | `(data)` | Extracts PSU ids, strata, weights, FPC, nest flag from a `survey_taylor`; returns a named list |
 | `.validate_replicate_count()` | `(replicates, min = 2L)` | Validates that `replicates` is a positive integer ≥ `min`; errors with `surveywts_error_replicates_not_positive` |
-| `.build_survey_replicate()` | `(svy, repweights, type, scale = NULL, rscales = NULL, mse = TRUE)` | Adds replicate weight columns to `svy@data`, calls `surveycore::as_survey_repweights()` to construct the `survey_replicate`, then writes `$ids`, `$strata`, `$fpc`, `$nest` from `svy@variables` into the output `@variables` for round-trip recovery |
+| `.build_survey_replicate()` | `(data, repweights, type, scale = NULL, rscales = NULL, mse = TRUE)` | Adds replicate weight columns to `data@data`, calls `surveycore::as_survey_replicate()` to construct the `survey_replicate`, then writes `$ids`, `$strata`, `$fpc`, `$nest` from `data@variables` into the output `@variables` for round-trip recovery |
 | `.make_rep_col_names()` | `(prefix = "rep", n)` | Returns character vector `c("rep_1", "rep_2", ..., "rep_n")` |
+
+> **Soft risk:** `.build_survey_replicate()` stores Taylor round-trip keys (`ids`,
+> `strata`, `fpc`, `nest`) in `@variables`. The surveycore constructor sets 9 fixed
+> keys; extra keys are technically accepted by S7 but are outside the intended API.
+> This is a soft risk, not a blocking GAP — verify against surveycore before
+> implementation begins.
 
 Phase-local helpers (used only within `replicate-weights.R`) are defined at the
 top of that file, per `code-style.md §4`.
@@ -148,7 +163,7 @@ vendored or native. `svrep` remains in `Suggests` as the test oracle.
 ### §II.d `survey_replicate` Construction
 
 All `create_*_weights()` functions produce a `survey_replicate` via
-`surveycore::as_survey_repweights()`. The `type` string passed to that function
+`surveycore::as_survey_replicate()`. The `type` string passed to that function
 determines how scale factors are computed internally by surveycore:
 
 | Function | `type` string | Default scale |
@@ -164,7 +179,7 @@ determines how scale factors are computed internally by surveycore:
 ### §II.e Validation Order
 
 All `create_*_weights()` functions validate in this order:
-1. Input class check (error if not `survey_taylor` or `survey_nonprob`)
+1. Input class check (error if not `survey_taylor`, `survey_srs`, or `survey_nonprob`)
 2. `replicates` argument validity (where applicable)
 3. Method-specific design requirements (e.g., 2 PSUs per stratum for BRR)
 
@@ -176,7 +191,7 @@ All `create_*_weights()` functions validate in this order:
 
 ```r
 create_bootstrap_weights(
-  svy,
+  data,
   replicates = 500L,
   type = c("Rao-Wu-Yue-Beaumont", "standard"),
   mse = TRUE
@@ -187,10 +202,10 @@ create_bootstrap_weights(
 
 | Argument | Type | Default | Description |
 |----------|------|---------|-------------|
-| `svy` | `survey_taylor` or `survey_nonprob` | — | Input design |
+| `data` | `survey_taylor`, `survey_srs`, or `survey_nonprob` | — | Input design |
 | `replicates` | `integer(1)`, ≥ 2 | `500L` | Number of bootstrap replicates to generate |
 | `type` | `character(1)` | `"Rao-Wu-Yue-Beaumont"` | Bootstrap variant. See §III.b |
-| `mse` | `logical(1)` | `TRUE` | If `TRUE`, variance is estimated as `scale × Σ_r (θ̂_r − θ̂)²` (deviation from full-sample estimate). If `FALSE`, variance is estimated as `scale × Σ_r (θ̂_r − θ̄_rep)²` (deviation from replicate mean); this can underestimate variance for biased estimators. Passed through to `surveycore::as_survey_repweights()` |
+| `mse` | `logical(1)` | `TRUE` | If `TRUE`, variance is estimated as `scale × Σ_r (θ̂_r − θ̂)²` (deviation from full-sample estimate). If `FALSE`, variance is estimated as `scale × Σ_r (θ̂_r − θ̄_rep)²` (deviation from replicate mean); this can underestimate variance for biased estimators. Passed through to `surveycore::as_survey_replicate()` |
 
 ### Output Contract
 
@@ -231,15 +246,16 @@ Returns a `surveycore::survey_replicate` with:
 
 | Class | Condition |
 |-------|-----------|
-| `surveywts_error_not_survey_design` | `svy` is a `data.frame` or `weighted_df` |
-| `surveywts_error_unsupported_class` | `svy` is not a recognized survey class |
-| `surveywts_error_already_replicate` | `svy` is already a `survey_replicate` |
+| `surveywts_error_not_survey_design` | `data` is a `data.frame` or `weighted_df` |
+| `surveywts_error_unsupported_class` | `data` is not a recognized survey class |
+| `surveywts_error_already_replicate` | `data` is already a `survey_replicate` |
 | `surveywts_error_replicates_not_positive` | `replicates` is not a positive integer ≥ 2 |
-| `surveywts_error_no_psu_ids` | `svy@variables$ids` is `NULL` or empty (no clustering) |
 
 > ⚠️ GAP: Should `create_bootstrap_weights()` work on an unclustered design (no
 > PSUs), resampling individuals? Or should it require a clustered design? The
 > survey package supports both; svrep requires PSU IDs. Define behavior here.
+> `survey_srs` and `survey_nonprob` inputs are accepted pending this GAP resolution —
+> they are treated as designs where observations are the sampling units.
 
 ---
 
@@ -249,7 +265,7 @@ Returns a `surveycore::survey_replicate` with:
 
 ```r
 create_jackknife_weights(
-  svy,
+  data,
   type = c("delete-1", "random-groups"),
   replicates = NULL,
   mse = TRUE
@@ -257,7 +273,7 @@ create_jackknife_weights(
 ```
 
 > ⚠️ GAP: The roadmap lists `replicates` as a required argument
-> (`create_jackknife_weights(svy, replicates, ...)`), but for `type = "delete-1"`
+> (`create_jackknife_weights(data, replicates, ...)`), but for `type = "delete-1"`
 > the number of replicates is determined by the number of PSUs in the design — the
 > user cannot (and should not) specify it. Resolution options:
 >
@@ -273,7 +289,7 @@ create_jackknife_weights(
 
 | Argument | Type | Default | Description |
 |----------|------|---------|-------------|
-| `svy` | `survey_taylor` or `survey_nonprob` | — | Input design |
+| `data` | `survey_taylor`, `survey_srs`, or `survey_nonprob` | — | Input design |
 | `type` | `character(1)` | `"delete-1"` | Jackknife variant. `"delete-1"`: one replicate per PSU (JK1). `"random-groups"`: PSUs divided into `replicates` groups (JKn) |
 | `replicates` | `integer(1)`, ≥ 2 or `NULL` | `NULL` | Number of groups for `type = "random-groups"`. Ignored for `type = "delete-1"` |
 | `mse` | `logical(1)` | `TRUE` | If `TRUE`, variance deviates from full-sample estimate; if `FALSE`, deviates from replicate mean (can underestimate for biased estimators). See §III for full description |
@@ -304,12 +320,11 @@ approximately equal size. For each group replicate k:
 
 | Class | Condition |
 |-------|-----------|
-| `surveywts_error_not_survey_design` | `svy` is `data.frame` / `weighted_df` |
+| `surveywts_error_not_survey_design` | `data` is `data.frame` / `weighted_df` |
 | `surveywts_error_unsupported_class` | Unrecognized class |
-| `surveywts_error_already_replicate` | `svy` is already `survey_replicate` |
+| `surveywts_error_already_replicate` | `data` is already `survey_replicate` |
 | `surveywts_error_replicates_not_positive` | `replicates` ≤ 1 or not integer (when used) |
 | `surveywts_error_replicates_required_for_jkn` | `type = "random-groups"` and `replicates` is `NULL` |
-| `surveywts_error_no_psu_ids` | No PSU IDs in design |
 
 ---
 
@@ -319,8 +334,7 @@ approximately equal size. For each group replicate k:
 
 ```r
 create_brr_weights(
-  svy,
-  fay_rho = 0,
+  data,
   mse = TRUE
 )
 ```
@@ -329,14 +343,13 @@ create_brr_weights(
 
 | Argument | Type | Default | Description |
 |----------|------|---------|-------------|
-| `svy` | `survey_taylor` or `survey_nonprob` | — | Input design. Must have exactly 2 PSUs per stratum (paired PSU design) |
-| `fay_rho` | `numeric(1)`, 0 ≤ rho < 1 | `0` | Fay coefficient. `0` = standard BRR. `rho > 0` = Fay's generalization: half-sample units get factor `2 - rho`, excluded units get factor `rho` |
+| `data` | `survey_taylor` | — | Input design. Must have exactly 2 PSUs per stratum (paired PSU design). `survey_srs` and `survey_nonprob` are rejected — BRR requires a paired design structure |
 | `mse` | `logical(1)` | `TRUE` | If `TRUE`, variance deviates from full-sample estimate; if `FALSE`, deviates from replicate mean (can underestimate for biased estimators). See §III for full description |
 
 ### Output Contract
 
 Returns `survey_replicate` with:
-- `@variables$type`: `"BRR"` when `fay_rho = 0`; `"Fay"` when `fay_rho > 0`
+- `@variables$type`: `"BRR"`
 - `n_rep` = smallest multiple of 4 that is ≥ number of strata
 - `@variables$scale`: `1 / n_rep`
 
@@ -347,23 +360,18 @@ half-samples. For each replicate (row) and each stratum (column):
 - H[r, h] = +1: PSU 1 in stratum h is selected (full weight); PSU 2 gets factor 0
 - H[r, h] = −1: PSU 2 is selected; PSU 1 gets factor 0
 
-For standard BRR (`fay_rho = 0`): selected PSU factor = 2, excluded factor = 0.
-For Fay's method (`fay_rho > 0`): selected factor = 2 − rho, excluded factor = rho.
+For standard BRR: selected PSU factor = 2, excluded factor = 0.
 
-> ⚠️ GAP: Stage 2 should verify (a) the exact Hadamard matrix construction
-> algorithm, (b) whether the function should error or warn when `fay_rho > 0`
-> (since `create_fay_weights()` covers that case — see §VI), and (c) whether
-> `fay_rho > 0` in `create_brr_weights()` is redundant with `create_fay_weights()`.
+> ⚠️ GAP: Stage 2 should verify the exact Hadamard matrix construction algorithm.
 
 ### §V.c Error Table
 
 | Class | Condition |
 |-------|-----------|
-| `surveywts_error_not_survey_design` | `svy` is `data.frame` / `weighted_df` |
+| `surveywts_error_not_survey_design` | `data` is `data.frame` / `weighted_df` |
 | `surveywts_error_unsupported_class` | Unrecognized class |
 | `surveywts_error_already_replicate` | Already `survey_replicate` |
-| `surveywts_error_brr_requires_paired_design` | Any stratum has ≠ 2 PSUs |
-| `surveywts_error_brr_fay_rho_invalid` | `fay_rho` is not numeric, or < 0, or ≥ 1 |
+| `surveywts_error_brr_requires_paired_design` | Any stratum has ≠ 2 PSUs, or input is `survey_srs` / `survey_nonprob` |
 
 ---
 
@@ -373,7 +381,7 @@ For Fay's method (`fay_rho > 0`): selected factor = 2 − rho, excluded factor =
 
 ```r
 create_fay_weights(
-  svy,
+  data,
   replicates = 100L,
   rho = 0.5,
   mse = TRUE
@@ -384,25 +392,10 @@ create_fay_weights(
 
 | Argument | Type | Default | Description |
 |----------|------|---------|-------------|
-| `svy` | `survey_taylor` or `survey_nonprob` | — | Input design |
+| `data` | `survey_taylor` | — | Input design. Must have exactly 2 PSUs per stratum (paired PSU design). `survey_srs` and `survey_nonprob` are rejected — Fay's method requires a paired design structure |
 | `replicates` | `integer(1)`, ≥ 2 | `100L` | Number of pseudo-BRR replicates |
-| `rho` | `numeric(1)`, 0 < rho < 1 | `0.5` | Fay coefficient. Unlike `create_brr_weights(fay_rho)`, this is required to be strictly positive |
+| `rho` | `numeric(1)`, 0 < rho < 1 | `0.5` | Fay coefficient. Required to be strictly positive. Selected PSU factor = `2 - rho`; excluded factor = `rho` |
 | `mse` | `logical(1)` | `TRUE` | If `TRUE`, variance deviates from full-sample estimate; if `FALSE`, deviates from replicate mean (can underestimate for biased estimators). See §III for full description |
-
-> ⚠️ GAP: The distinction between `create_brr_weights(fay_rho > 0)` and
-> `create_fay_weights()` must be resolved in Stage 2. Options:
->
-> - **Option A:** `create_fay_weights()` generates pseudo-BRR using random
->   half-sample assignments (not Hadamard matrices), allowing arbitrary
->   `replicates`. `create_brr_weights(fay_rho > 0)` uses Hadamard matrices
->   (fixed replicate count, exact orthogonal balance). These are different
->   methods despite similar formulas.
->
-> - **Option B:** `create_fay_weights()` is sugar for
->   `create_brr_weights(fay_rho = rho)`. Remove `create_fay_weights()`.
->
-> - **Option C:** `create_fay_weights()` is the primary Fay function;
->   `create_brr_weights()` drops the `fay_rho` argument and is BRR-only.
 
 ### Output Contract
 
@@ -415,10 +408,11 @@ Returns `survey_replicate` with:
 
 | Class | Condition |
 |-------|-----------|
-| `surveywts_error_not_survey_design` | `svy` is `data.frame` / `weighted_df` |
+| `surveywts_error_not_survey_design` | `data` is `data.frame` / `weighted_df` |
 | `surveywts_error_unsupported_class` | Unrecognized class |
 | `surveywts_error_already_replicate` | Already `survey_replicate` |
 | `surveywts_error_replicates_not_positive` | `replicates` ≤ 1 or not integer |
+| `surveywts_error_brr_requires_paired_design` | Any stratum has ≠ 2 PSUs, or input is `survey_srs` / `survey_nonprob` |
 | `surveywts_error_brr_fay_rho_invalid` | `rho` ≤ 0 or ≥ 1 |
 
 ---
@@ -429,7 +423,7 @@ Returns `survey_replicate` with:
 
 ```r
 create_gen_boot_weights(
-  svy,
+  data,
   replicates = 500L,
   variance_estimator = c("SD1", "SD2"),
   mse = TRUE
@@ -440,7 +434,7 @@ create_gen_boot_weights(
 
 | Argument | Type | Default | Description |
 |----------|------|---------|-------------|
-| `svy` | `survey_taylor` or `survey_nonprob` | — | Input design |
+| `data` | `survey_taylor` | — | Input design. PSU IDs required. `survey_srs` and `survey_nonprob` are rejected with `surveywts_error_no_psu_ids` |
 | `replicates` | `integer(1)`, ≥ 2 | `500L` | Number of replicates |
 | `variance_estimator` | `character(1)` | `"SD1"` | Variance estimator variant. `"SD1"` is for with-replacement sampling; `"SD2"` is for without-replacement |
 | `mse` | `logical(1)` | `TRUE` | If `TRUE`, variance deviates from full-sample estimate; if `FALSE`, deviates from replicate mean (can underestimate for biased estimators). See §III for full description |
@@ -471,8 +465,9 @@ Same as SD1 but adds a wrap-around term connecting last and first PSU.
 `1e-8` tolerance. PSUs within each stratum are ordered by their systematic
 selection order; this ordering must be preserved or specified via `sort_var`.
 
-**Design requirement:** PSU IDs are required (`svy@variables$ids` must be
-non-NULL). Unclustered designs are rejected with `surveywts_error_no_psu_ids`.
+**Design requirement:** PSU IDs are required (`data@variables$ids` must be
+non-NULL). Unclustered designs and `survey_srs`/`survey_nonprob` inputs are
+rejected with `surveywts_error_no_psu_ids`.
 
 **Reference:** svrep `make_gen_boot_factors(variance_estimator = "SD1")` and
 `make_gen_boot_factors(variance_estimator = "SD2")`.
@@ -485,10 +480,11 @@ Returns `survey_replicate` with `@variables$type = "bootstrap"`.
 
 | Class | Condition |
 |-------|-----------|
-| `surveywts_error_not_survey_design` | `svy` is `data.frame` / `weighted_df` |
+| `surveywts_error_not_survey_design` | `data` is `data.frame` / `weighted_df` |
 | `surveywts_error_unsupported_class` | Unrecognized class |
 | `surveywts_error_already_replicate` | Already `survey_replicate` |
 | `surveywts_error_replicates_not_positive` | `replicates` ≤ 1 or not integer |
+| `surveywts_error_no_psu_ids` | `survey_srs` or `survey_nonprob` input, or no PSU IDs in design |
 
 ---
 
@@ -498,7 +494,7 @@ Returns `survey_replicate` with `@variables$type = "bootstrap"`.
 
 ```r
 create_sdr_weights(
-  svy,
+  data,
   replicates = 100L,
   sort_var = NULL,
   mse = TRUE
@@ -509,9 +505,9 @@ create_sdr_weights(
 
 | Argument | Type | Default | Description |
 |----------|------|---------|-------------|
-| `svy` | `survey_taylor` or `survey_nonprob` | — | Input design. PSUs must be in systematic selection order (see `sort_var`) |
+| `data` | `survey_taylor` or `survey_srs` | — | Input design. PSUs must be in systematic selection order (see `sort_var`). `survey_nonprob` is rejected with `surveywts_error_no_psu_ids` |
 | `replicates` | `integer(1)`, must be a multiple of 4 | `100L` | Number of SDR replicates. Must be a multiple of 4 (Hadamard matrix constraint). Error if not. The ACS uses 80; typical range is 80–200 |
-| `sort_var` | `character(1)` or `NULL` | `NULL` | Column name in `svy@data` giving systematic selection order. If `NULL`, row order in `svy@data` is assumed to be the systematic selection order. Errors if `sort_var` contains `NA` |
+| `sort_var` | `character(1)` or `NULL` | `NULL` | Column name in `data@data` giving systematic selection order. If `NULL`, row order in `data@data` is assumed to be the systematic selection order. Errors if `sort_var` contains `NA` |
 | `mse` | `logical(1)` | `TRUE` | If `TRUE`, variance deviates from full-sample estimate; if `FALSE`, deviates from replicate mean (can underestimate for biased estimators). See §III for full description |
 
 ### §VIII.a Algorithm
@@ -534,7 +530,7 @@ giving factors in {1 − √2/2, 1, 1 + √2/2}.
 
 **Scale:** `4 / n_rep` (confirmed from svrep documentation).
 
-**Sort variable:** If `sort_var` is provided, rows of `svy@data` are reordered
+**Sort variable:** If `sort_var` is provided, rows of `data@data` are reordered
 by that column before factor computation. If `sort_var = NULL`, existing row
 order is used. Errors if `sort_var` has `NA` values
 (`surveywts_error_sort_var_has_na`).
@@ -552,22 +548,23 @@ Returns `survey_replicate` with:
 
 | Class | Condition |
 |-------|-----------|
-| `surveywts_error_not_survey_design` | `svy` is `data.frame` / `weighted_df` |
+| `surveywts_error_not_survey_design` | `data` is `data.frame` / `weighted_df` |
 | `surveywts_error_unsupported_class` | Unrecognized class |
 | `surveywts_error_already_replicate` | Already `survey_replicate` |
 | `surveywts_error_replicates_not_positive` | `replicates` ≤ 1 or not integer |
 | `surveywts_error_sdr_replicates_not_multiple_of_4` | `replicates` is not a multiple of 4 |
 | `surveywts_error_sort_var_has_na` | `sort_var` column contains `NA` |
+| `surveywts_error_no_psu_ids` | `survey_nonprob` input |
 
 ---
 
-## IX. `as_replicate_design()`
+## IX. `create_replicate_weights()`
 
 ### Signature
 
 ```r
-as_replicate_design(
-  svy,
+create_replicate_weights(
+  data,
   method = c("bootstrap", "jackknife", "brr", "fay", "gen-boot", "sdr"),
   ...
 )
@@ -577,7 +574,7 @@ as_replicate_design(
 
 | Argument | Type | Default | Description |
 |----------|------|---------|-------------|
-| `svy` | `survey_taylor` or `survey_nonprob` | — | Input design |
+| `data` | `survey_taylor`, `survey_srs`, or `survey_nonprob` | — | Input design |
 | `method` | `character(1)` | (required) | Replication method. Dispatches to the corresponding `create_*_weights()` function |
 | `...` | — | — | Additional arguments passed to the underlying `create_*_weights()` function |
 
@@ -585,12 +582,12 @@ as_replicate_design(
 
 | `method` | Dispatches to |
 |----------|--------------|
-| `"bootstrap"` | `create_bootstrap_weights(svy, ...)` |
-| `"jackknife"` | `create_jackknife_weights(svy, ...)` |
-| `"brr"` | `create_brr_weights(svy, ...)` |
-| `"fay"` | `create_fay_weights(svy, ...)` |
-| `"gen-boot"` | `create_gen_boot_weights(svy, ...)` |
-| `"sdr"` | `create_sdr_weights(svy, ...)` |
+| `"bootstrap"` | `create_bootstrap_weights(data, ...)` |
+| `"jackknife"` | `create_jackknife_weights(data, ...)` |
+| `"brr"` | `create_brr_weights(data, ...)` |
+| `"fay"` | `create_fay_weights(data, ...)` |
+| `"gen-boot"` | `create_gen_boot_weights(data, ...)` |
+| `"sdr"` | `create_sdr_weights(data, ...)` |
 
 ### Output Contract
 
@@ -600,7 +597,7 @@ Same as the dispatched `create_*_weights()` function.
 
 | Class | Condition |
 |-------|-----------|
-| `surveywts_error_not_survey_design` | `svy` is `data.frame` / `weighted_df` |
+| `surveywts_error_not_survey_design` | `data` is `data.frame` / `weighted_df` |
 | `surveywts_error_unsupported_class` | Unrecognized class |
 | `surveywts_error_already_replicate` | Already `survey_replicate` |
 | Plus all errors from the dispatched function | Propagated as-is |
@@ -612,21 +609,21 @@ Same as the dispatched `create_*_weights()` function.
 ### Signature
 
 ```r
-as_taylor_design(svy)
+as_taylor_design(data)
 ```
 
 ### Argument Table
 
 | Argument | Type | Default | Description |
 |----------|------|---------|-------------|
-| `svy` | `survey_replicate` (or `survey_taylor`) | — | Input design |
+| `data` | `survey_replicate` (or `survey_taylor`) | — | Input design |
 
 ### Output Contract
 
 Returns a `surveycore::survey_taylor` reconstructed from the replicate design's
 base design structure. The replicate weight columns are dropped.
 
-**Behavior when input is `survey_taylor`:** Returns `svy` unchanged, with warning
+**Behavior when input is `survey_taylor`:** Returns `data` unchanged, with warning
 `surveywts_warning_already_taylor`.
 
 **What is preserved vs. lost:**
@@ -638,11 +635,10 @@ base design structure. The replicate weight columns are dropped.
 
 **Taylor structure storage (Issue 6 decision — Option A):**
 `create_*_weights()` stores the original Taylor design structure in the output
-`survey_replicate@variables` when the input is `survey_taylor` or
-`survey_nonprob`:
+`survey_replicate@variables` when the input is `survey_taylor`:
 
 ```r
-@variables$ids    # character vector: PSU ID column name(s) from svy@variables$ids
+@variables$ids    # character vector: PSU ID column name(s) from data@variables$ids
 @variables$strata # character(1) or NULL: stratum column name
 @variables$fpc    # character(1) or NULL: FPC column name
 @variables$nest   # logical(1): nest flag (default FALSE)
@@ -664,90 +660,34 @@ Option B (store in `@metadata@weighting_history`) and update the spec.
 
 ---
 
-## XI. Bootstrap Variance for `survey_nonprob` ~~(Removed from Phase 1)~~
+## XI. Bootstrap Variance for `survey_nonprob` — Phase 1 (simple) / Phase 2.5 (re-calibrated)
 
-> ⛔ **Removed from Phase 1 scope (2026-03-11).** See `plans/decisions-phase-1.md`.
->
-> `survey_nonprob` is a non-probability sample class in surveycore (Phase 2.5
-> skeleton). Its `@variables` contains only `weights` and `probs_provided` — no
-> `ids`, `strata`, or `fpc`. All Phase 1 replication methods (RWYB bootstrap,
-> jackknife, BRR, Fay, gen-boot, SDR) require PSU structure. Non-probability
-> bootstrap variance is Phase 2.5 scope.
->
-> `create_*_weights()` rejects `survey_nonprob` input with
-> `surveywts_error_not_survey_design` and an informative message pointing to
-> Phase 2.5. The content below is retained for reference only.
+### Phase 1 Scope: Simple Bootstrap
 
-### Context (reference only — Phase 2.5)
+`survey_nonprob` is accepted by `create_bootstrap_weights()` and
+`create_jackknife_weights()`. These functions resample observations (treating
+each observation as its own sampling unit) without re-calibrating each replicate.
+The output is a `survey_replicate` with resampled weight columns.
 
-When a user has a `survey_nonprob` object and calls any `create_*_weights()`
-function (or `as_replicate_design()`), Phase 1 should not just create bootstrap
-replicates of the calibrated weights — it should create bootstrap replicates of
-the **base (pre-calibration) weights** and **re-calibrate each replicate**. This
-is the methodologically correct approach for calibrated bootstrap variance
-(Rao & Tarozzi 2004; Beaumont & Patak 2012).
+This is methodologically appropriate for **uncalibrated** `survey_nonprob` objects
+or when the user accepts approximate variance estimates for calibrated objects.
+It is the standard bootstrap for non-probability samples when design-based
+replication is not possible.
 
-### Required Provenance
+### Phase 2.5 Scope: Re-calibrated Bootstrap
 
-For re-calibration on each replicate to work, `survey_nonprob@calibration`
-must store the full information needed to replay the calibration call. The Phase 0
-roadmap gives this rough structure:
+When a user has a calibrated `survey_nonprob` object and wants
+**methodologically correct bootstrap variance** (Rao & Tarozzi 2004;
+Beaumont & Patak 2012), the correct approach is to:
+1. Resample observations using the base (pre-calibration) weights
+2. Re-calibrate each replicate using stored calibration provenance
 
-```r
-list(
-  method      = "raking",          # "calibrate", "rake", "poststratify"
-  formula     = ~age + sex,        # or a list of formulas for rake()
-  population  = list(...),         # population margins/totals
-  weights     = "base_weight",     # original weight column name
-  timestamp   = Sys.time(),
-  call        = sys.call()
-)
-```
+This requires infrastructure not yet in place:
+- `survey_nonprob@calibration` provenance structure (Phase 2.5)
+- A mechanism to replay calibration calls on resampled replicates
 
-> ⚠️ GAP (Blocking): The `@calibration` provenance structure for bootstrap
-> re-calibration is NOT yet finalized. Two open questions:
->
-> **Q1: Do Phase 0 calibration functions set `@calibration` on the output?**
-> The Phase 0 class matrix shows `calibrate(survey_taylor_obj, ...)` →
-> `survey_taylor` output (same class). `survey_taylor` does not have a
-> `@calibration` property. So the answer appears to be: **no**, Phase 0
-> calibration functions do not produce `survey_nonprob` outputs.
->
-> This means the bootstrap re-calibration path requires one of:
->
-> - **Option A:** Phase 0 functions updated to return `survey_nonprob` (with
->   `@calibration` provenance) when input is `survey_taylor`. **Requires a Phase 0
->   spec amendment.** Breaking change to the Phase 0 class matrix.
->
-> - **Option B:** `as_replicate_design()` accepts optional provenance arguments
->   (`calibration_fn`, `calibration_args`) that are applied per-replicate. The
->   `@calibration` property is ignored and provenance is provided at call time.
->
-> - **Option C:** Separate function `as_calibrated_replicate_design()` for this
->   workflow, leaving `as_replicate_design()` for uncalibrated designs only.
->
-> **Q2: Does `survey_nonprob@variables` store the original Taylor design
-> structure ($ids, $strata, $fpc)?**
-> The surveycore `as_survey_nonprob()` constructor sets `ids = NULL, strata = NULL`
-> etc. If the base design structure is lost, bootstrap replicates cannot be drawn.
->
-> These questions must be resolved before Phase 1 implementation begins. Stage 2
-> or Stage 3 must produce decisions.
-
-### Behavior (assuming Option A for Q1)
-
-When input to `create_*_weights()` is `survey_nonprob`:
-1. Extract base weight column (`@variables$weights`)
-2. Read calibration provenance from `@calibration`
-3. Temporarily revert to base (uncalibrated) weights using the stored original
-   weights (or extract from provenance if the base weight column name is stored)
-4. Create bootstrap replicates using the base design structure
-5. For each replicate, re-calibrate using the provenance call
-6. Return `survey_replicate` with re-calibrated replicate weights
-
-> ⚠️ GAP: Step 3 requires the pre-calibration weights to be available. Either:
-> - The original weight column is preserved in `@data` under a different name, or
-> - The pre-calibration weight is stored in `@calibration$weights`
+**Re-calibrated bootstrap is Phase 2.5 scope.** Phase 1 simple bootstrap does not
+replay calibration — it resamples the current (calibrated) weights directly.
 
 ---
 
@@ -760,7 +700,7 @@ Per `surveywts-conventions.md §2`:
                             # create_brr_weights(), create_fay_weights(),
                             # create_gen_boot_weights(), create_sdr_weights()
 
-@family conversion          # as_replicate_design(), as_taylor_design()
+@family conversion          # create_replicate_weights(), as_taylor_design()
 ```
 
 ---
@@ -773,12 +713,12 @@ These classes must be added to `plans/error-messages.md`:
 
 | Class | Thrown by | Condition |
 |-------|-----------|-----------|
-| `surveywts_error_already_replicate` | All `create_*_weights()`, `as_replicate_design()` | Input is already `survey_replicate` |
-| `surveywts_error_not_survey_design` | All `create_*_weights()`, `as_replicate_design()` | Input is `data.frame` or `weighted_df` |
+| `surveywts_error_already_replicate` | All `create_*_weights()`, `create_replicate_weights()` | Input is already `survey_replicate` |
+| `surveywts_error_not_survey_design` | All `create_*_weights()`, `create_replicate_weights()` (only for `data.frame` / `weighted_df` input; `survey_srs` and `survey_nonprob` are accepted by applicable methods) | Input is `data.frame` or `weighted_df` |
 | `surveywts_error_replicates_not_positive` | `create_bootstrap_weights()`, `create_jackknife_weights()` (random-groups), `create_fay_weights()`, `create_gen_boot_weights()`, `create_sdr_weights()` | `replicates` is not a positive integer ≥ 2 |
-| `surveywts_error_no_psu_ids` | `create_bootstrap_weights()`, `create_jackknife_weights()` | Design has no PSU IDs |
-| `surveywts_error_brr_requires_paired_design` | `create_brr_weights()`, `create_fay_weights()` | Stratum has ≠ 2 PSUs |
-| `surveywts_error_brr_fay_rho_invalid` | `create_brr_weights()`, `create_fay_weights()` | `fay_rho` or `rho` out of valid range |
+| `surveywts_error_no_psu_ids` | `create_gen_boot_weights()` (all inputs without PSU IDs), `create_sdr_weights()` (`survey_nonprob` input) | Design has no PSU IDs |
+| `surveywts_error_brr_requires_paired_design` | `create_brr_weights()`, `create_fay_weights()` | Stratum has ≠ 2 PSUs, or input is `survey_srs` / `survey_nonprob` |
+| `surveywts_error_brr_fay_rho_invalid` | `create_fay_weights()` | `rho` out of valid range (≤ 0 or ≥ 1) |
 | `surveywts_error_replicates_required_for_jkn` | `create_jackknife_weights()` | `type = "random-groups"` but `replicates = NULL` |
 | `surveywts_error_sdr_replicates_not_multiple_of_4` | `create_sdr_weights()` | `replicates` is not a multiple of 4 |
 | `surveywts_error_sort_var_has_na` | `create_sdr_weights()`, `create_gen_boot_weights()` | `sort_var` column contains `NA` |
@@ -836,6 +776,7 @@ make_paired_design <- function(seed = 42) {
 1b. Default `replicates = 500` produces correct number of rep columns
 1c. `type = "Rao-Wu-Yue-Beaumont"` vs `type = "standard"` differ in variance
 1d. `mse = FALSE` passes through to `@variables$mse`
+1e. `survey_nonprob` input → `survey_replicate` (simple bootstrap; `test_invariants()`)
 
 **2. `create_bootstrap_weights()` — numerical correctness**
 2a. Compare variance of a mean estimate against `svrep` reference
@@ -851,19 +792,19 @@ make_paired_design <- function(seed = 42) {
 **4. `create_jackknife_weights()` — happy path**
 4a. `type = "delete-1"` → `@variables$type == "JK1"`, `n_rep == n_psus`
 4b. `type = "random-groups"` with `replicates = 20` → `@variables$type == "JKn"`, `n_rep == 20`
+4c. `survey_nonprob` input → `survey_replicate` (treats obs as PSUs; `test_invariants()`)
 
 **5. `create_jackknife_weights()` — errors**
 5a. `type = "random-groups"`, `replicates = NULL` → `surveywts_error_replicates_required_for_jkn`
 5b. `survey_replicate` input → `surveywts_error_already_replicate`
 
 **6. `create_brr_weights()` — happy path**
-6a. Paired design → `survey_replicate`; `n_rep` is multiple of 4 ≥ n_strata
-6b. `fay_rho = 0.5` → `@variables$type == "Fay"`
+6a. Paired design → `survey_replicate`; `n_rep` is multiple of 4 ≥ n_strata; `@variables$type == "BRR"`
 
 **7. `create_brr_weights()` — errors**
 7a. Non-paired design → `surveywts_error_brr_requires_paired_design` (class + snapshot)
-7b. `fay_rho = 1` → `surveywts_error_brr_fay_rho_invalid` (class + snapshot)
-7c. `fay_rho = -0.1` → `surveywts_error_brr_fay_rho_invalid` (class + snapshot)
+7b. `survey_srs` input → `surveywts_error_brr_requires_paired_design` (class + snapshot)
+7c. `survey_nonprob` input → `surveywts_error_brr_requires_paired_design` (class + snapshot)
 
 **8. `create_fay_weights()` — happy path**
 8a. Default arguments → `survey_replicate`, `@variables$type == "Fay"`
@@ -877,21 +818,23 @@ make_paired_design <- function(seed = 42) {
 
 **11. `create_sdr_weights()` — happy path**
 11a. `replicates = 100` → `survey_replicate`, `@variables$type == "successive-difference"`
+11b. `survey_srs` input → `survey_replicate` (treats obs as ordered units; `test_invariants()`)
 
 **12. `create_sdr_weights()` — errors**
 12a. `replicates = 5` (not multiple of 4) → `surveywts_error_sdr_replicates_not_multiple_of_4` (class + snapshot)
 12b. `replicates = 6` (even but not multiple of 4) → same error (class + snapshot)
 12c. `sort_var` with NA values → `surveywts_error_sort_var_has_na` (class + snapshot)
+12d. `survey_nonprob` input → `surveywts_error_no_psu_ids` (class + snapshot)
 
 #### `test-conversion.R`
 
-**13. `as_replicate_design()` — happy path**
+**13. `create_replicate_weights()` — happy path**
 13a. `method = "bootstrap"` dispatches correctly → `survey_replicate`
 13b. `method = "jackknife"` dispatches correctly → `survey_replicate`
 13c. `method = "brr"` dispatches correctly (paired design) → `survey_replicate`
 13d. Extra `...` args pass through to underlying function
 
-**14. `as_replicate_design()` — errors**
+**14. `create_replicate_weights()` — errors**
 14a. `survey_replicate` input → `surveywts_error_already_replicate`
 14b. `data.frame` input → `surveywts_error_not_survey_design`
 14c. Invalid `method` string → standard `match.arg()` error
@@ -903,11 +846,6 @@ make_paired_design <- function(seed = 42) {
 **16. `as_taylor_design()` — warnings**
 16a. `survey_taylor` input → `surveywts_warning_already_taylor` (class + snapshot)
 16b. `survey_replicate` input → `surveywts_warning_taylor_loses_variance` (class + snapshot)
-
-**17. Bootstrap variance for `survey_nonprob`**
-_Depends on GAP resolution in §XI. Placeholder:_
-17a. `survey_nonprob` input → `survey_replicate` with re-calibrated replicates
-17b. Variance of mean estimate matches svrep reference (skip_if_not_installed)
 
 ### `test_invariants()` extension
 
@@ -937,7 +875,7 @@ Phase 1 is complete when:
 
 - [ ] All six `create_*_weights()` functions pass `devtools::check()` with 0 errors,
   0 warnings, ≤2 pre-approved notes
-- [ ] `as_replicate_design()` and `as_taylor_design()` pass check
+- [ ] `create_replicate_weights()` and `as_taylor_design()` pass check
 - [ ] Test coverage ≥ 98% for `R/replicate-weights.R` and `R/conversion.R`
 - [ ] All error classes in §XIII are in `plans/error-messages.md`
 - [ ] All test blocks listed in §XIV are implemented and passing
@@ -972,7 +910,7 @@ requirements.
 
 ## XVII. Open GAPs Summary
 
-### Resolved (2026-03-11 — Stage 2 Resolve Part 1)
+### Resolved
 
 | GAP | Section | Decision |
 |-----|---------|----------|
@@ -982,7 +920,8 @@ requirements.
 | SD1/SD2 gen-boot formulas | §VII | Specified: Ash 2014 quadratic forms; svrep oracle |
 | SDR algorithm, scale, constraint | §VIII | Fixed: Hadamard formula, scale=4/R, multiple-of-4, sort_var |
 | `as_taylor_design()` Taylor structure recovery | §X | Decision A: store in `@variables` |
-| Bootstrap variance for `survey_nonprob` | §XI | Removed from Phase 1 — Phase 2.5 scope |
+| Bootstrap variance for `survey_nonprob` | §XI | Split: simple bootstrap in Phase 1; re-calibrated bootstrap in Phase 2.5. Confirmed 2026-03-12 |
+| `create_brr_weights()` vs `create_fay_weights()` distinction | §V.b + §VI | Option C — BRR and Fay are separate functions. `fay_rho` removed from `create_brr_weights()`. Confirmed 2026-03-12 |
 
 ### Open (carry to Stage 2 Resolve Part 2)
 
@@ -990,9 +929,8 @@ requirements.
 |-----|---------|-----------|------------|
 | JK1 for stratified designs: error or support with per-stratum rscales? | §IV.b | Yes | Stage 2 |
 | Bootstrap single-PSU stratum handling | §III.b | Yes | Stage 2 |
-| Bootstrap unclustered design support | §III.c | Yes | Stage 2 |
+| Bootstrap unclustered design support (`survey_srs` / `survey_nonprob`) | §III.c | Yes | Stage 2 |
 | JKn stratified grouping: within-stratum vs. across all strata | §IV.b | Yes | Stage 2 |
-| `create_brr_weights()` vs `create_fay_weights()` distinction | §V.b + §VI | Yes | Stage 2 |
 | Vendoring decision for algorithm implementations | §II.b | No | Stage 2 |
 | `create_jackknife_weights()` replicates for delete-1 | §IV | Yes | Stage 3 |
 | Many-replicate warning threshold for delete-1 jackknife | §IV.b | No | Stage 3 |

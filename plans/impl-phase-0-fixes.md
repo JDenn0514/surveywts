@@ -22,7 +22,7 @@ fixes, then the two high-severity changes.
 
 - [x] PR 1: `fix/utils-housekeeping` — Move helpers to utils.R, inline `%||%`, document `@importFrom` exception (Changes 4, 5, 10)
 - [ ] PR 2: `fix/input-validation` — Modernize `.check_input_class()` and `response_status` resolution (Changes 3, 7)
-- [ ] PR 3: `fix/diagnostics-cosmetic` — Rewrite grouped path in `summarize_weights()` and fix print label (Changes 6, 9)
+- [x] PR 3: `fix/diagnostics-cosmetic` — Rewrite grouped path in `summarize_weights()` and fix print label (Changes 6, 9)
 - [ ] PR 4: `fix/poststratify-default-type` — Change `poststratify()` default `type` to `"prop"` (Change 8)
 - [ ] PR 5: `fix/vendor-delegation` — Replace vendored algorithms with `survey`/`anesrake` calls (Change 1)
 - [ ] PR 6: `fix/nonresponse-zero-weights` — Zero weights instead of dropping rows in `adjust_nonresponse()` (Change 2)

@@ -733,3 +733,21 @@ test_that("adjust_nonresponse() rejects character response_status (not binary)",
     adjust_nonresponse(df, response_status = resp_char)
   )
 })
+
+# ---------------------------------------------------------------------------
+# 18. Error — response_status selects multiple columns (eval_select)
+# ---------------------------------------------------------------------------
+
+test_that("adjust_nonresponse() rejects response_status selecting multiple columns", {
+  df <- make_surveywts_data(seed = 22, include_nonrespondents = TRUE)
+  df$responded2 <- df$responded
+
+  expect_error(
+    adjust_nonresponse(df, response_status = c(responded, responded2)),
+    class = "surveywts_error_response_status_multiple_columns"
+  )
+  expect_snapshot(
+    error = TRUE,
+    adjust_nonresponse(df, response_status = c(responded, responded2))
+  )
+})

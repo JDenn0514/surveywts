@@ -4,8 +4,9 @@
       adjust_nonresponse(m, response_status = x)
     Condition
       Error in `.check_input_class()`:
-      x `data` must be a data frame, <weighted_df>, <survey_taylor>, or <survey_nonprob>.
+      x `data` must be a data frame or a supported survey design object.
       i Got <matrix>.
+      v See package documentation for supported input types.
 
 # adjust_nonresponse() rejects empty data frame (SE-2)
 
@@ -102,10 +103,10 @@
     Code
       adjust_nonresponse(df, response_status = responded)
     Condition
-      Error in `adjust_nonresponse()`:
-      x Response status column responded not found in `data`.
+      Error in `value[[3L]]()`:
+      x `response_status` column not found in `data`.
       i Available columns: id, age_group, sex, education, region, base_weight, and .weight.
-      v Pass the column name as a bare name, e.g., `response_status = responded`.
+      v Pass a single bare column name, e.g., `response_status = responded`.
 
 # adjust_nonresponse() rejects response_status with non-binary integer values
 
@@ -204,4 +205,14 @@
       i Got <character> with values: "yes" and "no".
       i Factor columns are not binary regardless of their levels.
       v Convert to logical (`TRUE`/`FALSE`) or integer (`0`/`1`) before calling `adjust_nonresponse()`.
+
+# adjust_nonresponse() rejects response_status selecting multiple columns
+
+    Code
+      adjust_nonresponse(df, response_status = c(responded, responded2))
+    Condition
+      Error in `adjust_nonresponse()`:
+      x `response_status` must select exactly one column.
+      i Got 2 column(s).
+      v Pass a single bare column name, e.g., `response_status = responded`.
 

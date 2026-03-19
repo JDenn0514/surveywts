@@ -4,8 +4,9 @@
       effective_sample_size(m)
     Condition
       Error in `.diag_validate_input()`:
-      x `x` must be a data frame, <weighted_df>, <survey_taylor>, or <survey_nonprob>.
+      x `x` must be a data frame or a supported survey design object.
       i Got <matrix>.
+      v See package documentation for supported input types.
 
 # weight_variability() throws unsupported_class for list input
 
@@ -13,8 +14,9 @@
       weight_variability(x)
     Condition
       Error in `.diag_validate_input()`:
-      x `x` must be a data frame, <weighted_df>, <survey_taylor>, or <survey_nonprob>.
+      x `x` must be a data frame or a supported survey design object.
       i Got <list>.
+      v See package documentation for supported input types.
 
 # effective_sample_size() throws weights_required for plain df with no weights
 

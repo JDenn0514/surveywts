@@ -136,24 +136,36 @@ adjust_nonresponse <- function(
   }
 
   # ---- 7. Resolve and validate response_status column -----------------------
-  status_var <- rlang::as_name(rs_quo)
-
-  if (!status_var %in% names(plain_df)) {
+  status_pos <- tryCatch(
+    tidyselect::eval_select(rs_quo, plain_df),
+    error = function(e) {
+      cli::cli_abort(
+        c(
+          "x" = "{.arg response_status} column not found in {.arg data}.",
+          "i" = "Available columns: {.and {.field {names(plain_df)}}}.",
+          "v" = paste0(
+            "Pass a single bare column name, ",
+            "e.g., {.code response_status = responded}."
+          )
+        ),
+        class = "surveywts_error_response_status_not_found"
+      )
+    }
+  )
+  if (length(status_pos) > 1L) {
     cli::cli_abort(
       c(
-        "x" = paste0(
-          "Response status column {.field {status_var}} not found in ",
-          "{.arg data}."
-        ),
-        "i" = "Available columns: {.and {.field {names(plain_df)}}}.",
+        "x" = "{.arg response_status} must select exactly one column.",
+        "i" = "Got {length(status_pos)} column(s).",
         "v" = paste0(
-          "Pass the column name as a bare name, ",
+          "Pass a single bare column name, ",
           "e.g., {.code response_status = responded}."
         )
       ),
-      class = "surveywts_error_response_status_not_found"
+      class = "surveywts_error_response_status_multiple_columns"
     )
   }
+  status_var <- names(status_pos)
 
   status_col <- plain_df[[status_var]]
 

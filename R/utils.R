@@ -589,18 +589,15 @@
   }
 
   is_supported <- inherits(data, "data.frame") ||
-    S7::S7_inherits(data, surveycore::survey_taylor) ||
-    S7::S7_inherits(data, surveycore::survey_nonprob)
+    S7::S7_inherits(data, surveycore::survey_base)
 
   if (!is_supported) {
     cls <- class(data)[[1L]]
     cli::cli_abort(
       c(
-        "x" = paste0(
-          "{.arg data} must be a data frame, {.cls weighted_df}, ",
-          "{.cls survey_taylor}, or {.cls survey_nonprob}."
-        ),
-        "i" = "Got {.cls {cls}}."
+        "x" = "{.arg data} must be a data frame or a supported survey design object.",
+        "i" = "Got {.cls {cls}}.",
+        "v" = "See package documentation for supported input types."
       ),
       class = "surveywts_error_unsupported_class"
     )
@@ -622,8 +619,7 @@
   if (inherits(x, "weighted_df")) {
     wh <- attr(x, "weighting_history")
     if (is.null(wh)) list() else wh
-  } else if (S7::S7_inherits(x, surveycore::survey_taylor) ||
-               S7::S7_inherits(x, surveycore::survey_nonprob)) {
+  } else if (S7::S7_inherits(x, surveycore::survey_base)) {
     wh <- x@metadata@weighting_history
     if (is.null(wh)) list() else wh
   } else {

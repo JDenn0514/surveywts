@@ -156,19 +156,28 @@ summarize_weights <- function(x, weights = NULL, by = NULL) {
 #      throws surveywts_error_weights_required
 # Returns: list(data_df = <data.frame>, weight_col = <character>)
 .diag_validate_input <- function(x, weights_quo) {
+  # Replicate designs require Phase 1 — check first (specific before general)
+  if (S7::S7_inherits(x, surveycore::survey_replicate)) {
+    cli::cli_abort(
+      c(
+        "x" = "{.cls survey_replicate} objects are not supported in Phase 0.",
+        "i" = "Replicate-weight support requires Phase 1.",
+        "v" = "Use a {.cls survey_taylor} design, or wait for Phase 1."
+      ),
+      class = "surveywts_error_replicate_not_supported"
+    )
+  }
+
   is_supported <- is.data.frame(x) ||
-    S7::S7_inherits(x, surveycore::survey_taylor) ||
-    S7::S7_inherits(x, surveycore::survey_nonprob)
+    S7::S7_inherits(x, surveycore::survey_base)
 
   if (!is_supported) {
     cls <- class(x)[[1L]]
     cli::cli_abort(
       c(
-        "x" = paste0(
-          "{.arg x} must be a data frame, {.cls weighted_df}, ",
-          "{.cls survey_taylor}, or {.cls survey_nonprob}."
-        ),
-        "i" = "Got {.cls {cls}}."
+        "x" = "{.arg x} must be a data frame or a supported survey design object.",
+        "i" = "Got {.cls {cls}}.",
+        "v" = "See package documentation for supported input types."
       ),
       class = "surveywts_error_unsupported_class"
     )

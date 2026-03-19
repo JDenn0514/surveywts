@@ -8,8 +8,8 @@
 #   - type = "prop"      (population proportions; default)
 #   - type = "count"     (population counts)
 #
-# All shared helpers (.get_weight_vec, .validate_weights, etc.) live in
-# R/utils.R. All vendored algorithms live in R/vendor-calibrate-greg.R.
+# All shared helpers (.get_weight_vec, .validate_weights,
+# .check_input_class, .get_history, etc.) live in R/utils.R.
 
 #' Calibrate survey weights to known population totals
 #'
@@ -232,55 +232,5 @@ calibrate <- function(
   } else {
     # survey object → same class (class preserved; only weights + history updated)
     .update_survey_weights(data, new_weights, history_entry)
-  }
-}
-
-# ---------------------------------------------------------------------------
-# .check_input_class() — input class validation (used only by calibrate())
-# ---------------------------------------------------------------------------
-
-.check_input_class <- function(data) {
-  if (S7::S7_inherits(data, surveycore::survey_replicate)) {
-    cli::cli_abort(
-      c(
-        "x" = "{.cls survey_replicate} objects are not supported in Phase 0.",
-        "i" = "Replicate-weight support requires Phase 1.",
-        "v" = "Use a {.cls survey_taylor} design, or wait for Phase 1."
-      ),
-      class = "surveywts_error_replicate_not_supported"
-    )
-  }
-
-  is_supported <- inherits(data, "data.frame") ||
-    S7::S7_inherits(data, surveycore::survey_taylor) ||
-    S7::S7_inherits(data, surveycore::survey_nonprob)
-
-  if (!is_supported) {
-    cls <- class(data)[[1L]]
-    cli::cli_abort(
-      c(
-        "x" = paste0(
-          "{.arg data} must be a data frame, {.cls weighted_df}, ",
-          "{.cls survey_taylor}, or {.cls survey_nonprob}."
-        ),
-        "i" = "Got {.cls {cls}}."
-      ),
-      class = "surveywts_error_unsupported_class"
-    )
-  }
-}
-
-# ---------------------------------------------------------------------------
-# .get_history() — extract weighting history from any input class
-# ---------------------------------------------------------------------------
-
-.get_history <- function(x) {
-  if (inherits(x, "weighted_df")) {
-    attr(x, "weighting_history") %||% list()
-  } else if (S7::S7_inherits(x, surveycore::survey_taylor) ||
-               S7::S7_inherits(x, surveycore::survey_nonprob)) {
-    x@metadata@weighting_history %||% list()
-  } else {
-    list()
   }
 }

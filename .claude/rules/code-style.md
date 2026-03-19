@@ -424,6 +424,12 @@ non-obvious effect.
 ### Import style
 **`::` everywhere; no `@importFrom` in any source file.**
 
+**Exception: S3 method registration.** `@importFrom` is required when
+registering an S3 method for a generic from another package (e.g.,
+`dplyr::dplyr_reconstruct`, `dplyr::select`). Without it, `roxygen2`
+cannot generate the `S3method()` directive in `NAMESPACE`. This is the
+only approved use of `@importFrom`.
+
 ```r
 # Correct
 result <- rlang::enquo(x)

@@ -15,6 +15,8 @@
 #   .make_history_entry()             — creates one weighting history entry
 #   .make_weighted_df()               — internal weighted_df constructor
 #   .update_survey_weights()          — updates survey object weights + history
+#   .check_input_class()             — validates input class (4 callers)
+#   .get_history()                   — extracts weighting history from any class
 #   .calibrate_engine()               — dispatches to calibration algorithms
 #
 # NOTE (GAP #6 departure): .make_history_entry() adds a `step` parameter not
@@ -561,6 +563,74 @@
   design
 }
 
+
+# ============================================================================
+# .check_input_class()
+# ============================================================================
+
+# Validates that `data` is a supported input class for calibration/weighting
+# functions. Used by calibrate(), rake(), poststratify(), and
+# adjust_nonresponse().
+#
+# Arguments:
+#   data : object passed as the `data` argument to a calibration function
+#
+# Returns: invisible(TRUE) on success. Throws on unsupported class.
+.check_input_class <- function(data) {
+  if (S7::S7_inherits(data, surveycore::survey_replicate)) {
+    cli::cli_abort(
+      c(
+        "x" = "{.cls survey_replicate} objects are not supported in Phase 0.",
+        "i" = "Replicate-weight support requires Phase 1.",
+        "v" = "Use a {.cls survey_taylor} design, or wait for Phase 1."
+      ),
+      class = "surveywts_error_replicate_not_supported"
+    )
+  }
+
+  is_supported <- inherits(data, "data.frame") ||
+    S7::S7_inherits(data, surveycore::survey_taylor) ||
+    S7::S7_inherits(data, surveycore::survey_nonprob)
+
+  if (!is_supported) {
+    cls <- class(data)[[1L]]
+    cli::cli_abort(
+      c(
+        "x" = paste0(
+          "{.arg data} must be a data frame, {.cls weighted_df}, ",
+          "{.cls survey_taylor}, or {.cls survey_nonprob}."
+        ),
+        "i" = "Got {.cls {cls}}."
+      ),
+      class = "surveywts_error_unsupported_class"
+    )
+  }
+}
+
+# ============================================================================
+# .get_history()
+# ============================================================================
+
+# Extracts weighting history from any supported input class.
+# Used by calibrate(), rake(), poststratify(), and adjust_nonresponse().
+#
+# Arguments:
+#   x : data.frame, weighted_df, survey_taylor, or survey_nonprob
+#
+# Returns: list (possibly empty) of history entries.
+.get_history <- function(x) {
+  if (inherits(x, "weighted_df")) {
+    wh <- attr(x, "weighting_history")
+    if (is.null(wh)) list() else wh
+  } else if (S7::S7_inherits(x, surveycore::survey_taylor) ||
+               S7::S7_inherits(x, surveycore::survey_nonprob)) {
+    wh <- x@metadata@weighting_history
+    if (is.null(wh)) list() else wh
+  } else {
+    list()
+  }
+}
+
 # ============================================================================
 # .calibrate_engine()
 # ============================================================================
@@ -660,8 +730,8 @@
         weights = new_weights,
         convergence = list(
           converged = TRUE,
-          iterations = attr(g, "iterations") %||% NA_integer_,
-          max_error = attr(g, "max_error") %||% 0,
+          iterations = if (is.null(attr(g, "iterations"))) NA_integer_ else attr(g, "iterations"),
+          max_error = if (is.null(attr(g, "max_error"))) 0 else attr(g, "max_error"),
           tolerance = control$epsilon
         )
       ))
@@ -895,5 +965,3 @@
   }
 }
 
-# Null-coalescing operator (not exported from rlang in all versions)
-`%||%` <- function(x, y) if (!is.null(x)) x else y

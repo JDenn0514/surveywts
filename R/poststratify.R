@@ -8,9 +8,8 @@
 # Private helper (only used here):
 #   .validate_population_cells()  -- validates population data frame structure
 #
-# All shared helpers (.get_weight_vec, .validate_weights, etc.) live in
-# R/utils.R. .check_input_class() and .get_history() are in R/calibrate.R
-# (loaded with the package; accessible from any R file).
+# All shared helpers (.get_weight_vec, .validate_weights,
+# .check_input_class, .get_history, etc.) live in R/utils.R.
 
 #' Post-stratify survey weights to known joint population cell totals
 #'

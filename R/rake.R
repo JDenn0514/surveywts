@@ -30,7 +30,7 @@
 #' IPF, epsilon-based convergence).
 #'
 #' @param data A `data.frame`, `weighted_df`, `survey_taylor`, or
-#'   `survey_calibrated`. `survey_replicate` → error. Any other class → error.
+#'   `survey_nonprob`. `survey_replicate` → error. Any other class → error.
 #' @param margins Named list or data frame specifying population margin targets.
 #'
 #'   **Format A — named list:**
@@ -89,8 +89,8 @@
 #'
 #' @return
 #'   - `data.frame` or `weighted_df` input → `weighted_df`
-#'   - `survey_taylor` or `survey_calibrated` input → same class as input
-#'     (`survey_taylor` or `survey_calibrated`; class is preserved)
+#'   - `survey_taylor` or `survey_nonprob` input → same class as input
+#'     (`survey_taylor` or `survey_nonprob`; class is preserved)
 #'
 #'   The weight column in the output contains raked weights. A history entry
 #'   with `operation = "raking"` is appended to `weighting_history`.
@@ -138,6 +138,18 @@ rake <- function(
   method <- rlang::arg_match(method)
   type   <- rlang::arg_match(type)
   weights_quo <- rlang::enquo(weights)
+
+  # ---- Cap + method = "survey" guard (fail fast, before margin parsing) ----
+  if (!is.null(cap) && method == "survey") {
+    cli::cli_abort(
+      c(
+        "x" = "{.arg cap} is not supported when {.code method = \"survey\"}.",
+        "i" = "{.fn survey::rake} does not support per-step weight capping.",
+        "v" = "Use {.code method = \"anesrake\"} for raking with a weight cap."
+      ),
+      class = "surveywts_error_cap_not_supported_survey"
+    )
+  }
 
   # ---- Apply method-specific control defaults (before warning check) -------
   anesrake_defaults <- list(

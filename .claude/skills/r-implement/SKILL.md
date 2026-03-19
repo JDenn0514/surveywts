@@ -4,7 +4,9 @@ description: >
   Use when it's time to write R implementation code for surveywts. Trigger
   when the user says "implement", "code this up", "start coding", "write the
   code", "start the PR", or "let's build this". Also use when commit-and-pr
-  produces a CI Failure handoff block and the user needs the failure fixed.
+  produces a CI Failure handoff block and the user needs the failure fixed
+  (Mode B), or when the user says "subagent mode", "drive it yourself", or
+  "auto-implement the plan" (Mode C: subagent-driven per-section dispatch).
 ---
 
 # R Implementation Skill
@@ -22,76 +24,11 @@ Signs: user says "implement", "start coding", "let's build this", or similar.
 **Mode B: CI-fix** — fixing a failure surfaced by commit-and-pr after push.
 Signs: user provides a "CI Failure — Handoff to r-implement" block, or says
 "CI is failing", "fix the CI failure", "commit-and-pr handed off to you", etc.
-→ Go to **CI-Fix Mode** below. Skip Pre-flight entirely.
+→ Read `references/ci-fix.md`. Skip Pre-flight entirely.
 
----
-
-## CI-Fix Mode
-
-Use this mode when commit-and-pr has already created a PR and CI has failed.
-
-### Step 1: Read the handoff block
-
-The user will provide (or paste) a block like:
-
-```
-## CI Failure — Handoff to r-implement
-
-Run:    #12345
-PR:     #7 (https://github.com/...)
-Job:    R CMD Check / ubuntu-latest / release
-Step:   Running R CMD check
-
-Error:
-  <log output>
-
-Local repro:
-  Rscript -e "devtools::check()"
-  Rscript -e "devtools::test()"
-```
-
-Read it carefully. Identify: which check failed (check vs test), which job
-(OS + R version), and the exact error message.
-
-### Step 2: Reproduce locally
-
-```bash
-Rscript -e "devtools::check()"
-Rscript -e "devtools::test()"
-```
-
-Match the failure to what CI reported. If the failure doesn't reproduce
-locally, report that and describe what you see instead — do not guess.
-
-### Step 3: Diagnose and fix
-
-Attempt to diagnose and fix. After **3 failed attempts on the same failure**,
-stop and report:
-
-- The exact error output
-- What was tried
-- Why it is still failing
-
-### Step 4: Verify
-
-Run both checks after the fix:
-
-```bash
-Rscript -e "devtools::test()"
-Rscript -e "devtools::check()"
-```
-
-Run `devtools::document()` if any roxygen2 tags changed.
-
-### Step 5: Report
-
-When both pass, report:
-
-> "Fixed. Re-invoke `/commit-and-pr` — it will push the fix and resume
-> monitoring CI."
-
-**Do NOT mark the implementation plan section complete again.** It was already
-marked `[x]` before commit-and-pr was invoked.
+**Mode C: Subagent-Driven** — dispatching fresh subagents per plan section.
+Signs: "subagent mode", "drive it yourself", "auto-implement the plan".
+→ Read `references/mode-c-subagent.md`. Skip Pre-flight.
 
 ---
 
@@ -123,7 +60,41 @@ Do not proceed until the user is on `develop` or a feature branch.
 
 **If already on a feature branch:** continue to Step 2.
 
-### Step 2: Read the implementation plan
+### Step 2: Check surveycore version
+
+`surveycore` is a co-developed ecosystem dependency installed from GitHub. Working
+against a stale version risks implementing against the wrong class definitions or API.
+
+Run both of these:
+
+```bash
+gh release view --repo JDenn0514/surveycore --json tagName,publishedAt,body \
+  --template '{{.tagName}} ({{.publishedAt}})\n{{.body}}'
+Rscript -e "cat(as.character(packageVersion('surveycore')), '\n')"
+```
+
+Compare the installed version against the latest release tag.
+
+**If installed version is behind the latest release:**
+
+Stop and tell the user:
+
+> "surveycore `<installed>` is installed but `<latest>` is available.
+> Update before implementing to avoid working against a stale API:
+> ```r
+> pak::pak('JDenn0514/surveycore')
+> ```
+> Re-invoke `/r-implement` after updating."
+
+Do not proceed until the user confirms they have updated or explicitly chooses
+to continue with the current version.
+
+**If installed version matches the latest release:** note it briefly and continue.
+
+**If the `gh` call fails** (no network, no auth): warn that the check could not
+be completed and ask the user whether to proceed.
+
+### Step 3: Read the implementation plan
 
 Ask the user for the path if not provided (e.g., `plans/impl-phase-0.md`).
 
@@ -133,7 +104,7 @@ entire session. Do not implement anything outside that scope.
 If all sections are checked: report "All sections complete — nothing left to implement."
 and stop.
 
-### Step 3: Read the spec section
+### Step 4: Read the spec section
 
 Read the spec file for the section you are about to implement. Before writing any code,
 verify:
@@ -146,33 +117,62 @@ verify:
 **If anything is ambiguous or underspecified: STOP. Ask the user to clarify before
 writing a single line of code.** Do not make architectural guesses — surface the question.
 
-### Step 4: Update `plans/error-messages.md`
+### Step 5: Update `plans/error-messages.md`
 
 Add any new error/warning classes you will need **before** writing code that uses them.
 
 ---
 
+## TDD Iron Law
+
+NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST
+
+Write code before the test? Delete it. Start over. No exceptions.
+
+Do not keep it "as reference" — delete means delete. Implement fresh from tests.
+
+| Rationalization | Reality |
+|---|---|
+| "Too simple to need a test" | Simple code breaks. The test takes 2 minutes. |
+| "I'll add tests after" | Tests written after pass immediately, proving nothing. |
+| "I already know it works" | Tests-first force edge case discovery. Tests-after verify memory. |
+| "Just this once" | That's how untested code accumulates. |
+| "I manually tested it" | Manual testing is ad-hoc, unrepeatable, and undocumented. |
+
+The red phase isn't ceremony — it's proof. A test written after implementation almost
+always passes immediately, which tells you nothing about whether it's testing real
+behavior. Watching it fail proves the test is exercising what you think it is.
+
 ## Implementation
 
-Follow TDD order — tests before source, always.
+Follow this order for each sub-task:
 
 1. Write the test file (from the spec's test categories for this section)
 2. Run `devtools::test()` — **confirm all new tests fail (red phase)**
-   - If a new test unexpectedly passes, stop and investigate before proceeding
+   Expected output: failures like `── Failure: my_fn() rejects X ──` with
+   "did not throw" or "object not found." If tests pass before any source code
+   exists, the tests are not testing anything — stop and investigate before proceeding.
 3. Write the R source file to make the tests pass
 4. Run `devtools::document()` if any roxygen2 tags changed
 5. Update `_pkgdown.yml` if any new functions were exported — add them to the
-   correct `reference:` section (match the `@family` tag used in roxygen)
+   correct `reference:` section (match the `@family` tag used in roxygen). If
+   any new vignettes were added to `vignettes/`, add them under `articles:`.
+
+**Red flags — stop immediately if:**
+- All new tests pass before any source code is written
+- You are writing source before running `devtools::test()` to confirm failures
+- A spec error condition has no corresponding failing test in the test file
 
 ---
 
 ## Verification
 
-Run both checks after implementation:
+Run these checks after implementation:
 
 ```r
 devtools::test()
 devtools::check()
+pkgdown::check_pkgdown()
 ```
 
 **If either fails:** attempt to diagnose and fix, then re-run. After **3 failed attempts
@@ -183,6 +183,28 @@ on the same failure**, stop and report:
 - Why it is still failing
 
 Do not mark the section complete until both pass.
+
+---
+
+## Sub-task Self-Check
+
+After each sub-task (one `- [ ]` item) passes `devtools::test()`, run these two
+checks before marking it `[x]`. This is the spec compliance + conventions gate —
+the equivalent of a two-stage review after each unit of work.
+
+**Spec compliance** — does the implementation match the spec's exact contracts?
+- Every error condition in the spec fires correctly and has a corresponding test?
+- Every explicitly listed edge case has a test?
+- Return type visibility matches the spec (`invisible()` vs. visible)?
+
+**Conventions** — does it follow the package rules?
+- No `UseMethod()` on S7 objects? No S7 class string comparisons?
+- `class=` on every `cli_abort()` and `cli_warn()`?
+- No `@importFrom` anywhere; all external calls use `::`?
+- `test_invariants()` first assertion in every constructor test?
+- Dual pattern (snapshot + `class=`) on all Layer 3 errors?
+
+If either check reveals a gap, fix it before moving to the next sub-task.
 
 ---
 
@@ -219,8 +241,9 @@ Do not mark the section complete until ALL are true:
 
 - [ ] `devtools::test()` — no failures
 - [ ] `devtools::check()` — 0 errors, 0 warnings, ≤2 notes
-- [ ] `devtools::document()` run (if roxygen2 changed); `_pkgdown.yml` updated (if new exports)
+- [ ] `devtools::document()` run (if roxygen2 changed); `_pkgdown.yml` updated (if new exports or vignettes); `pkgdown::check_pkgdown()` passes
 - [ ] `plans/error-messages.md` updated (if new error classes added)
 - [ ] No `UseMethod()` on S7 objects; no missing `class=`; no `@importFrom`
 - [ ] `test_invariants()` first in every constructor test (see `testing-surveywts.md`); dual pattern on Layer 3 errors
+- [ ] Sub-task self-check passed (spec compliance + conventions) for each `- [x]` item
 - [ ] Implementation plan section marked `[x]`

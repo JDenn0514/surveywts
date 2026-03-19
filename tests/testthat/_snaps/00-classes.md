@@ -93,25 +93,25 @@
       4     4   1.1
       5     5   0.9
 
-# print method for survey_calibrated produces expected output
+# print method for survey_nonprob produces expected output
 
     Code
       print(sc)
     Output
       # A calibrated survey design: 5 observations, 4 variables
-      # Variance method: Taylor linearization
+      # Variance: model-assisted (SRS assumption)
       # IDs: ~psu | Strata: ~stratum | Weights: w 
       # Weighting history: 2 steps 
       #   Step 1 [2025-01-15]: weighting-class nonresponse (by: age, sex) 
       #   Step 2 [2025-01-15]: raking (margins: age, sex, education) 
 
-# print method for survey_calibrated handles NULL ids, NULL strata, empty history
+# print method for survey_nonprob handles NULL ids, NULL strata, empty history
 
     Code
       print(sc)
     Output
       # A calibrated survey design: 5 observations, 2 variables
-      # Variance method: Taylor linearization
+      # Variance: model-assisted (SRS assumption)
       # IDs: ~1 | Strata: NULL | Weights: w 
       # Weighting history: none
 

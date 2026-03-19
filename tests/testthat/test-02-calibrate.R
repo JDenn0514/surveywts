@@ -88,7 +88,7 @@ test_that("calibrate() preserves survey_taylor class for survey_taylor input", {
 
   test_invariants(result)
   expect_true(S7::S7_inherits(result, surveycore::survey_taylor))
-  expect_false(S7::S7_inherits(result, surveycore::survey_calibrated))
+  expect_false(S7::S7_inherits(result, surveycore::survey_nonprob))
   # Design vars are unchanged
   expect_identical(result@variables$ids,    design@variables$ids)
   expect_identical(result@variables$strata, design@variables$strata)
@@ -159,14 +159,14 @@ test_that("calibrate() on weighted_df accumulates weighting history", {
 })
 
 # ---------------------------------------------------------------------------
-# 4. Happy path — survey_calibrated input → survey_calibrated (re-calibration)
+# 4. Happy path — survey_nonprob input → survey_nonprob (re-calibration)
 # ---------------------------------------------------------------------------
 
-test_that("calibrate() on survey_calibrated returns survey_calibrated", {
+test_that("calibrate() on survey_nonprob returns survey_nonprob", {
   df <- make_surveywts_data(seed = 6)
 
-  # Construct survey_calibrated directly (not via calibrate())
-  sc_input <- surveycore::survey_calibrated(
+  # Construct survey_nonprob directly (not via calibrate())
+  sc_input <- surveycore::survey_nonprob(
     data = df,
     variables = list(
       ids = NULL, strata = NULL, fpc = NULL,
@@ -184,7 +184,7 @@ test_that("calibrate() on survey_calibrated returns survey_calibrated", {
   )
   sc2 <- calibrate(sc_input, variables = c(age_group, sex), population = pop2)
   test_invariants(sc2)
-  expect_true(S7::S7_inherits(sc2, surveycore::survey_calibrated))
+  expect_true(S7::S7_inherits(sc2, surveycore::survey_nonprob))
   # History should have 1 entry (sc_input had no prior history)
   expect_identical(length(sc2@metadata@weighting_history), 1L)
 })
@@ -236,7 +236,6 @@ test_that("calibrate() with type = 'count' accepts count targets", {
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() matches survey::calibrate() within 1e-8 tolerance", {
-  skip_if_not_installed("survey")
   skip_if_not_installed("MASS")
 
   df <- make_surveywts_data(n = 200, seed = 9)
@@ -627,11 +626,10 @@ test_that("calibrate() throws calibration_not_converged when maxit is reached", 
               method = "logit", control = list(maxit = 1, epsilon = 1e-20)),
     class = "surveywts_error_calibration_not_converged"
   )
-  expect_snapshot(
-    error = TRUE,
-    calibrate(df, variables = c(age_group, sex), population = pop,
-              method = "logit", control = list(maxit = 1, epsilon = 1e-20))
-  )
+  # No snapshot: survey::grake() embeds platform-specific floating-point
+
+  # values in its convergence message, causing cross-platform snapshot
+  # failures. The class= check above is sufficient.
 })
 
 # ---------------------------------------------------------------------------
@@ -799,9 +797,9 @@ test_that("calibrate() auto-detects weights from weighted_df when weights is NUL
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() with method='logit', type='count', large counts triggers GREG scale normalization", {
-  # Covers vendor-calibrate-greg.R lines 128-130 and 182 (.greg_logit only):
+  # Covers survey::grake() internal rescaling path:
   #   when min(scales) > 20 (scales = population / sample_total).
-  # The scale normalization is only in .greg_logit(), so method="logit" is required.
+  # The scale normalization is internal to survey::calibrate() logit path.
   # With n=500, base_weight~1, sample_total~150 per group.
   # scales = 300000/150 = 2000 >> 20 → triggers scale normalization.
   df <- make_surveywts_data(seed = 34)

@@ -4,8 +4,9 @@
       rake(matrix(1:6, 2, 3), margins = margins)
     Condition
       Error in `.check_input_class()`:
-      x `data` must be a data frame, <weighted_df>, <survey_taylor>, or <survey_calibrated>.
+      x `data` must be a data frame or a supported survey design object.
       i Got <matrix>.
+      v See package documentation for supported input types.
 
 # rake() rejects 0-row data frame (SE-2)
 
@@ -182,9 +183,9 @@
       rake(df, margins = margins, method = "survey", control = list(maxit = 1,
         epsilon = 1e-20))
     Condition
-      Error in `.throw_not_converged()`:
+      Error:
       x Raking did not converge after 1 full sweeps.
-      i Maximum margin error: 0.0458778 (tolerance: 1e-20).
+      i survey::rake() reported: Raking did not converge after 1 iterations.
       v Increase `control$maxit`, relax `control$epsilon`, or verify margin totals are consistent with the sample.
 
 # rake() throws calibration_not_converged for maxit = 0
@@ -196,6 +197,16 @@
       x Raking did not converge after 0 iterations.
       i Setting `control$maxit = 0` means no raking is attempted.
       v Set `control$maxit` to a positive integer.
+
+# rake() rejects cap with method = 'survey'
+
+    Code
+      rake(df, margins = margins, method = "survey", cap = cap_val)
+    Condition
+      Error in `rake()`:
+      x `cap` is not supported when `method = "survey"`.
+      i `survey::rake()` does not support per-step weight capping.
+      v Use `method = "anesrake"` for raking with a weight cap.
 
 # rake() warns when anesrake-specific control param set with method='survey'
 
@@ -231,22 +242,20 @@
       ! `control$epsilon` is not used when `method = "anesrake"` and will be ignored.
       i For `method = "anesrake"`, valid `control` keys are: `maxit`, `improvement`, `pval`, `min_cell_n`, `variable_select`.
       i For `method = "survey"`, valid `control` keys are: `maxit`, `epsilon`.
-    Message
-      i Raking converged in 1 sweep: all variables already met their margins. Weights were not adjusted.
     Output
       # A tibble: 500 x 7
             id age_group sex   education region    base_weight .weight
        * <int> <chr>     <chr> <chr>     <chr>           <dbl>   <dbl>
-       1     1 18-34     F     Graduate  South           2.53    0.002
-       2     2 18-34     F     College   Northeast       1.23    0.002
-       3     3 35-54     F     Graduate  South           1.47    0.002
-       4     4 18-34     M     HS        Northeast       1.16    0.002
-       5     5 55+       F     HS        Midwest         0.671   0.002
-       6     6 55+       M     College   West            0.787   0.002
-       7     7 18-34     M     HS        Midwest         1.07    0.002
-       8     8 35-54     F     Graduate  South           0.310   0.002
-       9     9 55+       M     College   South           0.712   0.002
-      10    10 18-34     F     Graduate  Midwest         1.38    0.002
+       1     1 18-34     F     Graduate  South           2.53    0.969
+       2     2 18-34     F     College   Northeast       1.23    0.969
+       3     3 35-54     F     Graduate  South           1.47    0.909
+       4     4 18-34     M     HS        Northeast       1.16    1.08 
+       5     5 55+       F     HS        Midwest         0.671   0.997
+       6     6 55+       M     College   West            0.787   1.11 
+       7     7 18-34     M     HS        Midwest         1.07    1.08 
+       8     8 35-54     F     Graduate  South           0.310   0.909
+       9     9 55+       M     College   South           0.712   1.11 
+      10    10 18-34     F     Graduate  Midwest         1.38    0.969
       # i 490 more rows
 
 # rake() rejects an unnamed list as margins
@@ -268,14 +277,13 @@
       x Element age_group in `margins` is a data frame but is missing required columns level and/or target.
       v See `rake()` documentation for accepted formats.
 
-# rake() throws calibration_not_converged via anesrake engine with maxit=1 improvement=0
+# rake() throws calibration_not_converged via anesrake engine with maxit=0
 
     Code
-      rake(df, margins = margins_extreme, control = list(maxit = 1L, improvement = 0,
-        pval = 2))
+      rake(df, margins = margins_extreme, control = list(maxit = 0L))
     Condition
-      Error in `.throw_not_converged()`:
-      x Raking did not converge after 1 full sweeps.
-      i Chi-square improvement in the final sweep: 0% (threshold: 0%).
-      v Increase `control$maxit` or relax `control$improvement` in the `control` list.
+      Error in `.throw_not_converged_zero_maxit()`:
+      x Raking did not converge after 0 iterations.
+      i Setting `control$maxit = 0` means no raking is attempted.
+      v Set `control$maxit` to a positive integer.
 

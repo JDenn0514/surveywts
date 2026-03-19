@@ -10,6 +10,8 @@ description: >
 
 # Commit and PR Skill
 
+**Announce at start:** "Running commit-and-pr skill."
+
 ## HARD CONSTRAINT — READ THIS FIRST
 
 **YOU ARE A COMMIT/PR AGENT.**
@@ -119,6 +121,30 @@ Required results:
 - `devtools::check()` — 0 errors, 0 warnings, ≤2 notes
 - `devtools::test()` — no failures
 
+### Conditional quality gates (run after devtools checks pass)
+
+**Error class audit** — run if this branch adds any `cli_abort()` or `cli_warn()` calls:
+
+```bash
+git diff develop..HEAD -- R/ | grep -q "cli_abort\|cli_warn" && echo "AUDIT NEEDED" || echo "SKIP"
+```
+
+If `AUDIT NEEDED`: invoke the `error-class-auditor` subagent. If it flags any
+calls missing `class=`, using wrong prefixes, or referencing undocumented classes,
+**STOP** and report the findings. Ask the user to fix in `r-implement`, then
+re-invoke `commit-and-pr`.
+
+**Coverage check** — run if this branch adds any new exported functions:
+
+```bash
+git diff develop..HEAD -- R/ | grep -q "^+#' @export" && echo "COVERAGE NEEDED" || echo "SKIP"
+```
+
+If `COVERAGE NEEDED`: invoke the `coverage-gap-finder` subagent. If it finds
+uncovered lines in the new code that are not marked `# nocov`, **STOP** and
+report the gaps. Ask the user to add tests in `r-implement`, then re-invoke
+`commit-and-pr`.
+
 ---
 
 ## Step 4: Stage and Commit
@@ -126,6 +152,10 @@ Required results:
 ```bash
 git status
 ```
+
+Review the changed files list. If any `.R` source or test files appear that were
+not part of this implementation task, stop and report to the user before staging.
+This skill does not write code — unexpected `.R` changes need investigation.
 
 Stage SPECIFIC files by name — never `git add -A` or `git add .`.
 
@@ -166,21 +196,8 @@ skip to Step 8 (Monitor CI).
 
 ## Step 6: Draft and Approve PR
 
-Draft a PR title (Conventional Commit format) and body. Use this template:
-
-```markdown
-## What
-
-<!-- One sentence: what does this PR add or fix? -->
-
-## Checklist
-
-- [ ] Tests written and passing (`devtools::test()`)
-- [ ] R CMD check: 0 errors, 0 warnings (`devtools::check()`)
-- [ ] Roxygen docs updated and `devtools::document()` run
-- [ ] `plans/error-messages.md` updated (if new errors/warnings added)
-- [ ] PR title is a valid Conventional Commit (`feat(scope): description`)
-```
+Draft a PR title (Conventional Commit format) and body. PR template: see
+`refs/feature-pr-template.md`.
 
 **Show the draft to the user before creating.** Ask for approval. Revise if
 requested. Do NOT create the PR until the user approves.
@@ -212,95 +229,10 @@ Report the PR URL to the user.
 
 ---
 
-## Step 8: Monitor CI
+## Steps 8–9: Monitor CI and Handle Failures
 
-Create a CI run tracking task:
-
-```
-TaskCreate:
-  subject:    "CI Run #1: monitoring"
-  description: "Monitoring CI for PR #[N]"
-  activeForm: "Monitoring CI Run #1"
-
-TaskUpdate:
-  status: in_progress
-  addBlockedBy: [pr task ID]
-```
-
-Wait for the run to appear, then watch it:
-
-```bash
-# List runs — get the run ID
-gh run list --branch <branch-name> --limit 3
-
-# Watch silently until completion — redirect output, it's very verbose
-gh run watch <run-id> --exit-status > /dev/null 2>&1
-echo "CI exit: $?"
-```
-
-Store the run ID:
-
-```
-TaskUpdate (CI task):
-  metadata: { runId: "<run-id>" }
-```
-
-**If CI passes:** mark CI task `completed`, proceed to Step 10.
-
-**If CI fails:** proceed to Step 9.
-
----
-
-## Step 9: CI Failure — Handoff to r-implement
-
-Analyze the failure with a targeted approach — work from the bottom of the
-log upward, where the actual error almost always appears:
-
-```bash
-# Summary of which jobs and steps failed
-gh run view <run-id>
-
-# Last 40 lines of failed log (where the error usually is)
-gh run view <run-id> --log-failed 2>&1 | tail -40
-
-# If more context needed: search around the error keyword
-gh run view <run-id> --log-failed 2>&1 | grep -A 5 -B 5 "Error\|FAIL\|failed"
-```
-
-Update the CI task:
-
-```
-TaskUpdate (CI task):
-  subject:  "CI Run #1: failed"
-  status:   completed
-  metadata: { status: "failed", failureReason: "<brief reason>" }
-```
-
-Produce this structured handoff block and show it to the user:
-
-```
-## CI Failure — Handoff to r-implement
-
-Run:    #<run-id>
-PR:     #<pr-number> (<pr-url>)
-Job:    <job-name> (e.g., R CMD Check / ubuntu-latest / release)
-Step:   <step-name>
-
-Error:
-<last 40 lines of --log-failed output>
-
-Local repro:
-  Rscript -e "devtools::check()"
-  Rscript -e "devtools::test()"
-```
-
-Then tell the user:
-
-> "Invoke `/r-implement` and share the block above. After r-implement reports
-> the fix is done, re-invoke `/commit-and-pr` — it will detect the existing PR
-> and resume from CI monitoring."
-
-**DO NOT write code to fix the failure.** This violates the hard constraint.
+Read `refs/ci-monitoring.md` for the complete monitoring and failure-handoff
+procedure. Return here for Step 10 when CI passes.
 
 ---
 
@@ -326,6 +258,10 @@ TaskUpdate (PR task):
    > `/r-implement` to continue."
 
 **Do NOT merge the PR.** Merging is the user's decision.
+
+The terminal state of this skill is a passing CI run with an open PR. Do not
+write code, fix anything, or continue work in this session after reporting.
+The only next step is `/r-implement` for the next plan section.
 
 ---
 

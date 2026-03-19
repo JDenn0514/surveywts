@@ -16,7 +16,7 @@ with surveywts-specific examples and detailed guidance.
 |----------|--------|---------|
 | Error prefix | `surveywts_error_*` | `surveywts_error_weights_nonpositive` |
 | Warning prefix | `surveywts_warning_*` | `surveywts_warning_weight_col_dropped` |
-| Internal constructor return | Visible (the new object) | `.new_survey_calibrated()` |
+| Internal constructor return | Visible (the new object) | `.new_survey_nonprob()` |
 | Internal validator return | `invisible(TRUE)` on success | `.validate_weights()` |
 | Print method return | `invisible(x)` | `print.weighted_df()`, S7 print |
 | Diagnostic function return | Visible named scalar or tibble | `effective_sample_size()` |
@@ -30,7 +30,7 @@ with surveywts-specific examples and detailed guidance.
 | User-facing calibration functions | verb | `calibrate()`, `rake()`, `poststratify()` |
 | User-facing nonresponse function | verb + noun | `adjust_nonresponse()` |
 | User-facing diagnostic functions | noun phrase | `effective_sample_size()`, `weight_variability()`, `summarize_weights()` |
-| Internal constructor | `.new_` prefix | `.new_survey_calibrated()` |
+| Internal constructor | `.new_` prefix | `.new_survey_nonprob()` |
 | Internal validators | `.validate_` prefix | `.validate_weights()`, `.validate_calibration_variables()` |
 | Internal shared helpers | `.` prefix + descriptive name | `.get_weight_vec()`, `.compute_weight_stats()`, `.make_history_entry()` |
 | Internal single-file helpers | `.` prefix + descriptive name | `.parse_margins()`, `.validate_population_cells()` |
@@ -69,13 +69,13 @@ Use `@family calibration`, `@family nonresponse`, `@family diagnostics` in roxyg
 - All user-facing functions: `calibrate()`, `rake()`, `poststratify()`,
   `adjust_nonresponse()`, `effective_sample_size()`, `weight_variability()`,
   `summarize_weights()`
-- `survey_calibrated` S7 class object (part of the public API)
+- `survey_nonprob` S7 class object (part of the public API)
 - `print.weighted_df()` and `dplyr_reconstruct.weighted_df()` via `@export`
   (S3 method registration)
 
 ### What NOT to export
 - All `.`-prefixed internal helpers (`.validate_weights()`, `.make_weighted_df()`, etc.)
-- `.new_survey_calibrated()` internal constructor
+- `.new_survey_nonprob()` internal constructor
 - `weighted_df` is NOT exported as an object — it is produced as output from
   calibration and nonresponse functions; users never construct it directly
 
@@ -83,11 +83,11 @@ Use `@family calibration`, `@family nonresponse`, `@family diagnostics` in roxyg
 
 ## 5. S7 Classes
 
-### `survey_calibrated`
+### `survey_nonprob`
 
 ```r
-survey_calibrated <- S7::new_class(
-  "survey_calibrated",
+survey_nonprob <- S7::new_class(
+  "survey_nonprob",
   parent = surveycore::survey_base,
   ...
 )

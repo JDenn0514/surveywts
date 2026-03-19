@@ -16,8 +16,8 @@ poststratify(data, strata, population, weights = NULL, type = c("count", "prop")
 
 **Key behaviours:**
 
-- Accepts `data.frame`, `weighted_df`, `survey_taylor`, and `survey_calibrated`.
-- Returns `weighted_df` for data frame inputs; `survey_calibrated` for survey objects.
+- Accepts `data.frame`, `weighted_df`, `survey_taylor`, and `survey_nonprob`.
+- Returns `weighted_df` for data frame inputs; `survey_nonprob` for survey objects.
 - Default `type = "count"` (differs from `calibrate()` and `rake()`).
 - Strata variables may be any type (character, factor, integer, numeric) -- no
   categorical restriction.

@@ -17,11 +17,11 @@
 }
 
 # ---------------------------------------------------------------------------
-# print method for survey_calibrated
+# print method for survey_nonprob
 # ---------------------------------------------------------------------------
 
-# Class defined in surveycore (surveycore::survey_calibrated).
-S7::method(print, surveycore::survey_calibrated) <- function(x, n = 10, ...) {
+# Class defined in surveycore (surveycore::survey_nonprob).
+S7::method(print, surveycore::survey_nonprob) <- function(x, n = 10, ...) {
   n_rows <- nrow(x@data)
   n_cols <- ncol(x@data)
   vars <- x@variables
@@ -34,8 +34,8 @@ S7::method(print, surveycore::survey_calibrated) <- function(x, n = 10, ...) {
     n_cols, "variables\n"
   )
 
-  # Variance method (hardcoded for Phase 0 — see spec §V)
-  cat("# Variance method: Taylor linearization\n")
+  # Variance method (hardcoded for Phase 0 — see spec §X)
+  cat("# Variance: model-assisted (SRS assumption)\n")
 
   # Design structure line
   ids_str <- .format_design_vars(vars$ids)

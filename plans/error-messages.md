@@ -42,6 +42,7 @@ function in subsections XII.A through XII.G).
 | `surveywts_error_population_level_extra` | `rake()` | A margins level absent from `data` |
 | `surveywts_error_population_totals_invalid` | `rake()` | `type = "prop"` proportions don't sum to 1, or `type = "count"` target ≤ 0 |
 | `surveywts_error_calibration_not_converged` | `.calibrate_engine()` | Max full sweeps reached without convergence |
+| `surveywts_error_cap_not_supported_survey` | `rake()` | `cap` specified with `method = "survey"` |
 
 ### `poststratify()`
 
@@ -64,6 +65,7 @@ function in subsections XII.A through XII.G).
 | `surveywts_error_response_status_has_na` | `adjust_nonresponse()` | `response_status` column has `NA` values |
 | `surveywts_error_response_status_all_zero` | `adjust_nonresponse()` | All rows are nonrespondents |
 | `surveywts_error_class_cell_empty` | `adjust_nonresponse()` | Weighting class cell has no respondents |
+| `surveywts_error_response_status_multiple_columns` | `adjust_nonresponse()` | `response_status` selects > 1 column |
 | `surveywts_error_propensity_requires_phase2` | `adjust_nonresponse()` | `method` is `"propensity"` or `"propensity-cell"` (Phase 2 stubs) |
 
 ### Diagnostics

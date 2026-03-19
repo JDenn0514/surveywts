@@ -15,7 +15,7 @@ adjust_nonresponse(
 }
 \arguments{
 \item{data}{A \code{data.frame}, \code{weighted_df}, \code{survey_taylor}, or
-\code{survey_calibrated}. Must include BOTH respondents and nonrespondents.
+\code{survey_nonprob}. Must include BOTH respondents and nonrespondents.
 \code{survey_replicate} → error. Any other class → error.}
 
 \item{response_status}{Bare name (NSE). Binary response indicator column.
@@ -45,27 +45,46 @@ Either condition alone triggers the warning.
 }}
 }
 \value{
+All rows (respondents and nonrespondents) are returned. Nonrespondent
+weights are set to 0; respondent weights are adjusted upward to conserve
+the total weight within each cell.
 \itemize{
-\item \code{data.frame} or \code{weighted_df} input → \code{weighted_df} (respondents only)
-\item \code{survey_taylor} input → \code{survey_taylor} (same class; respondents only)
-\item \code{survey_calibrated} input → \code{survey_calibrated} (same class;
-respondents only)
+\item \code{data.frame} or \code{weighted_df} input -> \code{weighted_df}
+\item \code{survey_nonprob} input -> \code{survey_nonprob} (same class)
+\item \code{survey_taylor} input -> \code{survey_taylor} (same class; respondent
+rows only, because \code{survey_taylor} does not support zero weights)
 }
 
-The weight column in the output contains adjusted weights. A history entry
-with \code{operation = "nonresponse_weighting_class"} is appended to
-\code{weighting_history}.
+A history entry with \code{operation = "nonresponse_weighting_class"} is
+appended to \code{weighting_history}.
 }
 \description{
 Redistributes the weights of nonrespondents to respondents within weighting
-classes defined by \code{by}. The adjustment formula within each cell \code{h} is:
+classes defined by \code{by}. All rows (respondents and nonrespondents) are
+returned; nonrespondent weights are set to 0 and respondent weights are
+adjusted upward to conserve the total weight within each cell.
 }
 \details{
+The adjustment formula within each cell \code{h} is:
+
 \deqn{w_{i,new} = w_i \times \frac{\sum w_h}{\sum w_{h,resp}}}
 
 where \eqn{\sum w_h} is the sum of all weights (respondents + nonrespondents)
 in cell \code{h} and \eqn{\sum w_{h,resp}} is the sum of respondent weights only.
-Only respondent rows are returned.
+
+Zero-weight observations are retained for design-based variance estimation.
+Survey estimation functions (e.g., \code{\link[survey:surveysummary]{survey::svymean()}}) handle zero
+weights correctly -- zero-weight units are excluded from point estimates
+but included in the design structure for variance estimation. For manual
+calculations, use \code{w[w > 0]} to exclude nonrespondents.
+
+Diagnostic functions (\code{\link[=effective_sample_size]{effective_sample_size()}}, \code{\link[=weight_variability]{weight_variability()}},
+\code{\link[=summarize_weights]{summarize_weights()}}) automatically filter to positive weights before
+computing statistics.
+
+Re-calibrating post-nonresponse data requires filtering to respondents
+first, because \code{\link[=calibrate]{calibrate()}}, \code{\link[=rake]{rake()}}, and \code{\link[=poststratify]{poststratify()}} reject
+zero weights.
 }
 \examples{
 df <- data.frame(

@@ -4,8 +4,9 @@
       calibrate(matrix(1:6, 2, 3), variables = c(age_group), population = pop)
     Condition
       Error in `.check_input_class()`:
-      x `data` must be a data frame, <weighted_df>, <survey_taylor>, or <survey_calibrated>.
+      x `data` must be a data frame or a supported survey design object.
       i Got <matrix>.
+      v See package documentation for supported input types.
 
 # calibrate() rejects 0-row data frame (SE-2)
 
@@ -146,17 +147,6 @@
       x Population targets for age_group contain 1 non-positive value(s).
       i When `type = "count"`, all targets must be strictly positive (> 0).
       v Remove or correct non-positive entries in `population$age_group`.
-
-# calibrate() throws calibration_not_converged when maxit is reached
-
-    Code
-      calibrate(df, variables = c(age_group, sex), population = pop, method = "logit",
-      control = list(maxit = 1, epsilon = 1e-20))
-    Condition
-      Error in `.throw_not_converged()`:
-      x Calibration did not converge after 1 iterations.
-      i Maximum calibration error: 0.000562891 (tolerance: 1e-20).
-      v Increase `control$maxit`, relax `control$epsilon`, or verify population totals are consistent with the sample.
 
 # calibrate() with control$maxit = 0 throws not_converged with distinct note
 

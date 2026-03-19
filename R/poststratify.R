@@ -8,9 +8,8 @@
 # Private helper (only used here):
 #   .validate_population_cells()  -- validates population data frame structure
 #
-# All shared helpers (.get_weight_vec, .validate_weights, etc.) live in
-# R/utils.R. .check_input_class() and .get_history() are in R/calibrate.R
-# (loaded with the package; accessible from any R file).
+# All shared helpers (.get_weight_vec, .validate_weights,
+# .check_input_class, .get_history, etc.) live in R/utils.R.
 
 #' Post-stratify survey weights to known joint population cell totals
 #'
@@ -20,7 +19,7 @@
 #' `poststratify()` matches exact cross-tabulation cells in a single pass.
 #'
 #' @param data A `data.frame`, `weighted_df`, `survey_taylor`, or
-#'   `survey_calibrated`. `survey_replicate` -> error. Any other class -> error.
+#'   `survey_nonprob`. `survey_replicate` -> error. Any other class -> error.
 #' @param strata <[`tidy-select`][tidyselect::language]> Stratification
 #'   variables that jointly define the cells. Specify as a bare name or
 #'   `c(var1, var2, ...)`. Unlike [calibrate()] and [rake()], strata
@@ -36,14 +35,14 @@
 #'   survey object `@variables$weights`. For plain `data.frame` with
 #'   `weights = NULL`, uniform starting weights are used and the output
 #'   column is named `".weight"`.
-#' @param type Character scalar. `"count"` (default): `target` values are
-#'   population counts. `"prop"`: `target` values are proportions summing
-#'   to 1.0. Note: default is `"count"`, unlike [calibrate()] and [rake()].
+#' @param type Character scalar. `"prop"` (default): `target` values are
+#'   proportions summing to 1.0. `"count"`: `target` values are population
+#'   counts. Consistent with [calibrate()] and [rake()].
 #'
 #' @return
 #'   - `data.frame` or `weighted_df` input -> `weighted_df`
-#'   - `survey_taylor` or `survey_calibrated` input -> same class as input
-#'     (`survey_taylor` or `survey_calibrated`; class is preserved)
+#'   - `survey_taylor` or `survey_nonprob` input -> same class as input
+#'     (`survey_taylor` or `survey_nonprob`; class is preserved)
 #'
 #'   The weight column in the output contains post-stratified weights. A
 #'   history entry with `operation = "poststratify"` is appended to
@@ -55,12 +54,23 @@
 #'   sex = c("M", "M", "M", "F", "F", "F"),
 #'   stringsAsFactors = FALSE
 #' )
-#' pop <- data.frame(
+#'
+#' # Proportion targets (default type = "prop")
+#' pop_prop <- data.frame(
+#'   age_group = c("18-34", "35-54", "55+", "18-34", "35-54", "55+"),
+#'   sex = c("M", "M", "M", "F", "F", "F"),
+#'   target = c(0.14, 0.18, 0.17, 0.15, 0.19, 0.17)
+#' )
+#' result <- poststratify(df, strata = c(age_group, sex), population = pop_prop)
+#'
+#' # Count targets (explicit type = "count")
+#' pop_count <- data.frame(
 #'   age_group = c("18-34", "35-54", "55+", "18-34", "35-54", "55+"),
 #'   sex = c("M", "M", "M", "F", "F", "F"),
 #'   target = c(14000, 18000, 17000, 15000, 19000, 17000)
 #' )
-#' result <- poststratify(df, strata = c(age_group, sex), population = pop)
+#' result2 <- poststratify(df, strata = c(age_group, sex),
+#'   population = pop_count, type = "count")
 #'
 #' @family calibration
 #' @export
@@ -69,7 +79,7 @@ poststratify <- function(
   strata,
   population,
   weights = NULL,
-  type = c("count", "prop")
+  type = c("prop", "count")
 ) {
   # ---- Capture call and match arguments ------------------------------------
   call_str    <- deparse(match.call())
@@ -200,8 +210,10 @@ poststratify <- function(
 
   # ---- 12. Run calibration engine (poststratify type) ---------------------
   calibration_spec <- list(
-    type  = "poststratify",
-    cells = cells
+    type         = "poststratify",
+    cells        = cells,
+    strata_names = strata_names,
+    population   = population
   )
 
   engine_result <- .calibrate_engine(

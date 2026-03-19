@@ -90,7 +90,7 @@ test_that("rake() preserves survey_taylor class for survey_taylor input", {
 
   test_invariants(result)
   expect_true(S7::S7_inherits(result, surveycore::survey_taylor))
-  expect_false(S7::S7_inherits(result, surveycore::survey_calibrated))
+  expect_false(S7::S7_inherits(result, surveycore::survey_nonprob))
   # Design vars are unchanged
   expect_identical(result@variables$ids,    design@variables$ids)
   expect_identical(result@variables$strata, design@variables$strata)
@@ -155,14 +155,14 @@ test_that("rake() on weighted_df accumulates weighting history", {
 })
 
 # ---------------------------------------------------------------------------
-# 4. Happy path — survey_calibrated input → survey_calibrated (re-raking)
+# 4. Happy path — survey_nonprob input → survey_nonprob (re-raking)
 # ---------------------------------------------------------------------------
 
-test_that("rake() on survey_calibrated returns survey_calibrated", {
+test_that("rake() on survey_nonprob returns survey_nonprob", {
   df <- make_surveywts_data(seed = 6)
 
-  # Construct survey_calibrated directly (not via rake())
-  sc_input <- surveycore::survey_calibrated(
+  # Construct survey_nonprob directly (not via rake())
+  sc_input <- surveycore::survey_nonprob(
     data = df,
     variables = list(
       ids = NULL, strata = NULL, fpc = NULL,
@@ -180,7 +180,7 @@ test_that("rake() on survey_calibrated returns survey_calibrated", {
   )
   sc2 <- rake(sc_input, margins = margins2)
   test_invariants(sc2)
-  expect_true(S7::S7_inherits(sc2, surveycore::survey_calibrated))
+  expect_true(S7::S7_inherits(sc2, surveycore::survey_nonprob))
   # History should have 1 entry (sc_input had no prior history)
   expect_identical(length(sc2@metadata@weighting_history), 1L)
 })
@@ -269,7 +269,6 @@ test_that("rake() accepts mixed margins format (list with df element)", {
 # ---------------------------------------------------------------------------
 
 test_that("rake(method='survey') matches survey::rake() within 1e-8", {
-  skip_if_not_installed("survey")
 
   df <- make_surveywts_data(n = 200, seed = 11)
   margins <- list(
@@ -839,19 +838,22 @@ test_that("rake() cap limits weight ratio with method = 'anesrake'", {
 })
 
 # ---------------------------------------------------------------------------
-# 22b. Happy path — cap with method = "survey"
+# 22b. Error — cap with method = "survey" is not supported
 # ---------------------------------------------------------------------------
 
-test_that("rake() cap limits weight ratio with method = 'survey'", {
+test_that("rake() rejects cap with method = 'survey'", {
   df <- make_surveywts_data(seed = 36)
   margins <- .make_margins()
   cap_val <- 3.0
 
-  result <- rake(df, margins = margins, method = "survey", cap = cap_val)
-
-  test_invariants(result)
-  w <- result[[".weight"]]
-  expect_true(all(w / mean(w) <= cap_val + 1e-10))
+  expect_error(
+    rake(df, margins = margins, method = "survey", cap = cap_val),
+    class = "surveywts_error_cap_not_supported_survey"
+  )
+  expect_snapshot(
+    error = TRUE,
+    rake(df, margins = margins, method = "survey", cap = cap_val)
+  )
 })
 
 # ---------------------------------------------------------------------------
@@ -1046,26 +1048,28 @@ test_that("rake() emits already_calibrated message when data is already calibrat
 })
 
 # ---------------------------------------------------------------------------
-# 26c. Message — already_calibrated via min_cell_n exclusion
+# 26c. Happy path — min_cell_n with high threshold still rakes
 # ---------------------------------------------------------------------------
 
-test_that("rake() emits already_calibrated when all variables excluded by min_cell_n", {
+test_that("rake() with high min_cell_n still converges via anesrake delegation", {
+  # NOTE: With vendor delegation, anesrake::anesrake() handles nlim
+  # internally (it filters based on cell size during variable selection
+  # but still runs the raking algorithm). Unlike the old vendored
+  # implementation, it does not skip raking entirely when all cells are
+
+  # below nlim.
   df <- make_surveywts_data(seed = 45)
   margins <- .make_margins()
 
-  expect_message(
-    result <- rake(
-      df, margins = margins,
-      control = list(min_cell_n = nrow(df) + 1L)  # all cells below minimum
-    ),
-    class = "surveywts_message_already_calibrated"
+  result <- rake(
+    df, margins = margins,
+    control = list(min_cell_n = nrow(df) + 1L)
   )
   test_invariants(result)
 
   history <- attr(result, "weighting_history")
   last_entry <- history[[1L]]
-  expect_identical(last_entry$convergence$iterations, 1L)
-  expect_identical(last_entry$convergence$max_error, 0)
+  expect_true(last_entry$convergence$converged)
 })
 
 # ---------------------------------------------------------------------------
@@ -1114,8 +1118,8 @@ test_that("rake() rejects named list with data.frame element missing level/targe
 # ---------------------------------------------------------------------------
 
 test_that("rake() handles single-level margin variable (degenerate chi-sq df = 0)", {
-  # Covers vendor-rake-anesrake.R line 187: p_val = 1.0 degenerate case
-  # when df = length(cells) - 1 = 0 (single-level variable)
+  # Covers degenerate chi-sq case: p_val = 1.0 when df = 0
+  # (single-level variable). Delegated to anesrake::anesrake().
   df <- data.frame(
     group_one = rep("A", 50),               # single level: df = 0 in chi-sq
     group_two = c(rep("X", 30), rep("Y", 20)),  # two levels: gets raked
@@ -1137,9 +1141,9 @@ test_that("rake() handles single-level margin variable (degenerate chi-sq df = 0
 # 30. Exactly calibrated data — prev_total_chi_sq = 0
 # ---------------------------------------------------------------------------
 
-test_that("rake() handles exactly calibrated data (prev_total_chi_sq = 0, line 232)", {
-  # Covers vendor-rake-anesrake.R line 232: else { 0 } when prev_total_chi_sq == 0
-  # Data proportions exactly match the margin targets → initial chi-sq = 0
+test_that("rake() handles exactly calibrated data (chi-sq = 0)", {
+  # Data proportions exactly match the margin targets → initial chi-sq = 0.
+  # Delegated to anesrake::anesrake(); triggers already-calibrated message.
   df_exact <- data.frame(
     age_group   = c(rep("18-34", 3), rep("35-54", 4), rep("55+", 3)),
     w           = rep(1, 10),
@@ -1162,18 +1166,15 @@ test_that("rake() handles exactly calibrated data (prev_total_chi_sq = 0, line 2
 })
 
 # ---------------------------------------------------------------------------
-# 31. Error — calibration_not_converged via anesrake engine
+# 31. Error — calibration_not_converged via anesrake engine (maxit = 0)
 # ---------------------------------------------------------------------------
 
-test_that("rake() throws calibration_not_converged via anesrake engine with maxit=1 improvement=0", {
-  # Covers utils.R lines 736-741 (.throw_not_converged for rake_anesrake)
-  # and utils.R lines 872-890 (.throw_not_converged rake_anesrake branch)
-  # and vendor-rake-anesrake.R lines 253, 262-269 (iter >= maxit + max_error calc)
-  #
-  # With maxit=1 and improvement=0 (threshold 0%), any positive improvement
-  # never satisfies improvement_pct < 0, so convergence fails after 1 sweep.
+test_that("rake() throws calibration_not_converged via anesrake engine with maxit=0", {
+  # With vendor delegation, anesrake::anesrake() treats partial convergence
+  # as stable results ("Results are stable, but do not perfectly match...").
+  # True non-convergence is triggered via the maxit = 0 guard in
+  # .calibrate_engine(), which fires before anesrake is called.
   df <- make_surveywts_data(seed = 48)
-  # Extreme margins very different from data proportions to ensure raking happens
   margins_extreme <- list(
     age_group = c("18-34" = 0.80, "35-54" = 0.10, "55+" = 0.10),
     sex       = c("M" = 0.90, "F" = 0.10)
@@ -1183,7 +1184,7 @@ test_that("rake() throws calibration_not_converged via anesrake engine with maxi
     rake(
       df,
       margins = margins_extreme,
-      control = list(maxit = 1L, improvement = 0, pval = 2)
+      control = list(maxit = 0L)
     ),
     class = "surveywts_error_calibration_not_converged"
   )
@@ -1192,7 +1193,7 @@ test_that("rake() throws calibration_not_converged via anesrake engine with maxi
     rake(
       df,
       margins = margins_extreme,
-      control = list(maxit = 1L, improvement = 0, pval = 2)
+      control = list(maxit = 0L)
     )
   )
 })

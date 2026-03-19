@@ -2,7 +2,7 @@
 #
 # Tests for:
 #   - weighted_df S3 class (print.weighted_df, dplyr_reconstruct.weighted_df)
-#   - survey_calibrated S7 class (print method, validator)
+#   - survey_nonprob S7 class (print method, validator)
 #
 # Per impl plan PR 3: weighted_df fixtures are constructed with structure(),
 # NOT via .make_weighted_df() (defined in PR 4).
@@ -75,7 +75,7 @@
   )
 }
 
-# Build a minimal survey_calibrated fixture
+# Build a minimal survey_nonprob fixture
 .make_test_sc <- function(history = list()) {
   df <- data.frame(
     x = 1:5,
@@ -86,7 +86,7 @@
   meta <- surveycore::survey_metadata(
     weighting_history = history
   )
-  surveycore::survey_calibrated(
+  surveycore::survey_nonprob(
     data = df,
     variables = list(
       ids = "psu",
@@ -274,10 +274,10 @@ test_that("weighted_df has correct class vector", {
 })
 
 # ---------------------------------------------------------------------------
-# 7. survey_calibrated print — snapshot test
+# 7. survey_nonprob print — snapshot test
 # ---------------------------------------------------------------------------
 
-test_that("print method for survey_calibrated produces expected output", {
+test_that("print method for survey_nonprob produces expected output", {
   ts <- as.POSIXct("2025-01-15 12:00:00", tz = "UTC")
   history <- list(
     list(
@@ -307,32 +307,48 @@ test_that("print method for survey_calibrated produces expected output", {
 })
 
 # ---------------------------------------------------------------------------
-# 8. survey_calibrated S7 validator — rejects non-positive weights
+# 8. survey_nonprob S7 validator — rejects negative weights
 # ---------------------------------------------------------------------------
 
-test_that("survey_calibrated validator rejects non-positive weights", {
+test_that("survey_nonprob validator rejects negative weights", {
   # class= only, no snapshot (validator messages are not CLI-formatted)
+  # surveycore >= 0.6.1: negative weights throw surveycore_error_weights_negative
   expect_error(
-    surveycore::survey_calibrated(
-      data = data.frame(x = 1:5, w = c(1.0, 0.0, 1.0, 1.0, 1.0)),
+    surveycore::survey_nonprob(
+      data = data.frame(x = 1:5, w = c(1.0, -1.0, 1.0, 1.0, 1.0)),
       variables = list(
         ids = NULL, strata = NULL, fpc = NULL, weights = "w", nest = FALSE
       )
     ),
-    class = "surveycore_error_weights_nonpositive"
+    class = "surveycore_error_weights_negative"
   )
 })
 
 # ---------------------------------------------------------------------------
-# 9. survey_calibrated S7 validator — rejects all-NA weight column
+# 8b. survey_nonprob S7 validator — allows zero weights (surveycore >= 0.6.1)
 # ---------------------------------------------------------------------------
 
-test_that("survey_calibrated validator rejects weight column where all values are NA", {
+test_that("survey_nonprob validator allows zero weights with some positive", {
+  # surveycore >= 0.6.1 relaxed condition 4: >= 0 && any > 0
+  obj <- surveycore::survey_nonprob(
+    data = data.frame(x = 1:5, w = c(1.0, 0.0, 1.0, 1.0, 1.0)),
+    variables = list(
+      ids = NULL, strata = NULL, fpc = NULL, weights = "w", nest = FALSE
+    )
+  )
+  expect_true(S7::S7_inherits(obj, surveycore::survey_nonprob))
+})
+
+# ---------------------------------------------------------------------------
+# 9. survey_nonprob S7 validator — rejects all-NA weight column
+# ---------------------------------------------------------------------------
+
+test_that("survey_nonprob validator rejects weight column where all values are NA", {
   # surveycore's validator permits individual NAs; errors only when ALL are NA
   # Actual surveycore class: surveycore_error_weights_all_zero
   # (spec listed surveycore_error_weights_na; actual class differs)
   expect_error(
-    surveycore::survey_calibrated(
+    surveycore::survey_nonprob(
       data = data.frame(x = 1:5, w = rep(NA_real_, 5)),
       variables = list(
         ids = NULL, strata = NULL, fpc = NULL, weights = "w", nest = FALSE
@@ -343,14 +359,14 @@ test_that("survey_calibrated validator rejects weight column where all values ar
 })
 
 # ---------------------------------------------------------------------------
-# 7b. print — survey_calibrated with NULL ids/strata and empty history
+# 7b. print — survey_nonprob with NULL ids/strata and empty history
 # ---------------------------------------------------------------------------
 
-test_that("print method for survey_calibrated handles NULL ids, NULL strata, empty history", {
+test_that("print method for survey_nonprob handles NULL ids, NULL strata, empty history", {
   # NULL ids → .format_design_vars() returns "~1" (line 14 of methods-print.R)
   # NULL strata → strata_str = "NULL" (line 44)
   # empty history → "Weighting history: none" (line 59)
-  sc <- surveycore::survey_calibrated(
+  sc <- surveycore::survey_nonprob(
     data = data.frame(x = 1:5, w = c(1.2, 0.8, 1.1, 0.9, 1.0)),
     variables = list(
       ids = NULL, strata = NULL, fpc = NULL, weights = "w", nest = FALSE

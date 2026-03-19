@@ -1,4 +1,57 @@
+# surveywts 0.1.1
+
+## Breaking changes
+
+* `adjust_nonresponse()` now returns all rows with nonrespondent weights
+  set to 0, instead of dropping nonrespondent rows. This preserves design
+  structure for variance estimation. Code that uses `nrow(result)` to count
+  respondents should use `sum(result$weight_col > 0)` instead.
+
+* `poststratify()` now defaults to `type = "prop"`, consistent with
+  `calibrate()` and `rake()`. Existing code that relies on the count default
+  should add explicit `type = "count"`.
+
+## Bug fixes
+
+* `calibrate()`, `rake()`, and `poststratify()` now delegate to `survey::calibrate()`,
+  `survey::rake()`, `anesrake::anesrake()`, and `survey::postStratify()` instead of
+  vendored algorithm copies. This improves numerical correctness and maintainability (#16).
+
+* `adjust_nonresponse()` `response_status` argument now resolves via
+  `tidyselect::eval_select()` instead of `rlang::as_name()`, supporting
+  tidy-select semantics and providing a clearer error for multi-column
+  selection (#15).
+
+* Input validation in `calibrate()`, `rake()`, `poststratify()`, and
+  `adjust_nonresponse()` now uses `survey_base` inheritance checks instead
+  of listing specific class names (#15).
+
+* `summarize_weights()` grouped path now uses `paste(sep = "//")` instead of
+  `interaction()`, avoiding separator collisions with factor levels containing
+  dots (e.g., `"Dr."`) (#13).
+
+* `survey_nonprob` print method now shows `"Variance: model-assisted (SRS assumption)"`
+  instead of incorrectly labelling it as Taylor linearization (#13).
+
+## Internal
+
+* Moved shared helpers `.check_input_class()` and `.get_history()` to `R/utils.R`;
+  inlined `%||%` operator (#12).
+
+* Moved `survey` from Suggests to Imports; added `anesrake` to Imports (#16).
+
 # surveywts 0.1.0
+
+## Breaking changes
+
+* `adjust_nonresponse()` now returns all rows with nonrespondent weights
+  set to 0, instead of dropping nonrespondent rows. This preserves design
+  structure for variance estimation. Code that uses `nrow(result)` to count
+  respondents should use `sum(result$weight_col > 0)` instead.
+
+* `poststratify()` now defaults to `type = "prop"`, consistent with
+  `calibrate()` and `rake()`. Existing code that relies on the count default
+  should add explicit `type = "count"`.
 
 ## Phase 0: Weighting Core
 
@@ -14,8 +67,8 @@ workflow.
   Supports dplyr verbs (`select()`, `rename()`, `mutate()`) with automatic
   downgrade to a plain tibble (with a warning) if the weight column is removed.
 
-- `survey_calibrated` (from surveycore): surveywts implements `print()` for
-  `survey_calibrated` objects, displaying design variables and weighting history.
+- `survey_nonprob` (from surveycore): surveywts implements `print()` for
+  `survey_nonprob` objects, displaying design variables and weighting history.
 
 ### New functions
 
@@ -44,11 +97,11 @@ workflow.
   percentiles), optionally grouped by one or more variables.
 
 All functions accept `data.frame`, `weighted_df`, `survey_taylor`, and
-`survey_calibrated` inputs, and append a structured weighting history entry
+`survey_nonprob` inputs, and append a structured weighting history entry
 on every call.
 
 ### Bug fixes
 
 - `calibrate()`, `rake()`, and `poststratify()` now preserve the input class
-  (`survey_taylor` or `survey_calibrated`) rather than promoting all survey
-  object inputs to `survey_calibrated` (#10).
+  (`survey_taylor` or `survey_nonprob`) rather than promoting all survey
+  object inputs to `survey_nonprob` (#10).

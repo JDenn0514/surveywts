@@ -23,9 +23,9 @@ adjust_nonresponse(
 
 **Key behaviours:**
 
-- Accepts `data.frame`, `weighted_df`, `survey_taylor`, and `survey_calibrated`.
+- Accepts `data.frame`, `weighted_df`, `survey_taylor`, and `survey_nonprob`.
 - Returns `weighted_df` for data frame inputs; same class for survey objects
-  (does not promote to `survey_calibrated`).
+  (does not promote to `survey_nonprob`).
 - Returns only respondent rows (`response_status == 1` or `TRUE`).
 - Weight update formula within each cell `h`:
   `w_new = w * (sum(w_h) / sum(w_h_respondents))`.

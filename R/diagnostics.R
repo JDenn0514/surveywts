@@ -20,7 +20,7 @@
 #' \deqn{ESS = \frac{(\sum w)^2}{\sum w^2}}
 #'
 #' @param x A `data.frame`, `weighted_df`, `survey_taylor`, or
-#'   `survey_calibrated`. For `weighted_df` and survey objects, the weight
+#'   `survey_nonprob`. For `weighted_df` and survey objects, the weight
 #'   column is auto-detected.
 #' @param weights Bare name (NSE). Weight column. Auto-detected for
 #'   `weighted_df` and survey objects. Required for plain `data.frame`.
@@ -37,9 +37,17 @@
 effective_sample_size <- function(x, weights = NULL) {
   weights_quo <- rlang::enquo(weights)
   vld <- .diag_validate_input(x, weights_quo)
-  .validate_weights(vld$data_df, vld$weight_col)
 
-  w <- vld$data_df[[vld$weight_col]]
+  # Filter out exact zeros before validation (zero weights arise from
+  # nonresponse adjustment and should be excluded from diagnostics).
+  # Negative weights and NAs still reach .validate_weights() for proper
+  # error reporting.
+  data_df <- vld$data_df
+  w_all <- data_df[[vld$weight_col]]
+  data_df <- data_df[is.na(w_all) | w_all != 0, , drop = FALSE]
+  .validate_weights(data_df, vld$weight_col)
+
+  w <- data_df[[vld$weight_col]]
   c(n_eff = sum(w)^2 / sum(w^2))
 }
 
@@ -66,9 +74,15 @@ effective_sample_size <- function(x, weights = NULL) {
 weight_variability <- function(x, weights = NULL) {
   weights_quo <- rlang::enquo(weights)
   vld <- .diag_validate_input(x, weights_quo)
-  .validate_weights(vld$data_df, vld$weight_col)
 
-  w <- vld$data_df[[vld$weight_col]]
+  # Filter out exact zeros before validation (zero weights arise from
+  # nonresponse adjustment and should be excluded from diagnostics).
+  data_df <- vld$data_df
+  w_all <- data_df[[vld$weight_col]]
+  data_df <- data_df[is.na(w_all) | w_all != 0, , drop = FALSE]
+  .validate_weights(data_df, vld$weight_col)
+
+  w <- data_df[[vld$weight_col]]
   c(cv = stats::sd(w) / mean(w))
 }
 
@@ -106,10 +120,14 @@ summarize_weights <- function(x, weights = NULL, by = NULL) {
   by_quo <- rlang::enquo(by)
 
   vld <- .diag_validate_input(x, weights_quo)
-  .validate_weights(vld$data_df, vld$weight_col)
 
+  # Filter out exact zeros before validation (zero weights arise from
+  # nonresponse adjustment and should be excluded from diagnostics).
   data_df <- vld$data_df
   weight_col <- vld$weight_col
+  w_all <- data_df[[weight_col]]
+  data_df <- data_df[is.na(w_all) | w_all != 0, , drop = FALSE]
+  .validate_weights(data_df, weight_col)
 
   by_names <- if (rlang::quo_is_null(by_quo)) {
     character(0L)
@@ -121,12 +139,14 @@ summarize_weights <- function(x, weights = NULL, by = NULL) {
     w <- data_df[[weight_col]]
     tibble::as_tibble(.compute_weight_stats(w))
   } else {
-    group_factor <- if (length(by_names) == 1L) {
-      data_df[[by_names]]
-    } else {
-      interaction(lapply(by_names, function(v) data_df[[v]]), drop = TRUE)
-    }
-    groups <- split(seq_len(nrow(data_df)), group_factor)
+    cell_keys <- do.call(
+      paste,
+      c(lapply(by_names, function(v) as.character(data_df[[v]])), sep = "//")
+    )
+    groups <- split(seq_len(nrow(data_df)), cell_keys)
+    # Preserve first-occurrence order (not alphabetical from split())
+    key_order <- unique(cell_keys)
+    groups <- groups[key_order]
 
     result_dfs <- lapply(names(groups), function(gkey) {
       idx <- groups[[gkey]]
@@ -154,19 +174,28 @@ summarize_weights <- function(x, weights = NULL, by = NULL) {
 #      throws surveywts_error_weights_required
 # Returns: list(data_df = <data.frame>, weight_col = <character>)
 .diag_validate_input <- function(x, weights_quo) {
+  # Replicate designs require Phase 1 — check first (specific before general)
+  if (S7::S7_inherits(x, surveycore::survey_replicate)) {
+    cli::cli_abort(
+      c(
+        "x" = "{.cls survey_replicate} objects are not supported in Phase 0.",
+        "i" = "Replicate-weight support requires Phase 1.",
+        "v" = "Use a {.cls survey_taylor} design, or wait for Phase 1."
+      ),
+      class = "surveywts_error_replicate_not_supported"
+    )
+  }
+
   is_supported <- is.data.frame(x) ||
-    S7::S7_inherits(x, surveycore::survey_taylor) ||
-    S7::S7_inherits(x, surveycore::survey_calibrated)
+    S7::S7_inherits(x, surveycore::survey_base)
 
   if (!is_supported) {
     cls <- class(x)[[1L]]
     cli::cli_abort(
       c(
-        "x" = paste0(
-          "{.arg x} must be a data frame, {.cls weighted_df}, ",
-          "{.cls survey_taylor}, or {.cls survey_calibrated}."
-        ),
-        "i" = "Got {.cls {cls}}."
+        "x" = "{.arg x} must be a data frame or a supported survey design object.",
+        "i" = "Got {.cls {cls}}.",
+        "v" = "See package documentation for supported input types."
       ),
       class = "surveywts_error_unsupported_class"
     )

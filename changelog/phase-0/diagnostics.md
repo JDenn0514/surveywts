@@ -14,7 +14,7 @@ effective_sample_size(x, weights = NULL)
 
 **Key behaviours:**
 
-- Accepts `data.frame`, `weighted_df`, `survey_taylor`, and `survey_calibrated`.
+- Accepts `data.frame`, `weighted_df`, `survey_taylor`, and `survey_nonprob`.
 - Returns a named numeric scalar `c(n_eff = <value>)`.
 - Auto-detects the weight column for `weighted_df` and survey objects;
   `weights` is required for plain `data.frame`.

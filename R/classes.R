@@ -11,7 +11,7 @@
 #   - .reconstruct_weighted_df()      — internal helper shared by all dplyr methods
 #
 # .format_history_step() lives in R/utils.R (moved in PR 4).
-# survey_calibrated is defined in surveycore, not here.
+# survey_nonprob is defined in surveycore, not here.
 
 # ---------------------------------------------------------------------------
 # print.weighted_df()

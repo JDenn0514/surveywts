@@ -1,10 +1,10 @@
 Package: surveywts
 Title: Tools for Survey Weighting and Calibration
-Version: 0.1.0
+Version: 0.1.1
 Authors@R:
     person(
-        "Jacob", "Dennen", 
-        email = "jdenn0514@gmail.com", 
+        "Jacob", "Dennen",
+        email = "jdenn0514@gmail.com",
         role = c("aut", "cre", "cph"),
         comment = c(ORCID = "0000-0003-3006-7364")
     )
@@ -19,18 +19,19 @@ Roxygen: list(markdown = TRUE)
 Depends:
     R (>= 4.3.0)
 Imports:
+    anesrake (>= 0.80),
     cli (>= 3.6.0),
     dplyr (>= 1.1.0),
     rlang (>= 1.1.0),
     S7 (>= 0.2.0),
-    surveycore (>= 0.1.0),
+    survey (>= 4.2-1),
+    surveycore (>= 0.6.1),
     tibble (>= 3.2.0),
     tidyselect (>= 1.2.0)
 Suggests:
     covr,
     knitr,
     rmarkdown,
-    survey (>= 4.2-1),
     svrep (>= 0.6),
     testthat (>= 3.2.0),
     withr (>= 2.5.0)

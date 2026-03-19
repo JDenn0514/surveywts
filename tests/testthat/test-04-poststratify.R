@@ -211,7 +211,6 @@ test_that("poststratify() accepts integer strata columns", {
 # ---------------------------------------------------------------------------
 
 test_that("poststratify() matches survey::postStratify() within 1e-8", {
-  skip_if_not_installed("survey")
 
   df  <- make_surveywts_data(n = 300L, seed = 10)
   pop <- .make_pop_ps()

@@ -686,14 +686,87 @@
   type <- calibration_spec$type
   vars_spec <- calibration_spec$variables
 
-  # ---- Linear or logit calibration (GREG) ----------------------------------
+  # ---- Linear or logit calibration (via survey::calibrate()) ---------------
   if (type %in% c("linear", "logit")) {
-    mm <- .build_model_matrix(data_df, vars_spec)
-    pop <- unlist(lapply(vars_spec, function(v) v$targets))
+    var_names <- vapply(vars_spec, function(v) v$col, character(1))
+
+    # Use R default treatment contrasts (k-1 dummies per factor + intercept).
+    # This is mathematically equivalent to full indicator encoding without
+    # intercept, and is the natural interface for survey::calibrate().
+    for (v in vars_spec) {
+      col_name <- v$col
+      lvls <- names(v$targets)
+      data_df[[col_name]] <- factor(data_df[[col_name]], levels = lvls)
+    }
+
+    # Check if all variables have only 1 level — trivially calibrated
+    all_single <- all(vapply(
+      vars_spec, function(v) length(v$targets) == 1L, logical(1)
+    ))
+    if (all_single) {
+      return(list(
+        weights = weights_vec,
+        convergence = list(
+          converged = TRUE,
+          iterations = 1L,
+          max_error = 0,
+          tolerance = control$epsilon
+        )
+      ))
+    }
+
+    # Build formula with intercept: ~var1 + var2
+    # Only include variables with 2+ levels (single-level factors cannot
+    # generate dummy columns and are handled by the intercept constraint).
+    fml_vars <- var_names[vapply(
+      vars_spec, function(v) length(v$targets) >= 2L, logical(1)
+    )]
+    fml <- stats::as.formula(
+      paste("~", paste(fml_vars, collapse = " + "))
+    )
+
+    # Build named population totals vector matching model.matrix() column names
+    mm <- stats::model.matrix(fml, data = data_df)
+    total_w <- sum(weights_vec)
+
+    # Construct population totals: intercept = population total (sum of any
+    # variable's targets — they should all sum to the same total for marginal
+    # calibration), then for each variable's non-reference levels, the target.
+    pop_total <- sum(vars_spec[[1]]$targets)
+
+    pop_totals <- stats::setNames(numeric(ncol(mm)), colnames(mm))
+    pop_totals["(Intercept)"] <- pop_total
+
+    for (v in vars_spec) {
+      if (length(v$targets) < 2L) next
+      col_name <- v$col
+      lvls <- names(v$targets)
+      # Reference level is first; columns in model.matrix start from 2nd level
+      for (lev in lvls[-1L]) {
+        col_nm <- paste0(col_name, lev)
+        if (col_nm %in% names(pop_totals)) {
+          pop_totals[col_nm] <- v$targets[[lev]]
+        }
+      }
+    }
+
+    # Add temporary weight column
+    data_df$.wt_tmp <- weights_vec
+    svy_tmp <- survey::svydesign(ids = ~1, weights = ~.wt_tmp, data = data_df)
+
+    calfun <- if (type == "linear") survey::cal.linear else survey::cal.logit
 
     if (type == "linear") {
-      g <- .greg_linear(mm, weights_vec, pop)
-      new_weights <- weights_vec * g
+      # Linear: closed-form, no convergence check needed
+      cal_result <- survey::calibrate(
+        svy_tmp,
+        formula = fml,
+        population = pop_totals,
+        calfun = calfun,
+        maxit = control$maxit,
+        epsilon = control$epsilon
+      )
+      new_weights <- as.numeric(stats::weights(cal_result))
 
       return(list(
         weights = new_weights,
@@ -705,94 +778,205 @@
         )
       ))
     } else {
-      # logit
-      g <- .greg_logit(
-        mm, weights_vec, pop,
-        epsilon = control$epsilon,
-        maxit = as.integer(control$maxit)
+      # Logit: intercept non-convergence warning and re-throw as typed error
+      # cal.logit requires finite bounds; use wide bounds matching vendored
+      # behavior (lower ≈ 0, upper ≈ Inf)
+      cal_result <- tryCatch(
+        withCallingHandlers(
+          survey::calibrate(
+            svy_tmp,
+            formula = fml,
+            population = pop_totals,
+            calfun = calfun,
+            bounds = c(1e-6, 1e6),
+            maxit = control$maxit,
+            epsilon = control$epsilon
+          ),
+          warning = function(w) {
+            msg <- conditionMessage(w)
+            if (grepl("converge", msg, ignore.case = TRUE)) {
+              cli::cli_abort(
+                c(
+                  "x" = paste0(
+                    "Calibration did not converge after ",
+                    "{control$maxit} iterations."
+                  ),
+                  "i" = "survey::calibrate() reported: {msg}",
+                  "v" = paste0(
+                    "Increase {.code control$maxit}, relax ",
+                    "{.code control$epsilon}, or verify population totals ",
+                    "are consistent with the sample."
+                  )
+                ),
+                class = "surveywts_error_calibration_not_converged"
+              )
+            }
+            # Muffle benign rescaling warnings from grake()
+            if (grepl("rescaling", msg, ignore.case = TRUE)) {
+              tryInvokeRestart("muffleWarning")
+            }
+          }
+        ),
+        error = function(e) {
+          if (inherits(e, "surveywts_error_calibration_not_converged")) {
+            stop(e)
+          }
+          # Re-throw unexpected errors
+          stop(e) # nocov
+        }
       )
 
-      if (!is.null(attr(g, "failed"))) {
-        .throw_not_converged(
-          method = "logit",
-          context = "calibrate",
-          control = control,
-          max_error = attr(g, "failed")
-        )
-      }
+      new_weights <- as.numeric(stats::weights(cal_result))
 
-      new_weights <- weights_vec * g
       return(list(
         weights = new_weights,
         convergence = list(
           converged = TRUE,
-          iterations = if (is.null(attr(g, "iterations"))) NA_integer_ else attr(g, "iterations"),
-          max_error = if (is.null(attr(g, "max_error"))) 0 else attr(g, "max_error"),
+          iterations = NA_integer_,
+          max_error = 0,
           tolerance = control$epsilon
         )
       ))
     }
   }
 
-  # ---- IPF (survey-style raking) -------------------------------------------
+  # ---- IPF (via survey::rake()) -------------------------------------------
   if (type == "ipf") {
-    margins <- lapply(vars_spec, function(v) {
-      list(
-        levels = as.character(data_df[[v$col]]),
-        targets = v$targets
-      )
+    var_names <- vapply(vars_spec, function(v) v$col, character(1))
+
+    # Build margin formulas and population data frames
+    sample_margins <- lapply(var_names, function(v) {
+      stats::as.formula(paste("~", v))
     })
 
-    result <- .ipf_calibrate(
-      margins = margins,
-      ww = weights_vec,
-      epsilon = control$epsilon,
-      maxit = as.integer(control$maxit),
-      cap = calibration_spec$cap
+    population_margins <- lapply(vars_spec, function(v) {
+      pop_df <- data.frame(
+        level = names(v$targets),
+        Freq = as.numeric(v$targets),
+        stringsAsFactors = FALSE
+      )
+      names(pop_df)[1] <- v$col
+      pop_df
+    })
+
+    # Add temporary weight column
+    data_df$.wt_tmp <- weights_vec
+    svy_tmp <- survey::svydesign(ids = ~1, weights = ~.wt_tmp, data = data_df)
+
+    raked <- tryCatch(
+      withCallingHandlers(
+        survey::rake(
+          svy_tmp,
+          sample.margins = sample_margins,
+          population.margins = population_margins,
+          control = list(
+            maxit = as.integer(control$maxit),
+            epsilon = control$epsilon
+          )
+        ),
+        warning = function(w) {
+          msg <- conditionMessage(w)
+          if (grepl("converge", msg, ignore.case = TRUE)) {
+            cli::cli_abort(
+              c(
+                "x" = paste0(
+                  "Raking did not converge after ",
+                  "{control$maxit} full sweeps."
+                ),
+                "i" = "survey::rake() reported: {msg}",
+                "v" = paste0(
+                  "Increase {.code control$maxit}, relax ",
+                  "{.code control$epsilon}, or verify margin totals ",
+                  "are consistent with the sample."
+                )
+              ),
+              class = "surveywts_error_calibration_not_converged"
+            )
+          }
+        }
+      ),
+      error = function(e) {
+        if (inherits(e, "surveywts_error_calibration_not_converged")) {
+          stop(e)
+        }
+        stop(e) # nocov
+      }
     )
 
-    if (!result$converged) {
-      .throw_not_converged(
-        method = "ipf",
-        context = "rake_survey",
-        control = control,
-        max_error = result$max_error
-      )
-    }
+    new_weights <- as.numeric(stats::weights(raked))
 
     return(list(
-      weights = result$weights,
+      weights = new_weights,
       convergence = list(
         converged = TRUE,
-        iterations = result$iterations,
-        max_error = result$max_error,
+        iterations = NA_integer_,
+        max_error = 0,
         tolerance = control$epsilon
       )
     ))
   }
 
-  # ---- Anesrake (chi-square variable-selection raking) ----------------------
+  # ---- Anesrake (via anesrake::anesrake()) ---------------------------------
   if (type == "anesrake") {
-    variable_data <- lapply(vars_spec, function(v) {
-      list(
-        levels  = as.character(data_df[[v$col]]),
-        targets = v$targets
-      )
-    })
-    names(variable_data) <- vapply(vars_spec, function(v) v$col, character(1))
+    var_names <- vapply(vars_spec, function(v) v$col, character(1))
 
-    result <- .anesrake_calibrate(
-      variable_data  = variable_data,
-      ww             = weights_vec,
-      pval           = control$pval,
-      improvement    = control$improvement,
-      min_cell_n     = as.integer(control$min_cell_n),
-      variable_select = control$variable_select,
-      maxit          = as.integer(control$maxit),
-      cap            = calibration_spec$cap
+    # Build named list of target vectors (proportions for anesrake)
+    targets_list <- lapply(vars_spec, function(v) {
+      tgt <- v$targets
+      tgt / sum(tgt)  # anesrake expects proportions
+    })
+    names(targets_list) <- var_names
+
+    # Ensure data columns are factors with correct levels
+    for (v in vars_spec) {
+      lvls <- names(v$targets)
+      data_df[[v$col]] <- factor(data_df[[v$col]], levels = lvls)
+    }
+
+    # Create synthetic caseid
+    data_df$.anesrake_id <- seq_len(nrow(data_df))
+
+    # anesrake::anesrake() default cap is 5; NULL is not accepted
+    anesrake_cap <- calibration_spec$cap %||% 5
+
+    # anesrake uses print() for status messages; suppress the console output.
+    # When data is already calibrated, anesrake::selecthighestpcts() throws
+    # an error "No variables are off by more than ...". Catch that and treat
+    # as already-calibrated.
+    anesrake_error <- NULL
+    utils::capture.output(
+      result <- tryCatch(
+        suppressWarnings(
+          anesrake::anesrake(
+            inputter     = targets_list,
+            dataframe    = data_df,
+            caseid       = data_df$.anesrake_id,
+            weightvec    = weights_vec,
+            choosemethod = control$variable_select,
+            cap          = anesrake_cap,
+            pctlim       = control$improvement,
+            nlim         = as.integer(control$min_cell_n),
+            iterate      = TRUE,
+            maxit        = as.integer(control$maxit),
+            type         = "pctlim",
+            force1       = FALSE
+          )
+        ),
+        error = function(e) {
+          if (grepl("No variables are off", conditionMessage(e),
+                    ignore.case = TRUE)) {
+            anesrake_error <<- "already_calibrated"
+            NULL
+          } else {
+            stop(e) # nocov
+          }
+        }
+      )
     )
 
-    if (isTRUE(result$already_calibrated)) {
+    # Already-calibrated: anesrake threw an error because no variables
+    # exceeded the improvement threshold
+    if (identical(anesrake_error, "already_calibrated")) {
       cli::cli_inform(
         c("i" = paste0(
           "Raking converged in 1 sweep: all variables already met their ",
@@ -800,38 +984,93 @@
         )),
         class = "surveywts_message_already_calibrated"
       )
-    } else if (!result$converged) {
-      .throw_not_converged(
-        method = "anesrake",
-        context = "rake_anesrake",
-        control = control,
-        max_error = result$max_error
+      return(list(
+        weights = weights_vec,
+        convergence = list(
+          converged  = TRUE,
+          iterations = 1L,
+          max_error  = 0,
+          tolerance  = control$improvement
+        )
+      ))
+    }
+
+    # anesrake::anesrake()$converge is a character string:
+    #   "Complete convergence was achieved" — fully converged
+    #   "Results are stable, but do not perfectly match..." — partial,
+    #     treated as converged (matches old vendored behaviour)
+    #   Other strings (e.g. containing "Did Not Converge") — failure
+    converged <- grepl(
+      "Complete convergence|Results are stable",
+      result$converge, ignore.case = TRUE
+    )
+
+    if (!converged) {
+      cli::cli_abort(
+        c(
+          "x" = paste0(
+            "Raking did not converge after ",
+            "{control$maxit} full sweeps."
+          ),
+          "i" = paste0(
+            "anesrake::anesrake() reported: {result$converge}"
+          ),
+          "v" = paste0(
+            "Increase {.code control$maxit} or relax ",
+            "{.code control$improvement} in the {.arg control} list."
+          )
+        ),
+        class = "surveywts_error_calibration_not_converged"
       )
     }
 
+    if (result$iterations == 0L) {
+      cli::cli_inform(
+        c("i" = paste0(
+          "Raking converged in 1 sweep: all variables already met their ",
+          "margins. Weights were not adjusted."
+        )),
+        class = "surveywts_message_already_calibrated"
+      )
+    }
+
+    new_weights <- as.numeric(result$weightvec)
+
     return(list(
-      weights = result$weights,
+      weights = new_weights,
       convergence = list(
-        converged  = result$converged,
-        iterations = result$iterations,
-        max_error  = result$max_error,
+        converged  = converged,
+        iterations = as.integer(result$iterations),
+        max_error  = 0,
         tolerance  = control$improvement
       )
     ))
   }
 
-  # ---- Post-stratification (exact single-pass) -----------------------------
+  # ---- Post-stratification (via survey::postStratify()) --------------------
   if (type == "poststratify") {
-    cells <- calibration_spec$cells
-    new_weights <- weights_vec
+    strata_names <- calibration_spec$strata_names
+    pop_input <- calibration_spec$population
 
-    for (cell in cells) {
-      idx <- cell$indices
-      n_hat_h <- sum(weights_vec[idx])
-      # empty_stratum is detected before engine call; defensive check
-      if (n_hat_h <= 0) next # nocov
-      new_weights[idx] <- weights_vec[idx] * (cell$target / n_hat_h)
-    }
+    # Build formula from strata_names
+    ps_fml <- stats::as.formula(
+      paste("~", paste(strata_names, collapse = " + "))
+    )
+
+    # Build population data frame: rename "target" -> "Freq"
+    pop_df <- pop_input
+    names(pop_df)[names(pop_df) == "target"] <- "Freq"
+
+    # Add temporary weight column
+    data_df$.wt_tmp <- weights_vec
+    svy_tmp <- survey::svydesign(ids = ~1, weights = ~.wt_tmp, data = data_df)
+
+    ps_result <- survey::postStratify(
+      svy_tmp,
+      strata = ps_fml,
+      population = pop_df
+    )
+    new_weights <- as.numeric(stats::weights(ps_result))
 
     # Poststratification is non-iterative: convergence = NULL per spec §IV.5
     return(list(
@@ -852,17 +1091,6 @@
 }
 
 # ---- Internal helpers for .calibrate_engine() ----------------------------
-
-# Build a model matrix of 0/1 indicators from vars_spec.
-# Each element of vars_spec: list(col = <column name>, targets = <named vector>)
-.build_model_matrix <- function(data_df, vars_spec) {
-  cols <- lapply(vars_spec, function(v) {
-    levels_vec <- as.character(data_df[[v$col]])
-    all_levels <- names(v$targets)
-    sapply(all_levels, function(lev) as.integer(levels_vec == lev))
-  })
-  do.call(cbind, cols)
-}
 
 # Throw surveywts_error_calibration_not_converged for the maxit = 0 case.
 # context: the calibration method (linear, logit, ipf, anesrake, poststratify)
@@ -888,72 +1116,6 @@
         "i" = "Setting {.code control$maxit = 0} means no raking is attempted.",
         "v" = paste0(
           "Set {.code control$maxit} to a positive integer."
-        )
-      ),
-      class = "surveywts_error_calibration_not_converged"
-    )
-  }
-}
-
-# Throw surveywts_error_calibration_not_converged on actual non-convergence.
-# context: "calibrate", "rake_survey", "rake_anesrake"
-.throw_not_converged <- function(method, context, control, max_error) {
-  # Round to 6 sig figs before embedding in the message to avoid platform-
-  # specific floating-point representation differences (macOS vs Linux).
-  max_error <- signif(max_error, 6)
-  if (context == "calibrate") {
-    cli::cli_abort(
-      c(
-        "x" = paste0(
-          "Calibration did not converge after ",
-          "{control$maxit} iterations."
-        ),
-        "i" = paste0(
-          "Maximum calibration error: {max_error} ",
-          "(tolerance: {control$epsilon})."
-        ),
-        "v" = paste0(
-          "Increase {.code control$maxit}, relax ",
-          "{.code control$epsilon}, or verify population totals ",
-          "are consistent with the sample."
-        )
-      ),
-      class = "surveywts_error_calibration_not_converged"
-    )
-  } else if (context == "rake_survey") {
-    cli::cli_abort(
-      c(
-        "x" = paste0(
-          "Raking did not converge after ",
-          "{control$maxit} full sweeps."
-        ),
-        "i" = paste0(
-          "Maximum margin error: {max_error} ",
-          "(tolerance: {control$epsilon})."
-        ),
-        "v" = paste0(
-          "Increase {.code control$maxit}, relax ",
-          "{.code control$epsilon}, or verify margin totals ",
-          "are consistent with the sample."
-        )
-      ),
-      class = "surveywts_error_calibration_not_converged"
-    )
-  } else if (context == "rake_anesrake") {
-    improvement_pct <- max_error
-    cli::cli_abort(
-      c(
-        "x" = paste0(
-          "Raking did not converge after ",
-          "{control$maxit} full sweeps."
-        ),
-        "i" = paste0(
-          "Chi-square improvement in the final sweep: ",
-          "{improvement_pct}% (threshold: {control$improvement}%)."
-        ),
-        "v" = paste0(
-          "Increase {.code control$maxit} or relax ",
-          "{.code control$improvement} in the {.arg control} list."
         )
       ),
       class = "surveywts_error_calibration_not_converged"

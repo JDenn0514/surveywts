@@ -42,6 +42,7 @@ function in subsections XII.A through XII.G).
 | `surveywts_error_population_level_extra` | `rake()` | A margins level absent from `data` |
 | `surveywts_error_population_totals_invalid` | `rake()` | `type = "prop"` proportions don't sum to 1, or `type = "count"` target ≤ 0 |
 | `surveywts_error_calibration_not_converged` | `.calibrate_engine()` | Max full sweeps reached without convergence |
+| `surveywts_error_cap_not_supported_survey` | `rake()` | `cap` specified with `method = "survey"` |
 
 ### `poststratify()`
 

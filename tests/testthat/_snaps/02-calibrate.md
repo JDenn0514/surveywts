@@ -154,9 +154,9 @@
       calibrate(df, variables = c(age_group, sex), population = pop, method = "logit",
       control = list(maxit = 1, epsilon = 1e-20))
     Condition
-      Error in `.throw_not_converged()`:
+      Error:
       x Calibration did not converge after 1 iterations.
-      i Maximum calibration error: 0.000562891 (tolerance: 1e-20).
+      i survey::calibrate() reported: Failed to converge: eps=0.000618523715721471 in 2 iterations
       v Increase `control$maxit`, relax `control$epsilon`, or verify population totals are consistent with the sample.
 
 # calibrate() with control$maxit = 0 throws not_converged with distinct note

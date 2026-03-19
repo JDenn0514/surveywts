@@ -210,8 +210,10 @@ poststratify <- function(
 
   # ---- 12. Run calibration engine (poststratify type) ---------------------
   calibration_spec <- list(
-    type  = "poststratify",
-    cells = cells
+    type         = "poststratify",
+    cells        = cells,
+    strata_names = strata_names,
+    population   = population
   )
 
   engine_result <- .calibrate_engine(

@@ -2,6 +2,11 @@
 
 ## Breaking changes
 
+* `adjust_nonresponse()` now returns all rows with nonrespondent weights
+  set to 0, instead of dropping nonrespondent rows. This preserves design
+  structure for variance estimation. Code that uses `nrow(result)` to count
+  respondents should use `sum(result$weight_col > 0)` instead.
+
 * `poststratify()` now defaults to `type = "prop"`, consistent with
   `calibrate()` and `rake()`. Existing code that relies on the count default
   should add explicit `type = "count"`.

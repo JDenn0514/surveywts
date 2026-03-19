@@ -58,7 +58,7 @@
       i Got <character>.
       v Use `as.numeric(w)` to convert.
 
-# effective_sample_size() throws weights_nonpositive for zero weight value
+# effective_sample_size() throws weights_nonpositive for negative weight value
 
     Code
       effective_sample_size(df, weights = w)

@@ -180,7 +180,7 @@
       i Small or high-adjustment cells may produce extreme weights.
       i Consider collapsing weighting classes or adjusting `control$min_cell` / `control$max_adjust`.
     Output
-      # A tibble: 85 x 3
+      # A tibble: 107 x 3
          class responded     w
        * <chr>     <int> <dbl>
        1 small         1  1.4 
@@ -188,12 +188,12 @@
        3 small         1  1.4 
        4 small         1  1.4 
        5 small         1  1.4 
-       6 big           1  1.25
-       7 big           1  1.25
+       6 small         0  0   
+       7 small         0  0   
        8 big           1  1.25
        9 big           1  1.25
       10 big           1  1.25
-      # i 75 more rows
+      # i 97 more rows
 
 # adjust_nonresponse() rejects character response_status (not binary)
 

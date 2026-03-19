@@ -4,8 +4,9 @@
       poststratify(matrix(1:4, 2, 2), strata = c(V1), population = pop, type = "count")
     Condition
       Error in `.check_input_class()`:
-      x `data` must be a data frame, <weighted_df>, <survey_taylor>, or <survey_nonprob>.
+      x `data` must be a data frame or a supported survey design object.
       i Got <matrix>.
+      v See package documentation for supported input types.
 
 # poststratify() rejects 0-row data frame (SE-2)
 

@@ -64,6 +64,7 @@ function in subsections XII.A through XII.G).
 | `surveywts_error_response_status_has_na` | `adjust_nonresponse()` | `response_status` column has `NA` values |
 | `surveywts_error_response_status_all_zero` | `adjust_nonresponse()` | All rows are nonrespondents |
 | `surveywts_error_class_cell_empty` | `adjust_nonresponse()` | Weighting class cell has no respondents |
+| `surveywts_error_response_status_multiple_columns` | `adjust_nonresponse()` | `response_status` selects > 1 column |
 | `surveywts_error_propensity_requires_phase2` | `adjust_nonresponse()` | `method` is `"propensity"` or `"propensity-cell"` (Phase 2 stubs) |
 
 ### Diagnostics

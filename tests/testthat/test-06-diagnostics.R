@@ -245,14 +245,28 @@ test_that("effective_sample_size() throws weights_not_numeric for character weig
 # 7c. Error — weights_nonpositive
 # ---------------------------------------------------------------------------
 
-test_that("effective_sample_size() throws weights_nonpositive for zero weight value", {
-  df <- data.frame(x = 1:5, w = c(1.0, 0.0, 1.5, 0.9, 1.1))
+test_that("effective_sample_size() throws weights_nonpositive for negative weight value", {
+  # Zero weights are filtered out (post-nonresponse diagnostic support),
+  # but negative weights still reach .validate_weights() and trigger the error.
+  df <- data.frame(x = 1:5, w = c(1.0, -0.5, 1.5, 0.9, 1.1))
 
   expect_error(
     effective_sample_size(df, weights = w),
     class = "surveywts_error_weights_nonpositive"
   )
   expect_snapshot(error = TRUE, effective_sample_size(df, weights = w))
+})
+
+test_that("effective_sample_size() filters zeros and computes on positive weights", {
+  # Zero weights from nonresponse adjustment should be silently excluded
+  df <- data.frame(x = 1:5, w = c(1.0, 0.0, 1.5, 0.9, 1.1))
+
+  result <- effective_sample_size(df, weights = w)
+
+  # Computed on positive weights only (4 weights: 1.0, 1.5, 0.9, 1.1)
+  w_pos <- c(1.0, 1.5, 0.9, 1.1)
+  expected_ess <- sum(w_pos)^2 / sum(w_pos^2)
+  expect_equal(result[["n_eff"]], expected_ess, tolerance = 1e-10)
 })
 
 # ---------------------------------------------------------------------------
@@ -345,4 +359,70 @@ test_that("summarize_weights() handles multi-column by with dots in levels", {
   expect_equal(nrow(result), 2L)
   expect_identical(result$title, c("Dr.", "Mr."))
   expect_identical(result$dept, c("R&D", "H.R."))
+})
+
+# ---------------------------------------------------------------------------
+# 10. Diagnostics on post-nonresponse data (zero weights)
+# ---------------------------------------------------------------------------
+
+test_that("effective_sample_size() works on post-nonresponse data with zero weights", {
+  # Create a weighted_df with some zero weights (simulating post-nonresponse)
+  df <- data.frame(
+    id = 1:10,
+    responded = c(rep(1L, 7), rep(0L, 3)),
+    w = c(rep(2.0, 7), rep(0.0, 3)),
+    stringsAsFactors = FALSE
+  )
+  wdf <- .make_weighted_df(df, "w", list())
+
+  result <- effective_sample_size(wdf)
+
+  # ESS computed on positive weights only (7 equal weights)
+  w_pos <- df$w[df$w > 0]
+  expected_ess <- sum(w_pos)^2 / sum(w_pos^2)
+  expect_equal(result[["n_eff"]], expected_ess, tolerance = 1e-10)
+})
+
+test_that("weight_variability() works on post-nonresponse data with zero weights", {
+  df <- data.frame(
+    id = 1:10,
+    responded = c(rep(1L, 7), rep(0L, 3)),
+    w = c(1.2, 0.8, 1.5, 0.9, 1.1, 1.3, 0.7, 0.0, 0.0, 0.0),
+    stringsAsFactors = FALSE
+  )
+  wdf <- .make_weighted_df(df, "w", list())
+
+  result <- weight_variability(wdf)
+
+  # CV computed on positive weights only
+  w_pos <- df$w[df$w > 0]
+  expected_cv <- stats::sd(w_pos) / mean(w_pos)
+  expect_equal(result[["cv"]], expected_cv, tolerance = 1e-10)
+})
+
+test_that("summarize_weights() works on post-nonresponse data with zero weights", {
+  df <- data.frame(
+    id = 1:10,
+    group = c(rep("A", 5), rep("B", 5)),
+    responded = c(1L, 1L, 1L, 0L, 0L, 1L, 1L, 0L, 1L, 1L),
+    w = c(1.2, 0.8, 1.5, 0.0, 0.0, 1.1, 0.9, 0.0, 1.3, 0.7),
+    stringsAsFactors = FALSE
+  )
+  wdf <- .make_weighted_df(df, "w", list())
+
+  # Ungrouped
+  result <- summarize_weights(wdf)
+  expect_equal(nrow(result), 1L)
+  # Stats computed on positive weights only (7 weights)
+  w_pos <- df$w[df$w > 0]
+  expect_equal(result$n, length(w_pos))
+  expect_equal(result$mean, mean(w_pos), tolerance = 1e-10)
+
+  # Grouped
+  result_grp <- summarize_weights(wdf, by = group)
+  expect_equal(nrow(result_grp), 2L)
+  # Group A: 3 positive weights (1.2, 0.8, 1.5)
+  grp_a <- result_grp[result_grp$group == "A", ]
+  expect_equal(grp_a$n, 3L)
+  expect_equal(grp_a$mean, mean(c(1.2, 0.8, 1.5)), tolerance = 1e-10)
 })

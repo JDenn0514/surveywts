@@ -52,9 +52,12 @@ test_that("adjust_nonresponse() returns weighted_df for data.frame input", {
   test_invariants(result)
   expect_true(inherits(result, "weighted_df"))
   expect_identical(attr(result, "weight_col"), ".weight")
-  # Only respondent rows returned
-  expect_true(nrow(result) < nrow(df))
-  expect_true(all(result[[".weight"]] > 0))
+  # All rows retained; nonrespondent weights = 0
+
+  expect_equal(nrow(result), nrow(df))
+  is_resp <- df$responded == 1L
+  expect_true(all(result[[".weight"]][!is_resp] == 0))
+  expect_true(all(result[[".weight"]][is_resp] > 0))
 })
 
 # ---------------------------------------------------------------------------
@@ -87,8 +90,9 @@ test_that("adjust_nonresponse() returns survey_taylor for survey_taylor input", 
   expect_true(S7::S7_inherits(result, surveycore::survey_taylor))
   # Does NOT promote to survey_nonprob (same class returned)
   expect_false(S7::S7_inherits(result, surveycore::survey_nonprob))
-  # Only respondent rows
+  # survey_taylor does not support zero weights — respondent rows only
   expect_true(nrow(result@data) < nrow(df))
+  expect_true(all(result@data[[result@variables$weights]] > 0))
 })
 
 # ---------------------------------------------------------------------------
@@ -103,7 +107,7 @@ test_that("adjust_nonresponse() returns weighted_df for weighted_df input", {
 
   test_invariants(result)
   expect_true(inherits(result, "weighted_df"))
-  expect_true(nrow(result) < nrow(df))
+  expect_equal(nrow(result), nrow(df))
 })
 
 # ---------------------------------------------------------------------------
@@ -131,7 +135,11 @@ test_that("adjust_nonresponse() returns survey_nonprob for survey_nonprob input"
   test_invariants(result)
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
   # Same class — does NOT downgrade or change class
-  expect_true(nrow(result@data) < nrow(df))
+  expect_equal(nrow(result@data), nrow(df))
+  is_resp <- df$responded == 1L
+  wt_col <- result@variables$weights
+  expect_true(all(result@data[[wt_col]][!is_resp] == 0))
+  expect_true(all(result@data[[wt_col]][is_resp] > 0))
 })
 
 # ---------------------------------------------------------------------------
@@ -146,13 +154,17 @@ test_that("adjust_nonresponse() performs global redistribution when by = NULL", 
 
   n_all <- nrow(df)
   n_resp <- sum(df$responded == 1)
+  is_resp <- df$responded == 1L
   expected_weight <- n_all / n_resp
 
+  # All rows returned; respondent weights adjusted, nonrespondent weights = 0
+  expect_equal(nrow(result), n_all)
   expect_equal(
-    result[["base_weight"]],
+    result[["base_weight"]][is_resp],
     rep(expected_weight, n_resp),
     tolerance = 1e-10
   )
+  expect_true(all(result[["base_weight"]][!is_resp] == 0))
 })
 
 # ---------------------------------------------------------------------------
@@ -172,7 +184,9 @@ test_that("adjust_nonresponse() performs within-class redistribution with by", {
 
   test_invariants(result)
   expect_true(inherits(result, "weighted_df"))
-  expect_true(nrow(result) == sum(df$responded == 1))
+  # All rows retained
+  expect_equal(nrow(result), nrow(df))
+  expect_true(all(result[["base_weight"]][df$responded == 0L] == 0))
 })
 
 # ---------------------------------------------------------------------------
@@ -220,7 +234,12 @@ test_that("adjust_nonresponse() matches hand calculation for 2-class example", {
   class_a_rows <- result[result[["class"]] == "A", ]
   class_b_rows <- result[result[["class"]] == "B", ]
 
-  expect_equal(class_a_rows[["w"]], rep(1.2, 10), tolerance = 1e-10)
+  # Class A: 10 respondents at 1.2, 2 nonrespondents at 0
+  class_a_resp <- class_a_rows[class_a_rows[["responded"]] == 1L, ]
+  class_a_nonresp <- class_a_rows[class_a_rows[["responded"]] == 0L, ]
+  expect_equal(class_a_resp[["w"]], rep(1.2, 10), tolerance = 1e-10)
+  expect_equal(class_a_nonresp[["w"]], rep(0, 2), tolerance = 1e-10)
+  # Class B: 8 respondents at 1.0, 0 nonrespondents
   expect_equal(class_b_rows[["w"]], rep(1.0, 8), tolerance = 1e-10)
 })
 
@@ -248,11 +267,10 @@ test_that("adjust_nonresponse() matches svrep::redistribute_weights() within 1e-
     increase_if = responded == 1
   )
 
-  # svrep result: extract main weights for respondents (sampling weights)
+  # svrep result: extract all weights (sampling weights)
+  # svrep::redistribute_weights() zeroes nonrespondents, adjusts respondents
   svrep_all_weights <- weights(svrep_result, type = "sampling")
-  resp_mask <- svrep_result$variables$responded == 1
-  svrep_resp_weights <- svrep_all_weights[resp_mask]
-  svrep_resp_ids <- svrep_result$variables$id[resp_mask]
+  svrep_ids <- svrep_result$variables$id
 
   # Our implementation on the same data
   our_result <- adjust_nonresponse(df, response_status = responded,
@@ -260,8 +278,8 @@ test_that("adjust_nonresponse() matches svrep::redistribute_weights() within 1e-
   our_weights <- our_result[["base_weight"]]
   our_ids <- our_result[["id"]]
 
-  # Sort both by ID for comparison
-  svrep_sorted <- svrep_resp_weights[order(svrep_resp_ids)]
+  # Sort both by ID for comparison (all rows — respondents and nonrespondents)
+  svrep_sorted <- svrep_all_weights[order(svrep_ids)]
   our_sorted <- our_weights[order(our_ids)]
 
   expect_equal(unname(our_sorted), unname(svrep_sorted), tolerance = 1e-8)
@@ -748,5 +766,121 @@ test_that("adjust_nonresponse() rejects response_status selecting multiple colum
   expect_snapshot(
     error = TRUE,
     adjust_nonresponse(df, response_status = c(responded, responded2))
+  )
+})
+
+# ---------------------------------------------------------------------------
+# 19. Zero weights — data.frame happy path (respondent formula unchanged)
+# ---------------------------------------------------------------------------
+
+test_that("adjust_nonresponse() sets nonrespondent weights to 0 (data.frame)", {
+  df <- data.frame(
+    id = 1:10,
+    group = c(rep("A", 5), rep("B", 5)),
+    responded = c(1L, 1L, 1L, 0L, 0L, 1L, 1L, 0L, 1L, 1L),
+    w = rep(2.0, 10),
+    stringsAsFactors = FALSE
+  )
+
+  result <- adjust_nonresponse(
+    df,
+    response_status = responded,
+    weights = w,
+    by = group,
+    control = list(min_cell = 0, max_adjust = Inf)
+  )
+
+  test_invariants(result)
+
+  # All 10 rows retained
+
+  expect_equal(nrow(result), 10L)
+
+  # Nonrespondent weights are exactly 0
+  nr_mask <- df$responded == 0L
+  expect_identical(result[["w"]][nr_mask], c(0, 0, 0))
+
+  # Respondent weights match the adjustment formula:
+  #   Group A: sum_all = 5*2=10, sum_resp = 3*2=6, adj = 10/6
+  #   Group B: sum_all = 5*2=10, sum_resp = 4*2=8, adj = 10/8
+  resp_a <- result[result[["group"]] == "A" & result[["responded"]] == 1L, ]
+  resp_b <- result[result[["group"]] == "B" & result[["responded"]] == 1L, ]
+  expect_equal(resp_a[["w"]], rep(2.0 * 10 / 6, 3), tolerance = 1e-10)
+  expect_equal(resp_b[["w"]], rep(2.0 * 10 / 8, 4), tolerance = 1e-10)
+})
+
+# ---------------------------------------------------------------------------
+# 20. Zero weights — survey_nonprob happy path (metadata preserved)
+# ---------------------------------------------------------------------------
+
+test_that("adjust_nonresponse() preserves survey_nonprob metadata with zero weights", {
+  df <- make_surveywts_data(seed = 30, include_nonrespondents = TRUE)
+
+  meta <- surveycore::survey_metadata()
+  snp <- surveycore::survey_nonprob(
+    data = df,
+    variables = list(
+      ids = NULL, strata = NULL, fpc = NULL,
+      weights = "base_weight", nest = FALSE
+    ),
+    metadata = meta,
+    groups = character(0),
+    call = NULL,
+    calibration = NULL
+  )
+
+  result <- adjust_nonresponse(snp, response_status = responded)
+
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+
+  # All rows retained
+  expect_equal(nrow(result@data), nrow(df))
+
+  # Nonrespondent weights = 0, respondent weights > 0
+  wt_col <- result@variables$weights
+  is_resp <- df$responded == 1L
+  expect_true(all(result@data[[wt_col]][!is_resp] == 0))
+  expect_true(all(result@data[[wt_col]][is_resp] > 0))
+
+  # @variables preserved (except the weight values in @data)
+  expect_identical(result@variables$weights, snp@variables$weights)
+  expect_identical(result@variables$ids, snp@variables$ids)
+  expect_identical(result@variables$strata, snp@variables$strata)
+
+  # Weighting history appended
+  expect_true(length(result@metadata@weighting_history) >= 1L)
+  last_entry <- result@metadata@weighting_history[[
+    length(result@metadata@weighting_history)
+  ]]
+  expect_identical(last_entry$operation, "nonresponse_weighting_class")
+})
+
+# ---------------------------------------------------------------------------
+# 21. Re-calibration of post-nonresponse data correctly errors
+# ---------------------------------------------------------------------------
+
+test_that("calibrate() rejects post-nonresponse data with zero weights", {
+  df <- data.frame(
+    id = 1:10,
+    group = c(rep("A", 5), rep("B", 5)),
+    responded = c(1L, 1L, 1L, 0L, 0L, 1L, 1L, 0L, 1L, 1L),
+    w = rep(2.0, 10),
+    stringsAsFactors = FALSE
+  )
+
+  nr_result <- adjust_nonresponse(
+    df,
+    response_status = responded,
+    weights = w,
+    control = list(min_cell = 0, max_adjust = Inf)
+  )
+
+  # Attempting to calibrate with zero-weight rows should fail
+  pop <- list(group = c("A" = 0.5, "B" = 0.5))
+
+  expect_error(
+    calibrate(nr_result, variables = c(group), population = pop),
+    class = "surveywts_error_weights_nonpositive"
   )
 })

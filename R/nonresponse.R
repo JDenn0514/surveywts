@@ -3,7 +3,7 @@
 # adjust_nonresponse() — weighting-class nonresponse adjustment.
 #
 # Redistributes nonrespondent weights to respondents within weighting
-# classes defined by `by`. Returns only respondent rows with adjusted weights.
+# classes defined by `by`. Returns all rows; nonrespondent weights = 0.
 #
 # No private helpers. Cell-grouping logic is inline (~15 lines).
 # All shared helpers (.get_weight_vec, .validate_weights,
@@ -12,13 +12,16 @@
 #' Adjust survey weights for unit nonresponse
 #'
 #' Redistributes the weights of nonrespondents to respondents within weighting
-#' classes defined by `by`. The adjustment formula within each cell `h` is:
+#' classes defined by `by`. All rows (respondents and nonrespondents) are
+#' returned; nonrespondent weights are set to 0 and respondent weights are
+#' adjusted upward to conserve the total weight within each cell.
+#'
+#' The adjustment formula within each cell `h` is:
 #'
 #' \deqn{w_{i,new} = w_i \times \frac{\sum w_h}{\sum w_{h,resp}}}
 #'
 #' where \eqn{\sum w_h} is the sum of all weights (respondents + nonrespondents)
 #' in cell `h` and \eqn{\sum w_{h,resp}} is the sum of respondent weights only.
-#' Only respondent rows are returned.
 #'
 #' @param data A `data.frame`, `weighted_df`, `survey_taylor`, or
 #'   `survey_nonprob`. Must include BOTH respondents and nonrespondents.
@@ -44,14 +47,32 @@
 #'   Either condition alone triggers the warning.
 #'
 #' @return
-#'   - `data.frame` or `weighted_df` input → `weighted_df` (respondents only)
-#'   - `survey_taylor` input → `survey_taylor` (same class; respondents only)
-#'   - `survey_nonprob` input → `survey_nonprob` (same class;
-#'     respondents only)
+#'   All rows (respondents and nonrespondents) are returned. Nonrespondent
+#'   weights are set to 0; respondent weights are adjusted upward to conserve
+#'   the total weight within each cell.
 #'
-#'   The weight column in the output contains adjusted weights. A history entry
-#'   with `operation = "nonresponse_weighting_class"` is appended to
-#'   `weighting_history`.
+#'   - `data.frame` or `weighted_df` input -> `weighted_df`
+#'   - `survey_nonprob` input -> `survey_nonprob` (same class)
+#'   - `survey_taylor` input -> `survey_taylor` (same class; respondent
+#'     rows only, because `survey_taylor` does not support zero weights)
+#'
+#'   A history entry with `operation = "nonresponse_weighting_class"` is
+#'   appended to `weighting_history`.
+#'
+#' @details
+#'   Zero-weight observations are retained for design-based variance estimation.
+#'   Survey estimation functions (e.g., [survey::svymean()]) handle zero
+#'   weights correctly -- zero-weight units are excluded from point estimates
+#'   but included in the design structure for variance estimation. For manual
+#'   calculations, use `w[w > 0]` to exclude nonrespondents.
+#'
+#'   Diagnostic functions ([effective_sample_size()], [weight_variability()],
+#'   [summarize_weights()]) automatically filter to positive weights before
+#'   computing statistics.
+#'
+#'   Re-calibrating post-nonresponse data requires filtering to respondents
+#'   first, because [calibrate()], [rake()], and [poststratify()] reject
+#'   zero weights.
 #'
 #' @examples
 #' df <- data.frame(
@@ -316,14 +337,13 @@ adjust_nonresponse <- function(
     new_weights[resp_idx] <- weights_vec[resp_idx] * adj_factor
   }
 
-  # ---- 14. Subset to respondent rows only ----------------------------------
-  resp_rows   <- which(is_respondent)
-  out_df      <- plain_df[resp_rows, , drop = FALSE]
-  out_weights <- new_weights[resp_rows]
-  out_df[[weight_col]] <- out_weights
+  # ---- 14. Set nonrespondent weights to 0 ----------------------------------
+  new_weights[!is_respondent] <- 0
+  out_df <- plain_df
+  out_df[[weight_col]] <- new_weights
 
   # ---- 15. Build history entry ---------------------------------------------
-  after_stats     <- .compute_weight_stats(out_weights)
+  after_stats     <- .compute_weight_stats(new_weights[is_respondent])
   current_history <- .get_history(data)
 
   history_entry <- .make_history_entry(
@@ -343,13 +363,18 @@ adjust_nonresponse <- function(
   if (inherits(data, "data.frame")) {
     new_history <- c(current_history, list(history_entry))
     .make_weighted_df(out_df, weight_col, new_history)
+  } else if (S7::S7_inherits(data, surveycore::survey_nonprob)) {
+    # survey_nonprob supports zero weights (validator relaxed in surveycore
+    # >= 0.6.1). All rows retained; nonrespondent weights = 0.
+    .update_survey_weights(data, new_weights, history_entry)
   } else {
-    # For survey objects: filter to respondent rows then update weights + history.
-    # We update @data directly (S7 property assignment) to filter rows, then
-    # delegate weight-column update and history append to .update_survey_weights().
-    filtered_design       <- data
-    filtered_design@data  <- out_df  # already filtered to respondent rows with updated weights
-    .update_survey_weights(filtered_design, out_weights, history_entry)
+    # survey_taylor validator requires all weights > 0 — fall back to
+    # respondent-only filtering to avoid S7 validation failure.
+    resp_rows <- which(is_respondent)
+    filtered_design <- data
+    filtered_design@data <- out_df[resp_rows, , drop = FALSE]
+    .update_survey_weights(filtered_design, new_weights[resp_rows],
+                           history_entry)
   }
 }
 

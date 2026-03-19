@@ -37,9 +37,17 @@
 effective_sample_size <- function(x, weights = NULL) {
   weights_quo <- rlang::enquo(weights)
   vld <- .diag_validate_input(x, weights_quo)
-  .validate_weights(vld$data_df, vld$weight_col)
 
-  w <- vld$data_df[[vld$weight_col]]
+  # Filter out exact zeros before validation (zero weights arise from
+  # nonresponse adjustment and should be excluded from diagnostics).
+  # Negative weights and NAs still reach .validate_weights() for proper
+  # error reporting.
+  data_df <- vld$data_df
+  w_all <- data_df[[vld$weight_col]]
+  data_df <- data_df[is.na(w_all) | w_all != 0, , drop = FALSE]
+  .validate_weights(data_df, vld$weight_col)
+
+  w <- data_df[[vld$weight_col]]
   c(n_eff = sum(w)^2 / sum(w^2))
 }
 
@@ -66,9 +74,15 @@ effective_sample_size <- function(x, weights = NULL) {
 weight_variability <- function(x, weights = NULL) {
   weights_quo <- rlang::enquo(weights)
   vld <- .diag_validate_input(x, weights_quo)
-  .validate_weights(vld$data_df, vld$weight_col)
 
-  w <- vld$data_df[[vld$weight_col]]
+  # Filter out exact zeros before validation (zero weights arise from
+  # nonresponse adjustment and should be excluded from diagnostics).
+  data_df <- vld$data_df
+  w_all <- data_df[[vld$weight_col]]
+  data_df <- data_df[is.na(w_all) | w_all != 0, , drop = FALSE]
+  .validate_weights(data_df, vld$weight_col)
+
+  w <- data_df[[vld$weight_col]]
   c(cv = stats::sd(w) / mean(w))
 }
 
@@ -106,10 +120,14 @@ summarize_weights <- function(x, weights = NULL, by = NULL) {
   by_quo <- rlang::enquo(by)
 
   vld <- .diag_validate_input(x, weights_quo)
-  .validate_weights(vld$data_df, vld$weight_col)
 
+  # Filter out exact zeros before validation (zero weights arise from
+  # nonresponse adjustment and should be excluded from diagnostics).
   data_df <- vld$data_df
   weight_col <- vld$weight_col
+  w_all <- data_df[[weight_col]]
+  data_df <- data_df[is.na(w_all) | w_all != 0, , drop = FALSE]
+  .validate_weights(data_df, weight_col)
 
   by_names <- if (rlang::quo_is_null(by_quo)) {
     character(0L)

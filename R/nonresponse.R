@@ -6,8 +6,8 @@
 # classes defined by `by`. Returns only respondent rows with adjusted weights.
 #
 # No private helpers. Cell-grouping logic is inline (~15 lines).
-# All shared helpers (.get_weight_vec, .validate_weights, etc.) live in
-# R/utils.R. .check_input_class() and .get_history() are in R/calibrate.R.
+# All shared helpers (.get_weight_vec, .validate_weights,
+# .check_input_class, .get_history, etc.) live in R/utils.R.
 
 #' Adjust survey weights for unit nonresponse
 #'

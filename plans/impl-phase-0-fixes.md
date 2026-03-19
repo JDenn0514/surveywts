@@ -25,7 +25,7 @@ fixes, then the two high-severity changes.
 - [x] PR 3: `fix/diagnostics-cosmetic` — Rewrite grouped path in `summarize_weights()` and fix print label (Changes 6, 9)
 - [x] PR 4: `fix/poststratify-default-type` — Change `poststratify()` default `type` to `"prop"` (Change 8)
 - [x] PR 5: `fix/vendor-delegation` — Replace vendored algorithms with `survey`/`anesrake` calls (Change 1)
-- [ ] PR 6: `fix/nonresponse-zero-weights` — Zero weights instead of dropping rows in `adjust_nonresponse()` (Change 2)
+- [x] PR 6: `fix/nonresponse-zero-weights` — Zero weights instead of dropping rows in `adjust_nonresponse()` (Change 2)
 
 ---
 

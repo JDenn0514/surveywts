@@ -611,7 +611,7 @@ test_that("poststratify() step increments correctly in chained calls", {
     result1,
     strata = c(age_group, sex),
     population = pop,
-    weights = .weight,
+    weights = wts,
     type = "count"
   )
 

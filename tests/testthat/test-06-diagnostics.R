@@ -82,7 +82,7 @@ test_that("effective_sample_size() auto-detects weights from weighted_df", {
   # Auto-detection (no weights arg)
   result_auto <- effective_sample_size(wdf)
   # Explicit weight column
-  result_explicit <- effective_sample_size(wdf, weights = .weight)
+  result_explicit <- effective_sample_size(wdf, weights = wts)
 
   expect_equal(result_auto, result_explicit, tolerance = 1e-10)
   expect_true(result_auto[["n_eff"]] > 0)
@@ -94,7 +94,7 @@ test_that("weight_variability() auto-detects weights from weighted_df", {
   wdf <- calibrate(df, variables = c(age_group), population = list(age_group = pop_age))
 
   result_auto <- weight_variability(wdf)
-  result_explicit <- weight_variability(wdf, weights = .weight)
+  result_explicit <- weight_variability(wdf, weights = wts)
 
   expect_equal(result_auto, result_explicit, tolerance = 1e-10)
 })

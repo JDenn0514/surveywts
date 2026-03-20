@@ -153,3 +153,31 @@
       i `population` must have columns for each strata variable (age_group) plus target.
       v Add the target column to `population`.
 
+# poststratify() rejects non-character wt_name
+
+    Code
+      poststratify(df, strata = c(age_group, sex), population = pop, type = "count",
+      wt_name = 42)
+    Condition
+      Error in `.validate_wt_name()`:
+      x `wt_name` must be a single character string.
+      i Got <numeric> of length 1.
+
+# poststratify() rejects empty wt_name
+
+    Code
+      poststratify(df, strata = c(age_group, sex), population = pop, type = "count",
+      wt_name = "")
+    Condition
+      Error in `.validate_wt_name()`:
+      x `wt_name` must be a non-empty, non-NA string.
+
+# poststratify() rejects NA wt_name
+
+    Code
+      poststratify(df, strata = c(age_group, sex), population = pop, type = "count",
+      wt_name = NA_character_)
+    Condition
+      Error in `.validate_wt_name()`:
+      x `wt_name` must be a non-empty, non-NA string.
+

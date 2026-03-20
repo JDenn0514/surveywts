@@ -105,7 +105,7 @@
     Condition
       Error in `value[[3L]]()`:
       x `response_status` column not found in `data`.
-      i Available columns: id, age_group, sex, education, region, base_weight, and .weight.
+      i Available columns: id, age_group, sex, education, region, base_weight, and wts.
       v Pass a single bare column name, e.g., `response_status = responded`.
 
 # adjust_nonresponse() rejects response_status with non-binary integer values
@@ -180,19 +180,19 @@
       i Small or high-adjustment cells may produce extreme weights.
       i Consider collapsing weighting classes or adjusting `control$min_cell` / `control$max_adjust`.
     Output
-      # A tibble: 107 x 3
-         class responded     w
-       * <chr>     <int> <dbl>
-       1 small         1  1.4 
-       2 small         1  1.4 
-       3 small         1  1.4 
-       4 small         1  1.4 
-       5 small         1  1.4 
-       6 small         0  0   
-       7 small         0  0   
-       8 big           1  1.25
-       9 big           1  1.25
-      10 big           1  1.25
+      # A tibble: 107 x 4
+         class responded     w   wts
+       * <chr>     <int> <dbl> <dbl>
+       1 small         1     1  1.4 
+       2 small         1     1  1.4 
+       3 small         1     1  1.4 
+       4 small         1     1  1.4 
+       5 small         1     1  1.4 
+       6 small         0     1  0   
+       7 small         0     1  0   
+       8 big           1     1  1.25
+       9 big           1     1  1.25
+      10 big           1     1  1.25
       # i 97 more rows
 
 # adjust_nonresponse() rejects character response_status (not binary)
@@ -215,4 +215,29 @@
       x `response_status` must select exactly one column.
       i Got 2 column(s).
       v Pass a single bare column name, e.g., `response_status = responded`.
+
+# adjust_nonresponse() rejects non-character wt_name
+
+    Code
+      adjust_nonresponse(df, response_status = responded, wt_name = 42)
+    Condition
+      Error in `.validate_wt_name()`:
+      x `wt_name` must be a single character string.
+      i Got <numeric> of length 1.
+
+# adjust_nonresponse() rejects empty wt_name
+
+    Code
+      adjust_nonresponse(df, response_status = responded, wt_name = "")
+    Condition
+      Error in `.validate_wt_name()`:
+      x `wt_name` must be a non-empty, non-NA string.
+
+# adjust_nonresponse() rejects NA wt_name
+
+    Code
+      adjust_nonresponse(df, response_status = responded, wt_name = NA_character_)
+    Condition
+      Error in `.validate_wt_name()`:
+      x `wt_name` must be a non-empty, non-NA string.
 

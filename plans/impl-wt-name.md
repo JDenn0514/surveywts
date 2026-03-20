@@ -21,10 +21,10 @@ function (calibrate establishes the pattern, the rest replicate it).
 ## PR Map
 
 - [x] PR 1: `feature/wt-name-infrastructure` — Shared helpers and error class registry
-- [ ] PR 2: `feature/wt-name-calibrate` — Add `wt_name` to `calibrate()`
+- [x] PR 2: `feature/wt-name-calibrate` — Add `wt_name` to `calibrate()`
 - [ ] PR 3: `feature/wt-name-rake` — Add `wt_name` to `rake()`
-- [ ] PR 4: `feature/wt-name-poststratify` — Add `wt_name` to `poststratify()`
-- [ ] PR 5: `feature/wt-name-nonresponse` — Add `wt_name` to `adjust_nonresponse()`
+- [x] PR 4: `feature/wt-name-poststratify` — Add `wt_name` to `poststratify()`
+- [x] PR 5: `feature/wt-name-nonresponse` — Add `wt_name` to `adjust_nonresponse()`
 
 ---
 

@@ -17,6 +17,8 @@ function in subsections XII.A through XII.G).
 | `surveywts_error_weights_not_numeric` | `.validate_weights()` | Weight column is not numeric |
 | `surveywts_error_weights_nonpositive` | `.validate_weights()` | Weight column has values ≤ 0 |
 | `surveywts_error_weights_na` | `.validate_weights()` | Weight column has `NA` |
+| `surveywts_error_wt_name_not_scalar` | `.validate_wt_name()` | `wt_name` is not `character(1)` |
+| `surveywts_error_wt_name_empty` | `.validate_wt_name()` | `wt_name` is `NA` or `""` |
 
 ### `calibrate()`
 

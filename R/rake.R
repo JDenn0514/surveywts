@@ -56,8 +56,11 @@
 #' @param weights <[`tidy-select`][tidyselect::language]> Weight column name
 #'   (bare name). `NULL` → auto-detected from `weighted_df` attribute or
 #'   survey object `@variables$weights`. For plain `data.frame` with
-#'   `weights = NULL`, uniform starting weights are used and the output column
-#'   is named `".weight"`.
+#'   `weights = NULL`, uniform starting weights are used and the output
+#'   column is named by `wt_name` (default `"wts"`).
+#' @param wt_name Character scalar. Name of the output weight column in the
+#'   returned `weighted_df`. Default `"wts"`. Ignored when `data` is a survey
+#'   object (`survey_taylor` or `survey_nonprob`).
 #' @param type Character scalar. `"prop"` (default): `margins` values are
 #'   proportions. `"count"`: `margins` values are counts.
 #' @param method Character scalar. `"anesrake"` (default): chi-square
@@ -128,6 +131,7 @@ rake <- function(
   data,
   margins,
   weights = NULL,
+  wt_name = "wts",
   type    = c("prop", "count"),
   method  = c("anesrake", "survey"),
   cap     = NULL,
@@ -138,6 +142,7 @@ rake <- function(
   method <- rlang::arg_match(method)
   type   <- rlang::arg_match(type)
   weights_quo <- rlang::enquo(weights)
+  .validate_wt_name(wt_name)
 
   # ---- Cap + method = "survey" guard (fail fast, before margin parsing) ----
   if (!is.null(cap) && method == "survey") {
@@ -241,7 +246,8 @@ rake <- function(
   # For plain data.frame with weights = NULL: create uniform weight column
   if (inherits(data, "data.frame") && rlang::quo_is_null(weights_quo) &&
       !inherits(data, "weighted_df")) {
-    data_df[[weight_col]] <- rep(1 / nrow(data_df), nrow(data_df))
+    data_df[[wt_name]] <- rep(1 / nrow(data_df), nrow(data_df))
+    weight_col <- wt_name
   }
 
   # Extract the plain data frame for validation
@@ -329,6 +335,11 @@ rake <- function(
   history_entry <- .make_history_entry(
     step = length(current_history) + 1L,
     operation = "raking",
+    weight_col = if (inherits(data, "data.frame")) {
+      wt_name
+    } else {
+      data@variables$weights
+    },
     call_str = call_str,
     parameters = list(
       variables = margin_var_names,
@@ -346,9 +357,9 @@ rake <- function(
   if (inherits(data, "data.frame")) {
     # data.frame or weighted_df → weighted_df
     out_df <- plain_df
-    out_df[[weight_col]] <- new_weights
+    out_df[[wt_name]] <- new_weights
     new_history <- c(current_history, list(history_entry))
-    .make_weighted_df(out_df, weight_col, new_history)
+    .make_weighted_df(out_df, wt_name, new_history)
   } else {
     # survey object → same class (class preserved; only weights + history updated)
     .update_survey_weights(data, new_weights, history_entry)

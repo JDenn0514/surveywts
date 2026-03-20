@@ -7,6 +7,7 @@
 #   .format_history_step()            — formats one history entry as display line
 #                                       (moved here from classes.R in PR 4)
 #   .get_weight_col_name()            — returns weight column name as character
+#   .validate_wt_name()              — validates wt_name argument (scalar string)
 #   .get_weight_vec()                 — extracts weight vector from any input class
 #   .validate_weights()               — validates weight column (4 errors)
 #   .validate_calibration_variables() — validates calibration/raking variables
@@ -98,6 +99,37 @@
 
   # Plain data.frame with no weights argument: default column name
   ".weight"
+}
+
+# ============================================================================
+# .validate_wt_name()
+# ============================================================================
+
+# Validates the wt_name argument: must be a single non-empty, non-NA string.
+#
+# Arguments:
+#   wt_name : user-supplied name for the output weight column
+#
+# Returns: invisible(TRUE) on success (errors otherwise).
+.validate_wt_name <- function(wt_name) {
+  if (!is.character(wt_name) || length(wt_name) != 1) {
+    cli::cli_abort(
+      c(
+        "x" = "{.arg wt_name} must be a single character string.",
+        "i" = "Got {.cls {class(wt_name)}} of length {length(wt_name)}."
+      ),
+      class = "surveywts_error_wt_name_not_scalar"
+    )
+  }
+  if (is.na(wt_name) || wt_name == "") {
+    cli::cli_abort(
+      c(
+        "x" = "{.arg wt_name} must be a non-empty, non-NA string."
+      ),
+      class = "surveywts_error_wt_name_empty"
+    )
+  }
+  invisible(TRUE)
 }
 
 # ============================================================================
@@ -476,6 +508,7 @@
 .make_history_entry <- function(
   step,
   operation,
+  weight_col = NULL,
   call_str,
   parameters,
   before_stats,
@@ -485,6 +518,7 @@
   list(
     step = as.integer(step),
     operation = operation,
+    weight_col = weight_col,
     timestamp = Sys.time(),
     call = call_str,
     parameters = parameters,

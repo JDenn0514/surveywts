@@ -106,7 +106,7 @@
       Error in `calibrate()`:
       x Population variable nonexistent_var not found in `data`.
       i Names in `population` must match column names in `data`.
-      v Check spelling: available columns are id, age_group, sex, education, region, base_weight, and .weight.
+      v Check spelling: available columns are id, age_group, sex, education, region, base_weight, and wts.
 
 # calibrate() rejects population missing a data level
 
@@ -170,7 +170,7 @@
       i Consider `method = "logit"` for bounded weights, or review population totals.
     Output
       # A tibble: 100 x 7
-            id age_group sex   education region    base_weight  .weight
+            id age_group sex   education region    base_weight      wts
        * <int> <chr>     <chr> <chr>     <chr>           <dbl>    <dbl>
        1     1 35-54     M     Graduate  Midwest         0.634 -0.00434
        2     2 35-54     F     <HS       South           0.692  0.00365
@@ -183,4 +183,29 @@
        9     9 55+       F     College   South           0.920  0.00454
       10    10 18-34     M     Graduate  West            1.75   0.0356 
       # i 90 more rows
+
+# calibrate() rejects non-character wt_name
+
+    Code
+      calibrate(df, variables = c(age_group), population = pop, wt_name = 42)
+    Condition
+      Error in `.validate_wt_name()`:
+      x `wt_name` must be a single character string.
+      i Got <numeric> of length 1.
+
+# calibrate() rejects empty wt_name
+
+    Code
+      calibrate(df, variables = c(age_group), population = pop, wt_name = "")
+    Condition
+      Error in `.validate_wt_name()`:
+      x `wt_name` must be a non-empty, non-NA string.
+
+# calibrate() rejects NA wt_name
+
+    Code
+      calibrate(df, variables = c(age_group), population = pop, wt_name = NA_character_)
+    Condition
+      Error in `.validate_wt_name()`:
+      x `wt_name` must be a non-empty, non-NA string.
 

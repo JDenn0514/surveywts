@@ -9,6 +9,7 @@ calibrate(
   variables,
   population,
   weights = NULL,
+  wt_name = "wts",
   method = c("linear", "logit"),
   type = c("prop", "count"),
   control = list(maxit = 50, epsilon = 1e-07)
@@ -33,7 +34,11 @@ For \code{type = "count"}: values must be strictly positive.}
 (bare name). \code{NULL} → auto-detected from \code{weighted_df} attribute or
 survey object \verb{@variables$weights}. For plain \code{data.frame} with
 \code{weights = NULL}, uniform starting weights are used and the output
-column is named \code{".weight"}.}
+column is named by \code{wt_name} (default \code{"wts"}).}
+
+\item{wt_name}{Character scalar. Name of the output weight column in the
+returned \code{weighted_df}. Default \code{"wts"}. Ignored when \code{data} is a survey
+object (\code{survey_taylor} or \code{survey_nonprob}).}
 
 \item{method}{Character scalar. \code{"linear"} (default): one-step exact
 GREG calibration (may produce negative weights). \code{"logit"}: bounded

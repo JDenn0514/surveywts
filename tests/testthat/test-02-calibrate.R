@@ -56,8 +56,8 @@ test_that("calibrate() returns weighted_df for data.frame input", {
 
   test_invariants(result)
   expect_true(inherits(result, "weighted_df"))
-  expect_identical(attr(result, "weight_col"), ".weight")
-  expect_true(all(result[[".weight"]] > 0))
+  expect_identical(attr(result, "weight_col"), "wts")
+  expect_true(all(result[["wts"]] > 0))
 })
 
 # ---------------------------------------------------------------------------
@@ -122,7 +122,7 @@ test_that("calibrate() calibrates all variables in population correctly", {
   expect_identical(length(pop), 3L)
 
   # After calibration, weighted proportions should match targets
-  w <- result[[".weight"]]
+  w <- result[["wts"]]
   total_w <- sum(w)
 
   for (var in names(pop)) {
@@ -152,7 +152,7 @@ test_that("calibrate() on weighted_df accumulates weighting history", {
     sex = c("M" = 0.50, "F" = 0.50)
   )
   wdf2 <- calibrate(wdf, variables = c(age_group, sex), population = pop2,
-                    weights = .weight)
+                    weights = wts)
   test_invariants(wdf2)
   expect_identical(length(attr(wdf2, "weighting_history")), 2L)
   expect_identical(attr(wdf2, "weighting_history")[[2L]]$step, 2L)
@@ -203,7 +203,7 @@ test_that("calibrate() with method = 'logit' produces valid calibrated weights",
   test_invariants(result)
   expect_true(inherits(result, "weighted_df"))
   # Logit calibration always produces positive weights
-  expect_true(all(result[[".weight"]] > 0))
+  expect_true(all(result[["wts"]] > 0))
 })
 
 # ---------------------------------------------------------------------------
@@ -220,7 +220,7 @@ test_that("calibrate() with type = 'count' accepts count targets", {
   test_invariants(result)
   expect_true(inherits(result, "weighted_df"))
 
-  w <- result[[".weight"]]
+  w <- result[["wts"]]
   total_w <- sum(w)
   for (var in names(pop)) {
     for (lev in names(pop[[var]])) {
@@ -252,7 +252,7 @@ test_that("calibrate() matches survey::calibrate() within 1e-8 tolerance", {
     population = pop_prop,
     weights = base_weight
   )
-  sw_weights <- sw_result[["base_weight"]]
+  sw_weights <- sw_result[["wts"]]
 
   # survey calibration (reference):
   # Use formula ~age_group + sex (with intercept + k-1 dummies) and construct
@@ -763,7 +763,7 @@ test_that("calibrate() step numbers increment correctly across chained calls", {
   expect_identical(attr(wdf1, "weighting_history")[[1L]]$step, 1L)
 
   wdf2 <- calibrate(wdf1, variables = c(sex), population = pop2,
-                    weights = .weight)
+                    weights = wts)
   expect_identical(attr(wdf2, "weighting_history")[[2L]]$step, 2L)
 })
 
@@ -818,4 +818,175 @@ test_that("calibrate() with method='logit', type='count', large counts triggers 
 
   test_invariants(result)
   expect_true(inherits(result, "weighted_df"))
+})
+
+# ---------------------------------------------------------------------------
+# wt_name — validation error tests
+# ---------------------------------------------------------------------------
+
+test_that("calibrate() rejects non-character wt_name", {
+  df <- make_surveywts_data(seed = 1)
+  pop <- .make_pop()
+  expect_error(
+    calibrate(df, variables = c(age_group), population = pop, wt_name = 42),
+    class = "surveywts_error_wt_name_not_scalar"
+  )
+  expect_snapshot(
+    error = TRUE,
+    calibrate(df, variables = c(age_group), population = pop, wt_name = 42)
+  )
+})
+
+test_that("calibrate() rejects empty wt_name", {
+  df <- make_surveywts_data(seed = 1)
+  pop <- .make_pop()
+  expect_error(
+    calibrate(df, variables = c(age_group), population = pop, wt_name = ""),
+    class = "surveywts_error_wt_name_empty"
+  )
+  expect_snapshot(
+    error = TRUE,
+    calibrate(df, variables = c(age_group), population = pop, wt_name = "")
+  )
+})
+
+test_that("calibrate() rejects NA wt_name", {
+  df <- make_surveywts_data(seed = 1)
+  pop <- .make_pop()
+  expect_error(
+    calibrate(df, variables = c(age_group), population = pop,
+              wt_name = NA_character_),
+    class = "surveywts_error_wt_name_empty"
+  )
+  expect_snapshot(
+    error = TRUE,
+    calibrate(df, variables = c(age_group), population = pop,
+              wt_name = NA_character_)
+  )
+})
+
+# ---------------------------------------------------------------------------
+# wt_name — happy path tests
+# ---------------------------------------------------------------------------
+
+test_that("calibrate() names output weight column 'wts' by default", {
+  df <- make_surveywts_data(seed = 1)
+  pop <- .make_pop()
+  result <- calibrate(df, variables = c(age_group), population = pop)
+  test_invariants(result)
+  expect_identical(attr(result, "weight_col"), "wts")
+  expect_true("wts" %in% names(result))
+})
+
+test_that("calibrate() uses custom wt_name for output column", {
+  df <- make_surveywts_data(seed = 1)
+  pop <- .make_pop()
+  result <- calibrate(df, variables = c(age_group), population = pop,
+                      wt_name = "cal_wt")
+  test_invariants(result)
+  expect_identical(attr(result, "weight_col"), "cal_wt")
+  expect_true("cal_wt" %in% names(result))
+})
+
+# ---------------------------------------------------------------------------
+# wt_name — input preservation and overwrite tests
+# ---------------------------------------------------------------------------
+
+test_that("calibrate() preserves input weight column when wt_name differs", {
+  df <- make_surveywts_data(seed = 1)
+  pop <- .make_pop()
+  result <- calibrate(df, variables = c(age_group), population = pop,
+                      weights = base_weight, wt_name = "cal_wt")
+  test_invariants(result)
+  expect_true("base_weight" %in% names(result))
+  expect_true("cal_wt" %in% names(result))
+  expect_identical(attr(result, "weight_col"), "cal_wt")
+})
+
+test_that("calibrate() overwrites input column when wt_name matches", {
+  df <- make_surveywts_data(seed = 1)
+  pop <- .make_pop()
+  result <- calibrate(df, variables = c(age_group), population = pop,
+                      weights = base_weight, wt_name = "base_weight")
+  test_invariants(result)
+  expect_identical(attr(result, "weight_col"), "base_weight")
+  expect_false(identical(result[["base_weight"]], df[["base_weight"]]))
+})
+
+# ---------------------------------------------------------------------------
+# wt_name — no phantom column test (Rule 1b)
+# ---------------------------------------------------------------------------
+
+test_that("calibrate() has no phantom column when weights = NULL + custom wt_name", {
+  df <- make_surveywts_data(seed = 1)
+  pop <- .make_pop()
+  result <- calibrate(df, variables = c(age_group), population = pop,
+                      wt_name = "cal_wt")
+  test_invariants(result)
+  expect_true("cal_wt" %in% names(result))
+  expect_false(".weight" %in% names(result))
+  expected_cols <- c(names(df), "cal_wt")
+  expect_true(all(names(result) %in% expected_cols))
+})
+
+# ---------------------------------------------------------------------------
+# wt_name — survey object ignore test
+# ---------------------------------------------------------------------------
+
+test_that("calibrate() ignores wt_name for survey_nonprob input", {
+  df <- make_surveywts_data(seed = 1)
+  snp <- surveycore::survey_nonprob(
+    data = df,
+    variables = list(
+      ids = NULL, strata = NULL, fpc = NULL,
+      weights = "base_weight", nest = FALSE
+    ),
+    metadata = surveycore::survey_metadata(),
+    groups = character(0),
+    call = NULL,
+    calibration = NULL
+  )
+  pop <- .make_pop()
+  result <- calibrate(snp, variables = c(age_group, sex), population = pop,
+                      wt_name = "ignored_name")
+  expect_identical(result@variables$weights, snp@variables$weights)
+})
+
+# ---------------------------------------------------------------------------
+# wt_name — weighted_df input tests
+# ---------------------------------------------------------------------------
+
+test_that("calibrate() preserves old weight col and creates 'wts' for weighted_df input", {
+  df <- make_surveywts_data(seed = 1)
+  pop <- .make_pop()
+  wdf <- calibrate(df, variables = c(age_group), population = pop,
+                    wt_name = "original_wt")
+  result <- calibrate(wdf, variables = c(age_group), population = pop)
+  test_invariants(result)
+  expect_true("original_wt" %in% names(result))
+  expect_true("wts" %in% names(result))
+  expect_identical(attr(result, "weight_col"), "wts")
+})
+
+test_that("calibrate() overwrites weight col when wt_name matches weighted_df attr", {
+  df <- make_surveywts_data(seed = 1)
+  pop <- .make_pop()
+  wdf <- calibrate(df, variables = c(age_group), population = pop)
+  result <- calibrate(wdf, variables = c(age_group), population = pop,
+                      wt_name = "wts")
+  test_invariants(result)
+  expect_identical(attr(result, "weight_col"), "wts")
+})
+
+# ---------------------------------------------------------------------------
+# wt_name — history test
+# ---------------------------------------------------------------------------
+
+test_that("calibrate() records wt_name in weighting history", {
+  df <- make_surveywts_data(seed = 1)
+  pop <- .make_pop()
+  result <- calibrate(df, variables = c(age_group), population = pop,
+                      wt_name = "cal_wt")
+  history <- attr(result, "weighting_history")
+  expect_identical(history[[length(history)]]$weight_col, "cal_wt")
 })

@@ -781,7 +781,7 @@ test_that("calibrate() → rake() chain produces two-entry history with correct 
   )
 
   wdf1 <- calibrate(df, variables = c(age_group, sex), population = pop)
-  wdf2 <- rake(wdf1, margins = margins, weights = .weight)
+  wdf2 <- rake(wdf1, margins = margins, weights = wts)
 
   history <- attr(wdf2, "weighting_history")
   expect_identical(length(history), 2L)

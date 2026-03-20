@@ -32,7 +32,10 @@
 #'   (bare name). `NULL` → auto-detected from `weighted_df` attribute or
 #'   survey object `@variables$weights`. For plain `data.frame` with
 #'   `weights = NULL`, uniform starting weights are used and the output
-#'   column is named `".weight"`.
+#'   column is named by `wt_name` (default `"wts"`).
+#' @param wt_name Character scalar. Name of the output weight column in the
+#'   returned `weighted_df`. Default `"wts"`. Ignored when `data` is a survey
+#'   object (`survey_taylor` or `survey_nonprob`).
 #' @param method Character scalar. `"linear"` (default): one-step exact
 #'   GREG calibration (may produce negative weights). `"logit"`: bounded
 #'   iterative calibration (always positive).
@@ -69,6 +72,7 @@ calibrate <- function(
   variables,
   population,
   weights = NULL,
+  wt_name = "wts",
   method = c("linear", "logit"),
   type = c("prop", "count"),
   control = list(maxit = 50, epsilon = 1e-7)
@@ -78,6 +82,7 @@ calibrate <- function(
   method <- rlang::arg_match(method)
   type <- rlang::arg_match(type)
   weights_quo <- rlang::enquo(weights)
+  .validate_wt_name(wt_name)
 
   # Merge control with defaults
   control <- utils::modifyList(list(maxit = 50, epsilon = 1e-7), control)
@@ -104,7 +109,8 @@ calibrate <- function(
   # For plain data.frame with weights = NULL: create uniform weights column
   if (inherits(data, "data.frame") && rlang::quo_is_null(weights_quo) &&
       !inherits(data, "weighted_df")) {
-    data_df[[weight_col]] <- rep(1 / nrow(data_df), nrow(data_df))
+    data_df[[wt_name]] <- rep(1 / nrow(data_df), nrow(data_df))
+    weight_col <- wt_name
   }
 
   # Extract the plain data frame for validation (survey objects use @data)
@@ -209,6 +215,11 @@ calibrate <- function(
   history_entry <- .make_history_entry(
     step = length(current_history) + 1L,
     operation = "calibration",
+    weight_col = if (inherits(data, "data.frame")) {
+      wt_name
+    } else {
+      data@variables$weights
+    },
     call_str = call_str,
     parameters = list(
       variables = variable_names,
@@ -226,9 +237,9 @@ calibrate <- function(
   if (inherits(data, "data.frame")) {
     # data.frame or weighted_df → weighted_df
     out_df <- plain_df
-    out_df[[weight_col]] <- new_weights
+    out_df[[wt_name]] <- new_weights
     new_history <- c(current_history, list(history_entry))
-    .make_weighted_df(out_df, weight_col, new_history)
+    .make_weighted_df(out_df, wt_name, new_history)
   } else {
     # survey object → same class (class preserved; only weights + history updated)
     .update_survey_weights(data, new_weights, history_entry)

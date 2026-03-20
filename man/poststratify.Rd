@@ -9,6 +9,7 @@ poststratify(
   strata,
   population,
   weights = NULL,
+  wt_name = "wts",
   type = c("prop", "count")
 )
 }
@@ -31,8 +32,11 @@ For \code{type = "prop"}: values in \code{target} must sum to 1.0 (within \code{
 \item{weights}{<\code{\link[tidyselect:language]{tidy-select}}> Weight column name
 (bare name). \code{NULL} -> auto-detected from \code{weighted_df} attribute or
 survey object \verb{@variables$weights}. For plain \code{data.frame} with
-\code{weights = NULL}, uniform starting weights are used and the output
-column is named \code{".weight"}.}
+\code{weights = NULL}, uniform starting weights are used.}
+
+\item{wt_name}{Character scalar. Name of the output weight column in the
+returned \code{weighted_df}. Default \code{"wts"}. Ignored when \code{data} is a survey
+object (\code{survey_taylor} or \code{survey_nonprob}).}
 
 \item{type}{Character scalar. \code{"prop"} (default): \code{target} values are
 proportions summing to 1.0. \code{"count"}: \code{target} values are population

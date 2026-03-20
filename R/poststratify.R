@@ -33,8 +33,10 @@
 #' @param weights <[`tidy-select`][tidyselect::language]> Weight column name
 #'   (bare name). `NULL` -> auto-detected from `weighted_df` attribute or
 #'   survey object `@variables$weights`. For plain `data.frame` with
-#'   `weights = NULL`, uniform starting weights are used and the output
-#'   column is named `".weight"`.
+#'   `weights = NULL`, uniform starting weights are used.
+#' @param wt_name Character scalar. Name of the output weight column in the
+#'   returned `weighted_df`. Default `"wts"`. Ignored when `data` is a survey
+#'   object (`survey_taylor` or `survey_nonprob`).
 #' @param type Character scalar. `"prop"` (default): `target` values are
 #'   proportions summing to 1.0. `"count"`: `target` values are population
 #'   counts. Consistent with [calibrate()] and [rake()].
@@ -79,12 +81,14 @@ poststratify <- function(
   strata,
   population,
   weights = NULL,
+  wt_name = "wts",
   type = c("prop", "count")
 ) {
   # ---- Capture call and match arguments ------------------------------------
   call_str    <- deparse(match.call())
   type        <- rlang::arg_match(type)
   weights_quo <- rlang::enquo(weights)
+  .validate_wt_name(wt_name)
 
   # ---- 1. Input class check -----------------------------------------------
   .check_input_class(data)
@@ -110,7 +114,8 @@ poststratify <- function(
   # For plain data.frame with weights = NULL: create uniform starting weights
   if (inherits(data, "data.frame") && rlang::quo_is_null(weights_quo) &&
       !inherits(data, "weighted_df")) {
-    data_df[[weight_col]] <- rep(1 / nrow(data_df), nrow(data_df))
+    data_df[[wt_name]] <- rep(1 / nrow(data_df), nrow(data_df))
+    weight_col <- wt_name
   }
 
   # Resolve the plain data frame with weights present
@@ -233,6 +238,7 @@ poststratify <- function(
   history_entry <- .make_history_entry(
     step        = length(current_history) + 1L,
     operation   = "poststratify",
+    weight_col  = if (inherits(data, "data.frame")) wt_name else data@variables$weights,
     call_str    = call_str,
     parameters  = list(
       variables  = strata_names,
@@ -247,9 +253,9 @@ poststratify <- function(
   # ---- 14. Build output ---------------------------------------------------
   if (inherits(data, "data.frame")) {
     out_df                  <- plain_df
-    out_df[[weight_col]]    <- new_weights
+    out_df[[wt_name]]       <- new_weights
     new_history             <- c(current_history, list(history_entry))
-    .make_weighted_df(out_df, weight_col, new_history)
+    .make_weighted_df(out_df, wt_name, new_history)
   } else {
     # survey object → same class (class preserved; only weights + history updated)
     .update_survey_weights(data, new_weights, history_entry)

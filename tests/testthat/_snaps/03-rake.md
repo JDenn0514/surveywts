@@ -219,7 +219,7 @@
       i For `method = "survey"`, valid `control` keys are: `maxit`, `epsilon`.
     Output
       # A tibble: 500 x 7
-            id age_group sex   education region    base_weight .weight
+            id age_group sex   education region    base_weight     wts
        * <int> <chr>     <chr> <chr>     <chr>           <dbl>   <dbl>
        1     1 35-54     F     HS        South           2.55  0.00204
        2     2 18-34     F     Graduate  South           0.395 0.00171
@@ -244,18 +244,18 @@
       i For `method = "survey"`, valid `control` keys are: `maxit`, `epsilon`.
     Output
       # A tibble: 500 x 7
-            id age_group sex   education region    base_weight .weight
-       * <int> <chr>     <chr> <chr>     <chr>           <dbl>   <dbl>
-       1     1 18-34     F     Graduate  South           2.53    0.969
-       2     2 18-34     F     College   Northeast       1.23    0.969
-       3     3 35-54     F     Graduate  South           1.47    0.909
-       4     4 18-34     M     HS        Northeast       1.16    1.08 
-       5     5 55+       F     HS        Midwest         0.671   0.997
-       6     6 55+       M     College   West            0.787   1.11 
-       7     7 18-34     M     HS        Midwest         1.07    1.08 
-       8     8 35-54     F     Graduate  South           0.310   0.909
-       9     9 55+       M     College   South           0.712   1.11 
-      10    10 18-34     F     Graduate  Midwest         1.38    0.969
+            id age_group sex   education region    base_weight   wts
+       * <int> <chr>     <chr> <chr>     <chr>           <dbl> <dbl>
+       1     1 18-34     F     Graduate  South           2.53  0.969
+       2     2 18-34     F     College   Northeast       1.23  0.969
+       3     3 35-54     F     Graduate  South           1.47  0.909
+       4     4 18-34     M     HS        Northeast       1.16  1.08 
+       5     5 55+       F     HS        Midwest         0.671 0.997
+       6     6 55+       M     College   West            0.787 1.11 
+       7     7 18-34     M     HS        Midwest         1.07  1.08 
+       8     8 35-54     F     Graduate  South           0.310 0.909
+       9     9 55+       M     College   South           0.712 1.11 
+      10    10 18-34     F     Graduate  Midwest         1.38  0.969
       # i 490 more rows
 
 # rake() rejects an unnamed list as margins
@@ -286,4 +286,29 @@
       x Raking did not converge after 0 iterations.
       i Setting `control$maxit = 0` means no raking is attempted.
       v Set `control$maxit` to a positive integer.
+
+# rake() rejects non-character wt_name
+
+    Code
+      rake(df, margins = margins, wt_name = 42)
+    Condition
+      Error in `.validate_wt_name()`:
+      x `wt_name` must be a single character string.
+      i Got <numeric> of length 1.
+
+# rake() rejects empty wt_name
+
+    Code
+      rake(df, margins = margins, wt_name = "")
+    Condition
+      Error in `.validate_wt_name()`:
+      x `wt_name` must be a non-empty, non-NA string.
+
+# rake() rejects NA wt_name
+
+    Code
+      rake(df, margins = margins, wt_name = NA_character_)
+    Condition
+      Error in `.validate_wt_name()`:
+      x `wt_name` must be a non-empty, non-NA string.
 

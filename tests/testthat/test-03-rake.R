@@ -58,8 +58,8 @@ test_that("rake() returns weighted_df for data.frame input", {
 
   test_invariants(result)
   expect_true(inherits(result, "weighted_df"))
-  expect_identical(attr(result, "weight_col"), ".weight")
-  expect_true(all(result[[".weight"]] > 0))
+  expect_identical(attr(result, "weight_col"), "wts")
+  expect_true(all(result[["wts"]] > 0))
 })
 
 # ---------------------------------------------------------------------------
@@ -119,7 +119,7 @@ test_that("rake() calibrates all margin variables correctly (method='survey')", 
   test_invariants(result)
   expect_identical(length(margins), 3L)
 
-  w <- result[[".weight"]]
+  w <- result[["wts"]]
   total_w <- sum(w)
 
   for (var in names(margins)) {
@@ -148,7 +148,7 @@ test_that("rake() on weighted_df accumulates weighting history", {
     age_group = c("18-34" = 0.28, "35-54" = 0.42, "55+" = 0.30),
     sex       = c("M" = 0.50, "F" = 0.50)
   )
-  wdf2 <- rake(wdf, margins = margins2, weights = .weight)
+  wdf2 <- rake(wdf, margins = margins2, weights = wts)
   test_invariants(wdf2)
   expect_identical(length(attr(wdf2, "weighting_history")), 2L)
   expect_identical(attr(wdf2, "weighting_history")[[2L]]$step, 2L)
@@ -197,7 +197,7 @@ test_that("rake() with type = 'count' accepts count targets", {
 
   test_invariants(result)
   expect_true(inherits(result, "weighted_df"))
-  expect_true(all(result[[".weight"]] > 0))
+  expect_true(all(result[["wts"]] > 0))
 })
 
 # ---------------------------------------------------------------------------
@@ -285,7 +285,7 @@ test_that("rake(method='survey') matches survey::rake() within 1e-8", {
     method = "survey",
     control = list(maxit = 500, epsilon = 1e-7)
   )
-  sw_weights <- sw_result[["base_weight"]]
+  sw_weights <- sw_result[["wts"]]
 
   # survey::rake() reference
   svy_design <- survey::svydesign(ids = ~1, weights = ~base_weight, data = df)
@@ -758,7 +758,7 @@ test_that("rake() step number increments correctly in chained calls", {
   )
 
   wdf1 <- rake(df, margins = margins1)
-  wdf2 <- rake(wdf1, margins = margins2, weights = .weight)
+  wdf2 <- rake(wdf1, margins = margins2, weights = wts)
 
   history <- attr(wdf2, "weighting_history")
   expect_identical(length(history), 2L)
@@ -781,7 +781,7 @@ test_that("calibrate() → rake() chain produces two-entry history with correct 
   )
 
   wdf1 <- calibrate(df, variables = c(age_group, sex), population = pop)
-  wdf2 <- rake(wdf1, margins = margins, weights = .weight)
+  wdf2 <- rake(wdf1, margins = margins, weights = wts)
 
   history <- attr(wdf2, "weighting_history")
   expect_identical(length(history), 2L)
@@ -807,10 +807,10 @@ test_that("rake(method='survey') produces valid calibrated weights", {
 
   test_invariants(result)
   expect_true(inherits(result, "weighted_df"))
-  expect_true(all(result[[".weight"]] > 0))
+  expect_true(all(result[["wts"]] > 0))
 
   # Verify margins are calibrated
-  w <- result[[".weight"]]
+  w <- result[["wts"]]
   total_w <- sum(w)
   for (var in names(margins)) {
     for (lev in names(margins[[var]])) {
@@ -833,7 +833,7 @@ test_that("rake() cap limits weight ratio with method = 'anesrake'", {
   result <- rake(df, margins = margins, cap = cap_val)
 
   test_invariants(result)
-  w <- result[[".weight"]]
+  w <- result[["wts"]]
   expect_true(all(w / mean(w) <= cap_val + 1e-10))
 })
 
@@ -874,8 +874,8 @@ test_that("rake() with cap = NULL does not restrict weight ratios", {
   test_invariants(result_no_cap)
   test_invariants(result_with_cap)
 
-  w_no_cap <- result_no_cap[[".weight"]]
-  w_with_cap <- result_with_cap[[".weight"]]
+  w_no_cap <- result_no_cap[["wts"]]
+  w_with_cap <- result_with_cap[["wts"]]
 
   # Per-step capping reduces extreme weight ratios vs no-cap,
   # though it does not guarantee a strict global cap at convergence
@@ -901,7 +901,7 @@ test_that("rake() with variable_select = 'max' produces valid calibrated weights
   test_invariants(result_max)
   test_invariants(result_total)
   # Both should converge and produce valid weights
-  expect_true(all(result_max[[".weight"]] > 0))
+  expect_true(all(result_max[["wts"]] > 0))
   # Results may differ due to different selection order
 })
 
@@ -916,7 +916,7 @@ test_that("rake() with variable_select = 'average' produces valid calibrated wei
   result <- rake(df, margins = margins, control = list(variable_select = "average"))
 
   test_invariants(result)
-  expect_true(all(result[[".weight"]] > 0))
+  expect_true(all(result[["wts"]] > 0))
 })
 
 # ---------------------------------------------------------------------------
@@ -947,7 +947,7 @@ test_that("rake(method='anesrake') converges to the target marginals", {
     method = "anesrake",
     control = list(maxit = 5000, pval = 2, improvement = 1e-8)
   )
-  w <- result[["base_weight"]]
+  w <- result[["wts"]]
 
   # With disabled variable selection and tight convergence, margins are exact.
   age_props <- tapply(w, df$age_group, sum) / sum(w)
@@ -1035,7 +1035,7 @@ test_that("rake() emits already_calibrated message when data is already calibrat
 
   # Second rake with same margins — already calibrated, chi-square ~ 0
   expect_message(
-    result <- rake(wdf, margins = margins, weights = .weight,
+    result <- rake(wdf, margins = margins, weights = wts,
                    control = list(pval = 0.99)),  # high threshold ensures skip
     class = "surveywts_message_already_calibrated"
   )
@@ -1196,4 +1196,183 @@ test_that("rake() throws calibration_not_converged via anesrake engine with maxi
       control = list(maxit = 0L)
     )
   )
+})
+
+# ---------------------------------------------------------------------------
+# wt_name — validation error tests
+# ---------------------------------------------------------------------------
+
+test_that("rake() rejects non-character wt_name", {
+  df <- make_surveywts_data(seed = 1)
+  margins <- .make_margins()
+  expect_error(
+    rake(df, margins = margins, wt_name = 42),
+    class = "surveywts_error_wt_name_not_scalar"
+  )
+  expect_snapshot(
+    error = TRUE,
+    rake(df, margins = margins, wt_name = 42)
+  )
+})
+
+test_that("rake() rejects empty wt_name", {
+  df <- make_surveywts_data(seed = 1)
+  margins <- .make_margins()
+  expect_error(
+    rake(df, margins = margins, wt_name = ""),
+    class = "surveywts_error_wt_name_empty"
+  )
+  expect_snapshot(
+    error = TRUE,
+    rake(df, margins = margins, wt_name = "")
+  )
+})
+
+test_that("rake() rejects NA wt_name", {
+  df <- make_surveywts_data(seed = 1)
+  margins <- .make_margins()
+  expect_error(
+    rake(df, margins = margins, wt_name = NA_character_),
+    class = "surveywts_error_wt_name_empty"
+  )
+  expect_snapshot(
+    error = TRUE,
+    rake(df, margins = margins, wt_name = NA_character_)
+  )
+})
+
+# ---------------------------------------------------------------------------
+# wt_name — happy path tests
+# ---------------------------------------------------------------------------
+
+test_that("rake() names output weight column 'wts' by default", {
+  df <- make_surveywts_data(seed = 1)
+  margins <- .make_margins()
+  result <- rake(df, margins = margins)
+  test_invariants(result)
+  expect_identical(attr(result, "weight_col"), "wts")
+  expect_true("wts" %in% names(result))
+})
+
+test_that("rake() uses custom wt_name for output column", {
+  df <- make_surveywts_data(seed = 1)
+  margins <- .make_margins()
+  result <- rake(df, margins = margins, wt_name = "raked_wt")
+  test_invariants(result)
+  expect_identical(attr(result, "weight_col"), "raked_wt")
+  expect_true("raked_wt" %in% names(result))
+})
+
+# ---------------------------------------------------------------------------
+# wt_name — input preservation and overwrite tests
+# ---------------------------------------------------------------------------
+
+test_that("rake() preserves input weight column when wt_name differs", {
+  df <- make_surveywts_data(seed = 1)
+  margins <- .make_margins()
+  result <- rake(
+    df, margins = margins, weights = base_weight, wt_name = "raked_wt"
+  )
+  test_invariants(result)
+  expect_true("base_weight" %in% names(result))
+  expect_true("raked_wt" %in% names(result))
+  expect_identical(attr(result, "weight_col"), "raked_wt")
+})
+
+test_that("rake() overwrites input column when wt_name matches", {
+  df <- make_surveywts_data(seed = 1)
+  margins <- .make_margins()
+  result <- rake(
+    df, margins = margins, weights = base_weight, wt_name = "base_weight"
+  )
+  test_invariants(result)
+  expect_identical(attr(result, "weight_col"), "base_weight")
+  expect_false(identical(result[["base_weight"]], df[["base_weight"]]))
+})
+
+# ---------------------------------------------------------------------------
+# wt_name — no phantom column test (Rule 1b)
+# ---------------------------------------------------------------------------
+
+test_that("rake() has no phantom column when weights = NULL + custom wt_name", {
+  df <- make_surveywts_data(seed = 1)
+  margins <- .make_margins()
+  result <- rake(df, margins = margins, wt_name = "raked_wt")
+  test_invariants(result)
+  expect_true("raked_wt" %in% names(result))
+  expect_false(".weight" %in% names(result))
+  expected_cols <- c(names(df), "raked_wt")
+  expect_true(all(names(result) %in% expected_cols))
+})
+
+# ---------------------------------------------------------------------------
+# wt_name — survey object ignore test
+# ---------------------------------------------------------------------------
+
+test_that("rake() ignores wt_name for survey_nonprob input", {
+  df <- make_surveywts_data(seed = 1)
+  snp <- surveycore::survey_nonprob(
+    data = df,
+    variables = list(
+      ids = NULL, strata = NULL, fpc = NULL,
+      weights = "base_weight", nest = FALSE
+    ),
+    metadata = surveycore::survey_metadata(),
+    groups = character(0),
+    call = NULL,
+    calibration = NULL
+  )
+  margins <- .make_margins()
+  result <- rake(snp, margins = margins, wt_name = "ignored_name")
+  expect_identical(result@variables$weights, snp@variables$weights)
+})
+
+# ---------------------------------------------------------------------------
+# wt_name — weighted_df input tests
+# ---------------------------------------------------------------------------
+
+test_that("rake() preserves old weight col and creates 'wts' for weighted_df input", {
+  df <- make_surveywts_data(seed = 1)
+  margins <- .make_margins()
+  wdf <- rake(df, margins = margins, wt_name = "original_wt")
+  result <- rake(wdf, margins = margins)
+  test_invariants(result)
+  expect_true("original_wt" %in% names(result))
+  expect_true("wts" %in% names(result))
+  expect_identical(attr(result, "weight_col"), "wts")
+})
+
+test_that("rake() overwrites weight col when wt_name matches weighted_df attr", {
+  df <- make_surveywts_data(seed = 1)
+  margins <- .make_margins()
+  wdf <- rake(df, margins = margins)
+  result <- rake(wdf, margins = margins, wt_name = "wts")
+  test_invariants(result)
+  expect_identical(attr(result, "weight_col"), "wts")
+})
+
+# ---------------------------------------------------------------------------
+# wt_name — chaining test
+# ---------------------------------------------------------------------------
+
+test_that("chaining calibrate() |> rake() uses 'wts' throughout", {
+  df <- make_surveywts_data(seed = 1)
+  pop <- list(age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30))
+  margins <- list(sex = c("M" = 0.48, "F" = 0.52))
+  result <- calibrate(df, variables = c(age_group), population = pop) |>
+    rake(margins = margins)
+  test_invariants(result)
+  expect_identical(attr(result, "weight_col"), "wts")
+})
+
+# ---------------------------------------------------------------------------
+# wt_name — history test
+# ---------------------------------------------------------------------------
+
+test_that("rake() records wt_name in weighting history", {
+  df <- make_surveywts_data(seed = 1)
+  margins <- .make_margins()
+  result <- rake(df, margins = margins, wt_name = "raked_wt")
+  history <- attr(result, "weighting_history")
+  expect_identical(history[[length(history)]]$weight_col, "raked_wt")
 })

@@ -9,6 +9,7 @@ adjust_nonresponse(
   response_status,
   weights = NULL,
   by = NULL,
+  wt_name = "wts",
   method = c("weighting-class", "propensity-cell", "propensity"),
   control = list(min_cell = 20, max_adjust = 2)
 )
@@ -23,13 +24,16 @@ Must be \code{logical} or integer \code{0}/\code{1}. \code{1} / \code{TRUE} = re
 
 \item{weights}{Bare name (NSE). Weight column. \code{NULL} → auto-detected from
 \code{weighted_df} attribute or survey object \verb{@variables$weights}. For plain
-\code{data.frame} with \code{weights = NULL}, uniform starting weights are used and
-the output column is named \code{".weight"}.}
+\code{data.frame} with \code{weights = NULL}, uniform starting weights are used.}
 
 \item{by}{<\code{\link[tidyselect:language]{tidy-select}}> Weighting class variables.
 Redistribution is performed within each cell defined by the joint
 combination of these variables. \code{NULL} → global redistribution across
 all rows.}
+
+\item{wt_name}{Character scalar. Name of the output weight column in the
+returned \code{weighted_df}. Default \code{"wts"}. Ignored when \code{data} is a survey
+object (\code{survey_taylor} or \code{survey_nonprob}).}
 
 \item{method}{Character scalar. Adjustment method. In Phase 0, only
 \code{"weighting-class"} is supported. \code{"propensity"} and \code{"propensity-cell"}

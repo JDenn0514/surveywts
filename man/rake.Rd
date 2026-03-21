@@ -8,6 +8,7 @@ rake(
   data,
   margins,
   weights = NULL,
+  wt_name = "wts",
   type = c("prop", "count"),
   method = c("anesrake", "survey"),
   cap = NULL,
@@ -46,8 +47,12 @@ converted Format A is stored in the weighting history.}
 \item{weights}{<\code{\link[tidyselect:language]{tidy-select}}> Weight column name
 (bare name). \code{NULL} → auto-detected from \code{weighted_df} attribute or
 survey object \verb{@variables$weights}. For plain \code{data.frame} with
-\code{weights = NULL}, uniform starting weights are used and the output column
-is named \code{".weight"}.}
+\code{weights = NULL}, uniform starting weights are used and the output
+column is named by \code{wt_name} (default \code{"wts"}).}
+
+\item{wt_name}{Character scalar. Name of the output weight column in the
+returned \code{weighted_df}. Default \code{"wts"}. Ignored when \code{data} is a survey
+object (\code{survey_taylor} or \code{survey_nonprob}).}
 
 \item{type}{Character scalar. \code{"prop"} (default): \code{margins} values are
 proportions. \code{"count"}: \code{margins} values are counts.}

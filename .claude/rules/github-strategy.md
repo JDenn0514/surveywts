@@ -14,7 +14,7 @@
 |----------|--------|
 | Branching model | `develop` integration branch — features → `develop`; `develop` → `main` for releases |
 | Branch naming | `feature/`, `fix/`, `hotfix/`, `docs/`, `chore/`, `refactor/` |
-| Merge strategy | Squash and merge everywhere |
+| Merge strategy | Squash for feature PRs; merge commit for release PRs |
 | Commit format | Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `chore:`) |
 | PR granularity | One PR per logical unit of work |
 | Versioning | `X.Y.Z.9000` on `develop`; `X.Y.Z` on `main` after release |
@@ -134,7 +134,7 @@ chore(ci): add test-coverage GitHub Actions workflow
 chore(description): bump version to 0.1.0 for Phase 0 release
 ```
 
-### Squash merge commit message
+### Squash merge commit message (feature PRs)
 
 Write it as a conventional commit summarizing the whole PR:
 ```
@@ -169,11 +169,18 @@ Changelog entry format (required before every PR) is defined in
 
 ## Merge Strategy
 
-**Squash and merge** on all PRs. Configure in GitHub → Settings → Pull Requests:
+| PR type | Strategy | Why |
+|---------|----------|-----|
+| Feature → `develop` | **Squash and merge** | Consolidates WIP commits into a clean single commit |
+| `develop` → `main` (release) | **Merge commit** | Preserves git ancestry between branches; prevents divergence |
+
+Configure in GitHub → Settings → Pull Requests:
 - [x] Allow squash merging
-- [ ] Allow merge commits *(disable)*
+- [x] Allow merge commits
 - [ ] Allow rebase merging *(disable)*
 - [x] Automatically delete head branches
+
+The `/merge-main` skill handles choosing the correct strategy automatically.
 
 ---
 

@@ -1,6 +1,6 @@
 Package: surveywts
 Title: Tools for Survey Weighting and Calibration
-Version: 0.1.2
+Version: 0.1.2.9000
 Authors@R:
     person(
         "Jacob", "Dennen",

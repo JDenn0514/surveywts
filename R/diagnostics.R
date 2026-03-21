@@ -174,13 +174,13 @@ summarize_weights <- function(x, weights = NULL, by = NULL) {
 #      throws surveywts_error_weights_required
 # Returns: list(data_df = <data.frame>, weight_col = <character>)
 .diag_validate_input <- function(x, weights_quo) {
-  # Replicate designs require Phase 1 — check first (specific before general)
+  # Replicate designs require the Replicate release — check first
   if (S7::S7_inherits(x, surveycore::survey_replicate)) {
     cli::cli_abort(
       c(
-        "x" = "{.cls survey_replicate} objects are not supported in Phase 0.",
-        "i" = "Replicate-weight support requires Phase 1.",
-        "v" = "Use a {.cls survey_taylor} design, or wait for Phase 1."
+        "x" = "{.cls survey_replicate} objects are not yet supported.",
+        "i" = "Replicate-weight support requires the Replicate release.",
+        "v" = "Use a {.cls survey_taylor} design, or wait for the Replicate release."
       ),
       class = "surveywts_error_replicate_not_supported"
     )

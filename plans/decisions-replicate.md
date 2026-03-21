@@ -1,7 +1,7 @@
-# Phase 1 API Design Decisions
+# Replicate API Design Decisions
 
 **Date resolved:** 2026-03-20
-**Spec:** `plans/spec-phase-1.md` §XI
+**Spec:** `plans/spec-replicate.md` §XI
 
 ---
 

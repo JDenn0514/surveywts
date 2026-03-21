@@ -35,9 +35,9 @@ all rows.}
 returned \code{weighted_df}. Default \code{"wts"}. Ignored when \code{data} is a survey
 object (\code{survey_taylor} or \code{survey_nonprob}).}
 
-\item{method}{Character scalar. Adjustment method. In Phase 0, only
+\item{method}{Character scalar. Adjustment method. Currently, only
 \code{"weighting-class"} is supported. \code{"propensity"} and \code{"propensity-cell"}
-are API-stable stubs that error until Phase 2.}
+are API-stable stubs that error until the Propensity release.}
 
 \item{control}{Named list of warning thresholds:
 \itemize{

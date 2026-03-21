@@ -34,7 +34,7 @@ S7::method(print, surveycore::survey_nonprob) <- function(x, n = 10, ...) {
     n_cols, "variables\n"
   )
 
-  # Variance method (hardcoded for Phase 0 — see spec §X)
+  # Variance method (hardcoded for Calibration release — see spec §X)
   cat("# Variance: model-assisted (SRS assumption)\n")
 
   # Design structure line

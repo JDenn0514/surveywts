@@ -291,4 +291,4 @@ All 8 issues resolved. Decisions:
 | 7 — Stale vendor comments | **A** — Added to cleanup step 25 |
 | 8 — 98% coverage per PR | **A** — Added to all 6 PRs |
 
-Plan approved. Decisions logged in `plans/decisions-phase-0-fixes.md`.
+Plan approved. Decisions logged in `plans/decisions-calibration-fixes.md`.

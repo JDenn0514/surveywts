@@ -1,8 +1,8 @@
-# Phase 1 Open Questions: Argument Input Design
+# Replicate Open Questions: Argument Input Design
 
 **Date created:** 2026-03-20
 **Updated:** 2026-03-20
-**Context:** §XI API design questions are resolved (`plans/decisions-phase-1.md`).
+**Context:** §XI API design questions are resolved (`plans/decisions-replicate.md`).
 These are follow-up questions about argument ergonomics that surfaced during
 review, to be discussed before or during implementation.
 

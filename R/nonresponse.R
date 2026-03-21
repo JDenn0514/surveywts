@@ -38,9 +38,9 @@
 #' @param wt_name Character scalar. Name of the output weight column in the
 #'   returned `weighted_df`. Default `"wts"`. Ignored when `data` is a survey
 #'   object (`survey_taylor` or `survey_nonprob`).
-#' @param method Character scalar. Adjustment method. In Phase 0, only
+#' @param method Character scalar. Adjustment method. Currently, only
 #'   `"weighting-class"` is supported. `"propensity"` and `"propensity-cell"`
-#'   are API-stable stubs that error until Phase 2.
+#'   are API-stable stubs that error until the Propensity release.
 #' @param control Named list of warning thresholds:
 #'   - `min_cell`: warn when a cell has fewer than this many respondents
 #'     (default 20, per NAEP methodology).
@@ -142,22 +142,22 @@ adjust_nonresponse <- function(
   # ---- 5. Validate weights --------------------------------------------------
   .validate_weights(plain_df, weight_col)
 
-  # ---- 6. Method stub for Phase 2 -------------------------------------------
+  # ---- 6. Method stub — propensity not yet available -------------------------
   if (method %in% c("propensity", "propensity-cell")) {
     cli::cli_abort(
       c(
         "x" = paste0(
-          "{.code method = {.val {method}}} is not available in Phase 0."
+          "{.code method = {.val {method}}} is not yet available."
         ),
         "i" = paste0(
           "Propensity-based methods ({.val \"propensity\"} and ",
-          "{.val \"propensity-cell\"}) require Phase 2 (v0.3.0)."
+          "{.val \"propensity-cell\"}) require the Propensity release."
         ),
         "v" = paste0(
           "Use {.code method = \"weighting-class\"} for now."
         )
       ),
-      class = "surveywts_error_propensity_requires_phase2"
+      class = "surveywts_error_propensity_not_available"
     )
   }
 

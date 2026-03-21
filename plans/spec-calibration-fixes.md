@@ -1,11 +1,11 @@
-# Phase 0 Fixes Spec: Post-Implementation Patches
+# Calibration Fixes Spec: Post-Implementation Patches
 
 **Version:** 0.4
 **Date:** 2026-03-18
 **Status:** Approved — Stage 4 complete; v0.4 amended after critical review (2026-03-18)
-**Branch identifier:** `phase-0-fixes`
-**Related files:** `plans/spec-review-phase-0-fixes.md` (after review),
-`plans/decisions-phase-0-fixes.md` (after resolve)
+**Branch identifier:** `calibration-fixes`
+**Related files:** `plans/spec-review-calibration-fixes.md` (after review),
+`plans/decisions-calibration-fixes.md` (after resolve)
 
 ---
 

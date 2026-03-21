@@ -208,7 +208,7 @@ devtools::check()  # Fast feedback, no --as-cran flag
 args: 'c("--as-cran", "--no-manual")'
 ```
 
-Switch to `--as-cran` locally only in Phase 3 (Polish) when CRAN submission is imminent.
+Switch to `--as-cran` locally only in the Polish release when CRAN submission is imminent.
 
 ### `devtools::document()` cadence
 

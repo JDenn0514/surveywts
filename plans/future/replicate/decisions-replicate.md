@@ -1,6 +1,6 @@
-# Decisions Log — surveywts phase-1
+# Decisions Log — surveywts replicate
 
-This file records planning decisions made during phase-1 spec development.
+This file records planning decisions made during replicate spec development.
 Each entry corresponds to one planning session.
 
 ---

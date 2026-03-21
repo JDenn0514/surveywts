@@ -1,11 +1,11 @@
-# Phase 1 Spec: Replicate Weight Generation (v0.2.0)
+# Replicate Spec: Replicate Weight Generation (v0.2.0)
 
 **Version:** 0.2
 **Date:** 2026-03-11
 **Status:** Draft — Stage 2 Resolve in progress (8 of 16 issues resolved; 5 blocking GAPs pending)
-**Branch identifier:** `phase-1`
-**Related files:** `plans/spec-review-phase-1.md` (after review),
-`plans/decisions-phase-1.md` (after resolve)
+**Branch identifier:** `replicate`
+**Related files:** `plans/spec-review-replicate.md` (after review),
+`plans/decisions-replicate.md` (after resolve)
 
 ---
 

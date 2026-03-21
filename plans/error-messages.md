@@ -1,8 +1,8 @@
 # Error and Warning Classes
 
 All `cli_abort()` and `cli_warn()` calls must use a class from this table.
-See `plans/spec-phase-0.md §XII` for full message templates (organized by
-function in subsections XII.A through XII.G).
+See `plans/archive/calibration/spec-calibration.md §XII` for full message
+templates (organized by function in subsections XII.A through XII.G).
 
 ## Errors
 
@@ -68,7 +68,7 @@ function in subsections XII.A through XII.G).
 | `surveywts_error_response_status_all_zero` | `adjust_nonresponse()` | All rows are nonrespondents |
 | `surveywts_error_class_cell_empty` | `adjust_nonresponse()` | Weighting class cell has no respondents |
 | `surveywts_error_response_status_multiple_columns` | `adjust_nonresponse()` | `response_status` selects > 1 column |
-| `surveywts_error_propensity_requires_phase2` | `adjust_nonresponse()` | `method` is `"propensity"` or `"propensity-cell"` (Phase 2 stubs) |
+| `surveywts_error_propensity_not_available` | `adjust_nonresponse()` | `method` is `"propensity"` or `"propensity-cell"` (not yet available) |
 
 ### Diagnostics
 

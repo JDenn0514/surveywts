@@ -8,20 +8,21 @@ into a single tidyverse-compatible, S7-based package.
 
 ---
 
-## Phase Summary
+## Release Summary
 
-| Phase | Tag | Theme | Status |
-|-------|-----|-------|--------|
-| Phase 0 — Calibration Core | `v0.1.0` | `survey_nonprob` class, calibration methods, basic diagnostics | ✅ Complete |
-| Phase 1 — Replicate Weights | `v0.2.0` | All `create_*_weights()` functions; unlocks bootstrap variance in `survey_nonprob` | 🔜 Next |
-| Phase 2 — Nonresponse & Advanced Calibration | `v0.3.0` | Sample-based calibration, weighting-class nonresponse | ⬜ Pending |
-| Phase 3 — Propensity Score Weighting | `v0.4.0` | IPW for causal inference; unlocks propensity nonresponse | ⬜ Pending |
-| Phase 4 — Diagnostics & Utilities | `v0.5.0` | Balance assessment, weight trimming/stabilization, visual diagnostics | ⬜ Pending |
-| Phase 5 — Polish & CRAN | `v1.0.0` | Vignettes, `--as-cran` clean, pkgdown, CRAN submission | ⬜ Pending |
+| Release | Tag | Theme | Status |
+|---------|-----|-------|--------|
+| Calibration | `v0.1.0` | `survey_nonprob` class, calibration methods, basic diagnostics | ✅ Complete |
+| Replicate | minor bump | All `create_*_weights()` functions; unlocks bootstrap variance in `survey_nonprob` | 🔜 Next |
+| Utilities | minor bump | `trim_weights()`, `stabilize_weights()` | ⬜ Pending |
+| Nonresponse | minor bump | Sample-based calibration, weighting-class nonresponse | ⬜ Pending |
+| Propensity | minor bump | IPW for causal inference; unlocks propensity nonresponse | ⬜ Pending |
+| Diagnostics | minor bump | Balance assessment, visual diagnostics | ⬜ Pending |
+| Polish | minor bump | Vignettes, `--as-cran` clean, pkgdown, CRAN submission | ⬜ Pending |
 
 ---
 
-## Phase 0 — Calibration Core (`v0.1.0`)
+## Calibration (`v0.1.0`)
 
 **What users can do:** Take a `survey_taylor` or `survey_replicate` from
 `surveycore`, calibrate it to known population totals, and check the result.
@@ -53,10 +54,10 @@ This is the minimum useful thing the package does.
 
 All three append to `weighting_history` and share `.calibrate_engine()`.
 
-**Bonus deliverable: `adjust_nonresponse()`** (promoted from Phase 2 into Phase 0)
+**Bonus deliverable: `adjust_nonresponse()`** (promoted from Nonresponse into Calibration)
 - `adjust_nonresponse(data, response_status, weights = NULL, by = NULL, method = c("weighting-class", "propensity-cell", "propensity"), control = list(min_cell = 20, max_adjust = 2.0))`
 - `method = "weighting-class"` fully implemented
-- `method = "propensity"` and `method = "propensity-cell"` are stubs (error until Phase 2/3)
+- `method = "propensity"` and `method = "propensity-cell"` are stubs (error until Propensity release)
 - Returns respondent rows only (nonrespondents dropped)
 
 **Basic weight diagnostics**
@@ -96,12 +97,12 @@ All three append to `weighting_history` and share `.calibrate_engine()`.
 - `survey_nonprob` class is defined in `surveycore`; surveywts extends it
   with a print method and uses it as the output type for calibration functions
   when input is a `survey_taylor` or `survey_nonprob`
-- `adjust_nonresponse()` was promoted from Phase 2 into Phase 0; the
+- `adjust_nonresponse()` was promoted from Nonresponse into Calibration; the
   weighting-class method is fully implemented; propensity methods remain stubs
 
 ---
 
-## Phase 1 — Replicate Weight Generation (`v0.2.0`)
+## Replicate — Replicate Weight Generation (minor bump)
 
 **What users can do:** Convert any Taylor linearization design to a replicate
 design using six schemes. Also unlocks full bootstrap variance in
@@ -123,7 +124,7 @@ design using six schemes. Also unlocks full bootstrap variance in
 - `as_taylor_design(svy)` — collapses a replicate design to Taylor
 
 **Unlock `variance = "bootstrap"` in `survey_nonprob`**
-- Remove the Phase 0 stub error
+- Remove the Calibration stub error
 - `as_survey_nonprob(..., variance = "bootstrap")` now re-calibrates
   on each replicate using the provenance in `@calibration`
 
@@ -142,7 +143,36 @@ design using six schemes. Also unlocks full bootstrap variance in
 
 ---
 
-## Phase 2 — Nonresponse & Advanced Calibration (`v0.3.0`)
+## Utilities — Weight Utilities (minor bump)
+
+**What users can do:** Trim extreme weights and stabilize weights to sum to
+sample size. These are standalone utility functions that can be used after any
+weighting step.
+
+### Deliverables
+
+**Weight utilities**
+- `trim_weights(svy, lower, upper)` — exported wrapper around
+  `.trim_weights_internal()` (available since Propensity); appends to
+  `@metadata@weighting_history`
+- `stabilize_weights(svy, by = NULL)` — rescale weights to sum to n (or
+  group n); appends to `@metadata@weighting_history`
+
+### Source File Map
+
+| File | Contents |
+|------|----------|
+| `R/10-weight-utils.R` | `trim_weights()`, `stabilize_weights()` |
+
+### Notes
+
+`trim_weights()` wraps `.trim_weights_internal()`, an unexported helper
+introduced in Propensity for the `trim_at` argument in
+`create_propensity_weights()`. The exported version is a user-facing wrapper.
+
+---
+
+## Nonresponse — Nonresponse & Advanced Calibration (minor bump)
 
 **What users can do:** Calibrate to control totals that are themselves
 estimated (not fixed). Adjust for unit nonresponse using weighting classes.
@@ -157,12 +187,12 @@ estimated (not fixed). Adjust for unit nonresponse using weighting classes.
 - `calibrate_to_estimate(design, estimate, vcov_estimate, formula)` —
   when only a point estimate + covariance of the control total is available
 
-**Nonresponse adjustment** (extends Phase 0 stubs)
-- `adjust_nonresponse()` was introduced in Phase 0 with `method = "weighting-class"`
-  fully implemented; Phase 2 unlocks the two propensity stubs:
+**Nonresponse adjustment** (extends Calibration stubs)
+- `adjust_nonresponse()` was introduced in Calibration with `method = "weighting-class"`
+  fully implemented; Nonresponse unlocks the two propensity stubs:
   - `method = "propensity-cell"`: estimate response propensity via logistic
     regression → sort into quintile cells → redistribute within cells
-  - `method = "propensity"`: full IPW via logistic regression (delegates to Phase 3
+  - `method = "propensity"`: full IPW via logistic regression (delegates to Propensity
     `estimate_propensity()` + `create_propensity_weights()`)
 - `redistribute_weights(svy, reduce_if, increase_if, by = NULL)` — general
   weight redistribution primitive (exported standalone)
@@ -183,11 +213,11 @@ All functions append to `@metadata@weighting_history`.
 
 ---
 
-## Phase 3 — Propensity Score Weighting (`v0.4.0`)
+## Propensity — Propensity Score Weighting (minor bump)
 
 **What users can do:** Construct inverse probability weights for causal
 inference. Choose estimand (ATE, ATT, ATC, overlap, matching). Unlocks
-`adjust_nonresponse(method = "propensity")` from Phase 2.
+`adjust_nonresponse(method = "propensity")` from Nonresponse.
 
 ### Deliverables
 
@@ -200,7 +230,7 @@ inference. Choose estimand (ATE, ATT, ATC, overlap, matching). Unlocks
 **Weight creation**
 - `create_propensity_weights(svy, propensity, estimand = c("ATE", "ATT", "ATC", "overlap", "matching"), stabilize = TRUE, trim_at = NULL)`
   - Uses internal `.trim_weights_internal()` for `trim_at` (unexported helper;
-    the exported `trim_weights()` wraps this in Phase 4)
+    the exported `trim_weights()` wraps this in Utilities)
 - `add_propensity_weights(svy, formula, estimand, method)` — combined
   one-step wrapper (calls `estimate_propensity()` + `create_propensity_weights()`)
 
@@ -211,7 +241,7 @@ inference. Choose estimand (ATE, ATT, ATC, overlap, matching). Unlocks
   targets internally from the data rather than requiring an external `population` argument
 
 **Unlock `adjust_nonresponse(method = "propensity")` and `adjust_nonresponse(method = "propensity-cell")`**
-- Remove the Phase 2 stub errors; both delegate to `estimate_propensity()` +
+- Remove the stub errors; both delegate to `estimate_propensity()` +
   `create_propensity_weights()` internally
 
 ### Source File Map
@@ -228,11 +258,10 @@ inference. Choose estimand (ATE, ATT, ATC, overlap, matching). Unlocks
 
 ---
 
-## Phase 4 — Diagnostics & Utilities (`v0.5.0`)
+## Diagnostics — Comprehensive Diagnostics (minor bump)
 
 **What users can do:** Fully audit weight construction. Assess covariate
-balance. Compare estimates across weighting strategies. Trim and stabilize
-weights.
+balance. Compare estimates across weighting strategies.
 
 ### Deliverables
 
@@ -244,19 +273,11 @@ weights.
 - `compare_weighted_estimates(list_of_designs, formula)` — side-by-side
   estimates across a named list of designs
 
-**Weight utilities** (exported wrappers for internal helpers from earlier phases)
-- `trim_weights(svy, lower, upper)` — exported wrapper around
-  `.trim_weights_internal()` (available since Phase 3); appends to
-  `@metadata@weighting_history`
-- `stabilize_weights(svy, by = NULL)` — rescale weights to sum to n (or
-  group n); appends to `@metadata@weighting_history`
-
 ### Source File Map
 
 | File | Contents |
 |------|----------|
 | `R/09-balance.R` | `check_balance()`, `diagnose_propensity()`, `compare_weighted_estimates()` |
-| `R/10-weight-utils.R` | `trim_weights()`, `stabilize_weights()` |
 
 ### Test References
 
@@ -266,10 +287,10 @@ weights.
 
 ---
 
-## Phase 5 — Polish & CRAN (`v1.0.0`)
+## Polish — Polish & CRAN (minor bump)
 
-**No new function deliverables.** This phase is explicitly listed because
-this work is substantial and should not be appended to Phase 4.
+**No new function deliverables.** This release is explicitly listed because
+this work is substantial and should not be appended to Diagnostics.
 
 ### Deliverables
 
@@ -280,18 +301,18 @@ this work is substantial and should not be appended to Phase 4.
   - `vignette("replicate-weights")` — scheme selection guide; `svrep` comparison
   - `vignette("propensity-weighting")` — causal estimands; ATE vs ATT workflow
   - `vignette("nonresponse")` — weighting-class vs propensity comparison
-- `plans/error-messages.md` complete with every class from all phases
+- `plans/error-messages.md` complete with every class from all releases
 - `surveywts-conventions.md` fully filled in
 - `R CMD check --as-cran` clean: 0 errors, 0 warnings, ≤2 notes
 - `pkgdown` site build verified
-- NEWS.md entries for all phases reviewed
+- NEWS.md entries for all releases reviewed
 
 ---
 
 ## Cross-Cutting Design Decisions
 
 ### `@calibration` provenance record structure
-Must be specified in the Phase 0 spec **before** implementation. Proposed:
+Must be specified in the Calibration spec **before** implementation. Proposed:
 ```r
 list(
   method      = "raking",          # or "linear", "logit", "poststratify"
@@ -308,12 +329,12 @@ list(
 rather than being a `method = "raking"` shortcut. The shared engine is
 `.calibrate_engine()` in `R/07-utils.R` — the DRY rule requires this.
 
-### `trim_weights()` internals across phases
-Phase 3 needs trimming internally (the `trim_at` argument in
-`create_propensity_weights()`). Export the function in Phase 4. Use an
-unexported `.trim_weights_internal()` helper from Phase 3 onward;
+### `trim_weights()` internals across releases
+Propensity needs trimming internally (the `trim_at` argument in
+`create_propensity_weights()`). Export the function in Utilities. Use an
+unexported `.trim_weights_internal()` helper from Propensity onward;
 `trim_weights()` (exported) is just a wrapper around it.
 
 ### `surveycore` dependency
 Add `surveycore (>= 0.1.0)` to `DESCRIPTION Imports` as the very first change
-in Phase 0 before any source file references `surveycore` class objects.
+in Calibration before any source file references `surveycore` class objects.

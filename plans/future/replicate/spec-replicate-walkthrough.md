@@ -1,7 +1,7 @@
-# Phase 1 Spec Walkthrough: `spec-phase-1.md`
+# Replicate Spec Walkthrough: `spec-replicate.md`
 
 **Generated:** 2026-03-16
-**Source:** `plans/spec-phase-1.md` (v0.2)
+**Source:** `plans/spec-replicate.md` (v0.2)
 
 Phase 1 ships `v0.2.0`. Its core purpose: **take a survey design object and produce replicate weights** for variance estimation. It does not estimate variances — it only creates the weights that make variance estimation possible.
 

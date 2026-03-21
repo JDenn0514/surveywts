@@ -5,7 +5,7 @@ How the skills fit together in practice.
 ---
 
 ## Planning Arc
-*Run once per phase/feature to produce a spec and implementation plan.*
+*Run once per release/feature to produce a spec and implementation plan.*
 
 ```
 New session
@@ -13,7 +13,7 @@ New session
     ▼
 ┌──────────────┐
 │/spec-reviewer│  Input:  spec file path (you provide)
-│              │  Output: plans/spec-review-phase-X.md
+│              │  Output: plans/spec-review-{name}.md
 └──────┬───────┘
        │ "Start a new session with /spec-workflow"
        ▼
@@ -24,17 +24,17 @@ New session
 │ /spec-workflow                                                    │
 │                                                                  │
 │  Stage 2 — Review                                                │
-│    Reads plans/spec-review-phase-X.md (if it exists)            │
+│    Reads plans/spec-review-{name}.md (if it exists)             │
 │    Works through issues one by one; edits spec file immediately  │
 │                                                                  │
 │  Stage 3 — Implementation Plan                                   │
-│    Produces checkbox PR map in plans/phase-X-implementation-plan │
+│    Produces checkbox PR map in plans/impl-{name}                │
 │                                                                  │
 │      - [ ] PR 1: `feature/branch-name` — one-sentence desc      │
 │      - [ ] PR 2: `feature/branch-name` — one-sentence desc      │
 │                                                                  │
 │  Stage 4 — Decisions Log (conditional)                           │
-│    Writes plans/claude-decisions-phase-X.md ONLY if decisions    │
+│    Writes plans/claude-decisions-{name}.md ONLY if decisions     │
 │    were made that are not already reflected in spec or plan      │
 └──────────────────────────────────────────────────────────────────┘
 ```
@@ -87,7 +87,7 @@ New session
 │     └─ on main? → STOP                                          │
 │                                                                  │
 │  2. Changelog entry                                              │
-│     └─ missing? → create changelog/phase-X/branch.md            │
+│     └─ missing? → create changelog/{name}/branch.md             │
 │                                                                  │
 │  3. Pre-flight: devtools::check() + devtools::test()             │
 │     └─ fails? → STOP → "invoke /r-implement to fix"             │
@@ -114,7 +114,7 @@ New session
 └─────────────────────────┘
        │ no
        ▼
-     Done. All PRs merged. Phase complete. Tag the release.
+     Done. All PRs merged. Release complete. Tag the release.
 ```
 
 ---
@@ -124,7 +124,7 @@ New session
 The **implementation plan** is the single thread connecting every session.
 
 ```
-plans/phase-X-implementation-plan.md
+plans/impl-{name}.md
 ├─ [x] PR 1: `feature/a` — merged
 ├─ [x] PR 2: `feature/b` — merged
 ├─ [ ] PR 3: `feature/c` ← r-implement picks this up next
@@ -133,8 +133,8 @@ plans/phase-X-implementation-plan.md
 
 | File | Written by | Read by |
 |------|------------|---------|
-| `plans/spec-review-phase-X.md` | `/spec-reviewer` | `/spec-workflow` Stage 2 |
-| `plans/phase-X-implementation-plan.md` | `/spec-workflow` Stage 3 | `/r-implement`, `/commit-and-pr` |
-| `plans/claude-decisions-phase-X.md` | `/spec-workflow` Stage 4 | future sessions |
+| `plans/spec-review-{name}.md` | `/spec-reviewer` | `/spec-workflow` Stage 2 |
+| `plans/impl-{name}.md` | `/spec-workflow` Stage 3 | `/r-implement`, `/commit-and-pr` |
+| `plans/claude-decisions-{name}.md` | `/spec-workflow` Stage 4 | future sessions |
 | `plans/error-messages.md` | `/r-implement` | all sessions |
-| `changelog/phase-X/branch.md` | `/commit-and-pr` | `/commit-and-pr` (PR body) |
+| `changelog/{name}/branch.md` | `/commit-and-pr` | `/commit-and-pr` (PR body) |

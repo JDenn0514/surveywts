@@ -1,10 +1,10 @@
-# Phase 1 Spec: Replicate Weight Generation (v0.2.0)
+# Replicate Spec: Replicate Weight Generation (v0.2.0)
 
 **Version:** 1.0
 **Date:** 2026-03-20
-**Status:** Draft — §XI questions resolved (see `plans/decisions-phase-1.md`); ready for Stage 2/3 review
-**Supersedes:** `plans/future/phase-1-replicate/spec-phase-1.md`
-**Branch identifier:** `phase-1`
+**Status:** Draft — §XI questions resolved (see `plans/decisions-replicate.md`); ready for Stage 2/3 review
+**Supersedes:** `plans/future/replicate/spec-replicate.md`
+**Branch identifier:** `replicate`
 
 ---
 
@@ -552,7 +552,7 @@ weight columns are dropped from `@data`.
 ## XI. API Design Questions
 
 These questions must be resolved before implementation begins. Each question
-presents options with rationale. Resolutions go in `plans/decisions-phase-1.md`.
+presents options with rationale. Resolutions go in `plans/decisions-replicate.md`.
 
 ---
 
@@ -978,7 +978,7 @@ Phase 1 is complete when:
 - [ ] Metadata preservation verified (labels, history survive the conversion
   pipeline)
 - [ ] All API design questions in §XI are resolved and logged in
-  `plans/decisions-phase-1.md`
+  `plans/decisions-replicate.md`
 - [ ] `svrep` added to DESCRIPTION `Imports` with minimum version
 - [ ] NEWS.md updated with v0.2.0 section
 - [ ] DESCRIPTION version bumped to `0.2.0`

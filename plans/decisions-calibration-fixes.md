@@ -1,6 +1,6 @@
-# Decisions Log — surveywts phase-0-fixes
+# Decisions Log — surveywts calibration-fixes
 
-This file records planning decisions made during phase-0-fixes.
+This file records planning decisions made during calibration-fixes.
 Each entry corresponds to one planning session.
 
 ---

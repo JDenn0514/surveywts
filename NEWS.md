@@ -69,7 +69,7 @@
   `calibrate()` and `rake()`. Existing code that relies on the count default
   should add explicit `type = "count"`.
 
-## Phase 0: Weighting Core
+## Calibration: Weighting Core
 
 This is the first release of surveywts, implementing the core survey weighting
 workflow.
@@ -103,7 +103,7 @@ workflow.
 
 - `adjust_nonresponse()`: Weighting-class nonresponse adjustment that
   redistributes nonrespondent weights to respondents within cells defined by
-  `by`. Methods `"propensity"` and `"propensity-cell"` are stubbed for Phase 2.
+  `by`. Methods `"propensity"` and `"propensity-cell"` are stubbed for the Propensity release.
 
 - `effective_sample_size()`: Kish's effective sample size (`ESS = (Σw)² / Σw²`).
 

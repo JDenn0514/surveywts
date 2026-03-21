@@ -29,7 +29,7 @@ Choose the tier based on change size. When in doubt, go one tier higher.
 
 | Tier | When to use | Workflow |
 |------|-------------|----------|
-| **1 — Full** | New phases, new exported functions, new S7 classes, anything where correct behavior is undecided | spec → implementation plan → `/r-implement` → `/commit-and-pr` |
+| **1 — Full** | New releases, new exported functions, new S7 classes, anything where correct behavior is undecided | spec → implementation plan → `/r-implement` → `/commit-and-pr` |
 | **2 — Plan only** | Medium bug fixes, new arguments, edge case additions — behavior obvious, approach isn't | implementation plan → `/r-implement` → `/commit-and-pr` |
 | **3 — Direct** | Clear bug fixes localized to 1–2 functions, test additions, roxygen changes | branch → `/r-implement` → `/commit-and-pr` |
 | **0 — Commit** | Typos, comments, `.gitignore`, README tweaks | direct commit to `develop` (no branch) |
@@ -91,7 +91,7 @@ Format: `{type}/{short-description}`
 
 ```
 feature/calibration-core
-feature/phase0-rake
+feature/calibration-rake
 fix/weighted-df-history
 test/calibrate-edge-cases
 chore/ci-coverage-workflow
@@ -131,7 +131,7 @@ fix(calibration): handle single-level target variable in poststratify()
 test(calibration): add edge case tests for zero-weight rows in rake()
 docs(calibration): add tidy-select examples to calibrate() roxygen
 chore(ci): add test-coverage GitHub Actions workflow
-chore(description): bump version to 0.1.0 for Phase 0 release
+chore(description): bump version to 0.1.0 for Calibration release
 ```
 
 ### Squash merge commit message (feature PRs)
@@ -191,22 +191,23 @@ The `/merge-main` skill handles choosing the correct strategy automatically.
 | Active development on `develop` | `X.Y.Z.9000` | `0.1.0.9000` |
 | Released on `main` | `X.Y.Z` | `0.1.0` |
 
-### Phase → version mapping
+### Release → version mapping
 
 | Tag | DESCRIPTION version | What it means |
 |-----|---------------------|---------------|
-| `v0.1.0` | `0.1.0` | Phase 0 complete — `weighted_df`, `survey_nonprob`, `calibrate()`, `rake()`, `poststratify()`, basic diagnostics |
-| `v0.2.0` | `0.2.0` | Phase 1 complete — replicate weight generation + bootstrap variance |
-| `v0.3.0` | `0.3.0` | Phase 2 complete — propensity score weighting |
-| `v0.4.0` | `0.4.0` | Phase 3 complete — advanced calibration |
-| `v0.5.0` | `0.5.0` | Phase 4 complete — diagnostics, `trim_weights()`, `stabilize_weights()` |
-| `v1.0.0` | `1.0.0` | Phase 5 complete — vignettes, CRAN submission |
+| `v0.1.0` | `0.1.0` | Calibration complete — `weighted_df`, `survey_nonprob`, `calibrate()`, `rake()`, `poststratify()`, basic diagnostics |
+| minor bump | minor bump | Replicate complete — replicate weight generation + bootstrap variance |
+| minor bump | minor bump | Utilities complete — `trim_weights()`, `stabilize_weights()` |
+| minor bump | minor bump | Nonresponse complete — sample-based calibration, advanced nonresponse |
+| minor bump | minor bump | Propensity complete — propensity score weighting |
+| minor bump | minor bump | Diagnostics complete — balance assessment, visual diagnostics |
+| minor bump | minor bump | Polish complete — vignettes, CRAN submission |
 
-### Dev version during a phase
+### Dev version during a release
 
 Between tags, DESCRIPTION carries the `.9000` suffix:
 ```
-Version: 0.1.0.9000  # during Phase 0 development
+Version: 0.1.0.9000  # during Calibration development
 ```
 
 ---

@@ -1,6 +1,6 @@
-# Spec Review: phase-0-fixes
+# Spec Review: calibration-fixes
 
-## Spec Review: phase-0-fixes --- Pass 1 (2026-03-17)
+## Spec Review: calibration-fixes --- Pass 1 (2026-03-17)
 
 ### New Issues
 

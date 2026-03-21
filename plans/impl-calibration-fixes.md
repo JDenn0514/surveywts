@@ -1,7 +1,7 @@
-# Implementation Plan: Phase 0 Fixes
+# Implementation Plan: Calibration Fixes
 
-**Spec:** `plans/spec-phase-0-fixes.md` (v0.4, approved 2026-03-18)
-**Decisions:** `plans/decisions-phase-0-fixes.md`
+**Spec:** `plans/spec-calibration-fixes.md` (v0.4, approved 2026-03-18)
+**Decisions:** `plans/decisions-calibration-fixes.md`
 
 ---
 

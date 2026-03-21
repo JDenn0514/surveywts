@@ -1,6 +1,6 @@
-# Methodology Review: phase-0-fixes
+# Methodology Review: calibration-fixes
 
-## Methodology Review: phase-0-fixes --- Pass 1 (2026-03-17)
+## Methodology Review: calibration-fixes --- Pass 1 (2026-03-17)
 
 ### New Issues
 
@@ -440,7 +440,7 @@ cosmetic fixes, or API consistency improvements with no statistical content.
 
 ---
 
-## Methodology Review: phase-0-fixes --- Pass 2 (2026-03-17)
+## Methodology Review: calibration-fixes --- Pass 2 (2026-03-17)
 
 ### Prior Issues (Pass 1)
 

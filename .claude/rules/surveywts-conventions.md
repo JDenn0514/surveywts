@@ -1,7 +1,7 @@
 # surveywts R Package Conventions
 
-**Version:** 1.0 — Phase 0 API complete
-**Status:** Stable for Phase 0
+**Version:** 1.0 — Calibration API complete
+**Status:** Stable for Calibration
 
 This document extends the **generic R package conventions** (`r-package-conventions.md`)
 with surveywts-specific examples and detailed guidance.
@@ -135,7 +135,7 @@ the weight column is removed.
 
 ---
 
-## 6. Argument Order (Phase 0 Functions)
+## 6. Argument Order (Calibration Functions)
 
 | Function | Argument order |
 |----------|----------------|

@@ -8,7 +8,7 @@
 ## Citation
 
 Source:
-[`inst/CITATION`](https://github.com/JDenn0514/surveywts/blob/main/inst/CITATION)
+[`inst/CITATION`](https://github.com/JDenn0514/surveywts/blob/v0.1.2/inst/CITATION)
 
 Dennen J (2026). *surveywts: Tools for Survey Weighting and
 Calibration*. <https://github.com/JDenn0514/surveywts>.

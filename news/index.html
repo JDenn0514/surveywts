@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">surveywts</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -31,6 +31,18 @@
       <small>Source: <a href="https://github.com/JDenn0514/surveywts/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.1.2" id="surveywts-012">surveywts 0.1.2<a class="anchor" aria-label="anchor" href="#surveywts-012"></a></h2>
+<div class="section level3">
+<h3 id="breaking-changes-0-1-2">Breaking changes<a class="anchor" aria-label="anchor" href="#breaking-changes-0-1-2"></a></h3>
+<ul><li>The default output weight column name for <code><a href="../reference/calibrate.html">calibrate()</a></code>, <code><a href="../reference/rake.html">rake()</a></code>, <code><a href="../reference/poststratify.html">poststratify()</a></code>, and <code><a href="../reference/adjust_nonresponse.html">adjust_nonresponse()</a></code> changes from <code>".weight"</code> to <code>"wts"</code> when the input is a plain <code>data.frame</code> with <code>weights = NULL</code>.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="new-features-0-1-2">New features<a class="anchor" aria-label="anchor" href="#new-features-0-1-2"></a></h3>
+<ul><li>
+<code><a href="../reference/calibrate.html">calibrate()</a></code>, <code><a href="../reference/rake.html">rake()</a></code>, <code><a href="../reference/poststratify.html">poststratify()</a></code>, and <code><a href="../reference/adjust_nonresponse.html">adjust_nonresponse()</a></code> gain a <code>wt_name</code> argument (default <code>"wts"</code>) that controls the name of the output weight column for <code>data.frame</code> and <code>weighted_df</code> inputs. Input weight columns are preserved when <code>wt_name</code> differs from the input column name. <code>wt_name</code> is silently ignored for survey object inputs.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.1" id="surveywts-011">surveywts 0.1.1<a class="anchor" aria-label="anchor" href="#surveywts-011"></a></h2>
 <div class="section level3">

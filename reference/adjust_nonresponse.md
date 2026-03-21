@@ -14,6 +14,7 @@ adjust_nonresponse(
   response_status,
   weights = NULL,
   by = NULL,
+  wt_name = "wts",
   method = c("weighting-class", "propensity-cell", "propensity"),
   control = list(min_cell = 20, max_adjust = 2)
 )
@@ -37,7 +38,7 @@ adjust_nonresponse(
   Bare name (NSE). Weight column. `NULL` → auto-detected from
   `weighted_df` attribute or survey object `@variables$weights`. For
   plain `data.frame` with `weights = NULL`, uniform starting weights are
-  used and the output column is named `".weight"`.
+  used.
 
 - by:
 
@@ -45,6 +46,12 @@ adjust_nonresponse(
   Weighting class variables. Redistribution is performed within each
   cell defined by the joint combination of these variables. `NULL` →
   global redistribution across all rows.
+
+- wt_name:
+
+  Character scalar. Name of the output weight column in the returned
+  `weighted_df`. Default `"wts"`. Ignored when `data` is a survey object
+  (`survey_taylor` or `survey_nonprob`).
 
 - method:
 

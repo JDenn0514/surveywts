@@ -1,5 +1,31 @@
 # Changelog
 
+## surveywts 0.1.2
+
+### Breaking changes
+
+- The default output weight column name for
+  [`calibrate()`](https://jdenn0514.github.io/surveywts/reference/calibrate.md),
+  [`rake()`](https://jdenn0514.github.io/surveywts/reference/rake.md),
+  [`poststratify()`](https://jdenn0514.github.io/surveywts/reference/poststratify.md),
+  and
+  [`adjust_nonresponse()`](https://jdenn0514.github.io/surveywts/reference/adjust_nonresponse.md)
+  changes from `".weight"` to `"wts"` when the input is a plain
+  `data.frame` with `weights = NULL`.
+
+### New features
+
+- [`calibrate()`](https://jdenn0514.github.io/surveywts/reference/calibrate.md),
+  [`rake()`](https://jdenn0514.github.io/surveywts/reference/rake.md),
+  [`poststratify()`](https://jdenn0514.github.io/surveywts/reference/poststratify.md),
+  and
+  [`adjust_nonresponse()`](https://jdenn0514.github.io/surveywts/reference/adjust_nonresponse.md)
+  gain a `wt_name` argument (default `"wts"`) that controls the name of
+  the output weight column for `data.frame` and `weighted_df` inputs.
+  Input weight columns are preserved when `wt_name` differs from the
+  input column name. `wt_name` is silently ignored for survey object
+  inputs.
+
 ## surveywts 0.1.1
 
 ### Breaking changes

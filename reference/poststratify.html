@@ -13,7 +13,7 @@ poststratify() matches exact cross-tabulation cells in a single pass."><meta pro
 
     <a class="navbar-brand me-2" href="../index.html">surveywts</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -52,6 +52,7 @@ variables. Unlike <code><a href="calibrate.html">calibrate()</a></code> and <cod
 <span>  <span class="va">strata</span>,</span>
 <span>  <span class="va">population</span>,</span>
 <span>  weights <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  wt_name <span class="op">=</span> <span class="st">"wts"</span>,</span>
 <span>  type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"prop"</span>, <span class="st">"count"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -84,8 +85,13 @@ For <code>type = "prop"</code>: values in <code>target</code> must sum to 1.0 (w
 <dd><p>&lt;<code><a href="https://tidyselect.r-lib.org/reference/language.html" class="external-link">tidy-select</a></code>&gt; Weight column name
 (bare name). <code>NULL</code> -&gt; auto-detected from <code>weighted_df</code> attribute or
 survey object <code>@variables$weights</code>. For plain <code>data.frame</code> with
-<code>weights = NULL</code>, uniform starting weights are used and the output
-column is named <code>".weight"</code>.</p></dd>
+<code>weights = NULL</code>, uniform starting weights are used.</p></dd>
+
+
+<dt id="arg-wt-name">wt_name<a class="anchor" aria-label="anchor" href="#arg-wt-name"></a></dt>
+<dd><p>Character scalar. Name of the output weight column in the
+returned <code>weighted_df</code>. Default <code>"wts"</code>. Ignored when <code>data</code> is a survey
+object (<code>survey_taylor</code> or <code>survey_nonprob</code>).</p></dd>
 
 
 <dt id="arg-type">type<a class="anchor" aria-label="anchor" href="#arg-type"></a></dt>

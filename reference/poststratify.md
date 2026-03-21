@@ -16,6 +16,7 @@ poststratify(
   strata,
   population,
   weights = NULL,
+  wt_name = "wts",
   type = c("prop", "count")
 )
 ```
@@ -54,7 +55,13 @@ poststratify(
   Weight column name (bare name). `NULL` -\> auto-detected from
   `weighted_df` attribute or survey object `@variables$weights`. For
   plain `data.frame` with `weights = NULL`, uniform starting weights are
-  used and the output column is named `".weight"`.
+  used.
+
+- wt_name:
+
+  Character scalar. Name of the output weight column in the returned
+  `weighted_df`. Default `"wts"`. Ignored when `data` is a survey object
+  (`survey_taylor` or `survey_nonprob`).
 
 - type:
 

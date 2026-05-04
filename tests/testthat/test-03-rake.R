@@ -1376,3 +1376,135 @@ test_that("rake() records wt_name in weighting history", {
   history <- attr(result, "weighting_history")
   expect_identical(history[[length(history)]]$weight_col, "raked_wt")
 })
+
+# ---------------------------------------------------------------------------
+# Wrapper parity — rake(method = "anesrake") vs anesrake::anesrake() directly
+#
+# These tests verify that the engine correctly marshals inputs into the form
+# anesrake::anesrake() expects and correctly extracts the output. They catch
+# argument-mapping bugs that margin-convergence tests cannot: wrong
+# pctlim/nlim/choosemethod values, the cap = NULL → 5 substitution, factor
+# level ordering, and count-to-proportion conversion.
+# ---------------------------------------------------------------------------
+
+# Replicates the exact marshaling the engine applies before calling
+# anesrake::anesrake(), so tests can compare per-unit weights directly.
+.call_anesrake_direct <- function(
+  df, margins_prop, starting_weights,
+  cap = 5, pctlim = 0.01, nlim = 0L, maxit = 1000L, choosemethod = "total"
+) {
+  df_direct <- df
+  for (v in names(margins_prop)) {
+    df_direct[[v]] <- factor(df_direct[[v]], levels = names(margins_prop[[v]]))
+  }
+  df_direct$.anesrake_id <- seq_len(nrow(df_direct))
+
+  ref <- NULL
+  utils::capture.output(
+    ref <- suppressWarnings(
+      anesrake::anesrake(
+        inputter     = margins_prop,
+        dataframe    = df_direct,
+        caseid       = df_direct$.anesrake_id,
+        weightvec    = starting_weights,
+        choosemethod = choosemethod,
+        cap          = cap,
+        pctlim       = pctlim,
+        nlim         = as.integer(nlim),
+        iterate      = TRUE,
+        maxit        = as.integer(maxit),
+        type         = "pctlim",
+        force1       = FALSE
+      )
+    )
+  )
+  as.numeric(ref$weightvec)
+}
+
+test_that("rake(method='anesrake') weights match direct anesrake::anesrake() call (type='prop')", {
+  df      <- make_surveywts_data(n = 200, seed = 50)
+  margins <- list(
+    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
+    sex       = c("M" = 0.48, "F" = 0.52)
+  )
+
+  sw_weights <- rake(
+    df, margins = margins, weights = base_weight, method = "anesrake"
+  )[["wts"]]
+
+  # type = "prop": prop → count → prop is identity, so pass margins directly.
+  # cap = NULL in rake() → engine substitutes cap = 5 for anesrake.
+  ref_weights <- .call_anesrake_direct(df, margins, df$base_weight)
+
+  expect_equal(sw_weights, ref_weights, tolerance = 1e-10)
+})
+
+test_that("rake(method='anesrake', type='count') correctly converts counts to proportions", {
+  df             <- make_surveywts_data(n = 200, seed = 51)
+  margins_counts <- list(
+    age_group = c("18-34" = 150, "35-54" = 200, "55+" = 150),
+    sex       = c("M" = 240, "F" = 260)
+  )
+
+  sw_weights <- rake(
+    df, margins = margins_counts, weights = base_weight,
+    method = "anesrake", type = "count"
+  )[["wts"]]
+
+  # Engine converts counts to proportions before calling anesrake.
+  margins_prop <- lapply(margins_counts, function(tgt) tgt / sum(tgt))
+  ref_weights  <- .call_anesrake_direct(df, margins_prop, df$base_weight)
+
+  expect_equal(sw_weights, ref_weights, tolerance = 1e-10)
+})
+
+test_that("rake(method='anesrake', cap=NULL) substitutes anesrake's default cap of 5", {
+  df      <- make_surveywts_data(n = 200, seed = 52)
+  margins <- list(
+    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
+    sex       = c("M" = 0.48, "F" = 0.52)
+  )
+
+  # cap = NULL (default) → engine passes cap = 5 to anesrake (NULL not accepted)
+  sw_weights  <- rake(
+    df, margins = margins, weights = base_weight, method = "anesrake", cap = NULL
+  )[["wts"]]
+  ref_weights <- .call_anesrake_direct(df, margins, df$base_weight, cap = 5)
+
+  expect_equal(sw_weights, ref_weights, tolerance = 1e-10)
+})
+
+test_that("rake(method='anesrake') passes explicit cap to anesrake::anesrake()", {
+  df      <- make_surveywts_data(n = 200, seed = 53)
+  margins <- list(
+    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
+    sex       = c("M" = 0.48, "F" = 0.52)
+  )
+
+  sw_weights  <- rake(
+    df, margins = margins, weights = base_weight, method = "anesrake", cap = 3.0
+  )[["wts"]]
+  ref_weights <- .call_anesrake_direct(df, margins, df$base_weight, cap = 3.0)
+
+  expect_equal(sw_weights, ref_weights, tolerance = 1e-10)
+})
+
+test_that("rake(method='anesrake') passes custom control params to anesrake::anesrake()", {
+  df      <- make_surveywts_data(n = 200, seed = 54)
+  margins <- list(
+    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
+    sex       = c("M" = 0.48, "F" = 0.52)
+  )
+
+  sw_weights <- rake(
+    df, margins = margins, weights = base_weight, method = "anesrake",
+    control = list(maxit = 500L, improvement = 0.001, variable_select = "max")
+  )[["wts"]]
+
+  ref_weights <- .call_anesrake_direct(
+    df, margins, df$base_weight,
+    maxit = 500L, pctlim = 0.001, choosemethod = "max"
+  )
+
+  expect_equal(sw_weights, ref_weights, tolerance = 1e-10)
+})

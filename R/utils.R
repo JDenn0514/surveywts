@@ -63,6 +63,18 @@
         )
       }
     },
+    "replicate_creation" = {
+      method_str <- entry$method
+      params     <- entry$parameters
+      n_rep      <- params$replicates
+      type_str <- if (!is.null(params$type)) {
+        paste0(", type = \"", params$type, "\"")
+      } else {
+        ""
+      }
+      rep_str <- if (!is.null(n_rep)) paste0(", replicates = ", n_rep) else ""
+      paste0("replicate_creation (method = \"", method_str, "\"", type_str, rep_str, ")")
+    },
     op # default: just the operation name
   )
 

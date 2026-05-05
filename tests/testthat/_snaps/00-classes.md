@@ -115,6 +115,44 @@
       # IDs: ~1 | Strata: NULL | Weights: w 
       # Weighting history: none
 
+# print.weighted_df() formats replicate_creation history entry
+
+    Code
+      print(wdf)
+    Output
+      # A weighted data frame: 5 × 2 
+      # Weight: w (n = 5, mean = 1.00, CV = 0.16, ESS = 5) 
+      # Weighting history: 1 step 
+      #   Step 1 [2025-01-15]: replicate_creation (method = "bootstrap", type = "Rao-Wu-Yue-Beaumont", replicates = 50) 
+      # ── Data ────────────────────────────────────────────────────────────────────────
+      # A tibble: 5 x 2
+            x     w
+      * <int> <dbl>
+      1     1   1  
+      2     2   1.2
+      3     3   0.8
+      4     4   1.1
+      5     5   0.9
+
+# print.weighted_df() formats replicate_creation entry with no type
+
+    Code
+      print(wdf)
+    Output
+      # A weighted data frame: 5 × 2 
+      # Weight: w (n = 5, mean = 1.00, CV = 0.16, ESS = 5) 
+      # Weighting history: 1 step 
+      #   Step 1 [2025-01-15]: replicate_creation (method = "bootstrap", replicates = 50) 
+      # ── Data ────────────────────────────────────────────────────────────────────────
+      # A tibble: 5 x 2
+            x     w
+      * <int> <dbl>
+      1     1   1  
+      2     2   1.2
+      3     3   0.8
+      4     4   1.1
+      5     5   0.9
+
 # print.weighted_df() formats calibration, poststratify, and null-by nonresponse entries
 
     Code

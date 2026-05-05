@@ -990,3 +990,29 @@ test_that("calibrate() records wt_name in weighting history", {
   history <- attr(result, "weighting_history")
   expect_identical(history[[length(history)]]$weight_col, "cal_wt")
 })
+
+# ---------------------------------------------------------------------------
+# Edge case — mixed single-level + multi-level variable in calibrate()
+# ---------------------------------------------------------------------------
+
+test_that("calibrate() skips single-level variable when mixed with multi-level variable", {
+  # Covers .calibrate_engine() `if (length(v$targets) < 2L) next` — utils.R line 787.
+  # A constant column (one unique value) contributes 0 non-reference levels to
+  # the model matrix, so its vars_spec entry has length(targets) == 1 and is skipped.
+  df <- make_surveywts_data(n = 100, seed = 1)
+  df$constant_var <- "only_level"
+
+  pop <- list(
+    constant_var = c("only_level" = 1.0),
+    age_group    = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30)
+  )
+
+  result <- calibrate(
+    df,
+    variables  = c(constant_var, age_group),
+    population = pop
+  )
+
+  test_invariants(result)
+  expect_true(inherits(result, "weighted_df"))
+})

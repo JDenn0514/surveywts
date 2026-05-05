@@ -85,4 +85,46 @@ test_invariants <- function(obj) {
     w <- obj@data[[obj@variables$weights]]
     testthat::expect_true(all(w >= 0) && any(w > 0))
   }
+  if (S7::S7_inherits(obj, surveycore::survey_replicate)) {
+    testthat::expect_true(is.character(obj@variables$weights))
+    testthat::expect_true(is.character(obj@variables$repweights))
+    testthat::expect_true(length(obj@variables$repweights) >= 2L)
+    testthat::expect_true(all(obj@variables$repweights %in% names(obj@data)))
+  }
+}
+
+# Clustered, stratified design for general replicate weight testing.
+# Returns a survey_taylor with PSU IDs, strata, and base weights.
+make_taylor_design <- function(
+  n = 500L,
+  n_strata = 4L,
+  psus_per_stratum = 5L,
+  seed = 42L
+) {
+  set.seed(seed)
+  total_psus <- n_strata * psus_per_stratum
+  df <- data.frame(
+    id          = seq_len(n),
+    psu_id      = rep(seq_len(total_psus), length.out = n),
+    stratum     = rep(rep(seq_len(n_strata), each = psus_per_stratum), length.out = n),
+    y           = rnorm(n),
+    base_weight = exp(rnorm(n, 0, 0.4))
+  )
+  surveycore::as_survey(df, ids = psu_id, strata = stratum, weights = base_weight)
+}
+
+# Paired-PSU design for BRR tests.
+# Returns a survey_taylor with exactly 2 PSUs per stratum.
+make_paired_design <- function(n_strata = 3L, obs_per_psu = 10L, seed = 42L) {
+  set.seed(seed)
+  n_psus <- n_strata * 2L
+  n      <- n_psus * obs_per_psu
+  df <- data.frame(
+    id          = seq_len(n),
+    psu_id      = rep(seq_len(n_psus), each = obs_per_psu),
+    stratum     = rep(seq_len(n_strata), each = 2L * obs_per_psu),
+    y           = rnorm(n),
+    base_weight = exp(rnorm(n, 0, 0.4))
+  )
+  surveycore::as_survey(df, ids = psu_id, strata = stratum, weights = base_weight)
 }

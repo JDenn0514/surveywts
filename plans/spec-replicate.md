@@ -1,8 +1,8 @@
 # Replicate Spec: Replicate Weight Generation (v0.2.0)
 
-**Version:** 1.0
-**Date:** 2026-03-20
-**Status:** Draft — §XI questions resolved (see `plans/decisions-replicate.md`); ready for Stage 2/3 review
+**Version:** 1.3
+**Date:** 2026-04-18
+**Status:** Resolved — ready for implementation. §XI decisions in `plans/decisions-replicate.md`; Q11–Q22 follow-up decisions appended to the same file and summarized in `plans/open-questions-replicate.md`. Spec-review Pass 1 (Issues 1–16) and Pass 2 (Issues 17–22) resolved 2026-04-18; decisions in `plans/decisions-replicate.md`.
 **Supersedes:** `plans/future/replicate/spec-replicate.md`
 **Branch identifier:** `replicate`
 
@@ -55,6 +55,9 @@ Those rules apply by reference.
 - Removal of `surveywts_error_replicate_not_supported` stubs in Phase 0
   calibration/nonresponse functions — those stubs remain until a future phase
   specifies calibration behavior for replicate designs
+- Symmetric inverse for `survey_nonprob`-sourced replicate designs.
+  `as_taylor_design()` errors on these (§X); a dedicated nonprob-returning
+  inverse (e.g., `as_source_design()`) is deferred to a future phase.
 
 ### Input/Output Class Matrix
 
@@ -78,17 +81,56 @@ All replicate weight computation is delegated to `survey` and `svrep`. Each
 1. Validates input (surveywts error classes with CLI messages)
 2. Converts surveycore S7 object to survey package object via `surveycore::as_svydesign()`
 3. Calls the appropriate `survey` or `svrep` function
-4. Converts the result back to surveycore via `surveycore::from_svydesign()`
+4. Manually constructs `survey_replicate` from the backend output (see bug note below)
 5. Preserves metadata from the input object (variable labels, weighting history)
 6. Returns a `survey_replicate`
 
+> **`from_svydesign()` bug (surveycore ≤ 0.8.2):** `surveycore::from_svydesign()`
+> does NOT populate `@variables$repweights` for `svyrep.design` objects — it calls
+> `colnames(x$repweights)` which returns `NULL` for both `survey::as.svrepdesign()`
+> and `svrep::as_bootstrap_design()` outputs. The returned `survey_replicate` would
+> have empty `@variables$repweights` and no replicate columns in `@data`. Therefore
+> `from_svydesign()` is **bypassed entirely** and `survey_replicate` is constructed
+> manually by extracting the replicate matrix directly from the backend output.
+
 ```r
 # Pseudocode — core conversion pipeline (shared internal helper)
-.convert_and_call <- function(data, backend_fn, ...) {
+.convert_and_call <- function(data, backend_fn, method, params, seed = NULL) {
+  if (!is.null(seed)) withr::local_seed(seed)
   svydesign_obj <- surveycore::as_svydesign(data)
-  svyrep_obj <- backend_fn(svydesign_obj, ...)
-  result <- surveycore::from_svydesign(svyrep_obj)
-  result@metadata <- data@metadata
+  svyrep_obj    <- backend_fn(svydesign_obj)
+
+  # Bypass from_svydesign() due to the bug above. Extract the replicate matrix
+  # directly and construct survey_replicate manually.
+  rep_matrix <- as.matrix(svyrep_obj$repweights)
+  n_rep      <- ncol(rep_matrix)
+  rep_names  <- paste0("rep_", seq_len(n_rep))
+  base_data  <- as.data.frame(svyrep_obj$variables)
+  rep_df     <- as.data.frame(rep_matrix)
+  names(rep_df) <- rep_names
+  combined   <- cbind(base_data, rep_df)
+
+  variables  <- list(
+    weights    = data@variables$weights,
+    repweights = rep_names,
+    type       = params$type %||% method,
+    scale      = svyrep_obj$scale,
+    rscales    = svyrep_obj$rscales,
+    mse        = isTRUE(params$mse)
+  )
+  result <- surveycore::survey_replicate(
+    data = combined, variables = variables, metadata = data@metadata
+  )
+  # Append the replicate_creation history entry
+  result@metadata@weighting_history <- c(
+    result@metadata@weighting_history,
+    list(.make_history_entry(
+      operation     = "replicate_creation",
+      method        = method,
+      params        = params,
+      source_design = .snapshot_variables_for_history(data)
+    ))
+  )
   result
 }
 ```
@@ -119,6 +161,14 @@ the round-trip conversion.
 |---|---|---|
 | `svrep` | `(>= 0.6.0)` | Bootstrap (RWYB, Antal-Tille, Preston, Canty-Davison), generalized bootstrap, generalized replication, SDR, random-group jackknife |
 
+**Bumped `Imports` floor for Phase 1:**
+
+| Package | Minimum version | Why |
+|---|---|---|
+| `surveycore` | (≥ the earliest release where `from_svydesign()` accepts an `svrepdesign` and populates all eight `@variables` keys of `survey_replicate`) | Round-trip conversion in `.convert_and_call()` |
+
+The implementer pins the exact `surveycore` version when adding `svrep` to `DESCRIPTION`; the floor must be verified against the local surveycore source before bumping.
+
 `survey` is already in `Imports` from Phase 0 (BRR, Fay BRR, delete-1 jackknife).
 
 ### §II.d Source File Organization
@@ -130,6 +180,7 @@ R/
 │                            # create_gen_rep_weights(), create_sdr_weights(),
 │                            # plus shared internal helpers
 ├── replicate-dispatch.R    # create_replicate_weights(), as_taylor_design()
+├── replicate-print.R       # S7::method(print, survey_replicate) registration (§X.5)
 └── [existing Phase 0 files unchanged]
 ```
 
@@ -140,8 +191,10 @@ Phase 1 adds these internal helpers to `R/replicate-weights.R`:
 | Helper | Description |
 |---|---|
 | `.validate_replicate_input()` | Input class check — errors for `data.frame`, `weighted_df`, `survey_replicate`, unsupported classes |
-| `.validate_replicates_arg()` | Validates `replicates` is a positive integer ≥ 2 |
-| `.convert_and_call()` | Core pipeline: `as_svydesign()` → backend → `from_svydesign()` → preserve metadata |
+| `.validate_replicates_arg()` | Validates `replicates`: accepts numeric whole numbers (coerces silently to integer), errors on fractional (`surveywts_error_replicates_not_whole_number`) or values < 2 (Q17) |
+| `.rename_rep_cols()` | Renames backend-produced replicate weight columns to `rep_1, rep_2, …, rep_N` before return (Q20) |
+| `.snapshot_variables_for_history()` | Captures (a) the input design's full `@variables` list and (b) the input's S7 class name (`source_class = S7::S7_class(data)@name`) for the `"replicate_creation"` history entry (Q22). The class name is the authoritative nonprob detector used by `as_taylor_design()`; the `@variables` snapshot is used to reconstruct the original design |
+| `.convert_and_call()` | Core pipeline: `as_svydesign()` → backend (inside `withr::local_seed()` when `seed` provided) → `from_svydesign()` → `.rename_rep_cols()` → preserve metadata + append history entry |
 
 ### §II.f Validation Order
 
@@ -154,6 +207,74 @@ Validation happens in surveywts before calling the backend. This ensures
 consistent, well-formatted CLI error messages regardless of which backend
 would eventually throw.
 
+### §II.g Cross-cutting Conventions (Q11, Q16, Q20, Q21)
+
+These conventions apply uniformly across all Phase 1 functions; they are
+not repeated in the per-function sections.
+
+- **Accepted input classes (Q11):** surveycore classes only — `survey_taylor`
+  (and `survey_nonprob` for bootstrap / delete-1 jackknife). Raw
+  `survey::svydesign` or `srvyr::tbl_svy` are not accepted. Users wrap once
+  with `surveycore::from_svydesign()`.
+- **Replicate column naming (Q20):** after the backend call, surveywts
+  renames replicate weight columns to `rep_1, rep_2, …, rep_N` before
+  constructing the `survey_replicate` return value. Applies to every
+  `create_*_weights()` function.
+- **Backend error handling (Q16):** unknown backend errors propagate as-is;
+  named `surveywts_error_*` wrappers are added reactively as integration
+  tests surface specific failure modes. Phase 1 ships with zero wrapped
+  modes beyond the validation errors already enumerated.
+- **Progress messaging (Q21):** all `create_*_weights()` functions are
+  silent on success, matching Phase 0 functions. No `cli_progress_*` or
+  `cli_alert_info` during computation.
+
+### §II.h Output `@variables` Contract (All Methods)
+
+After round-trip conversion, the returned `survey_replicate@variables` has
+eight keys populated as follows. `"carry from input"` means the value is
+preserved from the Taylor input through `as_svydesign()` → backend →
+`from_svydesign()`; `NULL` inputs stay `NULL`. Keys not written by the
+surveywts wrapper take whatever the backend sets.
+
+| Key | bootstrap | jackknife (delete-1 JK1) | jackknife (delete-1 JKn) | jackknife (random-groups) | BRR (rho = 0) | BRR (rho > 0) | gen-boot | gen-rep | SDR |
+|---|---|---|---|---|---|---|---|---|---|
+| `weights` | input's weight column name | same | same | same | same | same | same | same | same |
+| `repweights` | `"rep_1" … "rep_N"` (post-rename, Q20) | same | same | same | same | same | same | same | same |
+| `type` | `"bootstrap"` | `"JK1"` | `"JKn"` | `"JKn"` | `"BRR"` | `"Fay"` | `"bootstrap"` | backend-set | `"successive-difference"` |
+| `scale` | backend-set (`1 / replicates` for RWYB) | `(n_rep - 1) / n_rep` | `1` | backend-set | `1 / n_rep` | `1 / (n_rep * (1 - rho)^2)` | `tau^2 / replicates` if `tau != 1`, else `1 / replicates` | backend-set | `4 / n_rep` |
+| `rscales` | backend-set (vector of length `replicates`) | `NULL` | length-`n_rep` vector; each entry `(n_h - 1) / n_h` for the replicate's stratum | backend-set | length-`n_rep` vector of `1`s | length-`n_rep` vector (Fay-adjusted) | backend-set | backend-set | backend-set |
+| `fpc` | carry from input | carry from input | carry from input | carry from input | carry from input | carry from input | carry from input | carry from input | carry from input |
+| `fpctype` | carry from input | carry from input | carry from input | carry from input | carry from input | carry from input | carry from input | carry from input | carry from input |
+| `mse` | value of `mse` arg | same | same | same | same | same | same | same | same |
+
+Notes:
+
+- `"backend-set"` means surveywts does not compute or override the value;
+  whatever `survey::as.svrepdesign()` / `svrep::*` writes is what `from_svydesign()`
+  records. Equivalence tests (§XIII) pin the numeric values.
+- `fpc` / `fpctype` round-trip through `as_svydesign()` — if the Taylor
+  input had a finite population correction, the replicate design inherits
+  it. This is a wrapper responsibility: `.convert_and_call()` does not
+  strip FPC.
+- The `weights` key continues to name the *base* weight column in `@data`,
+  not a replicate column.
+- Per-method sections (§III–§VIII) do not restate keys covered here; they
+  only note method-specific behavior that differs from this table.
+
+### §II.i Shared Input-Class Errors
+
+The following errors apply uniformly to every `create_*_weights()` function
+and are not repeated in per-function error tables (§III–§VIII). Each
+per-function table carries a footnote "…plus shared input-class errors
+from §II.i."
+
+| Class | Condition |
+|-------|-----------|
+| `surveywts_error_not_survey_design` | `data` is `data.frame` or `weighted_df` |
+| `surveywts_error_unsupported_class` | `data` is not a recognized survey class |
+| `surveywts_error_already_replicate` | `data` is already `survey_replicate` |
+| `surveywts_error_nonprob_requires_probability_design` | `data` is `survey_nonprob` and the method requires probability-design structure (ids/strata). Applies to `create_gen_boot_weights()`, `create_gen_rep_weights()`, `create_sdr_weights()` only. Bootstrap and delete-1 jackknife accept `survey_nonprob` (Q4); BRR uses its own `surveywts_error_brr_requires_paired_design`. Validation runs as step 1 of method-specific checks, before any other argument validation, so users see the class-mismatch error first |
+
 ---
 
 ## III. `create_bootstrap_weights()`
@@ -164,20 +285,26 @@ would eventually throw.
 create_bootstrap_weights(
   data,
   replicates = 500L,
+  ...,
   type = c("Rao-Wu-Yue-Beaumont", "Rao-Wu", "Antal-Tille",
            "Preston", "Canty-Davison"),
-  mse = TRUE
+  mse = TRUE,
+  seed = NULL
 )
 ```
+
+Args after `...` are name-only (Q12). `seed` is set internally via
+`withr::local_seed()` (Q15).
 
 ### Argument Table
 
 | Argument | Type | Default | Description |
 |----------|------|---------|-------------|
 | `data` | `survey_taylor` or `survey_nonprob` | — | Input design |
-| `replicates` | `integer(1)`, ≥ 2 | `500L` | Number of bootstrap replicates |
+| `replicates` | `integer(1)`, ≥ 2 | `500L` | Number of bootstrap replicates. Numeric whole numbers accepted and coerced silently; fractional errors (Q17) |
 | `type` | `character(1)` | `"Rao-Wu-Yue-Beaumont"` | Bootstrap variant. See §XI, Q1 for roster discussion |
 | `mse` | `logical(1)` | `TRUE` | If `TRUE`, variance estimated as deviation from full-sample estimate. If `FALSE`, deviation from replicate mean (can underestimate for biased estimators) |
+| `seed` | `integer(1)` or `NULL` | `NULL` | If non-`NULL`, sets the RNG seed via `withr::local_seed()` for the duration of the call; caller's RNG state is restored on exit. `NULL` uses the caller's current RNG state |
 
 ### Output Contract
 
@@ -196,10 +323,10 @@ Returns `survey_replicate` with:
 
 | Class | Condition |
 |-------|-----------|
-| `surveywts_error_not_survey_design` | `data` is `data.frame` or `weighted_df` |
-| `surveywts_error_unsupported_class` | `data` is not a recognized survey class |
-| `surveywts_error_already_replicate` | `data` is already `survey_replicate` |
 | `surveywts_error_replicates_not_positive` | `replicates` is not a positive integer ≥ 2 |
+| `surveywts_error_replicates_not_whole_number` | `replicates` is numeric with a non-zero fractional part (Q17) |
+
+Plus shared input-class errors from §II.i.
 
 ---
 
@@ -210,20 +337,27 @@ Returns `survey_replicate` with:
 ```r
 create_jackknife_weights(
   data,
-  type = c("delete-1", "random-groups"),
   replicates = NULL,
-  mse = TRUE
+  ...,
+  type = c("delete-1", "random-groups"),
+  mse = TRUE,
+  seed = NULL
 )
 ```
+
+Args after `...` are name-only (Q12). `seed` is only consulted when
+`type = "random-groups"` (Q15). `survey_nonprob` is accepted only with
+`type = "delete-1"` (Q18).
 
 ### Argument Table
 
 | Argument | Type | Default | Description |
 |----------|------|---------|-------------|
-| `data` | `survey_taylor` or `survey_nonprob` | — | Input design |
+| `data` | `survey_taylor` or `survey_nonprob` | — | Input design. `survey_nonprob` supports `type = "delete-1"` only |
+| `replicates` | `integer(1)` ≥ 2, or `NULL` | `NULL` | Number of groups for `type = "random-groups"`. Required for random-groups; ignored for delete-1. Numeric whole numbers coerced silently (Q17) |
 | `type` | `character(1)` | `"delete-1"` | `"delete-1"`: one replicate per PSU; auto-selects JK1 (unstratified) or JKn (stratified). `"random-groups"`: PSUs randomly divided into `replicates` groups |
-| `replicates` | `integer(1)` ≥ 2, or `NULL` | `NULL` | Number of groups for `type = "random-groups"`. Required for random-groups; ignored for delete-1 |
 | `mse` | `logical(1)` | `TRUE` | Variance deviation method |
+| `seed` | `integer(1)` or `NULL` | `NULL` | RNG seed for random-group assignment (ignored for delete-1). See §III `seed` description |
 
 ### Output Contract
 
@@ -246,11 +380,12 @@ design has strata (`data@variables$strata` is non-NULL).
 
 | Class | Condition |
 |-------|-----------|
-| `surveywts_error_not_survey_design` | `data` is `data.frame` / `weighted_df` |
-| `surveywts_error_unsupported_class` | Unrecognized class |
-| `surveywts_error_already_replicate` | Already `survey_replicate` |
 | `surveywts_error_replicates_required_for_jkn` | `type = "random-groups"` and `replicates` is `NULL` |
-| `surveywts_error_replicates_not_positive` | `replicates` ≤ 1 or not integer (when required) |
+| `surveywts_error_replicates_not_positive` | `replicates` ≤ 1 (when required) |
+| `surveywts_error_replicates_not_whole_number` | `replicates` is numeric with fractional part |
+| `surveywts_error_jackknife_type_unsupported_for_nonprob` | `data` is `survey_nonprob` and `type = "random-groups"` |
+
+Plus shared input-class errors from §II.i.
 
 ---
 
@@ -261,10 +396,13 @@ design has strata (`data@variables$strata` is non-NULL).
 ```r
 create_brr_weights(
   data,
+  ...,
   rho = 0,
   mse = TRUE
 )
 ```
+
+Args after `...` are name-only (Q12).
 
 ### Argument Table
 
@@ -282,6 +420,35 @@ Returns `survey_replicate` with:
   of strata); handled automatically by the survey backend
 - `@variables$scale`: `1 / (n_rep * (1 - rho)^2)`
 
+### Validation
+
+BRR requires a paired-PSU design. Validation runs in surveywts **before**
+`as_svydesign()` is called (per §II.f), in this order:
+
+1. **`survey_nonprob` rejection.** If `S7::S7_inherits(data, survey_nonprob)`,
+   throw `surveywts_error_brr_requires_paired_design` immediately.
+2. **Missing strata or ids.** If `data@variables$strata` is `NULL` or
+   `data@variables$ids` is `NULL`, throw
+   `surveywts_error_brr_requires_paired_design`. BRR needs both.
+3. **PSU count per stratum.** Compute PSU counts as the number of unique
+   PSU IDs within each stratum:
+
+   ```r
+   counts <- dplyr::n_distinct(
+     data@data[[data@variables$ids]]
+   ) |>
+     # grouped by stratum
+     split(data@data[[data@variables$strata]])
+   # Reference logic only; implement with a compact dplyr/vctrs idiom.
+   ```
+
+   If any stratum has a unique-PSU count ≠ 2, throw
+   `surveywts_error_brr_requires_paired_design`. The error message lists
+   (up to five) offending stratum IDs with their observed counts.
+
+4. **`rho` range.** If `rho < 0` or `rho >= 1`, throw
+   `surveywts_error_brr_rho_invalid`.
+
 ### Backend
 
 - `rho == 0`: `survey::as.svrepdesign(design, type = "BRR", mse = mse)`
@@ -291,11 +458,10 @@ Returns `survey_replicate` with:
 
 | Class | Condition |
 |-------|-----------|
-| `surveywts_error_not_survey_design` | `data` is `data.frame` / `weighted_df` |
-| `surveywts_error_unsupported_class` | Unrecognized class |
-| `surveywts_error_already_replicate` | Already `survey_replicate` |
 | `surveywts_error_brr_requires_paired_design` | Any stratum has ≠ 2 PSUs, or input is `survey_nonprob` |
 | `surveywts_error_brr_rho_invalid` | `rho < 0` or `rho ≥ 1` |
+
+Plus shared input-class errors from §II.i.
 
 ---
 
@@ -307,23 +473,29 @@ Returns `survey_replicate` with:
 create_gen_boot_weights(
   data,
   replicates = 500L,
+  ...,
   variance_estimator = "SD1",
   tau = 1,
   aux_var_names = NULL,
-  mse = TRUE
+  mse = TRUE,
+  seed = NULL
 )
 ```
+
+Args after `...` are name-only (Q12). `aux_var_names` accepts a tidy-select
+expression (Q14). `seed` uses `withr::local_seed()` (Q15).
 
 ### Argument Table
 
 | Argument | Type | Default | Description |
 |----------|------|---------|-------------|
 | `data` | `survey_taylor` | — | Input design |
-| `replicates` | `integer(1)`, ≥ 2 | `500L` | Number of bootstrap replicates |
+| `replicates` | `integer(1)`, ≥ 2 | `500L` | Number of bootstrap replicates. Numeric whole numbers accepted (Q17) |
 | `variance_estimator` | `character(1)` | `"SD1"` | Target variance estimator. See §VI.a for options |
 | `tau` | `numeric(1)` or `"auto"` | `1` | Rescaling constant to prevent negative replicate weights via the transformation `(factor + tau - 1) / tau`. `"auto"` computes the minimum value keeping all adjustment factors ≥ 0.01 |
-| `aux_var_names` | `character` or `NULL` | `NULL` | Auxiliary variable names. Required when `variance_estimator = "Deville-Tille"`; ignored otherwise |
+| `aux_var_names` | `<tidy-select>` or `NULL` | `NULL` | Auxiliary variable columns. Required when `variance_estimator = "Deville-Tille"`; ignored otherwise. Resolved to column names via `tidyselect::eval_select()` before the backend call |
 | `mse` | `logical(1)` | `TRUE` | Variance deviation method |
+| `seed` | `integer(1)` or `NULL` | `NULL` | RNG seed. See §III `seed` description |
 
 ### §VI.a Variance Estimator Options
 
@@ -360,11 +532,11 @@ Returns `survey_replicate` with:
 
 | Class | Condition |
 |-------|-----------|
-| `surveywts_error_not_survey_design` | `data` is `data.frame` / `weighted_df` |
-| `surveywts_error_unsupported_class` | Unrecognized class |
-| `surveywts_error_already_replicate` | Already `survey_replicate` |
 | `surveywts_error_replicates_not_positive` | `replicates` ≤ 1 or not integer |
+| `surveywts_error_replicates_not_whole_number` | `replicates` is numeric with a non-zero fractional part (Q17) |
 | `surveywts_error_variance_estimator_requires_aux` | `variance_estimator = "Deville-Tille"` but `aux_var_names` is `NULL` |
+
+Plus shared input-class errors from §II.i (including `surveywts_error_nonprob_requires_probability_design` for `survey_nonprob` input).
 
 ---
 
@@ -375,6 +547,7 @@ Returns `survey_replicate` with:
 ```r
 create_gen_rep_weights(
   data,
+  ...,
   variance_estimator = "SD2",
   max_replicates = Inf,
   balanced = TRUE,
@@ -382,6 +555,9 @@ create_gen_rep_weights(
   mse = TRUE
 )
 ```
+
+Args after `...` are name-only (Q12). `aux_var_names` accepts a tidy-select
+expression (Q14).
 
 ### Argument Table
 
@@ -391,7 +567,7 @@ create_gen_rep_weights(
 | `variance_estimator` | `character(1)` | `"SD2"` | Target variance estimator. Same options as §VI.a |
 | `max_replicates` | `numeric(1)` | `Inf` | Maximum number of replicates. If `Inf`, uses the natural count (rank of quadratic form matrix) |
 | `balanced` | `logical(1)` | `TRUE` | If `TRUE`, replicates contribute equally to variance estimates (may slightly increase replicate count) |
-| `aux_var_names` | `character` or `NULL` | `NULL` | Auxiliary variable names. Required for `"Deville-Tille"` |
+| `aux_var_names` | `<tidy-select>` or `NULL` | `NULL` | Auxiliary variable columns. Required for `"Deville-Tille"`. Tidy-select per Q14 |
 | `mse` | `logical(1)` | `TRUE` | Variance deviation method |
 
 ### Output Contract
@@ -408,10 +584,9 @@ quadratic form matrix, bounded by `max_replicates`.
 
 | Class | Condition |
 |-------|-----------|
-| `surveywts_error_not_survey_design` | `data` is `data.frame` / `weighted_df` |
-| `surveywts_error_unsupported_class` | Unrecognized class |
-| `surveywts_error_already_replicate` | Already `survey_replicate` |
 | `surveywts_error_variance_estimator_requires_aux` | `variance_estimator = "Deville-Tille"` but `aux_var_names` is `NULL` |
+
+Plus shared input-class errors from §II.i (including `surveywts_error_nonprob_requires_probability_design` for `survey_nonprob` input).
 
 ---
 
@@ -423,18 +598,22 @@ quadratic form matrix, bounded by `max_replicates`.
 create_sdr_weights(
   data,
   replicates = 100L,
+  ...,
   sort_var = NULL,
   mse = TRUE
 )
 ```
+
+Args after `...` are name-only (Q12). `sort_var` accepts a bare column name
+via NSE (Q14).
 
 ### Argument Table
 
 | Argument | Type | Default | Description |
 |----------|------|---------|-------------|
 | `data` | `survey_taylor` | — | Input design. PSUs must be in systematic selection order (or use `sort_var`) |
-| `replicates` | `integer(1)`, ≥ 4 | `100L` | Target number of SDR replicates. Actual count may be slightly larger (determined by Hadamard matrix sizing in the backend). Typical range: 80–200; the ACS uses 80 |
-| `sort_var` | `character(1)` or `NULL` | `NULL` | Column name in `data@data` giving systematic selection order. If `NULL`, row order is assumed to reflect selection order. Sorting happens within strata if present |
+| `replicates` | `integer(1)`, ≥ 4 | `100L` | Target number of SDR replicates. Actual count may be slightly larger (determined by Hadamard matrix sizing in the backend). Typical range: 80–200; the ACS uses 80. Numeric whole numbers accepted (Q17) |
+| `sort_var` | bare name or `NULL` | `NULL` | Column in `data@data` giving systematic selection order. Resolved as `quo <- rlang::enquo(sort_var); if (rlang::quo_is_null(quo)) NULL else rlang::as_name(quo)`. The resolved `NULL` passes through to svrep's `sort_variable = NULL`, meaning row order is assumed to reflect selection order. Sorting happens within strata if present |
 | `mse` | `logical(1)` | `TRUE` | Variance deviation method |
 
 ### Output Contract
@@ -454,11 +633,11 @@ Note the argument name translation: surveywts uses `sort_var`; svrep uses
 
 | Class | Condition |
 |-------|-----------|
-| `surveywts_error_not_survey_design` | `data` is `data.frame` / `weighted_df` |
-| `surveywts_error_unsupported_class` | Unrecognized class |
-| `surveywts_error_already_replicate` | Already `survey_replicate` |
 | `surveywts_error_replicates_not_positive` | `replicates` ≤ 1 or not integer |
+| `surveywts_error_replicates_not_whole_number` | `replicates` is numeric with a non-zero fractional part (Q17) |
 | `surveywts_error_sort_var_has_na` | `sort_var` column contains `NA` |
+
+Plus shared input-class errors from §II.i (including `surveywts_error_nonprob_requires_probability_design` for `survey_nonprob` input).
 
 ---
 
@@ -469,7 +648,9 @@ Note the argument name translation: surveywts uses `sort_var`; svrep uses
 ```r
 create_replicate_weights(
   data,
-  method = c("bootstrap", "jackknife", "brr", "gen-boot", "gen-rep", "sdr"),
+  method = c("bootstrap", "jackknife", "brr",
+             "generalized-bootstrap", "generalized-replicate",
+             "successive-difference"),
   ...
 )
 ```
@@ -478,22 +659,31 @@ create_replicate_weights(
 
 Pure dispatcher. Zero validation or default-setting logic beyond
 `rlang::arg_match(method)`. All validation, defaults, and error messages
-belong in the individual functions.
+belong in the individual functions. `...` is passed through as-is — invalid
+arguments for the selected method produce R's native "unused argument"
+error from the dispatched function (Q13).
+
+Method string choice (Q12): short names for the three common methods
+(`"bootstrap"`, `"jackknife"`, `"brr"`); full descriptive names for the
+less-common ones (`"generalized-bootstrap"`, `"generalized-replicate"`,
+`"successive-difference"`).
 
 ```r
 create_replicate_weights <- function(
   data,
-  method = c("bootstrap", "jackknife", "brr", "gen-boot", "gen-rep", "sdr"),
+  method = c("bootstrap", "jackknife", "brr",
+             "generalized-bootstrap", "generalized-replicate",
+             "successive-difference"),
   ...
 ) {
   method <- rlang::arg_match(method)
   switch(method,
-    bootstrap = create_bootstrap_weights(data, ...),
-    jackknife = create_jackknife_weights(data, ...),
-    brr       = create_brr_weights(data, ...),
-    "gen-boot" = create_gen_boot_weights(data, ...),
-    "gen-rep"  = create_gen_rep_weights(data, ...),
-    sdr       = create_sdr_weights(data, ...)
+    bootstrap                = create_bootstrap_weights(data, ...),
+    jackknife                = create_jackknife_weights(data, ...),
+    brr                      = create_brr_weights(data, ...),
+    "generalized-bootstrap"  = create_gen_boot_weights(data, ...),
+    "generalized-replicate"  = create_gen_rep_weights(data, ...),
+    "successive-difference"  = create_sdr_weights(data, ...)
   )
 }
 ```
@@ -529,14 +719,39 @@ weight columns are dropped from `@data`.
 - **If input is `survey_taylor`:** Returns `data` unchanged, with warning
   `surveywts_warning_already_taylor`.
 - **If input is `survey_replicate`:** Converts to `survey_taylor`, emitting
-  `surveywts_warning_taylor_loses_variance`. See §XI, Q7 for how the original
-  Taylor structure is recovered.
+  `surveywts_warning_taylor_loses_variance`. Taylor structure is read from
+  the most recent `"replicate_creation"` history entry (Q7 / Q22).
+- **If input is a `survey_replicate` whose history indicates post-creation
+  weight adjustment (calibration, raking, nonresponse):** errors with
+  `surveywts_error_taylor_from_calibrated_replicate` (Q22). Behavior will
+  be revisited when replicate-design calibration is implemented.
+- **If input is a `survey_replicate` whose most recent
+  `"replicate_creation"` history entry records
+  `source_class = "surveycore::survey_nonprob"` (i.e., the source was a
+  `survey_nonprob`):** errors with
+  `surveywts_error_taylor_from_nonprob_replicate`. Detection is by the
+  stored class tag, not by inspecting `@variables` shape — an SRS
+  `survey_taylor` (unclustered, unstratified) has `ids = NULL` and
+  `strata = NULL` too, and must round-trip successfully. A Taylor design
+  requires probability-sample structure; reconstructing one from a
+  non-probability sample would produce a methodologically invalid
+  result. The symmetric inverse (returning the original `survey_nonprob`)
+  is out of scope for Phase 1; see §I Non-Deliverables.
+
+### History Entry Requirement (Q22)
+
+The `"replicate_creation"` history entry added by `create_*_weights()` must
+store a full snapshot of the input design's `@variables` list (not just
+`ids`/`strata`/`fpc`/`nest`). This preserves the option to later return
+either the pre-calibration Taylor or a calibrated Taylor without a schema
+change.
 
 ### Backend
 
-> Depends on §XI, Q7 resolution. Likely approach: read stored Taylor structure
-> from the `@metadata@weighting_history` entry created by `create_*_weights()`,
-> then reconstruct via `surveycore::as_survey()`.
+Read the stored Taylor `@variables` snapshot from the most recent
+`"replicate_creation"` entry in `@metadata@weighting_history`, then
+reconstruct via `surveycore::as_survey()` against `data@data` (with replicate
+columns removed).
 
 ### Error/Warning Table
 
@@ -546,6 +761,131 @@ weight columns are dropped from `@data`.
 | `surveywts_warning_taylor_loses_variance` | Converting drops replicate weights |
 | `surveywts_error_unsupported_class` | Input is not `survey_replicate` or `survey_taylor` |
 | `surveywts_error_no_taylor_structure` | No stored Taylor structure found and cannot reconstruct |
+| `surveywts_error_taylor_from_calibrated_replicate` | Replicate design has post-creation weight adjustment history; Phase 1 cannot reconstruct Taylor |
+| `surveywts_error_taylor_from_nonprob_replicate` | Replicate design's source was `survey_nonprob`; no Taylor structure to reconstruct (Q4 + Issue 10) |
+
+---
+
+## X.5 Print method for `survey_replicate`
+
+Per Q10, surveywts adds an S7 print method for `survey_replicate`. The method
+is registered in `R/replicate-print.R`:
+
+```r
+# Class defined in surveycore
+S7::method(print, surveycore::survey_replicate) <- function(x, ...) {
+  # Implementation draft below
+  invisible(x)
+}
+```
+
+### Output contract
+
+The method prints, in order:
+
+1. A header line: `<survey_replicate: {type}>`, where `{type}` is
+   `@variables$type` (e.g., `"BRR"`, `"JKn"`, `"bootstrap"`).
+2. Sample size line: `N = {nrow(@data)} observations`.
+3. Replicate summary line: `{length(@variables$repweights)} replicate weights ({first} … {last})`,
+   showing the first and last replicate column names.
+4. Scale: `Scale: {@variables$scale}` (printed with `format(..., digits = 4)`).
+   If `@variables$rscales` is a vector, add a line
+   `Replicate scales: vector of length {n}, range [{min}, {max}]`.
+5. `mse = {@variables$mse}`.
+6. Weight stats block (identical format to `survey_nonprob` print):
+   `min`, `median`, `mean`, `max`, `CV`, computed on the base weight column.
+7. `Weighting history:` followed by one line per `@metadata@weighting_history`
+   entry, showing `{operation}` and any distinguishing parameters
+   (e.g., the creation method and replicate count for
+   `"replicate_creation"`).
+
+Verbatim example:
+
+```
+<survey_replicate: bootstrap>
+N = 500 observations
+500 replicate weights (rep_1 … rep_500)
+Scale: 0.002
+mse = TRUE
+
+Weights:
+  min:    0.21
+  median: 1.02
+  mean:   1.00
+  max:    4.87
+  CV:     0.41
+
+Weighting history:
+  1. replicate_creation (method = "bootstrap", type = "Rao-Wu-Yue-Beaumont", replicates = 500)
+```
+
+### Test block
+
+Add to `test-replicate-weights.R`:
+
+**18. `print(survey_replicate)` — snapshot**
+18a. Bootstrap replicate with seeded input → `expect_snapshot(print(obj))`
+18b. JKn replicate (stratified delete-1) → `expect_snapshot(print(obj))`
+18c. BRR replicate → `expect_snapshot(print(obj))`
+18d. Replicate carrying two history entries (creation + synthetic follow-up)
+    → `expect_snapshot(print(obj))`
+
+**19. Edge cases (per function, in `test-replicate-weights.R`)**
+
+Each sub-block tests that surveywts passes the degenerate input through to
+the backend without mangling it. When the backend itself errors for a given
+edge case, record that the surveywts wrapper propagates the backend error
+unchanged (Q16: unknown backend errors propagate as-is). When the backend
+succeeds but produces a trivial result, assert on structural invariants
+(`test_invariants()`, correct replicate count, preserved metadata).
+
+19a. `create_bootstrap_weights()` edge cases
+  - 0-row `@data` (`survey_taylor` with empty data frame): either succeeds
+    with 0-row output or propagates backend error; document which
+  - Single-PSU-per-stratum input: propagates backend error (RWYB requires
+    ≥ 2 PSUs)
+  - All-equal base weights: succeeds; `test_invariants()`; mean replicate
+    weight matches base weight
+  - NA in `fpc` column: propagates backend error
+
+19b. `create_jackknife_weights()` edge cases
+  - `type = "delete-1"`, single-stratum, single-PSU: propagates backend error
+  - `type = "delete-1"`, unstratified, single row: errors (cannot leave one
+    out of one)
+  - `type = "random-groups"`, `replicates` > PSU count: propagates backend
+    error
+  - All-equal base weights: succeeds; `test_invariants()`
+
+19c. `create_brr_weights()` edge cases
+  - Single-stratum paired design (2 PSUs, 1 stratum): succeeds (Hadamard
+    order 2); `@variables$repweights` has length 2
+  - All-equal base weights: succeeds; `test_invariants()`
+
+19d. `create_gen_boot_weights()` edge cases
+  - 0-row input: propagates backend error
+  - All-equal base weights: succeeds; `test_invariants()`
+  - `tau = "auto"` on design with small extreme weights: all replicate
+    weights `>= 0`
+
+19e. `create_gen_rep_weights()` edge cases
+  - 0-row input: propagates backend error
+  - All-equal base weights: succeeds; deterministic output across calls
+  - `max_replicates = 1`: either succeeds with 1 replicate or errors
+    (document)
+
+19f. `create_sdr_weights()` edge cases
+  - 0-row input: propagates backend error
+  - Single-stratum, single row: propagates backend error
+  - All-equal base weights: succeeds; `test_invariants()`
+
+All sub-blocks use fixed seeds where randomness is involved. Backend-error
+propagation tests assert `expect_error()` without a `class =` argument, per
+Q16 (no named wrapper for these modes in Phase 1).
+
+### `@family` note
+
+The print method is an S7 method registration, not a user-facing function;
+it does not take a `@family` tag.
 
 ---
 
@@ -802,12 +1142,17 @@ These classes must be added to `plans/error-messages.md`:
 | `surveywts_error_not_survey_design` | All `create_*_weights()`, `create_replicate_weights()` | Input is `data.frame` or `weighted_df` |
 | `surveywts_error_unsupported_class` | All `create_*_weights()`, `as_taylor_design()` | Unrecognized input class |
 | `surveywts_error_replicates_not_positive` | Bootstrap, jackknife (random-groups), gen-boot, SDR | `replicates` is not a positive integer ≥ 2 |
+| `surveywts_error_replicates_not_whole_number` | All methods that accept `replicates` | `replicates` is numeric with a non-zero fractional part (Q17) |
 | `surveywts_error_brr_requires_paired_design` | `create_brr_weights()` | Stratum has ≠ 2 PSUs, or input is `survey_nonprob` |
 | `surveywts_error_brr_rho_invalid` | `create_brr_weights()` | `rho < 0` or `rho >= 1` |
 | `surveywts_error_replicates_required_for_jkn` | `create_jackknife_weights()` | `type = "random-groups"` but `replicates` is `NULL` |
+| `surveywts_error_jackknife_type_unsupported_for_nonprob` | `create_jackknife_weights()` | `data` is `survey_nonprob` and `type = "random-groups"` (Q18) |
+| `surveywts_error_nonprob_requires_probability_design` | `create_gen_boot_weights()`, `create_gen_rep_weights()`, `create_sdr_weights()` | `data` is `survey_nonprob`; method requires probability-design structure (Issue 18) |
 | `surveywts_error_sort_var_has_na` | `create_sdr_weights()` | `sort_var` column contains `NA` |
 | `surveywts_error_variance_estimator_requires_aux` | `create_gen_boot_weights()`, `create_gen_rep_weights()` | `variance_estimator = "Deville-Tille"` but `aux_var_names` not provided |
 | `surveywts_error_no_taylor_structure` | `as_taylor_design()` | No stored Taylor structure found in history; cannot reconstruct |
+| `surveywts_error_taylor_from_calibrated_replicate` | `as_taylor_design()` | Replicate design has post-creation weight adjustment history (Q22) |
+| `surveywts_error_taylor_from_nonprob_replicate` | `as_taylor_design()` | `"replicate_creation"` history entry's `source_class` is `"surveycore::survey_nonprob"` (Issue 10; detector is class-tag-based per Issue 17) |
 
 ### Warnings
 
@@ -815,7 +1160,6 @@ These classes must be added to `plans/error-messages.md`:
 |-------|-----------|-----------|
 | `surveywts_warning_already_taylor` | `as_taylor_design()` | Input is already `survey_taylor`; function is a no-op |
 | `surveywts_warning_taylor_loses_variance` | `as_taylor_design()` | Converting drops replicate weights and variance capability |
-| `surveywts_warning_delete1_many_replicates` | `create_jackknife_weights()` | Delete-1 produces > 500 replicates (proposed threshold) |
 
 ---
 
@@ -862,7 +1206,8 @@ make_paired_design(n_strata = 3, obs_per_psu = 10, seed = 42)
 3a. `data.frame` input → `surveywts_error_not_survey_design` (class + snapshot)
 3b. `survey_replicate` input → `surveywts_error_already_replicate` (class + snapshot)
 3c. `replicates = 0` → `surveywts_error_replicates_not_positive` (class + snapshot)
-3d. `replicates = 1.5` → `surveywts_error_replicates_not_positive` (class + snapshot)
+3d. `replicates = 1.5` → `surveywts_error_replicates_not_whole_number` (class + snapshot)
+3e. Unsupported class (e.g., `list()`) → `surveywts_error_unsupported_class` (class + snapshot)
 
 **4. `create_jackknife_weights()` — happy path**
 4a. `type = "delete-1"`, unstratified → `@variables$type == "JK1"`
@@ -870,9 +1215,22 @@ make_paired_design(n_strata = 3, obs_per_psu = 10, seed = 42)
 4c. `type = "random-groups"`, `replicates = 20` → `@variables$type == "JKn"`, 20 reps
 4d. `survey_nonprob` input → `survey_replicate` (if Q4 includes it)
 
+**4.E `create_jackknife_weights()` — equivalence with survey / svrep**
+4Ea. `type = "delete-1"` unstratified: same output as
+    `survey::as.svrepdesign(type = "JK1")` (tolerance `1e-10`;
+    `skip_if_not_installed("survey")`)
+4Eb. `type = "delete-1"` stratified: same output as
+    `survey::as.svrepdesign(type = "JKn")` (tolerance `1e-10`)
+4Ec. `type = "random-groups"`: same output as
+    `svrep::as_random_group_jackknife_design()` with fixed seed
+    (tolerance `1e-10`; `skip_if_not_installed("svrep")`)
+
 **5. `create_jackknife_weights()` — errors**
-5a. `type = "random-groups"`, `replicates = NULL` → error (class + snapshot)
-5b. `survey_replicate` input → error (class + snapshot)
+5a. `type = "random-groups"`, `replicates = NULL` → `surveywts_error_replicates_required_for_jkn` (class + snapshot)
+5b. `survey_replicate` input → `surveywts_error_already_replicate` (class + snapshot)
+5c. `type = "random-groups"`, `replicates = 1.5` → `surveywts_error_replicates_not_whole_number` (class + snapshot)
+5d. `type = "random-groups"`, `replicates = 1` → `surveywts_error_replicates_not_positive` (class + snapshot)
+5e. `survey_nonprob` + `type = "random-groups"` → `surveywts_error_jackknife_type_unsupported_for_nonprob` (class + snapshot)
 
 **6. `create_brr_weights()` — happy path**
 6a. Paired design, `rho = 0` → `@variables$type == "BRR"`
@@ -892,21 +1250,48 @@ make_paired_design(n_strata = 3, obs_per_psu = 10, seed = 42)
 9b. `variance_estimator = "SD2"` produces different output than `"SD1"`
 9c. `tau = "auto"` produces non-negative replicate weights
 
+**9.X `create_gen_boot_weights()` — equivalence with svrep**
+9Xa. Same output as `svrep::as_gen_boot_design()` with fixed seed
+    (tolerance `1e-10`; `skip_if_not_installed("svrep")`)
+
+**9.E `create_gen_boot_weights()` — errors**
+9Ea. `replicates = 0` → `surveywts_error_replicates_not_positive` (class + snapshot)
+9Eb. `replicates = 1.5` → `surveywts_error_replicates_not_whole_number` (class + snapshot)
+9Ec. `variance_estimator = "Deville-Tille"`, `aux_var_names = NULL` → `surveywts_error_variance_estimator_requires_aux` (class + snapshot)
+9Ed. `survey_nonprob` input → `surveywts_error_nonprob_requires_probability_design` (class + snapshot)
+
 **10. `create_gen_rep_weights()` — happy path**
 10a. Default args → `survey_replicate` (deterministic — same result each time)
 10b. `max_replicates = 20` limits replicate count
 10c. `balanced = FALSE` may produce fewer replicates than `balanced = TRUE`
 
+**10.X `create_gen_rep_weights()` — equivalence with svrep**
+10Xa. Same output as `svrep::as_fays_gen_rep_design()` (deterministic;
+    tolerance `1e-10`; `skip_if_not_installed("svrep")`)
+
+**10.E `create_gen_rep_weights()` — errors**
+10Ea. `variance_estimator = "Deville-Tille"`, `aux_var_names = NULL` → `surveywts_error_variance_estimator_requires_aux` (class + snapshot)
+10Eb. `survey_nonprob` input → `surveywts_error_nonprob_requires_probability_design` (class + snapshot)
+
 **11. `create_sdr_weights()` — happy path**
 11a. `replicates = 100` → `survey_replicate`, `@variables$type == "successive-difference"`
 11b. `sort_var` reorders before computing (different result than without)
 
+**11.E `create_sdr_weights()` — equivalence with svrep**
+11Ea. Same output as `svrep::as_sdr_design()` with fixed seed where
+    applicable (tolerance `1e-10`; `skip_if_not_installed("svrep")`)
+
 **12. `create_sdr_weights()` — errors**
 12a. `sort_var` column with NA → `surveywts_error_sort_var_has_na` (class + snapshot)
+12b. `replicates = 0` → `surveywts_error_replicates_not_positive` (class + snapshot)
+12c. `replicates = 1.5` → `surveywts_error_replicates_not_whole_number` (class + snapshot)
+12d. `survey_nonprob` input → `surveywts_error_nonprob_requires_probability_design` (class + snapshot)
 
 **13. Shared error paths**
-13a. Each `create_*_weights()` with `data.frame` → `surveywts_error_not_survey_design`
-13b. Each `create_*_weights()` with `survey_replicate` → `surveywts_error_already_replicate`
+13a. Each `create_*_weights()` with `data.frame` → `surveywts_error_not_survey_design` (class + snapshot)
+13b. Each `create_*_weights()` with `survey_replicate` → `surveywts_error_already_replicate` (class + snapshot)
+13c. Each `create_*_weights()` with `weighted_df` → `surveywts_error_not_survey_design` (class + snapshot)
+13d. Each `create_*_weights()` with an unrecognized class (e.g., `list()`, `matrix()`) → `surveywts_error_unsupported_class` (class + snapshot)
 
 #### `test-replicate-dispatch.R`
 
@@ -914,9 +1299,9 @@ make_paired_design(n_strata = 3, obs_per_psu = 10, seed = 42)
 14a. `method = "bootstrap"` dispatches correctly → `survey_replicate`
 14b. `method = "jackknife"` dispatches correctly → `survey_replicate`
 14c. `method = "brr"` dispatches correctly (paired design) → `survey_replicate`
-14d. `method = "gen-boot"` dispatches correctly → `survey_replicate`
-14e. `method = "gen-rep"` dispatches correctly → `survey_replicate`
-14f. `method = "sdr"` dispatches correctly → `survey_replicate`
+14d. `method = "generalized-bootstrap"` dispatches correctly → `survey_replicate`
+14e. `method = "generalized-replicate"` dispatches correctly → `survey_replicate`
+14f. `method = "successive-difference"` dispatches correctly → `survey_replicate`
 14g. Extra `...` args pass through to underlying function
 14h. Invalid method → standard `rlang::arg_match()` error
 
@@ -931,9 +1316,11 @@ make_paired_design(n_strata = 3, obs_per_psu = 10, seed = 42)
     (class + snapshot)
 
 **17. `as_taylor_design()` — errors**
-17a. Unsupported input → `surveywts_error_unsupported_class` (class + snapshot)
-17b. No Taylor structure stored → `surveywts_error_no_taylor_structure` (if
-    applicable per Q7 resolution)
+17a. Unsupported input (e.g., `data.frame`, `list()`) → `surveywts_error_unsupported_class` (class + snapshot)
+17b. Replicate with no stored `"replicate_creation"` history entry → `surveywts_error_no_taylor_structure` (class + snapshot). Construct the input by creating a replicate via `create_bootstrap_weights()` and stripping the entry: `rep@metadata@weighting_history <- list()`
+17c. Replicate with post-creation weight adjustment history (e.g., synthetic `"calibration"` entry appended) → `surveywts_error_taylor_from_calibrated_replicate` (class + snapshot)
+17d. Replicate whose `"replicate_creation"` history entry records `source_class = "surveycore::survey_nonprob"` → `surveywts_error_taylor_from_nonprob_replicate` (class + snapshot). Pair this with 17e: SRS `survey_taylor` (`ids = NULL`, `strata = NULL`, `source_class = "surveycore::survey_taylor"`) round-trips successfully (no error)
+17e. SRS `survey_taylor` round-trip (`create_bootstrap_weights()` → `as_taylor_design()`) succeeds and returns a `survey_taylor`, demonstrating the detector is class-tag-based, not shape-based
 
 ### `test_invariants()` Extension
 
@@ -971,10 +1358,10 @@ Phase 1 is complete when:
 - [ ] All six `create_*_weights()` functions pass `devtools::check()` with
   0 errors, 0 warnings, ≤2 pre-approved notes
 - [ ] `create_replicate_weights()` and `as_taylor_design()` pass check
-- [ ] Test coverage ≥ 98% for `R/replicate-weights.R` and `R/replicate-dispatch.R`
+- [ ] Test coverage ≥ 98% for `R/replicate-weights.R`, `R/replicate-dispatch.R`, and `R/replicate-print.R`
 - [ ] All error classes in §XII are in `plans/error-messages.md`
 - [ ] All test blocks listed in §XIII are implemented and passing
-- [ ] Equivalence tests against svrep/survey pass (tolerance `1e-10`)
+- [ ] Equivalence tests against svrep/survey pass for all six backends (tolerance `1e-10`; §XIII blocks 2, 4.E, 7, 9.X, 10.X, 11.E)
 - [ ] Metadata preservation verified (labels, history survive the conversion
   pipeline)
 - [ ] All API design questions in §XI are resolved and logged in

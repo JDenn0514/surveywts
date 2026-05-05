@@ -181,7 +181,7 @@
 #'
 #' @param data A `survey_taylor` or `survey_nonprob` design object.
 #' @param replicates `integer(1)`, default `500L`. Number of bootstrap
-#'   replicates. Must be ≥ 2. Whole-number doubles are coerced silently.
+#'   replicates. Must be >= 2. Whole-number doubles are coerced silently.
 #' @param ... Must be empty. Forces all subsequent arguments to be named.
 #' @param type `character(1)`. Bootstrap variant passed to
 #'   [svrep::as_bootstrap_design()]. One of `"Rao-Wu-Yue-Beaumont"` (default),
@@ -192,7 +192,7 @@
 #'   [withr::local_seed()] for the duration of the call; caller's RNG state is
 #'   restored on exit.
 #'
-#' @return A `survey_replicate` with `replicates` new `rep_1…rep_N` columns,
+#' @return A `survey_replicate` with `replicates` new `rep_1...rep_N` columns,
 #'   `@variables$type = "bootstrap"`, and a `"replicate_creation"` entry in the
 #'   weighting history.
 #'

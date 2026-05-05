@@ -30,10 +30,10 @@
 #' IPF, epsilon-based convergence).
 #'
 #' @param data A `data.frame`, `weighted_df`, `survey_taylor`, or
-#'   `survey_nonprob`. `survey_replicate` → error. Any other class → error.
+#'   `survey_nonprob`. `survey_replicate` -> error. Any other class -> error.
 #' @param margins Named list or data frame specifying population margin targets.
 #'
-#'   **Format A — named list:**
+#'   **Format A -- named list:**
 #'   ```r
 #'   list(
 #'     age_group = c("18-34" = 0.28, "35-54" = 0.37, "55+" = 0.35),
@@ -43,7 +43,7 @@
 #'   Each element can be a named numeric vector or a data frame with columns
 #'   `level` and `target` (formats can be mixed within the list).
 #'
-#'   **Format B — long data frame** with columns `variable`, `level`, `target`:
+#'   **Format B -- long data frame** with columns `variable`, `level`, `target`:
 #'   ```r
 #'   data.frame(
 #'     variable = c("age_group", "age_group", "sex", "sex"),
@@ -54,7 +54,7 @@
 #'   Format B is auto-detected and converted to Format A before use. The
 #'   converted Format A is stored in the weighting history.
 #' @param weights <[`tidy-select`][tidyselect::language]> Weight column name
-#'   (bare name). `NULL` → auto-detected from `weighted_df` attribute or
+#'   (bare name). `NULL` -> auto-detected from `weighted_df` attribute or
 #'   survey object `@variables$weights`. For plain `data.frame` with
 #'   `weights = NULL`, uniform starting weights are used and the output
 #'   column is named by `wt_name` (default `"wts"`).
@@ -68,11 +68,11 @@
 #'   the `anesrake` package. `"survey"`: fixed-order IPF cycling through all
 #'   margins, with epsilon-based convergence, as in `survey::rake()`.
 #' @param cap Numeric or `NULL`. Cap on the weight ratio `w / mean(w)`. Any
-#'   weight exceeding `cap × mean(w)` is set to `cap × mean(w)`. Applied
+#'   weight exceeding `cap * mean(w)` is set to `cap * mean(w)`. Applied
 #'   after each per-margin adjustment step (not post-hoc). `NULL` (default)
 #'   means no cap. Applies to both methods.
 #' @param control Named list of algorithm parameters. Merged with
-#'   method-specific defaults — omitted keys retain their defaults.
+#'   method-specific defaults. Omitted keys retain their defaults.
 #'
 #'   **`method = "anesrake"` defaults:**
 #'   - `maxit = 1000`: maximum full sweeps
@@ -91,8 +91,8 @@
 #'   ignored parameter.
 #'
 #' @return
-#'   - `data.frame` or `weighted_df` input → `weighted_df`
-#'   - `survey_taylor` or `survey_nonprob` input → same class as input
+#'   - `data.frame` or `weighted_df` input -> `weighted_df`
+#'   - `survey_taylor` or `survey_nonprob` input -> same class as input
 #'     (`survey_taylor` or `survey_nonprob`; class is preserved)
 #'
 #'   The weight column in the output contains raked weights. A history entry

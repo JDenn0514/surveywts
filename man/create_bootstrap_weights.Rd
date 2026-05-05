@@ -17,7 +17,7 @@ create_bootstrap_weights(
 \item{data}{A \code{survey_taylor} or \code{survey_nonprob} design object.}
 
 \item{replicates}{\code{integer(1)}, default \code{500L}. Number of bootstrap
-replicates. Must be ≥ 2. Whole-number doubles are coerced silently.}
+replicates. Must be >= 2. Whole-number doubles are coerced silently.}
 
 \item{...}{Must be empty. Forces all subsequent arguments to be named.}
 
@@ -33,7 +33,7 @@ as the deviation from the full-sample estimate.}
 restored on exit.}
 }
 \value{
-A \code{survey_replicate} with \code{replicates} new \verb{rep_1…rep_N} columns,
+A \code{survey_replicate} with \code{replicates} new \code{rep_1...rep_N} columns,
 \verb{@variables$type = "bootstrap"}, and a \code{"replicate_creation"} entry in the
 weighting history.
 }

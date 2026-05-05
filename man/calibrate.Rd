@@ -17,7 +17,7 @@ calibrate(
 }
 \arguments{
 \item{data}{A \code{data.frame}, \code{weighted_df}, \code{survey_taylor}, or
-\code{survey_nonprob}. \code{survey_replicate} → error. Any other class → error.}
+\code{survey_nonprob}. \code{survey_replicate} -> error. Any other class -> error.}
 
 \item{variables}{<\code{\link[tidyselect:language]{tidy-select}}> Columns to
 calibrate on. Must be categorical (character or factor). Specify as a
@@ -31,7 +31,7 @@ For \code{type = "prop"}: values must sum to 1.0 (within \code{1e-6} tolerance).
 For \code{type = "count"}: values must be strictly positive.}
 
 \item{weights}{<\code{\link[tidyselect:language]{tidy-select}}> Weight column name
-(bare name). \code{NULL} → auto-detected from \code{weighted_df} attribute or
+(bare name). \code{NULL} -> auto-detected from \code{weighted_df} attribute or
 survey object \verb{@variables$weights}. For plain \code{data.frame} with
 \code{weights = NULL}, uniform starting weights are used and the output
 column is named by \code{wt_name} (default \code{"wts"}).}
@@ -48,12 +48,12 @@ iterative calibration (always positive).}
 are proportions. \code{"count"}: \code{population} values are counts.}
 
 \item{control}{Named list of convergence parameters. Merged with defaults
-\code{list(maxit = 50, epsilon = 1e-7)} — omitted keys retain their defaults.}
+\code{list(maxit = 50, epsilon = 1e-7)}. Omitted keys retain their defaults.}
 }
 \value{
 \itemize{
-\item \code{data.frame} or \code{weighted_df} input → \code{weighted_df}
-\item \code{survey_taylor} or \code{survey_nonprob} input → same class as input
+\item \code{data.frame} or \code{weighted_df} input -> \code{weighted_df}
+\item \code{survey_taylor} or \code{survey_nonprob} input -> same class as input
 (\code{survey_taylor} or \code{survey_nonprob}; class is preserved)
 }
 

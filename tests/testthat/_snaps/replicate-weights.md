@@ -52,3 +52,19 @@
       x `replicates` must be a whole number, not 1.5.
       v Use an integer value, e.g. `replicates = 2`.
 
+# create_bootstrap_weights() rejects character replicates
+
+    Code
+      create_bootstrap_weights(td, replicates = "fifty")
+    Condition
+      Error in `.validate_replicates_arg()`:
+      x `replicates` must be a single number.
+
+# create_bootstrap_weights() rejects NA replicates
+
+    Code
+      create_bootstrap_weights(td, replicates = NA_integer_)
+    Condition
+      Error in `.validate_replicates_arg()`:
+      x `replicates` must be a single number.
+

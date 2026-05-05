@@ -59,7 +59,7 @@ R/utils.R                   # Add "replicate_creation" case to .format_history_s
 **Dependencies:** PRs must be merged in numeric order. Each PR branches from `develop` after the previous PR is merged — do not cut PR N+1 until PR N is merged into `develop`.
 
 - [x] PR 1: `feature/replicate-infrastructure` — DESCRIPTION, error-messages.md, test helper extensions, utils.R update
-- [ ] PR 2: `feature/replicate-bootstrap` — all 5 shared helpers + `create_bootstrap_weights()`
+- [x] PR 2: `feature/replicate-bootstrap` — all 5 shared helpers + `create_bootstrap_weights()`
 - [ ] PR 3: `feature/replicate-jackknife` — `create_jackknife_weights()`
 - [ ] PR 4: `feature/replicate-brr` — `create_brr_weights()`
 - [ ] PR 5: `feature/replicate-gen-boot` — `create_gen_boot_weights()`

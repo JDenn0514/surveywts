@@ -19,9 +19,15 @@
 ## Files Modified
 
 - `R/replicate-weights.R` — new file with 5 helpers + `create_bootstrap_weights()`
-- `tests/testthat/test-replicate-weights.R` — new test file (65 tests)
+- `R/vendor-calibrate-greg.R` — deleted (vendored GREG calibration helpers; no longer referenced)
+- `R/vendor-calibrate-ipf.R` — deleted (vendored IPF calibration helper; no longer referenced)
+- `tests/testthat/test-replicate-weights.R` — new test file (68 tests, including NULL/character/NA replicates coverage)
+- `tests/testthat/test-06-diagnostics.R` — 3 tests added for `survey_replicate` rejection in diagnostic functions
 - `tests/testthat/_snaps/replicate-weights.md` — new snapshots for error messages
+- `tests/testthat/_snaps/06-diagnostics.md` — new snapshot for `survey_replicate` rejection
 - `man/create_bootstrap_weights.Rd` — generated documentation
 - `NAMESPACE` — export for `create_bootstrap_weights` added
 - `_pkgdown.yml` — Replicate Weights reference section added
 - `.claude/rules/surveywts-conventions.md` — `replicate-weights` family added
+- `plans/error-messages.md` — added `surveywts_error_internal` to Internal/Utility section
+- `plans/impl-replicate.md` — marked PR 2 as complete

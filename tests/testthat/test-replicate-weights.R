@@ -177,3 +177,30 @@ test_that("create_bootstrap_weights() all-equal base weights succeeds", {
   rep_mat <- as.matrix(result@data[, result@variables$repweights])
   expect_true(all(abs(colMeans(rep_mat) - 1) < 0.5))  # means near base weight
 })
+
+# ---- .validate_replicates_arg() — NULL and non-numeric paths (lines 54–59) --
+
+test_that("create_bootstrap_weights() passes NULL replicates to svrep (which errors)", {
+  skip_if_not_installed("svrep")
+  td <- make_taylor_design(seed = 1)
+  # NULL passes .validate_replicates_arg() (line 54) but svrep rejects it
+  expect_error(create_bootstrap_weights(td, replicates = NULL))
+})
+
+test_that("create_bootstrap_weights() rejects character replicates", {
+  td <- make_taylor_design(seed = 1)
+  expect_error(
+    create_bootstrap_weights(td, replicates = "fifty"),
+    class = "surveywts_error_replicates_invalid"
+  )
+  expect_snapshot(error = TRUE, create_bootstrap_weights(td, replicates = "fifty"))
+})
+
+test_that("create_bootstrap_weights() rejects NA replicates", {
+  td <- make_taylor_design(seed = 1)
+  expect_error(
+    create_bootstrap_weights(td, replicates = NA_integer_),
+    class = "surveywts_error_replicates_invalid"
+  )
+  expect_snapshot(error = TRUE, create_bootstrap_weights(td, replicates = NA_integer_))
+})

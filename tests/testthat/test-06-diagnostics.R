@@ -400,6 +400,44 @@ test_that("weight_variability() works on post-nonresponse data with zero weights
   expect_equal(result[["cv"]], expected_cv, tolerance = 1e-10)
 })
 
+# ---------------------------------------------------------------------------
+# 11. survey_replicate input → surveywts_error_replicate_not_supported
+# ---------------------------------------------------------------------------
+
+test_that("effective_sample_size() rejects survey_replicate input", {
+  skip_if_not_installed("svrep")
+  td <- make_taylor_design(seed = 1)
+  sr <- create_bootstrap_weights(td, replicates = 10L, seed = 1L)
+
+  expect_error(
+    effective_sample_size(sr),
+    class = "surveywts_error_replicate_not_supported"
+  )
+  expect_snapshot(error = TRUE, effective_sample_size(sr))
+})
+
+test_that("weight_variability() rejects survey_replicate input", {
+  skip_if_not_installed("svrep")
+  td <- make_taylor_design(seed = 1)
+  sr <- create_bootstrap_weights(td, replicates = 10L, seed = 1L)
+
+  expect_error(
+    weight_variability(sr),
+    class = "surveywts_error_replicate_not_supported"
+  )
+})
+
+test_that("summarize_weights() rejects survey_replicate input", {
+  skip_if_not_installed("svrep")
+  td <- make_taylor_design(seed = 1)
+  sr <- create_bootstrap_weights(td, replicates = 10L, seed = 1L)
+
+  expect_error(
+    summarize_weights(sr),
+    class = "surveywts_error_replicate_not_supported"
+  )
+})
+
 test_that("summarize_weights() works on post-nonresponse data with zero weights", {
   df <- data.frame(
     id = 1:10,

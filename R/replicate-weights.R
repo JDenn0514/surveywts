@@ -55,7 +55,7 @@
   if (!is.numeric(replicates) || length(replicates) != 1L || is.na(replicates)) {
     cli::cli_abort(
       c("x" = "{.arg replicates} must be a single number."),
-      class = "surveywts_error_replicates_not_positive"
+      class = "surveywts_error_replicates_invalid"
     )
   }
   if (replicates %% 1 != 0) {

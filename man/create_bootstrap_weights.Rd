@@ -43,6 +43,7 @@ Both \code{survey_taylor} and \code{survey_nonprob} inputs are supported.
 }
 \seealso{
 Other replicate-weights: 
+\code{\link{create_brr_weights}()},
 \code{\link{create_jackknife_weights}()}
 }
 \concept{replicate-weights}

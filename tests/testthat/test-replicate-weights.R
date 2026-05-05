@@ -416,3 +416,122 @@ test_that("create_jackknife_weights() all-equal base weights succeeds", {
   result <- create_jackknife_weights(td, type = "delete-1")
   test_invariants(result)
 })
+
+# ---- BRR happy path (6a–6b) -------------------------------------------------
+
+test_that("create_brr_weights() paired design rho=0 -> BRR type", {
+  skip_if_not_installed("survey")
+  pd     <- make_paired_design(seed = 1L)
+  result <- create_brr_weights(pd)
+  test_invariants(result)
+  expect_identical(result@variables$type, "BRR")
+})
+
+test_that("create_brr_weights() paired design rho=0.5 -> Fay type", {
+  skip_if_not_installed("survey")
+  pd     <- make_paired_design(seed = 1L)
+  result <- create_brr_weights(pd, rho = 0.5)
+  test_invariants(result)
+  expect_identical(result@variables$type, "Fay")
+})
+
+# ---- Shared input-class errors (13a–13d) ------------------------------------
+
+test_that("create_brr_weights() rejects data.frame input", {
+  df <- make_surveywts_data(seed = 1)
+  expect_error(create_brr_weights(df), class = "surveywts_error_not_survey_design")
+  expect_snapshot(error = TRUE, create_brr_weights(df))
+})
+
+test_that("create_brr_weights() rejects survey_replicate input", {
+  skip_if_not_installed("survey")
+  pd  <- make_paired_design(seed = 1)
+  rep <- create_brr_weights(pd)
+  expect_error(create_brr_weights(rep), class = "surveywts_error_already_replicate")
+  expect_snapshot(error = TRUE, create_brr_weights(rep))
+})
+
+test_that("create_brr_weights() rejects weighted_df input", {
+  df <- make_surveywts_data(seed = 1)
+  wdf <- structure(df, class = c("weighted_df", "tbl_df", "tbl", "data.frame"),
+                   weight_col = "base_weight", weighting_history = list())
+  expect_error(create_brr_weights(wdf), class = "surveywts_error_not_survey_design")
+  expect_snapshot(error = TRUE, create_brr_weights(wdf))
+})
+
+test_that("create_brr_weights() rejects unsupported class", {
+  expect_error(create_brr_weights(list(x = 1)), class = "surveywts_error_unsupported_class")
+  expect_snapshot(error = TRUE, create_brr_weights(list(x = 1)))
+})
+
+# ---- BRR errors (8a–8d) ----------------------------------------------------
+
+test_that("create_brr_weights() rejects non-paired design", {
+  td <- make_taylor_design(n = 200L, n_strata = 4L, psus_per_stratum = 5L, seed = 1L)
+  expect_error(
+    create_brr_weights(td),
+    class = "surveywts_error_brr_requires_paired_design"
+  )
+  expect_snapshot(error = TRUE, create_brr_weights(td))
+})
+
+test_that("create_brr_weights() rejects survey_nonprob", {
+  df <- make_surveywts_data(n = 30L, seed = 1L)
+  np <- surveycore::survey_nonprob(
+    data      = df,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  expect_error(create_brr_weights(np), class = "surveywts_error_brr_requires_paired_design")
+  expect_snapshot(error = TRUE, create_brr_weights(np))
+})
+
+test_that("create_brr_weights() rejects rho < 0", {
+  pd <- make_paired_design(seed = 1L)
+  expect_error(create_brr_weights(pd, rho = -0.1), class = "surveywts_error_brr_rho_invalid")
+  expect_snapshot(error = TRUE, create_brr_weights(pd, rho = -0.1))
+})
+
+test_that("create_brr_weights() rejects rho = 1", {
+  pd <- make_paired_design(seed = 1L)
+  expect_error(create_brr_weights(pd, rho = 1.0), class = "surveywts_error_brr_rho_invalid")
+  expect_snapshot(error = TRUE, create_brr_weights(pd, rho = 1.0))
+})
+
+# ---- BRR equivalence (7a) ---------------------------------------------------
+
+test_that("create_brr_weights() matches survey::as.svrepdesign(BRR) directly", {
+  skip_if_not_installed("survey")
+  pd       <- make_paired_design(seed = 1L)
+  direct   <- survey::as.svrepdesign(surveycore::as_svydesign(pd), type = "BRR", mse = TRUE)
+  result   <- create_brr_weights(pd)
+  test_invariants(result)
+  expected <- unname(as.matrix(direct$repweights))
+  actual   <- unname(as.matrix(result@data[, result@variables$repweights]))
+  expect_equal(actual, expected, tolerance = 1e-10)
+})
+
+# ---- Spec §XIII 19c: edge cases ----------------------------------------------
+
+test_that("create_brr_weights() single-stratum paired design succeeds with 4 replicates", {
+  skip_if_not_installed("survey")
+  # 1 stratum, 2 PSUs — smallest valid BRR design; survey uses Hadamard order 4
+  df <- data.frame(
+    id          = 1:2, stratum = c(1L, 1L),
+    base_weight = c(1, 1), age_group = c("18-34", "35-54")
+  )
+  pd     <- suppressWarnings(
+    surveycore::as_survey(df, ids = id, strata = stratum, weights = base_weight)
+  )
+  result <- create_brr_weights(pd)
+  test_invariants(result)
+  expect_identical(length(result@variables$repweights), 4L)
+})
+
+test_that("create_brr_weights() all-equal base weights succeeds", {
+  skip_if_not_installed("survey")
+  pd <- make_paired_design(seed = 1L)
+  pd@data$base_weight <- rep(1, nrow(pd@data))
+  result <- create_brr_weights(pd)
+  test_invariants(result)
+})

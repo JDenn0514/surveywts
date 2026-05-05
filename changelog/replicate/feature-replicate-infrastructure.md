@@ -6,7 +6,6 @@
 
 ## Changes
 
-- Move `svrep (>= 0.6.0)` and `withr (>= 2.5.0)` from `Suggests` to `Imports` in `DESCRIPTION`
 - Bump `surveycore` floor to `>= 0.8.0`
 - Add 15 new error classes and 2 warning classes to `plans/error-messages.md` under `### Replicate Weight Functions`
 - Add `make_taylor_design()` and `make_paired_design()` generators to `tests/testthat/helper-test-data.R`
@@ -15,7 +14,7 @@
 
 ## Files Modified
 
-- `DESCRIPTION` — svrep + withr moved to Imports; surveycore floor bumped to 0.8.0
+- `DESCRIPTION` — surveycore floor bumped to 0.8.0
 - `plans/error-messages.md` — 15 error classes + 2 warning classes added under Replicate Weight Functions
 - `tests/testthat/helper-test-data.R` — make_taylor_design(), make_paired_design() added; test_invariants() extended
 - `R/utils.R` — "replicate_creation" switch case added to .format_history_step()

@@ -41,4 +41,8 @@ weighting history.
 Generates bootstrap replicate weights via \code{\link[svrep:as_bootstrap_design]{svrep::as_bootstrap_design()}}.
 Both \code{survey_taylor} and \code{survey_nonprob} inputs are supported.
 }
+\seealso{
+Other replicate-weights: 
+\code{\link{create_jackknife_weights}()}
+}
 \concept{replicate-weights}

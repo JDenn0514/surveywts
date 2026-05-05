@@ -694,6 +694,35 @@ test_that("rake() throws calibration_not_converged for maxit = 0", {
 })
 
 # ---------------------------------------------------------------------------
+# 17c. Error — calibration_not_converged (hits maxit, method = "anesrake")
+# ---------------------------------------------------------------------------
+
+test_that("rake() throws calibration_not_converged when anesrake method hits maxit", {
+  # Covers .calibrate_engine() anesrake non-convergence path — utils.R lines 1054-1070.
+  # Extreme age targets force IPF into oscillation between variables; maxit = 2
+  # and a near-zero improvement threshold ensure the algorithm cannot converge.
+  df <- make_surveywts_data(seed = 28)
+  margins <- list(
+    age_group = c("18-34" = 0.10, "35-54" = 0.80, "55+" = 0.10),
+    sex       = c("M" = 0.50, "F" = 0.50)
+  )
+  expect_error(
+    rake(
+      df, margins = margins, method = "anesrake",
+      control = list(maxit = 2, improvement = 1e-10)
+    ),
+    class = "surveywts_error_calibration_not_converged"
+  )
+  expect_snapshot(
+    error = TRUE,
+    rake(
+      df, margins = margins, method = "anesrake",
+      control = list(maxit = 2, improvement = 1e-10)
+    )
+  )
+})
+
+# ---------------------------------------------------------------------------
 # 18. Edge — single margin
 # ---------------------------------------------------------------------------
 

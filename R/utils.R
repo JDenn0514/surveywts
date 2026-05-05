@@ -664,10 +664,10 @@
 .get_history <- function(x) {
   if (inherits(x, "weighted_df")) {
     wh <- attr(x, "weighting_history")
-    if (is.null(wh)) list() else wh
+    if (is.null(wh)) list() else wh # nocov
   } else if (S7::S7_inherits(x, surveycore::survey_base)) {
     wh <- x@metadata@weighting_history
-    if (is.null(wh)) list() else wh
+    if (is.null(wh)) list() else wh # nocov
   } else {
     list()
   }
@@ -1070,6 +1070,10 @@
       )
     }
 
+    # nocov start
+    # Defensive: anesrake returns iterations = 0 only when it throws "No
+    # variables are off", which is caught above and returns early. This branch
+    # cannot be reached via the public API.
     if (result$iterations == 0L) {
       cli::cli_inform(
         c("i" = paste0(
@@ -1079,6 +1083,7 @@
         class = "surveywts_message_already_calibrated"
       )
     }
+    # nocov end
 
     new_weights <- as.numeric(result$weightvec)
 

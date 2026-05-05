@@ -25,15 +25,15 @@
 #'
 #' @param data A `data.frame`, `weighted_df`, `survey_taylor`, or
 #'   `survey_nonprob`. Must include BOTH respondents and nonrespondents.
-#'   `survey_replicate` → error. Any other class → error.
+#'   `survey_replicate` -> error. Any other class -> error.
 #' @param response_status Bare name (NSE). Binary response indicator column.
 #'   Must be `logical` or integer `0`/`1`. `1` / `TRUE` = respondent.
-#' @param weights Bare name (NSE). Weight column. `NULL` → auto-detected from
+#' @param weights Bare name (NSE). Weight column. `NULL` -> auto-detected from
 #'   `weighted_df` attribute or survey object `@variables$weights`. For plain
 #'   `data.frame` with `weights = NULL`, uniform starting weights are used.
 #' @param by <[`tidy-select`][tidyselect::language]> Weighting class variables.
 #'   Redistribution is performed within each cell defined by the joint
-#'   combination of these variables. `NULL` → global redistribution across
+#'   combination of these variables. `NULL` -> global redistribution across
 #'   all rows.
 #' @param wt_name Character scalar. Name of the output weight column in the
 #'   returned `weighted_df`. Default `"wts"`. Ignored when `data` is a survey

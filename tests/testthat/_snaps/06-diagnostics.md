@@ -78,3 +78,13 @@
       i Weights must be fully observed.
       v Remove rows with missing weights before proceeding.
 
+# effective_sample_size() rejects survey_replicate input
+
+    Code
+      effective_sample_size(sr)
+    Condition
+      Error in `.diag_validate_input()`:
+      x <survey_replicate> objects are not yet supported.
+      i Replicate-weight support requires the Replicate release.
+      v Use a <survey_taylor> design, or wait for the Replicate release.
+

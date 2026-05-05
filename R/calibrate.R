@@ -18,7 +18,7 @@
 #' for categorical auxiliary variables.
 #'
 #' @param data A `data.frame`, `weighted_df`, `survey_taylor`, or
-#'   `survey_nonprob`. `survey_replicate` → error. Any other class → error.
+#'   `survey_nonprob`. `survey_replicate` -> error. Any other class -> error.
 #' @param variables <[`tidy-select`][tidyselect::language]> Columns to
 #'   calibrate on. Must be categorical (character or factor). Specify as a
 #'   bare name or `c(var1, var2, ...)`.
@@ -29,7 +29,7 @@
 #'   For `type = "prop"`: values must sum to 1.0 (within `1e-6` tolerance).
 #'   For `type = "count"`: values must be strictly positive.
 #' @param weights <[`tidy-select`][tidyselect::language]> Weight column name
-#'   (bare name). `NULL` → auto-detected from `weighted_df` attribute or
+#'   (bare name). `NULL` -> auto-detected from `weighted_df` attribute or
 #'   survey object `@variables$weights`. For plain `data.frame` with
 #'   `weights = NULL`, uniform starting weights are used and the output
 #'   column is named by `wt_name` (default `"wts"`).
@@ -42,11 +42,11 @@
 #' @param type Character scalar. `"prop"` (default): `population` values
 #'   are proportions. `"count"`: `population` values are counts.
 #' @param control Named list of convergence parameters. Merged with defaults
-#'   `list(maxit = 50, epsilon = 1e-7)` — omitted keys retain their defaults.
+#'   `list(maxit = 50, epsilon = 1e-7)`. Omitted keys retain their defaults.
 #'
 #' @return
-#'   - `data.frame` or `weighted_df` input → `weighted_df`
-#'   - `survey_taylor` or `survey_nonprob` input → same class as input
+#'   - `data.frame` or `weighted_df` input -> `weighted_df`
+#'   - `survey_taylor` or `survey_nonprob` input -> same class as input
 #'     (`survey_taylor` or `survey_nonprob`; class is preserved)
 #'
 #'   The weight column in the output contains calibrated weights. A history

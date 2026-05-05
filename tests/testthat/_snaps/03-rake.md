@@ -198,6 +198,17 @@
       i Setting `control$maxit = 0` means no raking is attempted.
       v Set `control$maxit` to a positive integer.
 
+# rake() throws calibration_not_converged when anesrake method hits maxit
+
+    Code
+      rake(df, margins = margins, method = "anesrake", control = list(maxit = 2,
+        improvement = 1e-10))
+    Condition
+      Error in `.calibrate_engine()`:
+      x Raking did not converge after 2 full sweeps.
+      i anesrake::anesrake() reported: No convergence in 2 iterations
+      v Increase `control$maxit` or relax `control$improvement` in the `control` list.
+
 # rake() rejects cap with method = 'survey'
 
     Code

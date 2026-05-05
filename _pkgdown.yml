@@ -26,6 +26,11 @@ reference:
       Functions for adjusting survey weights for unit nonresponse.
     contents:
       - adjust_nonresponse
+  - title: Replicate Weights
+    desc: >
+      Functions for creating replicate weights for variance estimation.
+    contents:
+      - create_bootstrap_weights
   - title: Diagnostics
     desc: >
       Functions for assessing the distribution and quality of survey weights.

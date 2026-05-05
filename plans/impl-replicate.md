@@ -60,7 +60,7 @@ R/utils.R                   # Add "replicate_creation" case to .format_history_s
 
 - [x] PR 1: `feature/replicate-infrastructure` — DESCRIPTION, error-messages.md, test helper extensions, utils.R update
 - [x] PR 2: `feature/replicate-bootstrap` — all 5 shared helpers + `create_bootstrap_weights()`
-- [ ] PR 3: `feature/replicate-jackknife` — `create_jackknife_weights()`
+- [x] PR 3: `feature/replicate-jackknife` — `create_jackknife_weights()`
 - [ ] PR 4: `feature/replicate-brr` — `create_brr_weights()`
 - [ ] PR 5: `feature/replicate-gen-boot` — `create_gen_boot_weights()`
 - [ ] PR 6: `feature/replicate-gen-rep` — `create_gen_rep_weights()`

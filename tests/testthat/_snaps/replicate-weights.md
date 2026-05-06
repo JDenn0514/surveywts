@@ -143,3 +143,109 @@
       i Only `type = "delete-1"` is supported for non-probability designs.
       v Use `type = "delete-1"` or convert to <survey_taylor>.
 
+# create_brr_weights() rejects data.frame input
+
+    Code
+      create_brr_weights(df)
+    Condition
+      Error in `.validate_replicate_input()`:
+      x `data` is a <data.frame>, not a survey design.
+      i This function requires a <survey_taylor> or <survey_nonprob> object.
+      v Convert with `surveycore::as_survey()`.
+
+# create_brr_weights() rejects survey_replicate input
+
+    Code
+      create_brr_weights(rep)
+    Condition
+      Error in `.validate_replicate_input()`:
+      x `data` is already a <survey_replicate>.
+      i Replicate weights cannot be created from a design that already has replicates.
+
+# create_brr_weights() rejects weighted_df input
+
+    Code
+      create_brr_weights(wdf)
+    Condition
+      Error in `.validate_replicate_input()`:
+      x `data` is a <weighted_df>, not a survey design.
+      i This function requires a <survey_taylor> or <survey_nonprob> object.
+      v Convert with `surveycore::as_survey()`.
+
+# create_brr_weights() rejects unsupported class
+
+    Code
+      create_brr_weights(list(x = 1))
+    Condition
+      Error in `.validate_replicate_input()`:
+      x `data` is <list>, which is not a supported input class.
+      i Supported classes: <survey_taylor> and <survey_nonprob>.
+      v Use `surveycore::as_survey()` or `surveycore::survey_nonprob()`.
+
+# create_brr_weights() rejects non-paired design
+
+    Code
+      create_brr_weights(td)
+    Condition
+      Error in `create_brr_weights()`:
+      x BRR requires exactly 2 PSUs per stratum.
+      i Stratum/a with wrong PSU count: 1, 2, 3, 4.
+      v Use `create_gen_rep_weights()` for designs with unequal PSU counts per stratum.
+
+# create_brr_weights() rejects survey_nonprob
+
+    Code
+      create_brr_weights(np)
+    Condition
+      Error in `create_brr_weights()`:
+      x BRR requires a paired-PSU design; <survey_nonprob> has no PSU structure.
+      v Use `create_bootstrap_weights()` for non-probability designs.
+
+# create_brr_weights() rejects survey_taylor with strata but no PSU ids
+
+    Code
+      create_brr_weights(td)
+    Condition
+      Error in `create_brr_weights()`:
+      x BRR requires a design with both strata and PSU IDs.
+      i Strata: present; PSU IDs: missing.
+      v Build the design with both `ids` and `strata` in `surveycore::as_survey()`.
+
+# create_brr_weights() rejects survey_taylor with PSU ids but no strata
+
+    Code
+      create_brr_weights(td)
+    Condition
+      Error in `create_brr_weights()`:
+      x BRR requires a design with both strata and PSU IDs.
+      i Strata: missing; PSU IDs: present.
+      v Build the design with both `ids` and `strata` in `surveycore::as_survey()`.
+
+# create_brr_weights() rejects survey_taylor with neither strata nor PSU ids
+
+    Code
+      create_brr_weights(td)
+    Condition
+      Error in `create_brr_weights()`:
+      x BRR requires a design with both strata and PSU IDs.
+      i Strata: missing; PSU IDs: missing.
+      v Build the design with both `ids` and `strata` in `surveycore::as_survey()`.
+
+# create_brr_weights() rejects rho < 0
+
+    Code
+      create_brr_weights(pd, rho = -0.1)
+    Condition
+      Error in `create_brr_weights()`:
+      x `rho` must satisfy 0 <= rho < 1; got -0.1.
+      i `rho` = 0 gives standard BRR; `rho` > 0 gives Fay's BRR variant.
+
+# create_brr_weights() rejects rho = 1
+
+    Code
+      create_brr_weights(pd, rho = 1)
+    Condition
+      Error in `create_brr_weights()`:
+      x `rho` must satisfy 0 <= rho < 1; got 1.
+      i `rho` = 0 gives standard BRR; `rho` > 0 gives Fay's BRR variant.
+

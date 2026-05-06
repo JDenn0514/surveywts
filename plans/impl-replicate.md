@@ -61,7 +61,7 @@ R/utils.R                   # Add "replicate_creation" case to .format_history_s
 - [x] PR 1: `feature/replicate-infrastructure` — DESCRIPTION, error-messages.md, test helper extensions, utils.R update
 - [x] PR 2: `feature/replicate-bootstrap` — all 5 shared helpers + `create_bootstrap_weights()`
 - [x] PR 3: `feature/replicate-jackknife` — `create_jackknife_weights()`
-- [ ] PR 4: `feature/replicate-brr` — `create_brr_weights()`
+- [x] PR 4: `feature/replicate-brr` — `create_brr_weights()`
 - [ ] PR 5: `feature/replicate-gen-boot` — `create_gen_boot_weights()`
 - [ ] PR 6: `feature/replicate-gen-rep` — `create_gen_rep_weights()`
 - [ ] PR 7: `feature/replicate-sdr` — `create_sdr_weights()`
@@ -1148,14 +1148,14 @@ git commit -m "feat(replicate): add create_jackknife_weights()"
 
 ### Task 4.1: Write failing tests then implement
 
-- [ ] **Step 1: Create branch**
+- [x] **Step 1: Create branch**
 
 ```bash
 git checkout develop && git pull origin develop
 git checkout -b feature/replicate-brr
 ```
 
-- [ ] **Step 2: Add BRR tests to `test-replicate-weights.R`**
+- [x] **Step 2: Add BRR tests to `test-replicate-weights.R`**
 
 ```r
 # ---- BRR happy path (6a–6b) -------------------------------------------------
@@ -1276,7 +1276,7 @@ test_that("create_brr_weights() all-equal base weights succeeds", {
 })
 ```
 
-- [ ] **Step 3: Confirm tests fail, then implement `create_brr_weights()`**
+- [x] **Step 3: Confirm tests fail, then implement `create_brr_weights()`**
 
 Append to `R/replicate-weights.R`:
 
@@ -1387,7 +1387,7 @@ create_brr_weights <- function(data, ..., rho = 0, mse = TRUE) {
 }
 ```
 
-- [ ] **Step 4: Run tests, `devtools::check()`, commit, open PR**
+- [x] **Step 4: Run tests, `devtools::check()`, commit, open PR**
 
 ```bash
 Rscript -e "devtools::document()"
@@ -1395,7 +1395,7 @@ git add R/replicate-weights.R tests/testthat/test-replicate-weights.R NAMESPACE 
 git commit -m "feat(replicate): add create_brr_weights()"
 ```
 
-- [ ] **Create changelog entry:** Create `changelog/replicate/feature-replicate-brr.md` following the `changelog-workflow` skill format, then `git add changelog/replicate/feature-replicate-brr.md && git commit -m "chore(replicate): add changelog for replicate-brr"`. Then open PR to `develop`.
+- [x] **Create changelog entry:** Create `changelog/replicate/feature-replicate-brr.md` following the `changelog-workflow` skill format, then `git add changelog/replicate/feature-replicate-brr.md && git commit -m "chore(replicate): add changelog for replicate-brr"`. Then open PR to `develop`.
 
 ---
 

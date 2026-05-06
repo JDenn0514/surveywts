@@ -390,3 +390,86 @@
       i <survey_nonprob> has no PSU or stratum structure required by this method.
       v Use `create_bootstrap_weights()` for non-probability designs.
 
+# create_sdr_weights() rejects data.frame input
+
+    Code
+      create_sdr_weights(df)
+    Condition
+      Error in `.validate_replicate_input()`:
+      x `data` is a <data.frame>, not a survey design.
+      i This function requires a <survey_taylor> or <survey_nonprob> object.
+      v Convert with `surveycore::as_survey()`.
+
+# create_sdr_weights() rejects survey_replicate input
+
+    Code
+      create_sdr_weights(rep)
+    Condition
+      Error in `.validate_replicate_input()`:
+      x `data` is already a <survey_replicate>.
+      i Replicate weights cannot be created from a design that already has replicates.
+
+# create_sdr_weights() rejects weighted_df input
+
+    Code
+      create_sdr_weights(wdf)
+    Condition
+      Error in `.validate_replicate_input()`:
+      x `data` is a <weighted_df>, not a survey design.
+      i This function requires a <survey_taylor> or <survey_nonprob> object.
+      v Convert with `surveycore::as_survey()`.
+
+# create_sdr_weights() rejects unsupported class
+
+    Code
+      create_sdr_weights(list(x = 1))
+    Condition
+      Error in `.validate_replicate_input()`:
+      x `data` is <list>, which is not a supported input class.
+      i Supported classes: <survey_taylor> and <survey_nonprob>.
+      v Use `surveycore::as_survey()` or `surveycore::survey_nonprob()`.
+
+# create_sdr_weights() rejects sort_var with NA
+
+    Code
+      create_sdr_weights(td, sort_var = sort_na)
+    Condition
+      Error in `create_sdr_weights()`:
+      x `sort_var` column sort_na contains 1 NA value(s).
+      v Remove rows with missing sort values before calling `create_sdr_weights()`.
+
+# create_sdr_weights() rejects replicates = 0
+
+    Code
+      create_sdr_weights(td, replicates = 0L)
+    Condition
+      Error in `.validate_replicates_arg()`:
+      x `replicates` must be at least 4, got 0.
+
+# create_sdr_weights() rejects replicates = 3 (boundary: min is 4)
+
+    Code
+      create_sdr_weights(td, replicates = 3L)
+    Condition
+      Error in `.validate_replicates_arg()`:
+      x `replicates` must be at least 4, got 3.
+
+# create_sdr_weights() rejects fractional replicates
+
+    Code
+      create_sdr_weights(td, replicates = 2.5)
+    Condition
+      Error in `.validate_replicates_arg()`:
+      x `replicates` must be a whole number, not 2.5.
+      v Use an integer value, e.g. `replicates = 2`.
+
+# create_sdr_weights() rejects survey_nonprob
+
+    Code
+      create_sdr_weights(np)
+    Condition
+      Error in `create_sdr_weights()`:
+      x `create_sdr_weights()` requires a probability-design structure.
+      i <survey_nonprob> has no PSU or stratum structure required by SDR.
+      v Use `create_bootstrap_weights()` for non-probability designs.
+

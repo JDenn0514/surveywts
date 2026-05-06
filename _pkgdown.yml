@@ -35,6 +35,7 @@ reference:
       - create_brr_weights
       - create_gen_boot_weights
       - create_gen_rep_weights
+      - create_sdr_weights
   - title: Diagnostics
     desc: >
       Functions for assessing the distribution and quality of survey weights.

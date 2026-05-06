@@ -15,7 +15,7 @@ IPF, epsilon-based convergence).'><meta property="og:image" content="https://jde
 
     <a class="navbar-brand me-2" href="../index.html">surveywts</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,7 +36,7 @@ IPF, epsilon-based convergence).'><meta property="og:image" content="https://jde
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Rake survey weights to marginal population totals</h1>
-      <small class="dont-index">Source: <a href="https://github.com/JDenn0514/surveywts/blob/v0.1.2/R/rake.R" class="external-link"><code>R/rake.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/JDenn0514/surveywts/blob/main/R/rake.R" class="external-link"><code>R/rake.R</code></a></small>
       <div class="d-none name"><code>rake.Rd</code></div>
     </div>
 
@@ -68,19 +68,19 @@ IPF, epsilon-based convergence).</p>
 
 <dl><dt id="arg-data">data<a class="anchor" aria-label="anchor" href="#arg-data"></a></dt>
 <dd><p>A <code>data.frame</code>, <code>weighted_df</code>, <code>survey_taylor</code>, or
-<code>survey_nonprob</code>. <code>survey_replicate</code> → error. Any other class → error.</p></dd>
+<code>survey_nonprob</code>. <code>survey_replicate</code> -&gt; error. Any other class -&gt; error.</p></dd>
 
 
 <dt id="arg-margins">margins<a class="anchor" aria-label="anchor" href="#arg-margins"></a></dt>
 <dd><p>Named list or data frame specifying population margin targets.</p>
-<p><strong>Format A — named list:</strong></p>
+<p><strong>Format A – named list:</strong></p>
 <p></p><div class="sourceCode r"><pre><code><span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>  age_group <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"18-34"</span> <span class="op">=</span> <span class="fl">0.28</span>, <span class="st">"35-54"</span> <span class="op">=</span> <span class="fl">0.37</span>, <span class="st">"55+"</span> <span class="op">=</span> <span class="fl">0.35</span><span class="op">)</span>,</span>
 <span>  sex       <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"M"</span> <span class="op">=</span> <span class="fl">0.49</span>, <span class="st">"F"</span> <span class="op">=</span> <span class="fl">0.51</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre><p></p></div>
 <p>Each element can be a named numeric vector or a data frame with columns
 <code>level</code> and <code>target</code> (formats can be mixed within the list).</p>
-<p><strong>Format B — long data frame</strong> with columns <code>variable</code>, <code>level</code>, <code>target</code>:</p>
+<p><strong>Format B – long data frame</strong> with columns <code>variable</code>, <code>level</code>, <code>target</code>:</p>
 <p></p><div class="sourceCode r"><pre><code><span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>  variable <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"age_group"</span>, <span class="st">"age_group"</span>, <span class="st">"sex"</span>, <span class="st">"sex"</span><span class="op">)</span>,</span>
 <span>  level    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"18-34"</span>, <span class="st">"35-54"</span>, <span class="st">"M"</span>, <span class="st">"F"</span><span class="op">)</span>,</span>
@@ -92,7 +92,7 @@ converted Format A is stored in the weighting history.</p></dd>
 
 <dt id="arg-weights">weights<a class="anchor" aria-label="anchor" href="#arg-weights"></a></dt>
 <dd><p>&lt;<code><a href="https://tidyselect.r-lib.org/reference/language.html" class="external-link">tidy-select</a></code>&gt; Weight column name
-(bare name). <code>NULL</code> → auto-detected from <code>weighted_df</code> attribute or
+(bare name). <code>NULL</code> -&gt; auto-detected from <code>weighted_df</code> attribute or
 survey object <code>@variables$weights</code>. For plain <code>data.frame</code> with
 <code>weights = NULL</code>, uniform starting weights are used and the output
 column is named by <code>wt_name</code> (default <code>"wts"</code>).</p></dd>
@@ -118,14 +118,14 @@ margins, with epsilon-based convergence, as in <code><a href="https://rdrr.io/pk
 
 <dt id="arg-cap">cap<a class="anchor" aria-label="anchor" href="#arg-cap"></a></dt>
 <dd><p>Numeric or <code>NULL</code>. Cap on the weight ratio <code>w / mean(w)</code>. Any
-weight exceeding <code>cap × mean(w)</code> is set to <code>cap × mean(w)</code>. Applied
+weight exceeding <code>cap * mean(w)</code> is set to <code>cap * mean(w)</code>. Applied
 after each per-margin adjustment step (not post-hoc). <code>NULL</code> (default)
 means no cap. Applies to both methods.</p></dd>
 
 
 <dt id="arg-control">control<a class="anchor" aria-label="anchor" href="#arg-control"></a></dt>
 <dd><p>Named list of algorithm parameters. Merged with
-method-specific defaults — omitted keys retain their defaults.</p>
+method-specific defaults. Omitted keys retain their defaults.</p>
 <p><strong><code>method = "anesrake"</code> defaults:</strong></p><ul><li><p><code>maxit = 1000</code>: maximum full sweeps</p></li>
 <li><p><code>improvement = 0.01</code>: percentage improvement convergence threshold</p></li>
 <li><p><code>pval = 0.05</code>: chi-square p-value threshold for variable selection</p></li>
@@ -142,8 +142,8 @@ ignored parameter.</p></dd>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
 
-<ul><li><p><code>data.frame</code> or <code>weighted_df</code> input → <code>weighted_df</code></p></li>
-<li><p><code>survey_taylor</code> or <code>survey_nonprob</code> input → same class as input
+<ul><li><p><code>data.frame</code> or <code>weighted_df</code> input -&gt; <code>weighted_df</code></p></li>
+<li><p><code>survey_taylor</code> or <code>survey_nonprob</code> input -&gt; same class as input
 (<code>survey_taylor</code> or <code>survey_nonprob</code>; class is preserved)</p></li>
 </ul><p>The weight column in the output contains raked weights. A history entry
 with <code>operation = "raking"</code> is appended to <code>weighting_history</code>.</p>

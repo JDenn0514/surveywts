@@ -8,7 +8,15 @@
 <url><loc>https://jdenn0514.github.io/surveywts/index.html</loc></url>
 <url><loc>https://jdenn0514.github.io/surveywts/news/index.html</loc></url>
 <url><loc>https://jdenn0514.github.io/surveywts/reference/adjust_nonresponse.html</loc></url>
+<url><loc>https://jdenn0514.github.io/surveywts/reference/as_taylor_design.html</loc></url>
 <url><loc>https://jdenn0514.github.io/surveywts/reference/calibrate.html</loc></url>
+<url><loc>https://jdenn0514.github.io/surveywts/reference/create_bootstrap_weights.html</loc></url>
+<url><loc>https://jdenn0514.github.io/surveywts/reference/create_brr_weights.html</loc></url>
+<url><loc>https://jdenn0514.github.io/surveywts/reference/create_gen_boot_weights.html</loc></url>
+<url><loc>https://jdenn0514.github.io/surveywts/reference/create_gen_rep_weights.html</loc></url>
+<url><loc>https://jdenn0514.github.io/surveywts/reference/create_jackknife_weights.html</loc></url>
+<url><loc>https://jdenn0514.github.io/surveywts/reference/create_replicate_weights.html</loc></url>
+<url><loc>https://jdenn0514.github.io/surveywts/reference/create_sdr_weights.html</loc></url>
 <url><loc>https://jdenn0514.github.io/surveywts/reference/effective_sample_size.html</loc></url>
 <url><loc>https://jdenn0514.github.io/surveywts/reference/index.html</loc></url>
 <url><loc>https://jdenn0514.github.io/surveywts/reference/poststratify.html</loc></url>

@@ -10,30 +10,30 @@ weighting history tracking for reproducible survey analysis workflows.
 
 **Calibration:**
 
-- [`calibrate()`](https://jdenn0514.github.io/surveywts/reference/calibrate.md)
-  — GREG (linear) or logit calibration to population totals
+- [`calibrate()`](https://jdenn0514.github.io/surveywts/reference/calibrate.md):
+  GREG (linear) or logit calibration to population totals
 
-- [`rake()`](https://jdenn0514.github.io/surveywts/reference/rake.md) —
+- [`rake()`](https://jdenn0514.github.io/surveywts/reference/rake.md):
   raking via iterative proportional fitting
 
-- [`poststratify()`](https://jdenn0514.github.io/surveywts/reference/poststratify.md)
-  — exact post-stratification to cell counts or proportions
+- [`poststratify()`](https://jdenn0514.github.io/surveywts/reference/poststratify.md):
+  exact post-stratification to cell counts or proportions
 
 **Nonresponse:**
 
-- [`adjust_nonresponse()`](https://jdenn0514.github.io/surveywts/reference/adjust_nonresponse.md)
-  — weighting-class nonresponse adjustment
+- [`adjust_nonresponse()`](https://jdenn0514.github.io/surveywts/reference/adjust_nonresponse.md):
+  weighting-class nonresponse adjustment
 
 **Diagnostics:**
 
-- [`effective_sample_size()`](https://jdenn0514.github.io/surveywts/reference/effective_sample_size.md)
-  — Kish effective sample size
+- [`effective_sample_size()`](https://jdenn0514.github.io/surveywts/reference/effective_sample_size.md):
+  Kish effective sample size
 
-- [`weight_variability()`](https://jdenn0514.github.io/surveywts/reference/weight_variability.md)
-  — coefficient of variation of weights
+- [`weight_variability()`](https://jdenn0514.github.io/surveywts/reference/weight_variability.md):
+  coefficient of variation of weights
 
-- [`summarize_weights()`](https://jdenn0514.github.io/surveywts/reference/summarize_weights.md)
-  — full weight distribution summary table
+- [`summarize_weights()`](https://jdenn0514.github.io/surveywts/reference/summarize_weights.md):
+  full weight distribution summary table
 
 ## See also
 

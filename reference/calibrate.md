@@ -24,7 +24,7 @@ calibrate(
 - data:
 
   A `data.frame`, `weighted_df`, `survey_taylor`, or `survey_nonprob`.
-  `survey_replicate` → error. Any other class → error.
+  `survey_replicate` -\> error. Any other class -\> error.
 
 - variables:
 
@@ -44,7 +44,7 @@ calibrate(
 - weights:
 
   \<[`tidy-select`](https://tidyselect.r-lib.org/reference/language.html)\>
-  Weight column name (bare name). `NULL` → auto-detected from
+  Weight column name (bare name). `NULL` -\> auto-detected from
   `weighted_df` attribute or survey object `@variables$weights`. For
   plain `data.frame` with `weights = NULL`, uniform starting weights are
   used and the output column is named by `wt_name` (default `"wts"`).
@@ -69,14 +69,14 @@ calibrate(
 - control:
 
   Named list of convergence parameters. Merged with defaults
-  `list(maxit = 50, epsilon = 1e-7)` — omitted keys retain their
+  `list(maxit = 50, epsilon = 1e-7)`. Omitted keys retain their
   defaults.
 
 ## Value
 
-- `data.frame` or `weighted_df` input → `weighted_df`
+- `data.frame` or `weighted_df` input -\> `weighted_df`
 
-- `survey_taylor` or `survey_nonprob` input → same class as input
+- `survey_taylor` or `survey_nonprob` input -\> same class as input
   (`survey_taylor` or `survey_nonprob`; class is preserved)
 
 The weight column in the output contains calibrated weights. A history

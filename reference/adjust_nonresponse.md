@@ -25,8 +25,8 @@ adjust_nonresponse(
 - data:
 
   A `data.frame`, `weighted_df`, `survey_taylor`, or `survey_nonprob`.
-  Must include BOTH respondents and nonrespondents. `survey_replicate` →
-  error. Any other class → error.
+  Must include BOTH respondents and nonrespondents. `survey_replicate`
+  -\> error. Any other class -\> error.
 
 - response_status:
 
@@ -35,7 +35,7 @@ adjust_nonresponse(
 
 - weights:
 
-  Bare name (NSE). Weight column. `NULL` → auto-detected from
+  Bare name (NSE). Weight column. `NULL` -\> auto-detected from
   `weighted_df` attribute or survey object `@variables$weights`. For
   plain `data.frame` with `weights = NULL`, uniform starting weights are
   used.
@@ -44,7 +44,7 @@ adjust_nonresponse(
 
   \<[`tidy-select`](https://tidyselect.r-lib.org/reference/language.html)\>
   Weighting class variables. Redistribution is performed within each
-  cell defined by the joint combination of these variables. `NULL` →
+  cell defined by the joint combination of these variables. `NULL` -\>
   global redistribution across all rows.
 
 - wt_name:
@@ -55,9 +55,10 @@ adjust_nonresponse(
 
 - method:
 
-  Character scalar. Adjustment method. In Phase 0, only
+  Character scalar. Adjustment method. Currently, only
   `"weighting-class"` is supported. `"propensity"` and
-  `"propensity-cell"` are API-stable stubs that error until Phase 2.
+  `"propensity-cell"` are API-stable stubs that error until the
+  Propensity release.
 
 - control:
 

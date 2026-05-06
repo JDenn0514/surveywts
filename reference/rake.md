@@ -26,13 +26,13 @@ rake(
 - data:
 
   A `data.frame`, `weighted_df`, `survey_taylor`, or `survey_nonprob`.
-  `survey_replicate` → error. Any other class → error.
+  `survey_replicate` -\> error. Any other class -\> error.
 
 - margins:
 
   Named list or data frame specifying population margin targets.
 
-  **Format A — named list:**
+  **Format A – named list:**
 
       list(
         age_group = c("18-34" = 0.28, "35-54" = 0.37, "55+" = 0.35),
@@ -42,7 +42,7 @@ rake(
   Each element can be a named numeric vector or a data frame with
   columns `level` and `target` (formats can be mixed within the list).
 
-  **Format B — long data frame** with columns `variable`, `level`,
+  **Format B – long data frame** with columns `variable`, `level`,
   `target`:
 
       data.frame(
@@ -57,7 +57,7 @@ rake(
 - weights:
 
   \<[`tidy-select`](https://tidyselect.r-lib.org/reference/language.html)\>
-  Weight column name (bare name). `NULL` → auto-detected from
+  Weight column name (bare name). `NULL` -\> auto-detected from
   `weighted_df` attribute or survey object `@variables$weights`. For
   plain `data.frame` with `weights = NULL`, uniform starting weights are
   used and the output column is named by `wt_name` (default `"wts"`).
@@ -84,14 +84,14 @@ rake(
 - cap:
 
   Numeric or `NULL`. Cap on the weight ratio `w / mean(w)`. Any weight
-  exceeding `cap × mean(w)` is set to `cap × mean(w)`. Applied after
+  exceeding `cap * mean(w)` is set to `cap * mean(w)`. Applied after
   each per-margin adjustment step (not post-hoc). `NULL` (default) means
   no cap. Applies to both methods.
 
 - control:
 
   Named list of algorithm parameters. Merged with method-specific
-  defaults — omitted keys retain their defaults.
+  defaults. Omitted keys retain their defaults.
 
   **`method = "anesrake"` defaults:**
 
@@ -120,9 +120,9 @@ rake(
 
 ## Value
 
-- `data.frame` or `weighted_df` input → `weighted_df`
+- `data.frame` or `weighted_df` input -\> `weighted_df`
 
-- `survey_taylor` or `survey_nonprob` input → same class as input
+- `survey_taylor` or `survey_nonprob` input -\> same class as input
   (`survey_taylor` or `survey_nonprob`; class is preserved)
 
 The weight column in the output contains raked weights. A history entry

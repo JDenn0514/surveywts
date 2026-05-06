@@ -13,7 +13,7 @@ adjusted upward to conserve the total weight within each cell."><meta property="
 
     <a class="navbar-brand me-2" href="../index.html">surveywts</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,7 +34,7 @@ adjusted upward to conserve the total weight within each cell."><meta property="
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Adjust survey weights for unit nonresponse</h1>
-      <small class="dont-index">Source: <a href="https://github.com/JDenn0514/surveywts/blob/v0.1.2/R/nonresponse.R" class="external-link"><code>R/nonresponse.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/JDenn0514/surveywts/blob/main/R/nonresponse.R" class="external-link"><code>R/nonresponse.R</code></a></small>
       <div class="d-none name"><code>adjust_nonresponse.Rd</code></div>
     </div>
 
@@ -65,7 +65,7 @@ adjusted upward to conserve the total weight within each cell.</p>
 <dl><dt id="arg-data">data<a class="anchor" aria-label="anchor" href="#arg-data"></a></dt>
 <dd><p>A <code>data.frame</code>, <code>weighted_df</code>, <code>survey_taylor</code>, or
 <code>survey_nonprob</code>. Must include BOTH respondents and nonrespondents.
-<code>survey_replicate</code> → error. Any other class → error.</p></dd>
+<code>survey_replicate</code> -&gt; error. Any other class -&gt; error.</p></dd>
 
 
 <dt id="arg-response-status">response_status<a class="anchor" aria-label="anchor" href="#arg-response-status"></a></dt>
@@ -74,7 +74,7 @@ Must be <code>logical</code> or integer <code>0</code>/<code>1</code>. <code>1</
 
 
 <dt id="arg-weights">weights<a class="anchor" aria-label="anchor" href="#arg-weights"></a></dt>
-<dd><p>Bare name (NSE). Weight column. <code>NULL</code> → auto-detected from
+<dd><p>Bare name (NSE). Weight column. <code>NULL</code> -&gt; auto-detected from
 <code>weighted_df</code> attribute or survey object <code>@variables$weights</code>. For plain
 <code>data.frame</code> with <code>weights = NULL</code>, uniform starting weights are used.</p></dd>
 
@@ -82,7 +82,7 @@ Must be <code>logical</code> or integer <code>0</code>/<code>1</code>. <code>1</
 <dt id="arg-by">by<a class="anchor" aria-label="anchor" href="#arg-by"></a></dt>
 <dd><p>&lt;<code><a href="https://tidyselect.r-lib.org/reference/language.html" class="external-link">tidy-select</a></code>&gt; Weighting class variables.
 Redistribution is performed within each cell defined by the joint
-combination of these variables. <code>NULL</code> → global redistribution across
+combination of these variables. <code>NULL</code> -&gt; global redistribution across
 all rows.</p></dd>
 
 
@@ -93,9 +93,9 @@ object (<code>survey_taylor</code> or <code>survey_nonprob</code>).</p></dd>
 
 
 <dt id="arg-method">method<a class="anchor" aria-label="anchor" href="#arg-method"></a></dt>
-<dd><p>Character scalar. Adjustment method. In Phase 0, only
+<dd><p>Character scalar. Adjustment method. Currently, only
 <code>"weighting-class"</code> is supported. <code>"propensity"</code> and <code>"propensity-cell"</code>
-are API-stable stubs that error until Phase 2.</p></dd>
+are API-stable stubs that error until the Propensity release.</p></dd>
 
 
 <dt id="arg-control">control<a class="anchor" aria-label="anchor" href="#arg-control"></a></dt>

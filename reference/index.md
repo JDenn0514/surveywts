@@ -18,6 +18,27 @@ Functions for adjusting survey weights for unit nonresponse.
 - [`adjust_nonresponse()`](https://jdenn0514.github.io/surveywts/reference/adjust_nonresponse.md)
   : Adjust survey weights for unit nonresponse
 
+## Replicate Weights
+
+Functions for creating replicate weights for variance estimation.
+
+- [`create_bootstrap_weights()`](https://jdenn0514.github.io/surveywts/reference/create_bootstrap_weights.md)
+  : Create bootstrap replicate weights
+- [`create_jackknife_weights()`](https://jdenn0514.github.io/surveywts/reference/create_jackknife_weights.md)
+  : Create jackknife replicate weights
+- [`create_brr_weights()`](https://jdenn0514.github.io/surveywts/reference/create_brr_weights.md)
+  : Create BRR (Fay) replicate weights
+- [`create_gen_boot_weights()`](https://jdenn0514.github.io/surveywts/reference/create_gen_boot_weights.md)
+  : Create generalized bootstrap replicate weights
+- [`create_gen_rep_weights()`](https://jdenn0514.github.io/surveywts/reference/create_gen_rep_weights.md)
+  : Create generalized replication replicate weights
+- [`create_sdr_weights()`](https://jdenn0514.github.io/surveywts/reference/create_sdr_weights.md)
+  : Create successive difference replication (SDR) weights
+- [`create_replicate_weights()`](https://jdenn0514.github.io/surveywts/reference/create_replicate_weights.md)
+  : Create replicate weights (dispatcher)
+- [`as_taylor_design()`](https://jdenn0514.github.io/surveywts/reference/as_taylor_design.md)
+  : Convert a replicate design back to a Taylor design
+
 ## Diagnostics
 
 Functions for assessing the distribution and quality of survey weights.

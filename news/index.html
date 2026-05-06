@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">surveywts</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -28,9 +28,32 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Changelog</h1>
-      <small>Source: <a href="https://github.com/JDenn0514/surveywts/blob/v0.1.2/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
+      <small>Source: <a href="https://github.com/JDenn0514/surveywts/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.2.0" id="surveywts-020">surveywts 0.2.0<a class="anchor" aria-label="anchor" href="#surveywts-020"></a></h2>
+<div class="section level3">
+<h3 id="replicate-weight-generation-0-2-0">Replicate weight generation<a class="anchor" aria-label="anchor" href="#replicate-weight-generation-0-2-0"></a></h3>
+<p>This release adds a full suite of replicate weight functions for variance estimation.</p>
+<div class="section level4">
+<h4 id="new-functions-0-2-0">New functions<a class="anchor" aria-label="anchor" href="#new-functions-0-2-0"></a></h4>
+<ul><li><p><code><a href="../reference/create_bootstrap_weights.html">create_bootstrap_weights()</a></code>: Generates bootstrap replicate weights from a <code>survey_taylor</code> or <code>survey_nonprob</code> design, wrapping <code><a href="https://bschneidr.github.io/svrep/reference/as_bootstrap_design.html" class="external-link">svrep::as_bootstrap_design()</a></code>.</p></li>
+<li><p><code><a href="../reference/create_jackknife_weights.html">create_jackknife_weights()</a></code>: Generates jackknife replicate weights with two strategies: <code>type = "delete-1"</code> (JK1 for unstratified, JKn for stratified designs; supports <code>survey_nonprob</code>) and <code>type = "random-groups"</code> (random-group jackknife via <code>svrep</code>).</p></li>
+<li><p><code><a href="../reference/create_brr_weights.html">create_brr_weights()</a></code>: Generates balanced repeated replication (BRR) weights from paired-PSU designs. A <code>rho</code> argument enables Fay’s BRR variant.</p></li>
+<li><p><code><a href="../reference/create_gen_boot_weights.html">create_gen_boot_weights()</a></code>: Generates generalized bootstrap replicate weights via <code><a href="https://bschneidr.github.io/svrep/reference/as_gen_boot_design.html" class="external-link">svrep::as_gen_boot_design()</a></code>, supporting 12 variance estimators including Horvitz-Thompson, Yates-Grundy, and Deville-Tille.</p></li>
+<li><p><code><a href="../reference/create_gen_rep_weights.html">create_gen_rep_weights()</a></code>: Generates Fay’s generalized replication weights via <code><a href="https://bschneidr.github.io/svrep/reference/as_fays_gen_rep_design.html" class="external-link">svrep::as_fays_gen_rep_design()</a></code>, with the same set of variance estimators and a <code>seed</code> argument for reproducibility.</p></li>
+<li><p><code><a href="../reference/create_sdr_weights.html">create_sdr_weights()</a></code>: Generates successive difference replication (SDR) weights via <code><a href="https://bschneidr.github.io/svrep/reference/as_sdr_design.html" class="external-link">svrep::as_sdr_design()</a></code>, with an optional <code>sort_var</code> argument for systematic selection order.</p></li>
+<li><p><code><a href="../reference/create_replicate_weights.html">create_replicate_weights()</a></code>: Unified dispatcher that routes to the appropriate <code>create_*_weights()</code> function based on a <code>method</code> argument.</p></li>
+<li><p><code><a href="../reference/as_taylor_design.html">as_taylor_design()</a></code>: Reconstructs a <code>survey_taylor</code> design from a <code>survey_replicate</code>, reading the original design structure from the weighting history.</p></li>
+</ul></div>
+<div class="section level4">
+<h4 id="new-methods-0-2-0">New methods<a class="anchor" aria-label="anchor" href="#new-methods-0-2-0"></a></h4>
+<ul><li>
+<code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> for <code>survey_replicate</code> objects displays the design type, replicate count, scale, weight summary, and full weighting history.</li>
+</ul></div>
+</div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.2" id="surveywts-012">surveywts 0.1.2<a class="anchor" aria-label="anchor" href="#surveywts-012"></a></h2>
 <div class="section level3">
@@ -72,7 +95,7 @@
 <li><p><code><a href="../reference/poststratify.html">poststratify()</a></code> now defaults to <code>type = "prop"</code>, consistent with <code><a href="../reference/calibrate.html">calibrate()</a></code> and <code><a href="../reference/rake.html">rake()</a></code>. Existing code that relies on the count default should add explicit <code>type = "count"</code>.</p></li>
 </ul></div>
 <div class="section level3">
-<h3 id="phase-weighting-core-0-1-0">Phase 0: Weighting Core<a class="anchor" aria-label="anchor" href="#phase-weighting-core-0-1-0"></a></h3>
+<h3 id="calibration-weighting-core-0-1-0">Calibration: Weighting Core<a class="anchor" aria-label="anchor" href="#calibration-weighting-core-0-1-0"></a></h3>
 <p>This is the first release of surveywts, implementing the core survey weighting workflow.</p>
 <div class="section level4">
 <h4 id="new-classes-0-1-0">New classes<a class="anchor" aria-label="anchor" href="#new-classes-0-1-0"></a></h4>
@@ -84,7 +107,7 @@
 <ul><li><p><code><a href="../reference/calibrate.html">calibrate()</a></code>: Calibrate survey weights to known marginal population totals using linear (GREG) or logit (bounded IRLS) calibration for categorical auxiliary variables.</p></li>
 <li><p><code><a href="../reference/rake.html">rake()</a></code>: Iterative proportional fitting to marginal population targets. Supports two methods: <code>"anesrake"</code> (chi-square variable selection with improvement-based convergence) and <code>"survey"</code> (fixed-order IPF with epsilon-based convergence). Margins may be a named list or a long data frame with <code>variable</code>, <code>level</code>, and <code>target</code> columns.</p></li>
 <li><p><code><a href="../reference/poststratify.html">poststratify()</a></code>: Exact post-stratification to known joint population cell counts or proportions in a single non-iterative pass.</p></li>
-<li><p><code><a href="../reference/adjust_nonresponse.html">adjust_nonresponse()</a></code>: Weighting-class nonresponse adjustment that redistributes nonrespondent weights to respondents within cells defined by <code>by</code>. Methods <code>"propensity"</code> and <code>"propensity-cell"</code> are stubbed for Phase 2.</p></li>
+<li><p><code><a href="../reference/adjust_nonresponse.html">adjust_nonresponse()</a></code>: Weighting-class nonresponse adjustment that redistributes nonrespondent weights to respondents within cells defined by <code>by</code>. Methods <code>"propensity"</code> and <code>"propensity-cell"</code> are stubbed for the Propensity release.</p></li>
 <li><p><code><a href="../reference/effective_sample_size.html">effective_sample_size()</a></code>: Kish’s effective sample size (<code>ESS = (Σw)² / Σw²</code>).</p></li>
 <li><p><code><a href="../reference/weight_variability.html">weight_variability()</a></code>: Coefficient of variation of survey weights.</p></li>
 <li><p><code><a href="../reference/summarize_weights.html">summarize_weights()</a></code>: Full distributional summary (n, mean, CV, ESS, percentiles), optionally grouped by one or more variables.</p></li>

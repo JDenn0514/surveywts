@@ -33,6 +33,7 @@ reference:
       - create_bootstrap_weights
       - create_jackknife_weights
       - create_brr_weights
+      - create_gen_boot_weights
   - title: Diagnostics
     desc: >
       Functions for assessing the distribution and quality of survey weights.

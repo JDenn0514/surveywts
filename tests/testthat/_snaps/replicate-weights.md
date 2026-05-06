@@ -249,3 +249,86 @@
       x `rho` must satisfy 0 <= rho < 1; got 1.
       i `rho` = 0 gives standard BRR; `rho` > 0 gives Fay's BRR variant.
 
+# create_gen_boot_weights() rejects data.frame input
+
+    Code
+      create_gen_boot_weights(df)
+    Condition
+      Error in `.validate_replicate_input()`:
+      x `data` is a <data.frame>, not a survey design.
+      i This function requires a <survey_taylor> or <survey_nonprob> object.
+      v Convert with `surveycore::as_survey()`.
+
+# create_gen_boot_weights() rejects survey_replicate input
+
+    Code
+      create_gen_boot_weights(rep)
+    Condition
+      Error in `.validate_replicate_input()`:
+      x `data` is already a <survey_replicate>.
+      i Replicate weights cannot be created from a design that already has replicates.
+
+# create_gen_boot_weights() rejects weighted_df input
+
+    Code
+      create_gen_boot_weights(wdf)
+    Condition
+      Error in `.validate_replicate_input()`:
+      x `data` is a <weighted_df>, not a survey design.
+      i This function requires a <survey_taylor> or <survey_nonprob> object.
+      v Convert with `surveycore::as_survey()`.
+
+# create_gen_boot_weights() rejects unsupported class
+
+    Code
+      create_gen_boot_weights(list(x = 1))
+    Condition
+      Error in `.validate_replicate_input()`:
+      x `data` is <list>, which is not a supported input class.
+      i Supported classes: <survey_taylor> and <survey_nonprob>.
+      v Use `surveycore::as_survey()` or `surveycore::survey_nonprob()`.
+
+# create_gen_boot_weights() rejects replicates = 0
+
+    Code
+      create_gen_boot_weights(td, replicates = 0L)
+    Condition
+      Error in `.validate_replicates_arg()`:
+      x `replicates` must be at least 2, got 0.
+
+# create_gen_boot_weights() rejects replicates = 1 (boundary: min is 2)
+
+    Code
+      create_gen_boot_weights(td, replicates = 1L)
+    Condition
+      Error in `.validate_replicates_arg()`:
+      x `replicates` must be at least 2, got 1.
+
+# create_gen_boot_weights() rejects fractional replicates
+
+    Code
+      create_gen_boot_weights(td, replicates = 2.5)
+    Condition
+      Error in `.validate_replicates_arg()`:
+      x `replicates` must be a whole number, not 2.5.
+      v Use an integer value, e.g. `replicates = 2`.
+
+# create_gen_boot_weights() rejects Deville-Tille without aux_var_names
+
+    Code
+      create_gen_boot_weights(td, variance_estimator = "Deville-Tille")
+    Condition
+      Error in `create_gen_boot_weights()`:
+      x `variance_estimator = "Deville-Tille"` requires `aux_var_names`.
+      v Pass column names, e.g. `aux_var_names = c(x1, x2)`.
+
+# create_gen_boot_weights() rejects survey_nonprob
+
+    Code
+      create_gen_boot_weights(np)
+    Condition
+      Error in `create_gen_boot_weights()`:
+      x `create_gen_boot_weights()` requires a probability-design structure.
+      i <survey_nonprob> has no PSU or stratum structure required by this method.
+      v Use `create_bootstrap_weights()` for non-probability designs.
+

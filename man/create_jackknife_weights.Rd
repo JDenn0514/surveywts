@@ -43,6 +43,7 @@ delete-1) or \code{\link[svrep:as_random_group_jackknife_design]{svrep::as_rando
 Other replicate-weights: 
 \code{\link{create_bootstrap_weights}()},
 \code{\link{create_brr_weights}()},
-\code{\link{create_gen_boot_weights}()}
+\code{\link{create_gen_boot_weights}()},
+\code{\link{create_gen_rep_weights}()}
 }
 \concept{replicate-weights}

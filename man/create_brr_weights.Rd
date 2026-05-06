@@ -29,6 +29,7 @@ per stratum).
 Other replicate-weights: 
 \code{\link{create_bootstrap_weights}()},
 \code{\link{create_gen_boot_weights}()},
+\code{\link{create_gen_rep_weights}()},
 \code{\link{create_jackknife_weights}()}
 }
 \concept{replicate-weights}

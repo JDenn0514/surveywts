@@ -63,6 +63,18 @@
         )
       }
     },
+    "replicate_creation" = {
+      method_str <- entry$method
+      params     <- entry$parameters
+      n_rep      <- params$replicates
+      type_str <- if (!is.null(params$type)) {
+        paste0(", type = \"", params$type, "\"")
+      } else {
+        ""
+      }
+      rep_str <- if (!is.null(n_rep)) paste0(", replicates = ", n_rep) else ""
+      paste0("replicate_creation (method = \"", method_str, "\"", type_str, rep_str, ")")
+    },
     op # default: just the operation name
   )
 
@@ -269,13 +281,13 @@
             "{.cls {class(col)[[1]]}}."
           ),
           "i" = paste0(
-            "Phase 0 supports categorical (character or factor) ",
-            "variables only."
+            "Currently only categorical (character or factor) ",
+            "variables are supported."
           ),
           "v" = paste0(
             "Convert to factor or character. ",
             "Continuous auxiliary variable calibration is not ",
-            "supported in Phase 0."
+            "currently supported."
           )
         ),
         class = "surveywts_error_variable_not_categorical"
@@ -614,9 +626,9 @@
   if (S7::S7_inherits(data, surveycore::survey_replicate)) {
     cli::cli_abort(
       c(
-        "x" = "{.cls survey_replicate} objects are not supported in Phase 0.",
-        "i" = "Replicate-weight support requires Phase 1.",
-        "v" = "Use a {.cls survey_taylor} design, or wait for Phase 1."
+        "x" = "{.cls survey_replicate} objects are not yet supported.",
+        "i" = "Replicate-weight support requires the Replicate release.",
+        "v" = "Use a {.cls survey_taylor} design, or wait for the Replicate release."
       ),
       class = "surveywts_error_replicate_not_supported"
     )
@@ -652,10 +664,10 @@
 .get_history <- function(x) {
   if (inherits(x, "weighted_df")) {
     wh <- attr(x, "weighting_history")
-    if (is.null(wh)) list() else wh
+    if (is.null(wh)) list() else wh # nocov
   } else if (S7::S7_inherits(x, surveycore::survey_base)) {
     wh <- x@metadata@weighting_history
-    if (is.null(wh)) list() else wh
+    if (is.null(wh)) list() else wh # nocov
   } else {
     list()
   }
@@ -1058,6 +1070,10 @@
       )
     }
 
+    # nocov start
+    # Defensive: anesrake returns iterations = 0 only when it throws "No
+    # variables are off", which is caught above and returns early. This branch
+    # cannot be reached via the public API.
     if (result$iterations == 0L) {
       cli::cli_inform(
         c("i" = paste0(
@@ -1067,6 +1083,7 @@
         class = "surveywts_message_already_calibrated"
       )
     }
+    # nocov end
 
     new_weights <- as.numeric(result$weightvec)
 

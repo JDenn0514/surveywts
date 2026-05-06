@@ -17,11 +17,11 @@ rake(
 }
 \arguments{
 \item{data}{A \code{data.frame}, \code{weighted_df}, \code{survey_taylor}, or
-\code{survey_nonprob}. \code{survey_replicate} → error. Any other class → error.}
+\code{survey_nonprob}. \code{survey_replicate} -> error. Any other class -> error.}
 
 \item{margins}{Named list or data frame specifying population margin targets.
 
-\strong{Format A — named list:}
+\strong{Format A -- named list:}
 
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{list(
   age_group = c("18-34" = 0.28, "35-54" = 0.37, "55+" = 0.35),
@@ -32,7 +32,7 @@ rake(
 Each element can be a named numeric vector or a data frame with columns
 \code{level} and \code{target} (formats can be mixed within the list).
 
-\strong{Format B — long data frame} with columns \code{variable}, \code{level}, \code{target}:
+\strong{Format B -- long data frame} with columns \code{variable}, \code{level}, \code{target}:
 
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{data.frame(
   variable = c("age_group", "age_group", "sex", "sex"),
@@ -45,7 +45,7 @@ Format B is auto-detected and converted to Format A before use. The
 converted Format A is stored in the weighting history.}
 
 \item{weights}{<\code{\link[tidyselect:language]{tidy-select}}> Weight column name
-(bare name). \code{NULL} → auto-detected from \code{weighted_df} attribute or
+(bare name). \code{NULL} -> auto-detected from \code{weighted_df} attribute or
 survey object \verb{@variables$weights}. For plain \code{data.frame} with
 \code{weights = NULL}, uniform starting weights are used and the output
 column is named by \code{wt_name} (default \code{"wts"}).}
@@ -63,12 +63,12 @@ the \code{anesrake} package. \code{"survey"}: fixed-order IPF cycling through al
 margins, with epsilon-based convergence, as in \code{survey::rake()}.}
 
 \item{cap}{Numeric or \code{NULL}. Cap on the weight ratio \code{w / mean(w)}. Any
-weight exceeding \verb{cap × mean(w)} is set to \verb{cap × mean(w)}. Applied
+weight exceeding \code{cap * mean(w)} is set to \code{cap * mean(w)}. Applied
 after each per-margin adjustment step (not post-hoc). \code{NULL} (default)
 means no cap. Applies to both methods.}
 
 \item{control}{Named list of algorithm parameters. Merged with
-method-specific defaults — omitted keys retain their defaults.
+method-specific defaults. Omitted keys retain their defaults.
 
 \strong{\code{method = "anesrake"} defaults:}
 \itemize{
@@ -92,8 +92,8 @@ ignored parameter.}
 }
 \value{
 \itemize{
-\item \code{data.frame} or \code{weighted_df} input → \code{weighted_df}
-\item \code{survey_taylor} or \code{survey_nonprob} input → same class as input
+\item \code{data.frame} or \code{weighted_df} input -> \code{weighted_df}
+\item \code{survey_taylor} or \code{survey_nonprob} input -> same class as input
 (\code{survey_taylor} or \code{survey_nonprob}; class is preserved)
 }
 

@@ -6,25 +6,26 @@ surveywts provides tools for survey weighting and calibration.
 
 ---
 
-## Current Phase Status
+## Release Status
 
-| Phase | Tag | Status | Notes |
-|-------|-----|--------|-------|
-| Phase 0 — Calibration Core | `v0.1.0` | ✅ Complete | `survey_nonprob`, `calibrate()`, `rake()`, `poststratify()`, basic diagnostics |
-| Phase 1 — Replicate Weights | `v0.2.0` | 🔜 Next | All `create_*_weights()` functions; unlocks bootstrap variance in `survey_nonprob` |
-| Phase 2 — Nonresponse & Advanced Calibration | `v0.3.0` | ⬜ Pending | `calibrate_to_sample()`, weighting-class nonresponse |
-| Phase 3 — Propensity Score Weighting | `v0.4.0` | ⬜ Pending | IPW for causal inference; unlocks propensity nonresponse |
-| Phase 4 — Diagnostics & Utilities | `v0.5.0` | ⬜ Pending | Balance assessment, `trim_weights()`, `stabilize_weights()` |
-| Phase 5 — Polish & CRAN | `v1.0.0` | ⬜ Pending | Vignettes, `--as-cran` clean, pkgdown |
+| Release | Tag | Status | Notes |
+|---------|-----|--------|-------|
+| Calibration | `v0.1.0` | ✅ Complete | `survey_nonprob`, `calibrate()`, `rake()`, `poststratify()`, basic diagnostics |
+| Replicate | minor bump | 🔜 Next | All `create_*_weights()` functions; unlocks bootstrap variance in `survey_nonprob` |
+| Utilities | minor bump | ⬜ Pending | `trim_weights()`, `stabilize_weights()` |
+| Nonresponse | minor bump | ⬜ Pending | `calibrate_to_sample()`, weighting-class nonresponse |
+| Propensity | minor bump | ⬜ Pending | IPW for causal inference; unlocks propensity nonresponse |
+| Diagnostics | minor bump | ⬜ Pending | Balance assessment, `check_balance()`, `diagnose_propensity()`, `compare_weighted_estimates()` |
+| Polish | minor bump | ⬜ Pending | Vignettes, `--as-cran` clean, pkgdown |
 
-**Next action:** Begin Phase 1. Start with `/spec-workflow` to draft the spec.
+**Next action:** Begin Replicate. Start with `/spec-workflow` to draft the spec.
 Full roadmap at `plans/roadmap.md`.
 
 ---
 
 ## Naming Conventions
 
-> To be filled in as Phase 0 API is designed. See `plans/` for specs.
+> To be filled in as the Calibration API is designed. See `plans/` for specs.
 
 - Error classes: `surveywts_error_{snake_case_condition}`
 - Warning classes: `surveywts_warning_{snake_case_condition}`

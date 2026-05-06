@@ -190,7 +190,7 @@ poststratify <- function(
 
   # ---- 11. Check for empty strata cells (defensive guard) -----------------
   # With positive starting weights (enforced by .validate_weights), N_hat_h
-  # is always > 0 in Phase 0. This guard protects Phase 1+ scenarios.
+  # is always > 0 in the Calibration release. This guard protects Replicate+ scenarios.
   for (i in seq_along(cells)) {
     n_hat_h <- sum(weights_vec[cells[[i]]$indices])
     # nocov start

@@ -379,6 +379,48 @@ test_that("print method for survey_nonprob handles NULL ids, NULL strata, empty 
 # 4c. print.weighted_df — history with calibration, poststratify, null-by nonresponse
 # ---------------------------------------------------------------------------
 
+test_that("print.weighted_df() formats replicate_creation history entry", {
+  # Covers .format_history_step() "replicate_creation" branch — utils.R lines 67-76
+  ts <- as.POSIXct("2025-01-15 12:00:00", tz = "UTC")
+  history <- list(
+    list(
+      step      = 1L,
+      operation = "replicate_creation",
+      timestamp = ts,
+      method    = "bootstrap",
+      parameters = list(type = "Rao-Wu-Yue-Beaumont", replicates = 50L, mse = TRUE)
+    )
+  )
+  wdf <- structure(
+    tibble::tibble(x = 1:5, w = c(1.0, 1.2, 0.8, 1.1, 0.9)),
+    class = c("weighted_df", "tbl_df", "tbl", "data.frame"),
+    weight_col = "w",
+    weighting_history = history
+  )
+  expect_snapshot(print(wdf))
+})
+
+test_that("print.weighted_df() formats replicate_creation entry with no type", {
+  # Covers .format_history_step() type_str else branch — utils.R line 73
+  ts <- as.POSIXct("2025-01-15 12:00:00", tz = "UTC")
+  history <- list(
+    list(
+      step      = 1L,
+      operation = "replicate_creation",
+      timestamp = ts,
+      method    = "bootstrap",
+      parameters = list(type = NULL, replicates = 50L, mse = TRUE)
+    )
+  )
+  wdf <- structure(
+    tibble::tibble(x = 1:5, w = c(1.0, 1.2, 0.8, 1.1, 0.9)),
+    class = c("weighted_df", "tbl_df", "tbl", "data.frame"),
+    weight_col = "w",
+    weighting_history = history
+  )
+  expect_snapshot(print(wdf))
+})
+
 test_that("print.weighted_df() formats calibration, poststratify, and null-by nonresponse entries", {
   # Covers .format_history_step() branches:
   #   "calibration"              → utils.R lines 44-45

@@ -24,9 +24,9 @@
       adjust_nonresponse(rep_design, response_status = responded)
     Condition
       Error in `.check_input_class()`:
-      x <survey_replicate> objects are not supported in Phase 0.
-      i Replicate-weight support requires Phase 1.
-      v Use a <survey_taylor> design, or wait for Phase 1.
+      x <survey_replicate> objects are not yet supported.
+      i Replicate-weight support requires the Replicate release.
+      v Use a <survey_taylor> design, or wait for the Replicate release.
 
 # adjust_nonresponse() rejects missing weight column (SE-4)
 
@@ -150,24 +150,24 @@
       i Cannot redistribute nonrespondent weights to an empty respondent cell.
       v Collapse weighting classes to ensure each cell has at least one respondent.
 
-# adjust_nonresponse() rejects method = 'propensity' (Phase 2 stub)
+# adjust_nonresponse() rejects method = 'propensity' (not-yet-available stub)
 
     Code
       adjust_nonresponse(df, response_status = responded, method = "propensity")
     Condition
       Error in `adjust_nonresponse()`:
-      x `method = "propensity"` is not available in Phase 0.
-      i Propensity-based methods ("\"propensity\"" and "\"propensity-cell\"") require Phase 2 (v0.3.0).
+      x `method = "propensity"` is not yet available.
+      i Propensity-based methods ("\"propensity\"" and "\"propensity-cell\"") require the Propensity release.
       v Use `method = "weighting-class"` for now.
 
-# adjust_nonresponse() rejects method = 'propensity-cell' (Phase 2 stub)
+# adjust_nonresponse() rejects method = 'propensity-cell' (not-yet-available stub)
 
     Code
       adjust_nonresponse(df, response_status = responded, method = "propensity-cell")
     Condition
       Error in `adjust_nonresponse()`:
-      x `method = "propensity-cell"` is not available in Phase 0.
-      i Propensity-based methods ("\"propensity\"" and "\"propensity-cell\"") require Phase 2 (v0.3.0).
+      x `method = "propensity-cell"` is not yet available.
+      i Propensity-based methods ("\"propensity\"" and "\"propensity-cell\"") require the Propensity release.
       v Use `method = "weighting-class"` for now.
 
 # adjust_nonresponse() warns when a cell has fewer than 20 respondents

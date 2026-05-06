@@ -1,3 +1,45 @@
+# surveywts 0.2.0
+
+## Replicate weight generation
+
+This release adds a full suite of replicate weight functions for variance estimation.
+
+### New functions
+
+* `create_bootstrap_weights()`: Generates bootstrap replicate weights from a
+  `survey_taylor` or `survey_nonprob` design, wrapping `svrep::as_bootstrap_design()`.
+
+* `create_jackknife_weights()`: Generates jackknife replicate weights with two
+  strategies: `type = "delete-1"` (JK1 for unstratified, JKn for stratified designs;
+  supports `survey_nonprob`) and `type = "random-groups"` (random-group jackknife
+  via `svrep`).
+
+* `create_brr_weights()`: Generates balanced repeated replication (BRR) weights from
+  paired-PSU designs. A `rho` argument enables Fay's BRR variant.
+
+* `create_gen_boot_weights()`: Generates generalized bootstrap replicate weights via
+  `svrep::as_gen_boot_design()`, supporting 12 variance estimators including
+  Horvitz-Thompson, Yates-Grundy, and Deville-Tille.
+
+* `create_gen_rep_weights()`: Generates Fay's generalized replication weights via
+  `svrep::as_fays_gen_rep_design()`, with the same set of variance estimators and
+  a `seed` argument for reproducibility.
+
+* `create_sdr_weights()`: Generates successive difference replication (SDR) weights
+  via `svrep::as_sdr_design()`, with an optional `sort_var` argument for
+  systematic selection order.
+
+* `create_replicate_weights()`: Unified dispatcher that routes to the appropriate
+  `create_*_weights()` function based on a `method` argument.
+
+* `as_taylor_design()`: Reconstructs a `survey_taylor` design from a
+  `survey_replicate`, reading the original design structure from the weighting history.
+
+### New methods
+
+* `print()` for `survey_replicate` objects displays the design type, replicate count,
+  scale, weight summary, and full weighting history.
+
 # surveywts 0.1.2
 
 ## Breaking changes
@@ -69,7 +111,7 @@
   `calibrate()` and `rake()`. Existing code that relies on the count default
   should add explicit `type = "count"`.
 
-## Phase 0: Weighting Core
+## Calibration: Weighting Core
 
 This is the first release of surveywts, implementing the core survey weighting
 workflow.
@@ -103,7 +145,7 @@ workflow.
 
 - `adjust_nonresponse()`: Weighting-class nonresponse adjustment that
   redistributes nonrespondent weights to respondents within cells defined by
-  `by`. Methods `"propensity"` and `"propensity-cell"` are stubbed for Phase 2.
+  `by`. Methods `"propensity"` and `"propensity-cell"` are stubbed for the Propensity release.
 
 - `effective_sample_size()`: Kish's effective sample size (`ESS = (Σw)² / Σw²`).
 

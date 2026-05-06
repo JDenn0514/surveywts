@@ -553,15 +553,15 @@ test_that("adjust_nonresponse() rejects by-cell with no respondents", {
 })
 
 # ---------------------------------------------------------------------------
-# 13. Error — propensity_requires_phase2
+# 13. Error — propensity_not_available
 # ---------------------------------------------------------------------------
 
-test_that("adjust_nonresponse() rejects method = 'propensity' (Phase 2 stub)", {
+test_that("adjust_nonresponse() rejects method = 'propensity' (not-yet-available stub)", {
   df <- make_surveywts_data(seed = 17, include_nonrespondents = TRUE)
 
   expect_error(
     adjust_nonresponse(df, response_status = responded, method = "propensity"),
-    class = "surveywts_error_propensity_requires_phase2"
+    class = "surveywts_error_propensity_not_available"
   )
   expect_snapshot(
     error = TRUE,
@@ -569,12 +569,12 @@ test_that("adjust_nonresponse() rejects method = 'propensity' (Phase 2 stub)", {
   )
 })
 
-test_that("adjust_nonresponse() rejects method = 'propensity-cell' (Phase 2 stub)", {
+test_that("adjust_nonresponse() rejects method = 'propensity-cell' (not-yet-available stub)", {
   df <- make_surveywts_data(seed = 18, include_nonrespondents = TRUE)
 
   expect_error(
     adjust_nonresponse(df, response_status = responded, method = "propensity-cell"),
-    class = "surveywts_error_propensity_requires_phase2"
+    class = "surveywts_error_propensity_not_available"
   )
   expect_snapshot(
     error = TRUE,

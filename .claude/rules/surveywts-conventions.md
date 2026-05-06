@@ -1,7 +1,7 @@
 # surveywts R Package Conventions
 
-**Version:** 1.0 — Phase 0 API complete
-**Status:** Stable for Phase 0
+**Version:** 1.0 — Calibration API complete
+**Status:** Stable for Calibration
 
 This document extends the **generic R package conventions** (`r-package-conventions.md`)
 with surveywts-specific examples and detailed guidance.
@@ -46,8 +46,9 @@ with surveywts-specific examples and detailed guidance.
 | `calibration` | `calibrate()`, `rake()`, `poststratify()` |
 | `nonresponse` | `adjust_nonresponse()` |
 | `diagnostics` | `effective_sample_size()`, `weight_variability()`, `summarize_weights()` |
+| `replicate-weights` | `create_bootstrap_weights()`, `create_jackknife_weights()`, `create_brr_weights()`, `create_gen_boot_weights()`, `create_gen_rep_weights()`, `create_sdr_weights()`, `create_replicate_weights()`, `as_taylor_design()` |
 
-Use `@family calibration`, `@family nonresponse`, `@family diagnostics` in roxygen2.
+Use `@family calibration`, `@family nonresponse`, `@family diagnostics`, `@family replicate-weights` in roxygen2.
 
 ---
 
@@ -135,7 +136,7 @@ the weight column is removed.
 
 ---
 
-## 6. Argument Order (Phase 0 Functions)
+## 6. Argument Order (Calibration Functions)
 
 | Function | Argument order |
 |----------|----------------|

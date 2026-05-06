@@ -503,9 +503,9 @@ test_that("poststratify() rejects population cells absent from data", {
 # ---------------------------------------------------------------------------
 # 11. Error — empty_stratum
 #
-# Phase 0 note: empty_stratum (N_hat_h = 0) is architecturally unreachable
+# Calibration note: empty_stratum (N_hat_h = 0) is architecturally unreachable
 # via the public API because .validate_weights() blocks zero weights before
-# .calibrate_engine() is called. The defensive check is present for Phase 1+
+# .calibrate_engine() is called. The defensive check is present for Replicate+
 # scenarios (e.g., replicate weights, trimmed weights). Here we document the
 # ordering: weights_nonpositive fires first when a cell's weights are zero.
 # ---------------------------------------------------------------------------

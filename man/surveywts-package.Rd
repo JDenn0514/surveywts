@@ -16,21 +16,21 @@ weighting history tracking for reproducible survey analysis workflows.
 
 \strong{Calibration:}
 \itemize{
-\item \code{calibrate()} — GREG (linear) or logit calibration to population totals
-\item \code{rake()} — raking via iterative proportional fitting
-\item \code{poststratify()} — exact post-stratification to cell counts or proportions
+\item \code{calibrate()}: GREG (linear) or logit calibration to population totals
+\item \code{rake()}: raking via iterative proportional fitting
+\item \code{poststratify()}: exact post-stratification to cell counts or proportions
 }
 
 \strong{Nonresponse:}
 \itemize{
-\item \code{adjust_nonresponse()} — weighting-class nonresponse adjustment
+\item \code{adjust_nonresponse()}: weighting-class nonresponse adjustment
 }
 
 \strong{Diagnostics:}
 \itemize{
-\item \code{effective_sample_size()} — Kish effective sample size
-\item \code{weight_variability()} — coefficient of variation of weights
-\item \code{summarize_weights()} — full weight distribution summary table
+\item \code{effective_sample_size()}: Kish effective sample size
+\item \code{weight_variability()}: coefficient of variation of weights
+\item \code{summarize_weights()}: full weight distribution summary table
 }
 }
 

@@ -9,17 +9,17 @@
 #'
 #' @section Key Functions:
 #' **Calibration:**
-#' - `calibrate()` — GREG (linear) or logit calibration to population totals
-#' - `rake()` — raking via iterative proportional fitting
-#' - `poststratify()` — exact post-stratification to cell counts or proportions
+#' - `calibrate()`: GREG (linear) or logit calibration to population totals
+#' - `rake()`: raking via iterative proportional fitting
+#' - `poststratify()`: exact post-stratification to cell counts or proportions
 #'
 #' **Nonresponse:**
-#' - `adjust_nonresponse()` — weighting-class nonresponse adjustment
+#' - `adjust_nonresponse()`: weighting-class nonresponse adjustment
 #'
 #' **Diagnostics:**
-#' - `effective_sample_size()` — Kish effective sample size
-#' - `weight_variability()` — coefficient of variation of weights
-#' - `summarize_weights()` — full weight distribution summary table
+#' - `effective_sample_size()`: Kish effective sample size
+#' - `weight_variability()`: coefficient of variation of weights
+#' - `summarize_weights()`: full weight distribution summary table
 #'
 #' @keywords internal
 "_PACKAGE"

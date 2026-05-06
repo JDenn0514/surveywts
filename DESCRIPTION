@@ -1,6 +1,6 @@
 Package: surveywts
 Title: Tools for Survey Weighting and Calibration
-Version: 0.1.2
+Version: 0.2.0
 Authors@R:
     person(
         "Jacob", "Dennen",
@@ -25,14 +25,14 @@ Imports:
     rlang (>= 1.1.0),
     S7 (>= 0.2.0),
     survey (>= 4.2-1),
-    surveycore (>= 0.6.1),
+    surveycore (>= 0.8.0),
     tibble (>= 3.2.0),
     tidyselect (>= 1.2.0)
 Suggests:
     covr,
     knitr,
     rmarkdown,
-    svrep (>= 0.6),
+    svrep (>= 0.6.0),
     testthat (>= 3.2.0),
     withr (>= 2.5.0)
 Remotes:

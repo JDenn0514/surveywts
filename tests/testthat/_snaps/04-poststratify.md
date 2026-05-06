@@ -24,9 +24,9 @@
       poststratify(rep_obj, strata = c(age_group, sex), population = pop, type = "count")
     Condition
       Error in `.check_input_class()`:
-      x <survey_replicate> objects are not supported in Phase 0.
-      i Replicate-weight support requires Phase 1.
-      v Use a <survey_taylor> design, or wait for Phase 1.
+      x <survey_replicate> objects are not yet supported.
+      i Replicate-weight support requires the Replicate release.
+      v Use a <survey_taylor> design, or wait for the Replicate release.
 
 # poststratify() rejects missing named weight column (SE-4)
 

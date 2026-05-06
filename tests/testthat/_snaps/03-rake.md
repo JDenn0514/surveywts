@@ -24,9 +24,9 @@
       rake(rep_design, margins = margins)
     Condition
       Error in `.check_input_class()`:
-      x <survey_replicate> objects are not supported in Phase 0.
-      i Replicate-weight support requires Phase 1.
-      v Use a <survey_taylor> design, or wait for Phase 1.
+      x <survey_replicate> objects are not yet supported.
+      i Replicate-weight support requires the Replicate release.
+      v Use a <survey_taylor> design, or wait for the Replicate release.
 
 # rake() rejects named weight column missing from data (SE-4)
 
@@ -114,8 +114,8 @@
     Condition
       Error in `.validate_calibration_variables()`:
       x Raking variable income is <numeric>.
-      i Phase 0 supports categorical (character or factor) variables only.
-      v Convert to factor or character. Continuous auxiliary variable calibration is not supported in Phase 0.
+      i Currently only categorical (character or factor) variables are supported.
+      v Convert to factor or character. Continuous auxiliary variable calibration is not currently supported.
 
 # rake() rejects NA in a margin variable
 
@@ -197,6 +197,17 @@
       x Raking did not converge after 0 iterations.
       i Setting `control$maxit = 0` means no raking is attempted.
       v Set `control$maxit` to a positive integer.
+
+# rake() throws calibration_not_converged when anesrake method hits maxit
+
+    Code
+      rake(df, margins = margins, method = "anesrake", control = list(maxit = 2,
+        improvement = 1e-10))
+    Condition
+      Error in `.calibrate_engine()`:
+      x Raking did not converge after 2 full sweeps.
+      i anesrake::anesrake() reported: No convergence in 2 iterations
+      v Increase `control$maxit` or relax `control$improvement` in the `control` list.
 
 # rake() rejects cap with method = 'survey'
 

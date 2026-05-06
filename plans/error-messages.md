@@ -1,8 +1,8 @@
 # Error and Warning Classes
 
 All `cli_abort()` and `cli_warn()` calls must use a class from this table.
-See `plans/spec-phase-0.md §XII` for full message templates (organized by
-function in subsections XII.A through XII.G).
+See `plans/archive/calibration/spec-calibration.md §XII` for full message
+templates (organized by function in subsections XII.A through XII.G).
 
 ## Errors
 
@@ -68,7 +68,7 @@ function in subsections XII.A through XII.G).
 | `surveywts_error_response_status_all_zero` | `adjust_nonresponse()` | All rows are nonrespondents |
 | `surveywts_error_class_cell_empty` | `adjust_nonresponse()` | Weighting class cell has no respondents |
 | `surveywts_error_response_status_multiple_columns` | `adjust_nonresponse()` | `response_status` selects > 1 column |
-| `surveywts_error_propensity_requires_phase2` | `adjust_nonresponse()` | `method` is `"propensity"` or `"propensity-cell"` (Phase 2 stubs) |
+| `surveywts_error_propensity_not_available` | `adjust_nonresponse()` | `method` is `"propensity"` or `"propensity-cell"` (not yet available) |
 
 ### Diagnostics
 
@@ -76,10 +76,39 @@ function in subsections XII.A through XII.G).
 |-------|-----------|-----------|
 | `surveywts_error_weights_required` | `effective_sample_size()`, `weight_variability()`, `summarize_weights()` | Plain `data.frame` with `weights = NULL` |
 
+### Replicate Weight Functions
+
+| Class | Thrown by | Condition |
+|-------|-----------|-----------|
+| `surveywts_error_already_replicate` | All `create_*_weights()` | Input is already `survey_replicate` |
+| `surveywts_error_not_survey_design` | All `create_*_weights()` | Input is `data.frame` or `weighted_df` |
+| `surveywts_error_replicates_invalid` | All methods accepting `replicates` | `replicates` is not a single numeric value (wrong type, length ≠ 1, or `NA`) |
+| `surveywts_error_replicates_not_positive` | Bootstrap, jackknife (random-groups), gen-boot, SDR | `replicates` < 2 |
+| `surveywts_error_replicates_not_whole_number` | All methods accepting `replicates` | `replicates` has non-zero fractional part |
+| `surveywts_error_brr_requires_paired_design` | `create_brr_weights()` | Stratum has ≠ 2 PSUs, or input is `survey_nonprob` |
+| `surveywts_error_brr_rho_invalid` | `create_brr_weights()` | `rho < 0` or `rho >= 1` |
+| `surveywts_error_replicates_required_for_jkn` | `create_jackknife_weights()` | `type = "random-groups"` but `replicates` is `NULL` |
+| `surveywts_error_jackknife_type_unsupported_for_nonprob` | `create_jackknife_weights()` | `data` is `survey_nonprob` and `type = "random-groups"` |
+| `surveywts_error_nonprob_requires_probability_design` | `create_gen_boot_weights()`, `create_gen_rep_weights()`, `create_sdr_weights()` | `data` is `survey_nonprob` |
+| `surveywts_error_sort_var_has_na` | `create_sdr_weights()` | `sort_var` column contains `NA` |
+| `surveywts_error_variance_estimator_requires_aux` | `create_gen_boot_weights()`, `create_gen_rep_weights()` | `variance_estimator = "Deville-Tille"` but `aux_var_names = NULL` |
+| `surveywts_error_no_taylor_structure` | `as_taylor_design()` | No `"replicate_creation"` entry in history |
+| `surveywts_error_taylor_from_calibrated_replicate` | `as_taylor_design()` | Post-creation weight adjustment in history |
+| `surveywts_error_taylor_from_nonprob_replicate` | `as_taylor_design()` | Source was `survey_nonprob` |
+| `surveywts_error_unsupported_class` | All `create_*_weights()`, `as_taylor_design()` | Input class is not a supported survey design type |
+
+### Internal / Utility
+
+| Class | Thrown by | Condition |
+|-------|-----------|-----------|
+| `surveywts_error_internal` | `.make_weighted_df()`, `.calibrate_engine()` | Defensive unreachable branch indicating a bug in surveywts internals; both call sites are in `# nocov` blocks |
+
 ## Warnings
 
 | Class | Thrown by | Condition |
 |-------|-----------|-----------|
+| `surveywts_warning_already_taylor` | `as_taylor_design()` | Input is already `survey_taylor` |
+| `surveywts_warning_taylor_loses_variance` | `as_taylor_design()` | Converting drops replicate weights |
 | `surveywts_warning_weight_col_dropped` | `dplyr_reconstruct.weighted_df()` | dplyr verb removed the weight column from a `weighted_df` |
 | `surveywts_warning_negative_calibrated_weights` | `calibrate()` | Linear calibration produced negative calibrated weights |
 | `surveywts_warning_class_near_empty` | `adjust_nonresponse()` | A weighting class cell has fewer than `control$min_cell` respondents (default 20) OR adjustment factor exceeds `control$max_adjust` (default 2.0) |

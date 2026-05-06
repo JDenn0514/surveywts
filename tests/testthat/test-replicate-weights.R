@@ -920,3 +920,153 @@ test_that("create_gen_rep_weights() all-equal base weights produces reproducible
     tolerance = 1e-10
   )
 })
+
+# ============================================================================
+# create_sdr_weights() tests
+# ============================================================================
+
+# ---- SDR happy path (11a–11b) -----------------------------------------------
+
+test_that("create_sdr_weights() returns successive-difference type", {
+  skip_if_not_installed("svrep")
+  td <- make_taylor_design(seed = 1L)
+  result <- create_sdr_weights(td, replicates = 40L, sort_var = id)
+  test_invariants(result)
+  expect_identical(result@variables$type, "successive-difference")
+})
+
+test_that("create_sdr_weights() sort_var changes result", {
+  skip_if_not_installed("svrep")
+  td <- make_taylor_design(seed = 1L)
+  r1 <- create_sdr_weights(td, replicates = 40L, sort_var = id)
+  r2 <- create_sdr_weights(td, replicates = 40L, sort_var = y)
+  test_invariants(r1)
+  test_invariants(r2)
+  expect_false(identical(
+    as.matrix(r1@data[, r1@variables$repweights]),
+    as.matrix(r2@data[, r2@variables$repweights])
+  ))
+})
+
+# ---- Shared input-class errors (13a–13d) ------------------------------------
+
+test_that("create_sdr_weights() rejects data.frame input", {
+  df <- make_surveywts_data(seed = 1)
+  expect_error(create_sdr_weights(df), class = "surveywts_error_not_survey_design")
+  expect_snapshot(error = TRUE, create_sdr_weights(df))
+})
+
+test_that("create_sdr_weights() rejects survey_replicate input", {
+  skip_if_not_installed("svrep")
+  td <- make_taylor_design(seed = 1)
+  rep <- create_bootstrap_weights(td, replicates = 10L, seed = 1L)
+  expect_error(create_sdr_weights(rep), class = "surveywts_error_already_replicate")
+  expect_snapshot(error = TRUE, create_sdr_weights(rep))
+})
+
+test_that("create_sdr_weights() rejects weighted_df input", {
+  df <- make_surveywts_data(seed = 1)
+  wdf <- structure(
+    df,
+    class = c("weighted_df", "tbl_df", "tbl", "data.frame"),
+    weight_col = "base_weight",
+    weighting_history = list()
+  )
+  expect_error(create_sdr_weights(wdf), class = "surveywts_error_not_survey_design")
+  expect_snapshot(error = TRUE, create_sdr_weights(wdf))
+})
+
+test_that("create_sdr_weights() rejects unsupported class", {
+  expect_error(create_sdr_weights(list(x = 1)), class = "surveywts_error_unsupported_class")
+  expect_snapshot(error = TRUE, create_sdr_weights(list(x = 1)))
+})
+
+# ---- SDR errors (12a–12d) ---------------------------------------------------
+
+test_that("create_sdr_weights() rejects sort_var with NA", {
+  td <- make_taylor_design(n = 50L, seed = 1L)
+  td@data$sort_na <- c(NA, seq_len(nrow(td@data) - 1L))
+  expect_error(
+    create_sdr_weights(td, sort_var = sort_na),
+    class = "surveywts_error_sort_var_has_na"
+  )
+  expect_snapshot(error = TRUE, create_sdr_weights(td, sort_var = sort_na))
+})
+
+test_that("create_sdr_weights() rejects replicates = 0", {
+  td <- make_taylor_design(seed = 1)
+  expect_error(
+    create_sdr_weights(td, replicates = 0L),
+    class = "surveywts_error_replicates_not_positive"
+  )
+  expect_snapshot(error = TRUE, create_sdr_weights(td, replicates = 0L))
+})
+
+test_that("create_sdr_weights() rejects replicates = 3 (boundary: min is 4)", {
+  td <- make_taylor_design(seed = 1)
+  expect_error(
+    create_sdr_weights(td, replicates = 3L),
+    class = "surveywts_error_replicates_not_positive"
+  )
+  expect_snapshot(error = TRUE, create_sdr_weights(td, replicates = 3L))
+})
+
+test_that("create_sdr_weights() rejects fractional replicates", {
+  td <- make_taylor_design(seed = 1)
+  expect_error(
+    create_sdr_weights(td, replicates = 2.5),
+    class = "surveywts_error_replicates_not_whole_number"
+  )
+  expect_snapshot(error = TRUE, create_sdr_weights(td, replicates = 2.5))
+})
+
+test_that("create_sdr_weights() rejects survey_nonprob", {
+  df <- make_surveywts_data(n = 30L, seed = 1L)
+  np <- surveycore::survey_nonprob(
+    data = df,
+    variables = list(weights = "base_weight"),
+    metadata = surveycore::survey_metadata()
+  )
+  expect_error(create_sdr_weights(np), class = "surveywts_error_nonprob_requires_probability_design")
+  expect_snapshot(error = TRUE, create_sdr_weights(np))
+})
+
+# ---- Spec §XIII 11Ea: SDR equivalence with svrep ----------------------------
+
+test_that("create_sdr_weights() matches svrep::as_sdr_design() directly", {
+  skip_if_not_installed("svrep")
+  td <- make_taylor_design(n = 80L, seed = 7L)
+
+  # svrep >= 0.9.1 requires sort_variable; use "id" (present in make_taylor_design)
+  direct <- svrep::as_sdr_design(
+    surveycore::as_svydesign(td),
+    replicates = 40L,
+    sort_variable = "id",
+    mse = TRUE
+  )
+  result <- create_sdr_weights(td, replicates = 40L, sort_var = id)
+  test_invariants(result)
+
+  expected <- as.matrix(direct$repweights)
+  actual <- unname(as.matrix(result@data[, result@variables$repweights]))
+  expect_equal(actual, expected, tolerance = 1e-10)
+})
+
+# ---- Spec §XIII 19f: edge cases ----------------------------------------------
+
+test_that("create_sdr_weights() 0-row input propagates backend error", {
+  skip_if_not_installed("svrep")
+  # surveycore::as_survey() itself rejects 0-row data, so the error fires at
+  # design construction. The test verifies the pipeline fails loudly.
+  df <- make_surveywts_data(n = 10L, seed = 1L)[0L, ]
+  expect_error(surveycore::as_survey(df, ids = id, weights = base_weight))
+})
+
+test_that("create_sdr_weights() all-equal base weights succeeds", {
+  skip_if_not_installed("svrep")
+  df <- make_surveywts_data(n = 50L, seed = 1L)
+  df$base_weight <- rep(1, nrow(df))
+  td <- surveycore::as_survey(df, ids = id, weights = base_weight)
+  result <- create_sdr_weights(td, replicates = 20L, sort_var = id)
+  test_invariants(result)
+})

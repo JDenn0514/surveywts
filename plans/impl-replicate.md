@@ -62,7 +62,7 @@ R/utils.R                   # Add "replicate_creation" case to .format_history_s
 - [x] PR 2: `feature/replicate-bootstrap` — all 5 shared helpers + `create_bootstrap_weights()`
 - [x] PR 3: `feature/replicate-jackknife` — `create_jackknife_weights()`
 - [x] PR 4: `feature/replicate-brr` — `create_brr_weights()`
-- [ ] PR 5: `feature/replicate-gen-boot` — `create_gen_boot_weights()`
+- [x] PR 5: `feature/replicate-gen-boot` — `create_gen_boot_weights()`
 - [ ] PR 6: `feature/replicate-gen-rep` — `create_gen_rep_weights()`
 - [ ] PR 7: `feature/replicate-sdr` — `create_sdr_weights()`
 - [ ] PR 8: `feature/replicate-print` — S7 print method for `survey_replicate`

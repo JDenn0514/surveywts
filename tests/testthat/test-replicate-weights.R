@@ -565,3 +565,187 @@ test_that("create_brr_weights() all-equal base weights succeeds", {
   result <- create_brr_weights(pd)
   test_invariants(result)
 })
+
+# ---- Gen-boot happy path (9a–9c) -------------------------------------------
+
+test_that("create_gen_boot_weights() returns survey_replicate with type bootstrap", {
+  skip_if_not_installed("svrep")
+  td     <- make_taylor_design(seed = 1L)
+  result <- create_gen_boot_weights(td, replicates = 20L, seed = 1L)
+  test_invariants(result)
+  expect_identical(result@variables$type, "bootstrap")
+})
+
+test_that("create_gen_boot_weights() variance_estimator SD2 differs from SD1", {
+  skip_if_not_installed("svrep")
+  td  <- make_taylor_design(seed = 1L)
+  r1  <- create_gen_boot_weights(td, replicates = 20L,
+                                  variance_estimator = "SD1", seed = 1L)
+  r2  <- create_gen_boot_weights(td, replicates = 20L,
+                                  variance_estimator = "SD2", seed = 1L)
+  test_invariants(r1)
+  test_invariants(r2)
+  expect_false(identical(
+    as.matrix(r1@data[, r1@variables$repweights]),
+    as.matrix(r2@data[, r2@variables$repweights])
+  ))
+})
+
+# ---- Shared input-class errors (13a–13d) ------------------------------------
+
+test_that("create_gen_boot_weights() rejects data.frame input", {
+  df <- make_surveywts_data(seed = 1)
+  expect_error(create_gen_boot_weights(df), class = "surveywts_error_not_survey_design")
+  expect_snapshot(error = TRUE, create_gen_boot_weights(df))
+})
+
+test_that("create_gen_boot_weights() rejects survey_replicate input", {
+  skip_if_not_installed("svrep")
+  td  <- make_taylor_design(seed = 1)
+  rep <- create_bootstrap_weights(td, replicates = 10L, seed = 1L)
+  expect_error(create_gen_boot_weights(rep), class = "surveywts_error_already_replicate")
+  expect_snapshot(error = TRUE, create_gen_boot_weights(rep))
+})
+
+test_that("create_gen_boot_weights() rejects weighted_df input", {
+  df <- make_surveywts_data(seed = 1)
+  wdf <- structure(df, class = c("weighted_df", "tbl_df", "tbl", "data.frame"),
+                   weight_col = "base_weight", weighting_history = list())
+  expect_error(create_gen_boot_weights(wdf), class = "surveywts_error_not_survey_design")
+  expect_snapshot(error = TRUE, create_gen_boot_weights(wdf))
+})
+
+test_that("create_gen_boot_weights() rejects unsupported class", {
+  expect_error(create_gen_boot_weights(list(x = 1)), class = "surveywts_error_unsupported_class")
+  expect_snapshot(error = TRUE, create_gen_boot_weights(list(x = 1)))
+})
+
+# ---- Gen-boot errors (9Ea–9Ed) -----------------------------------------------
+
+test_that("create_gen_boot_weights() rejects replicates = 0", {
+  td <- make_taylor_design(seed = 1)
+  expect_error(
+    create_gen_boot_weights(td, replicates = 0L),
+    class = "surveywts_error_replicates_not_positive"
+  )
+  expect_snapshot(error = TRUE, create_gen_boot_weights(td, replicates = 0L))
+})
+
+test_that("create_gen_boot_weights() rejects replicates = 1 (boundary: min is 2)", {
+  td <- make_taylor_design(seed = 1)
+  expect_error(
+    create_gen_boot_weights(td, replicates = 1L),
+    class = "surveywts_error_replicates_not_positive"
+  )
+  expect_snapshot(error = TRUE, create_gen_boot_weights(td, replicates = 1L))
+})
+
+test_that("create_gen_boot_weights() rejects fractional replicates", {
+  td <- make_taylor_design(seed = 1)
+  expect_error(
+    create_gen_boot_weights(td, replicates = 2.5),
+    class = "surveywts_error_replicates_not_whole_number"
+  )
+  expect_snapshot(error = TRUE, create_gen_boot_weights(td, replicates = 2.5))
+})
+
+test_that("create_gen_boot_weights() rejects Deville-Tille without aux_var_names", {
+  td <- make_taylor_design(seed = 1)
+  expect_error(
+    create_gen_boot_weights(td, variance_estimator = "Deville-Tille"),
+    class = "surveywts_error_variance_estimator_requires_aux"
+  )
+  expect_snapshot(
+    error = TRUE,
+    create_gen_boot_weights(td, variance_estimator = "Deville-Tille")
+  )
+})
+
+test_that("create_gen_boot_weights() Deville-Tille with aux_var_names succeeds", {
+  skip_if_not_installed("svrep")
+  # Deville-Tille requires SRS or single-stage design; complex multistage
+  # designs cause numerical instability in the hat-matrix computation.
+  set.seed(1)
+  n  <- 60L
+  N  <- 600L
+  df <- data.frame(id = seq_len(n), y = rnorm(n), base_weight = N / n)
+  td <- surveycore::as_survey(df, ids = id, weights = base_weight)
+
+  result <- create_gen_boot_weights(
+    td,
+    replicates         = 20L,
+    variance_estimator = "Deville-Tille",
+    aux_var_names      = y,
+    seed               = 1L
+  )
+  expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
+  expect_identical(result@variables$type, "bootstrap")
+})
+
+test_that("create_gen_boot_weights() rejects survey_nonprob", {
+  df <- make_surveywts_data(n = 30L, seed = 1L)
+  np <- surveycore::survey_nonprob(
+    data      = df,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  expect_error(
+    create_gen_boot_weights(np),
+    class = "surveywts_error_nonprob_requires_probability_design"
+  )
+  expect_snapshot(error = TRUE, create_gen_boot_weights(np))
+})
+
+# ---- Gen-boot equivalence (9Xa) --------------------------------------------
+
+test_that("create_gen_boot_weights() matches svrep::as_gen_boot_design() directly", {
+  skip_if_not_installed("svrep")
+  td <- make_taylor_design(n = 100L, seed = 7L)
+
+  set.seed(77L)
+  direct   <- svrep::as_gen_boot_design(
+    surveycore::as_svydesign(td),
+    variance_estimator = "SD1",
+    replicates         = 30L,
+    mse                = TRUE
+  )
+  result   <- create_gen_boot_weights(td, replicates = 30L,
+                                       variance_estimator = "SD1", seed = 77L)
+  test_invariants(result)
+  # svrep attaches rscales/scale/tau attrs to repweights; drop them so expect_equal
+  # compares only numeric values (our impl stores a plain data frame).
+  expected_mat <- as.matrix(direct$repweights)
+  for (a in c("rscales", "scale", "tau")) attr(expected_mat, a) <- NULL
+  expected <- unname(expected_mat)
+  actual   <- unname(as.matrix(result@data[, result@variables$repweights]))
+  expect_equal(actual, expected, tolerance = 1e-10)
+})
+
+# ---- Spec §XIII 9c: tau = "auto" produces non-negative replicate weights -----
+
+test_that("create_gen_boot_weights() tau = 'auto' produces non-negative weights", {
+  skip_if_not_installed("svrep")
+  td     <- make_taylor_design(seed = 1)
+  result <- create_gen_boot_weights(td, replicates = 30L, tau = "auto", seed = 1L)
+  test_invariants(result)
+  rep_mat <- as.matrix(result@data[, result@variables$repweights])
+  expect_true(all(rep_mat >= 0))
+})
+
+# ---- Spec §XIII 19d: edge cases ----------------------------------------------
+
+test_that("create_gen_boot_weights() 0-row input propagates error", {
+  # surveycore::as_survey() itself rejects 0-row data, so the error fires at
+  # design construction. The test verifies the pipeline fails loudly.
+  df <- make_surveywts_data(n = 10L, seed = 1L)[0L, ]
+  expect_error(surveycore::as_survey(df, ids = id, weights = base_weight))
+})
+
+test_that("create_gen_boot_weights() all-equal base weights succeeds", {
+  skip_if_not_installed("svrep")
+  df             <- make_surveywts_data(n = 50L, seed = 1L)
+  df$base_weight <- rep(1, nrow(df))
+  td     <- surveycore::as_survey(df, ids = id, weights = base_weight)
+  result <- create_gen_boot_weights(td, replicates = 20L, seed = 1L)
+  test_invariants(result)
+})

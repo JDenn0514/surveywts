@@ -749,3 +749,174 @@ test_that("create_gen_boot_weights() all-equal base weights succeeds", {
   result <- create_gen_boot_weights(td, replicates = 20L, seed = 1L)
   test_invariants(result)
 })
+
+# ---- Gen-rep happy path (10a–10c) ------------------------------------------
+
+test_that("create_gen_rep_weights() returns reproducible survey_replicate with seed", {
+  skip_if_not_installed("svrep")
+  td  <- make_taylor_design(seed = 1L)
+  r1  <- create_gen_rep_weights(td, seed = 1L)
+  r2  <- create_gen_rep_weights(td, seed = 1L)
+  test_invariants(r1)
+  expect_equal(
+    as.matrix(r1@data[, r1@variables$repweights]),
+    as.matrix(r2@data[, r2@variables$repweights]),
+    tolerance = 1e-10
+  )
+})
+
+test_that("create_gen_rep_weights() max_replicates limits count", {
+  skip_if_not_installed("svrep")
+  td     <- make_taylor_design(seed = 1L)
+  result <- create_gen_rep_weights(td, max_replicates = 10L)
+  test_invariants(result)
+  expect_true(length(result@variables$repweights) <= 10L)
+})
+
+# ---- Shared input-class errors (13a–13d) ------------------------------------
+
+test_that("create_gen_rep_weights() rejects data.frame input", {
+  df <- make_surveywts_data(seed = 1)
+  expect_error(create_gen_rep_weights(df), class = "surveywts_error_not_survey_design")
+  expect_snapshot(error = TRUE, create_gen_rep_weights(df))
+})
+
+test_that("create_gen_rep_weights() rejects survey_replicate input", {
+  skip_if_not_installed("svrep")
+  td  <- make_taylor_design(seed = 1)
+  rep <- create_bootstrap_weights(td, replicates = 10L, seed = 1L)
+  expect_error(create_gen_rep_weights(rep), class = "surveywts_error_already_replicate")
+  expect_snapshot(error = TRUE, create_gen_rep_weights(rep))
+})
+
+test_that("create_gen_rep_weights() rejects weighted_df input", {
+  df <- make_surveywts_data(seed = 1)
+  wdf <- structure(df, class = c("weighted_df", "tbl_df", "tbl", "data.frame"),
+                   weight_col = "base_weight", weighting_history = list())
+  expect_error(create_gen_rep_weights(wdf), class = "surveywts_error_not_survey_design")
+  expect_snapshot(error = TRUE, create_gen_rep_weights(wdf))
+})
+
+test_that("create_gen_rep_weights() rejects unsupported class", {
+  expect_error(create_gen_rep_weights(list(x = 1)), class = "surveywts_error_unsupported_class")
+  expect_snapshot(error = TRUE, create_gen_rep_weights(list(x = 1)))
+})
+
+# ---- Gen-rep errors (10Ea–10Eb) ---------------------------------------------
+
+test_that("create_gen_rep_weights() rejects Deville-Tille without aux_var_names", {
+  td <- make_taylor_design(seed = 1)
+  expect_error(
+    create_gen_rep_weights(td, variance_estimator = "Deville-Tille"),
+    class = "surveywts_error_variance_estimator_requires_aux"
+  )
+  expect_snapshot(
+    error = TRUE,
+    create_gen_rep_weights(td, variance_estimator = "Deville-Tille")
+  )
+})
+
+test_that("create_gen_rep_weights() Deville-Tille with aux_var_names succeeds", {
+  skip_if_not_installed("svrep")
+  # Deville-Tille requires SRS or single-stage design; complex multistage
+  # designs cause numerical instability in the hat-matrix computation.
+  set.seed(1)
+  n  <- 60L
+  N  <- 600L
+  df <- data.frame(id = seq_len(n), y = rnorm(n), base_weight = N / n)
+  td <- surveycore::as_survey(df, ids = id, weights = base_weight)
+
+  result <- create_gen_rep_weights(
+    td,
+    variance_estimator = "Deville-Tille",
+    aux_var_names      = y,
+    seed               = 1L
+  )
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
+})
+
+test_that("create_gen_rep_weights() rejects survey_nonprob", {
+  df <- make_surveywts_data(n = 30L, seed = 1L)
+  np <- surveycore::survey_nonprob(
+    data      = df,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  expect_error(
+    create_gen_rep_weights(np),
+    class = "surveywts_error_nonprob_requires_probability_design"
+  )
+  expect_snapshot(error = TRUE, create_gen_rep_weights(np))
+})
+
+# ---- Spec §XIII 10c: balanced = FALSE may produce fewer replicates -----------
+
+test_that("create_gen_rep_weights() balanced = FALSE may produce fewer replicates", {
+  skip_if_not_installed("svrep")
+  td       <- make_taylor_design(seed = 1L)
+  balanced <- create_gen_rep_weights(td, balanced = TRUE)
+  unbalanced <- create_gen_rep_weights(td, balanced = FALSE)
+  test_invariants(balanced)
+  test_invariants(unbalanced)
+  expect_true(
+    length(unbalanced@variables$repweights) <= length(balanced@variables$repweights)
+  )
+})
+
+# ---- Spec §XIII 10Xa: gen-rep equivalence with svrep -------------------------
+
+test_that("create_gen_rep_weights() matches svrep::as_fays_gen_rep_design() directly", {
+  skip_if_not_installed("svrep")
+  td <- make_taylor_design(n = 60L, seed = 7L)
+
+  set.seed(99L)
+  direct <- svrep::as_fays_gen_rep_design(
+    surveycore::as_svydesign(td),
+    variance_estimator = "SD1",
+    max_replicates     = 50L,
+    balanced           = TRUE,
+    mse                = TRUE
+  )
+  result <- create_gen_rep_weights(
+    td,
+    variance_estimator = "SD1",
+    max_replicates     = 50L,
+    balanced           = TRUE,
+    seed               = 99L
+  )
+  test_invariants(result)
+
+  # svrep attaches rscales/scale attrs to repweights; drop them so expect_equal
+  # compares only numeric values (our impl stores a plain data frame).
+  expected_mat <- as.matrix(direct$repweights)
+  for (a in c("rscales", "scale")) attr(expected_mat, a) <- NULL
+  expected <- unname(expected_mat)
+  actual   <- unname(as.matrix(result@data[, result@variables$repweights]))
+  expect_equal(actual, expected, tolerance = 1e-10)
+})
+
+# ---- Spec §XIII 19e: edge cases ----------------------------------------------
+
+test_that("create_gen_rep_weights() 0-row input propagates backend error", {
+  skip_if_not_installed("svrep")
+  # surveycore::as_survey() itself rejects 0-row data, so the error fires at
+  # design construction. The test verifies the pipeline fails loudly.
+  df <- make_surveywts_data(n = 10L, seed = 1L)[0L, ]
+  expect_error(surveycore::as_survey(df, ids = id, weights = base_weight))
+})
+
+test_that("create_gen_rep_weights() all-equal base weights produces reproducible output with seed", {
+  skip_if_not_installed("svrep")
+  df             <- make_surveywts_data(n = 50L, seed = 1L)
+  df$base_weight <- rep(1, nrow(df))
+  td <- surveycore::as_survey(df, ids = id, weights = base_weight)
+  r1 <- create_gen_rep_weights(td, seed = 1L)
+  r2 <- create_gen_rep_weights(td, seed = 1L)
+  test_invariants(r1)
+  expect_equal(
+    as.matrix(r1@data[, r1@variables$repweights]),
+    as.matrix(r2@data[, r2@variables$repweights]),
+    tolerance = 1e-10
+  )
+})

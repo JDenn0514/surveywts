@@ -332,3 +332,61 @@
       i <survey_nonprob> has no PSU or stratum structure required by this method.
       v Use `create_bootstrap_weights()` for non-probability designs.
 
+# create_gen_rep_weights() rejects data.frame input
+
+    Code
+      create_gen_rep_weights(df)
+    Condition
+      Error in `.validate_replicate_input()`:
+      x `data` is a <data.frame>, not a survey design.
+      i This function requires a <survey_taylor> or <survey_nonprob> object.
+      v Convert with `surveycore::as_survey()`.
+
+# create_gen_rep_weights() rejects survey_replicate input
+
+    Code
+      create_gen_rep_weights(rep)
+    Condition
+      Error in `.validate_replicate_input()`:
+      x `data` is already a <survey_replicate>.
+      i Replicate weights cannot be created from a design that already has replicates.
+
+# create_gen_rep_weights() rejects weighted_df input
+
+    Code
+      create_gen_rep_weights(wdf)
+    Condition
+      Error in `.validate_replicate_input()`:
+      x `data` is a <weighted_df>, not a survey design.
+      i This function requires a <survey_taylor> or <survey_nonprob> object.
+      v Convert with `surveycore::as_survey()`.
+
+# create_gen_rep_weights() rejects unsupported class
+
+    Code
+      create_gen_rep_weights(list(x = 1))
+    Condition
+      Error in `.validate_replicate_input()`:
+      x `data` is <list>, which is not a supported input class.
+      i Supported classes: <survey_taylor> and <survey_nonprob>.
+      v Use `surveycore::as_survey()` or `surveycore::survey_nonprob()`.
+
+# create_gen_rep_weights() rejects Deville-Tille without aux_var_names
+
+    Code
+      create_gen_rep_weights(td, variance_estimator = "Deville-Tille")
+    Condition
+      Error in `create_gen_rep_weights()`:
+      x `variance_estimator = "Deville-Tille"` requires `aux_var_names`.
+      v Pass column names, e.g. `aux_var_names = c(x1, x2)`.
+
+# create_gen_rep_weights() rejects survey_nonprob
+
+    Code
+      create_gen_rep_weights(np)
+    Condition
+      Error in `create_gen_rep_weights()`:
+      x `create_gen_rep_weights()` requires a probability-design structure.
+      i <survey_nonprob> has no PSU or stratum structure required by this method.
+      v Use `create_bootstrap_weights()` for non-probability designs.
+

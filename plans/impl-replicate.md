@@ -65,7 +65,7 @@ R/utils.R                   # Add "replicate_creation" case to .format_history_s
 - [x] PR 5: `feature/replicate-gen-boot` — `create_gen_boot_weights()`
 - [x] PR 6: `feature/replicate-gen-rep` — `create_gen_rep_weights()`
 - [x] PR 7: `feature/replicate-sdr` — `create_sdr_weights()`
-- [ ] PR 8: `feature/replicate-print` — S7 print method for `survey_replicate`
+- [x] PR 8: `feature/replicate-print` — S7 print method for `survey_replicate`
 - [ ] PR 9: `feature/replicate-dispatch` — `create_replicate_weights()` + `as_taylor_design()`
 
 ---

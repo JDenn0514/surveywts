@@ -486,6 +486,36 @@ test_that("create_brr_weights() rejects survey_nonprob", {
   expect_snapshot(error = TRUE, create_brr_weights(np))
 })
 
+test_that("create_brr_weights() rejects survey_taylor with strata but no PSU ids", {
+  df <- data.frame(id = 1:20, stratum = rep(1:2, 10), y = rnorm(20), w = 1)
+  td <- surveycore::as_survey(df, strata = stratum, weights = w)
+  expect_error(
+    create_brr_weights(td),
+    class = "surveywts_error_brr_requires_paired_design"
+  )
+  expect_snapshot(error = TRUE, create_brr_weights(td))
+})
+
+test_that("create_brr_weights() rejects survey_taylor with PSU ids but no strata", {
+  df <- data.frame(id = 1:20, psu = rep(1:10, 2), y = rnorm(20), w = 1)
+  td <- surveycore::as_survey(df, ids = psu, weights = w)
+  expect_error(
+    create_brr_weights(td),
+    class = "surveywts_error_brr_requires_paired_design"
+  )
+  expect_snapshot(error = TRUE, create_brr_weights(td))
+})
+
+test_that("create_brr_weights() rejects survey_taylor with neither strata nor PSU ids", {
+  df <- data.frame(id = 1:20, y = rnorm(20), w = 1)
+  td <- surveycore::as_survey(df, weights = w)
+  expect_error(
+    create_brr_weights(td),
+    class = "surveywts_error_brr_requires_paired_design"
+  )
+  expect_snapshot(error = TRUE, create_brr_weights(td))
+})
+
 test_that("create_brr_weights() rejects rho < 0", {
   pd <- make_paired_design(seed = 1L)
   expect_error(create_brr_weights(pd, rho = -0.1), class = "surveywts_error_brr_rho_invalid")

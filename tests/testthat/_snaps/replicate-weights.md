@@ -201,6 +201,36 @@
       x BRR requires a paired-PSU design; <survey_nonprob> has no PSU structure.
       v Use `create_bootstrap_weights()` for non-probability designs.
 
+# create_brr_weights() rejects survey_taylor with strata but no PSU ids
+
+    Code
+      create_brr_weights(td)
+    Condition
+      Error in `create_brr_weights()`:
+      x BRR requires a design with both strata and PSU IDs.
+      i Strata: present; PSU IDs: missing.
+      v Build the design with both `ids` and `strata` in `surveycore::as_survey()`.
+
+# create_brr_weights() rejects survey_taylor with PSU ids but no strata
+
+    Code
+      create_brr_weights(td)
+    Condition
+      Error in `create_brr_weights()`:
+      x BRR requires a design with both strata and PSU IDs.
+      i Strata: missing; PSU IDs: present.
+      v Build the design with both `ids` and `strata` in `surveycore::as_survey()`.
+
+# create_brr_weights() rejects survey_taylor with neither strata nor PSU ids
+
+    Code
+      create_brr_weights(td)
+    Condition
+      Error in `create_brr_weights()`:
+      x BRR requires a design with both strata and PSU IDs.
+      i Strata: missing; PSU IDs: missing.
+      v Build the design with both `ids` and `strata` in `surveycore::as_survey()`.
+
 # create_brr_weights() rejects rho < 0
 
     Code

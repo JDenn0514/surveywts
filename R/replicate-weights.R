@@ -574,7 +574,9 @@ create_gen_rep_weights <- function(
     "BOSB", "Beaumont-Emond"
   ))
 
-  if (identical(variance_estimator, "Deville-Tille") && is.null(aux_var_names)) {
+  aux_quo <- rlang::enquo(aux_var_names)
+
+  if (identical(variance_estimator, "Deville-Tille") && rlang::quo_is_null(aux_quo)) {
     cli::cli_abort(
       c(
         "x" = "{.code variance_estimator = \"Deville-Tille\"} requires {.arg aux_var_names}.",
@@ -584,7 +586,6 @@ create_gen_rep_weights <- function(
     )
   }
 
-  aux_quo      <- rlang::enquo(aux_var_names)
   resolved_aux <- if (rlang::quo_is_null(aux_quo)) {
     NULL
   } else {

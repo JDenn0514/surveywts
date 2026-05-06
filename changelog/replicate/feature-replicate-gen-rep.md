@@ -23,6 +23,8 @@
   - Edge cases (0-row input propagates error from as_survey, all-equal weights reproducible)
 - Spec correction: the spec claimed the function was "deterministic (no randomness)" — this is incorrect; svrep's internal Hadamard matrix shuffling uses `sample()`. Added `seed` parameter and updated tests accordingly.
 - Add `create_gen_rep_weights` to `_pkgdown.yml` Replicate Weights section
+- Fix NSE bug: `create_gen_rep_weights()` called `is.null(aux_var_names)` before `rlang::enquo()`, causing bare column names to be evaluated in the caller environment (object not found). Fixed by moving `enquo()` before the null check and switching to `rlang::quo_is_null()`, matching `create_gen_boot_weights()` pattern
+- Add happy-path test for `create_gen_rep_weights()` with `variance_estimator = "Deville-Tille"` and valid `aux_var_names` (was missing; covered the `tidyselect::eval_select()` branch at line 591)
 
 ## Files Modified
 

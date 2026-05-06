@@ -816,6 +816,26 @@ test_that("create_gen_rep_weights() rejects Deville-Tille without aux_var_names"
   )
 })
 
+test_that("create_gen_rep_weights() Deville-Tille with aux_var_names succeeds", {
+  skip_if_not_installed("svrep")
+  # Deville-Tille requires SRS or single-stage design; complex multistage
+  # designs cause numerical instability in the hat-matrix computation.
+  set.seed(1)
+  n  <- 60L
+  N  <- 600L
+  df <- data.frame(id = seq_len(n), y = rnorm(n), base_weight = N / n)
+  td <- surveycore::as_survey(df, ids = id, weights = base_weight)
+
+  result <- create_gen_rep_weights(
+    td,
+    variance_estimator = "Deville-Tille",
+    aux_var_names      = y,
+    seed               = 1L
+  )
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
+})
+
 test_that("create_gen_rep_weights() rejects survey_nonprob", {
   df <- make_surveywts_data(n = 30L, seed = 1L)
   np <- surveycore::survey_nonprob(

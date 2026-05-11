@@ -27,12 +27,20 @@
 - Moves `anesrake` from `Imports` to `Suggests`. The package is now used
   only in tests (parity checks against our internal engine).
 
+- Adds `@references` citation (DeBell & Krosnick 2009) to `rake()` roxygen
+  documentation.
+
+- Updates `VENDORED.md` to reflect that `anesrake` is now a ported engine
+  rather than a delegated `Imports` dependency.
+
 ## Files Modified
 
 - `R/rake-anesrake-engine.R` — new file; ported internal helpers
 - `R/utils.R` — `.calibrate_engine()` calls `.rake_anesrake()` instead of
   `anesrake::anesrake()`; `.make_history_entry()` gains `capping = NULL`
-- `R/rake.R` — extracts and forwards `capping` from engine result
+- `R/rake.R` — extracts and forwards `capping` from engine result; adds
+  `@references` DeBell & Krosnick (2009)
 - `DESCRIPTION` — `anesrake` moved to `Suggests`
+- `VENDORED.md` — `anesrake` section updated to ported-engine status
 - `tests/testthat/test-03-rake.R` — 3 new pre-cap history tests; renamed
   cap=NULL test; `skip_if_not_installed("anesrake")` on all parity tests

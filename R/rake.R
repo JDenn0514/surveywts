@@ -113,6 +113,12 @@
 #'   assessed as the maximum relative error across all margin cells falling
 #'   below `control$epsilon`.
 #'
+#' @references
+#'   DeBell, M. and Krosnick, J. A. (2009). *Computing Weights for American
+#'   National Election Study Survey Data*. ANES Technical Report series,
+#'   no. nes012427. Ann Arbor, MI, and Palo Alto, CA: American National
+#'   Election Studies.
+#'
 #' @examples
 #' df <- data.frame(
 #'   age_group = c("18-34", "35-54", "55+", "18-34", "35-54"),

@@ -135,6 +135,12 @@ margins <- list(
 result <- rake(df, margins = margins)
 
 }
+\references{
+DeBell, M. and Krosnick, J. A. (2009). \emph{Computing Weights for American
+National Election Study Survey Data}. ANES Technical Report series,
+no. nes012427. Ann Arbor, MI, and Palo Alto, CA: American National
+Election Studies.
+}
 \seealso{
 Other calibration: 
 \code{\link{calibrate}()},

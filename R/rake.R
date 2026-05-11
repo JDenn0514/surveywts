@@ -325,6 +325,7 @@ rake <- function(
 
   new_weights <- engine_result$weights
   convergence <- engine_result$convergence
+  capping     <- engine_result$capping
 
   # ---- 10. Compute after-stats and build history entry --------------------
   after_stats <- .compute_weight_stats(new_weights)
@@ -350,7 +351,8 @@ rake <- function(
     ),
     before_stats = before_stats,
     after_stats  = after_stats,
-    convergence  = convergence
+    convergence  = convergence,
+    capping      = capping
   )
 
   # ---- 11. Build output ---------------------------------------------------

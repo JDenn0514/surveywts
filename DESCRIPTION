@@ -19,7 +19,6 @@ Roxygen: list(markdown = TRUE)
 Depends:
     R (>= 4.3.0)
 Imports:
-    anesrake (>= 0.80),
     cli (>= 3.6.0),
     dplyr (>= 1.1.0),
     rlang (>= 1.1.0),
@@ -29,6 +28,7 @@ Imports:
     tibble (>= 3.2.0),
     tidyselect (>= 1.2.0)
 Suggests:
+    anesrake,
     covr,
     knitr,
     rmarkdown,

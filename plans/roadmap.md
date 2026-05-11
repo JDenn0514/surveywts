@@ -206,9 +206,13 @@ All functions append to `@metadata@weighting_history`.
 | `R/06-sample-calibration.R` | `calibrate_to_survey()`, `calibrate_to_estimate()` |
 | `R/07-nonresponse.R` | `adjust_nonresponse()`, `redistribute_weights()` |
 
+### Implementation Dependencies
+
+- `svrep` — called directly by `calibrate_to_survey()` and `calibrate_to_estimate()`;
+  moves from `Suggests` to `Imports` in this phase
+
 ### Test References
 
-- `svrep::calibrate_to_sample()`, `svrep::calibrate_to_estimate()`
 - `survey` — weighting-class nonresponse comparison
 
 ---

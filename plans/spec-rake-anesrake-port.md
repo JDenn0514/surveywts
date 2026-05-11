@@ -60,11 +60,30 @@ No other files change.
 
 ## Section 1: The Ported Engine (`R/rake-anesrake-engine.R`)
 
-A faithful translation of anesrake's source. All code paths are kept intact
-(`nmin`, `nmax`, `filter`, `force1`, etc.), even those not currently exposed
-by `rake()`. Style is adapted by running `air` and replacing `%>%` with `|>`.
-No logic is removed or reorganized. A future cleanup PR may do an idiomatic
-rewrite once the behavior is locked in and verified by tests.
+A minimal port of the anesrake algorithm retaining only the code paths
+reachable via the current `rake()` public API. Paths not exposed by `rake()`
+are removed rather than kept dormant. Style is adapted by running `air` and
+replacing `%>%` with `|>`.
+
+**Removed from the original (not reachable via `rake()`):**
+
+- `type` variants `"nlim"`, `"nmin"`, `"nmax"` — `rake()` always passes
+  `type = "pctlim"`; removed from `.rake_anesrake()` and
+  `.rake_select_n_highest()` removed entirely
+- `filter` parameter — `rake()` always passes the full dataset
+- `verbose` parameter and all progress print calls
+- `force1` normalization — `rake()` always passes `force1 = FALSE`; inline
+  removed (targets already proportions from `.calibrate_engine()`)
+- Non-factor discrep methods — `.rake_discrep.default()`,
+  `.rake_discrep.logical()`, `.rake_discrep.numeric()`, and `.wpct()`;
+  `rake()` always converts variables to factor before calling the engine
+- Unused `choosemethod` aggregation methods in `.rake_find_discrepancies()`:
+  `"totalsquared"`, `"maxsquared"`, `"averagesquared"`;
+  `rake()` exposes `"total"`, `"max"`, and `"average"` via `control$variable_select`
+- The `if (g %in% seq(100, 10000, 50))` progress print in `.rake_list()`
+- `tostop = 0, warn = 1` path in `.rake_select_by_pct()` — only called from
+  removed nmin/nmax paths; the `warn = 0` silent path is kept (used by the
+  pctlim iterate loop)
 
 **Attribution header** (top of file):
 
@@ -83,23 +102,22 @@ rewrite once the behavior is locked in and verified by tests.
 #   American National Election Study Survey Data." ANES Technical Report
 #   nes012427. https://electionstudies.org/
 #
-# Changes from the original:
-#   - Style: formatted with air, %>% replaced with |>
+# Changes from the original (beyond style/formatting):
+#   - Only code paths reachable via rake() are retained
 #   - .rake_list() captures pre-cap weight vector before each capping step
 #     and returns it in the result (the original destroys this state)
 ```
 
-**Helpers ported (one-to-one):**
+**Helpers in the ported engine:**
 
 | Internal helper | Ported from |
 |---|---|
+| `.rake_discrep()` | `discrep.R` + `discrep.factor.R` only |
 | `.rake_on_var()` | `rakeonvar.R` + `rakeonvar.default.R` |
-| `.rake_find_discrepancies()` | `anesrakefinder.R` |
-| `.rake_select_by_pct()` | `selecthighestpcts.R` |
-| `.rake_select_n_highest()` | `selectnhighest.R` |
-| `.rake_discrep()` | `discrep.R` + `discrep.default.R` + `discrep.factor.R` + `discrep.logical.R` + `discrep.numeric.R` |
-| `.rake_list()` | `rakelist.R` — only change: one snapshot line before the capping block |
-| `.rake_anesrake()` | `anesrake.R` — top-level dispatcher |
+| `.rake_find_discrepancies()` | `anesrakefinder.R` — `"total"`, `"max"`, `"average"` only |
+| `.rake_select_by_pct()` | `selecthighestpcts.R` — `tostop=1` and silent `tostop=0` paths |
+| `.rake_list()` | `rakelist.R` — plus pre-cap snapshot; minus verbose/progress prints |
+| `.rake_anesrake()` | `anesrake.R` — `type = "pctlim"` path only |
 
 **The only algorithmic change — inside `.rake_list()`:**
 

@@ -525,7 +525,8 @@
   parameters,
   before_stats,
   after_stats,
-  convergence = NULL
+  convergence = NULL,
+  capping = NULL
 ) {
   list(
     step = as.integer(step),
@@ -539,6 +540,7 @@
       after = after_stats
     ),
     convergence = convergence,
+    capping = capping,
     package_version = as.character(utils::packageVersion("surveywts"))
   )
 }
@@ -962,7 +964,7 @@
     ))
   }
 
-  # ---- Anesrake (via anesrake::anesrake()) ---------------------------------
+  # ---- Anesrake (via internal .rake_anesrake()) ----------------------------
   if (type == "anesrake") {
     var_names <- vapply(vars_spec, function(v) v$col, character(1))
 
@@ -982,32 +984,27 @@
     # Create synthetic caseid
     data_df$.anesrake_id <- seq_len(nrow(data_df))
 
-    # anesrake::anesrake() default cap is 5; NULL is not accepted
-    anesrake_cap <- calibration_spec$cap %||% 5
+    # cap = NULL means no cap; use Inf so .rake_list()'s while loop never fires
+    anesrake_cap <- calibration_spec$cap %||% Inf
 
-    # anesrake uses print() for status messages; suppress the console output.
-    # When data is already calibrated, anesrake::selecthighestpcts() throws
+    # When data is already calibrated, .rake_select_by_pct() throws
     # an error "No variables are off by more than ...". Catch that and treat
     # as already-calibrated.
     anesrake_error <- NULL
-    utils::capture.output(
-      result <- tryCatch(
-        suppressWarnings(
-          anesrake::anesrake(
-            inputter     = targets_list,
-            dataframe    = data_df,
-            caseid       = data_df$.anesrake_id,
-            weightvec    = weights_vec,
-            choosemethod = control$variable_select,
-            cap          = anesrake_cap,
-            pctlim       = control$improvement,
-            nlim         = as.integer(control$min_cell_n),
-            iterate      = TRUE,
-            maxit        = as.integer(control$maxit),
-            type         = "pctlim",
-            force1       = FALSE
-          )
-        ),
+    result <- tryCatch(
+      suppressWarnings(
+        .rake_anesrake(
+          inputter     = targets_list,
+          dataframe    = data_df,
+          caseid       = data_df$.anesrake_id,
+          weightvec    = weights_vec,
+          choosemethod = control$variable_select,
+          cap          = anesrake_cap,
+          pctlim       = control$improvement,
+          iterate      = TRUE,
+          maxit        = as.integer(control$maxit)
+        )
+      ),
         error = function(e) {
           if (grepl("No variables are off", conditionMessage(e),
                     ignore.case = TRUE)) {
@@ -1018,9 +1015,8 @@
           }
         }
       )
-    )
 
-    # Already-calibrated: anesrake threw an error because no variables
+    # Already-calibrated: engine threw an error because no variables
     # exceeded the improvement threshold
     if (identical(anesrake_error, "already_calibrated")) {
       cli::cli_inform(
@@ -1037,11 +1033,12 @@
           iterations = 1L,
           max_error  = 0,
           tolerance  = control$improvement
-        )
+        ),
+        capping = NULL
       ))
     }
 
-    # anesrake::anesrake()$converge is a character string:
+    # .rake_anesrake()$converge is a character string:
     #   "Complete convergence was achieved" — fully converged
     #   "Results are stable, but do not perfectly match..." — partial,
     #     treated as converged (matches old vendored behaviour)
@@ -1059,7 +1056,7 @@
             "{control$maxit} full sweeps."
           ),
           "i" = paste0(
-            "anesrake::anesrake() reported: {result$converge}"
+            "Internal raking engine reported: {result$converge}"
           ),
           "v" = paste0(
             "Increase {.code control$maxit} or relax ",
@@ -1071,7 +1068,7 @@
     }
 
     # nocov start
-    # Defensive: anesrake returns iterations = 0 only when it throws "No
+    # Defensive: engine returns iterations = 0 only when it throws "No
     # variables are off", which is caught above and returns early. This branch
     # cannot be reached via the public API.
     if (result$iterations == 0L) {
@@ -1086,6 +1083,25 @@
     # nocov end
 
     new_weights <- as.numeric(result$weightvec)
+    precap <- as.numeric(result$precap_weightvec)
+    internal_cap <- calibration_spec$cap
+
+    capping_result <- if (is.null(internal_cap)) {
+      NULL
+    } else {
+      list(
+        applied        = any(precap > internal_cap),
+        cap_threshold  = internal_cap,
+        n_capped       = sum(precap > internal_cap),
+        max_precap     = max(precap),
+        mean_excess    = if (any(precap > internal_cap)) {
+          mean(precap[precap > internal_cap] - internal_cap)
+        } else {
+          NA_real_
+        },
+        precap_weights = precap
+      )
+    }
 
     return(list(
       weights = new_weights,
@@ -1094,7 +1110,8 @@
         iterations = as.integer(result$iterations),
         max_error  = 0,
         tolerance  = control$improvement
-      )
+      ),
+      capping = capping_result
     ))
   }
 

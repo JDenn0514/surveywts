@@ -19,7 +19,7 @@ weighting history entry as a `capping` field. It also fixes a bug where
 
 ## PR Map
 
-- [ ] PR 1: `feature/rake-anesrake-port` — Port anesrake engine, add pre-cap history, fix cap=NULL bug, drop anesrake from Imports
+- [x] PR 1: `feature/rake-anesrake-port` — Port anesrake engine, add pre-cap history, fix cap=NULL bug, drop anesrake from Imports
 
 ---
 
@@ -34,14 +34,17 @@ weighting history entry as a `capping` field. It also fixes a bug where
 - `R/utils.R` — update `.make_history_entry()` and `.calibrate_engine()` anesrake block
 - `R/rake.R` — pass `engine_result$capping` to `.make_history_entry()`
 - `DESCRIPTION` — move `anesrake` from `Imports` to `Suggests`
+- `changelog/calibration/feature-rake-precap-weights.md` — changelog entry for this PR
 
 **Acceptance criteria:**
-- [ ] New pre-cap tests confirmed failing (red) before implementation began
-- [ ] Updated cap=NULL test confirmed failing (red) before fix applied
-- [ ] Existing parity test (`weights match direct anesrake::anesrake() call`) still passes after engine swap
-- [ ] All 3 pre-cap history tests pass
-- [ ] `devtools::check()` 0 errors, 0 warnings, ≤2 pre-approved notes
-- [ ] `devtools::document()` run; NAMESPACE and man/ in sync
+- [x] New pre-cap tests confirmed failing (red) before implementation began
+- [x] Updated cap=NULL test confirmed failing (red) before fix applied
+- [x] Existing parity test (`weights match direct anesrake::anesrake() call`) still passes after engine swap
+- [x] All 3 pre-cap history tests pass
+- [x] `devtools::check()` 0 errors, 0 warnings, ≤2 pre-approved notes
+- [x] `devtools::document()` run; NAMESPACE and man/ in sync
+- [x] `devtools::test()` produces ≥ 98% line coverage; no new uncovered lines in `R/rake-anesrake-engine.R`
+- [x] Changelog entry written at `changelog/calibration/feature-rake-precap-weights.md` and committed on this branch
 
 ---
 
@@ -67,6 +70,8 @@ test_that("rake() history capping$applied is FALSE when no weight exceeds cap", 
 
 test_that("rake() history capping records pre-cap weights correctly when cap fires", {
   # use make_surveywts_data(n = 200, seed = 1) + cap = 1.5 (tight, will fire)
+  # Verified: seed=1 + standard margins (age_group, sex) produces max weight ~3.14;
+  # 28 of 200 weights exceed 1.5, so capping is guaranteed to fire.
   # verify: n_capped > 0, max_precap > cap, mean_excess > 0
   # verify: precap_weights[i] >= cap wherever final weight[i] == cap
   # verify: length(precap_weights) == nrow(data)
@@ -77,7 +82,22 @@ Run `devtools::test(filter = "rake")` — confirm all 3 new tests are **red**.
 
 ---
 
-### Step 2 — Update the existing cap=NULL bug-documenting test
+### Step 2 — Update the existing cap=NULL bug-documenting test + add skip guards
+
+**Part A — Add `skip_if_not_installed("anesrake")` to all five parity tests.**
+
+Since Step 11 moves `anesrake` from `Imports` to `Suggests`, all tests that
+call `anesrake::anesrake()` (directly or via `.call_anesrake_direct()`) must
+have a `skip_if_not_installed("anesrake")` guard inside the `test_that()` block.
+Add the guard to these five tests (before any other changes):
+
+- line ~1453: `rake(method='anesrake') weights match direct anesrake::anesrake() call (type='prop')`
+- line ~1471: `rake(method='anesrake', type='count') correctly converts counts to proportions`
+- line ~1490: `rake(method='anesrake', cap=NULL) substitutes anesrake's default cap of 5`
+- line ~1506: `rake(method='anesrake') passes explicit cap to anesrake::anesrake()`
+- line ~1521: `rake(method='anesrake') passes custom control params to anesrake::anesrake()`
+
+**Part B — Rename and flip the cap=NULL bug-documenting test.**
 
 The current test `rake(method='anesrake', cap=NULL) substitutes anesrake's
 default cap of 5` explicitly validates the bug. Rename it and flip the
@@ -86,6 +106,7 @@ internally), so `capping` in history must be `NULL`.
 
 ```r
 test_that("rake(method='anesrake', cap=NULL) applies no cap", {
+  skip_if_not_installed("anesrake")
   # call rake() with cap = NULL
   # expect capping in history is NULL
   # expect max final weight > 5 (proving cap of 5 was NOT applied)
@@ -93,7 +114,18 @@ test_that("rake(method='anesrake', cap=NULL) applies no cap", {
 })
 ```
 
-Run `devtools::test(filter = "rake")` — confirm this test is also **red**
+**Part C — Update `.call_anesrake_direct()` default cap + stale comment.**
+
+After Step 9 changes `%||% 5` → `%||% Inf`, three parity tests (#1, #2, #5)
+call `.call_anesrake_direct()` without specifying `cap`, leaving the reference
+at `cap = 5`. Update the helper's default to `cap = Inf` so the reference
+correctly mirrors the fixed `rake()` behavior for the `cap = NULL` case.
+Also update the stale comment in test #1 (~line 1465) from:
+`# cap = NULL in rake() → engine substitutes cap = 5 for anesrake (NULL not accepted)`
+to:
+`# cap = NULL → Inf (no cap applied)`
+
+Run `devtools::test(filter = "rake")` — confirm the renamed test is **red**
 (the bug is still present; the test now correctly rejects the buggy behavior).
 
 ---
@@ -150,9 +182,13 @@ before the capping `while` block, add:
 precap_weightvec <- weightvec
 ```
 
-`precap_weightvec` is initialized to `weightvec` before the convergence loop
-so it is always defined. It is overwritten each iteration; after the loop exits
-it holds the final iteration's pre-cap state.
+This snapshot is placed inside the convergence loop (matching the spec). A
+defensive pre-loop initialization (`precap_weightvec <- weightvec` before the
+`repeat`) is also added solely to satisfy R's "variable used before assignment"
+check in environments that do static analysis — the `repeat` loop always
+executes at least once, so the pre-loop value is never actually used.
+It is overwritten each iteration; after the loop exits it holds the final
+iteration's pre-cap state.
 
 The capping `while` loop condition changes from `range(weightvec)[2]` to
 `max(weightvec)` (identical result, cleaner style per `air`).
@@ -357,7 +393,7 @@ substitutes anesrake's default cap of 5` was written to document the current
 (buggy) behavior. Step 2 renames and updates it before any implementation
 begins — it must be red before the fix is applied.
 
-**`anesrake` parity test uses `skip_if_not_installed`:** The existing parity
-test already contains `skip_if_not_installed("anesrake")` inside the block per
-project testing standards. It remains valid after the port — it now compares our
-internal engine against the original package as a regression guard.
+**`anesrake` parity tests use `skip_if_not_installed`:** Step 2 adds
+`skip_if_not_installed("anesrake")` inside all five parity test blocks before
+any implementation begins. After the port these tests compare our internal
+engine against the original package as a regression guard.

@@ -90,7 +90,7 @@ roadmap's `06-` / `07-` prefixes were planning artifacts that were not used).
 
 | Helper | Signature | Used by |
 |--------|-----------|---------|
-| `.compute_model_matrix_totals()` | `(formula, data, weights)` | `calibrate_to_survey()`, `calibrate_to_estimate()` |
+| `.to_svyrep_design()` | `(design)` | `calibrate_to_survey()`, `calibrate_to_estimate()` |
 | `.validate_formula_variables()` | `(formula, data, design_label)` | `calibrate_to_survey()`, `calibrate_to_estimate()` |
 
 ### Replicate Weight Structure (Reference)
@@ -161,15 +161,14 @@ Returns a `survey_replicate` with:
    (`length(@variables$repweights)`). Mismatch → error.
 2. All variables named in `formula` must exist in BOTH `@data` sets. Missing in either
    design → error (separate error for each design).
-3. The calibration target for replicate `r` is computed as:
-   `model_matrix_totals(formula, control_design@data, weights = repweights[r])`
-   where `model_matrix_totals` = weighted column sums of `model.matrix(formula, data)`.
-4. Full-sample calibration target = `model_matrix_totals(formula, control_design@data,
-   weights = full_sample_weights)`.
-5. Each of the `R + 1` calibrations (1 full-sample + R replicates) uses `.calibrate_engine()`.
-6. If ANY individual calibration (full-sample or any replicate) fails to converge, throw
-   `surveywts_error_calibration_not_converged` immediately. Do not continue to remaining
-   replicates.
+3. Both designs are converted to `svyrep.design` objects via `.to_svyrep_design()`.
+4. `svrep::calibrate_to_sample()` is called with `primary_rep_design`, `control_rep_design`,
+   `cal_formula = formula`, `calfun` derived from `method` (`survey::cal.linear` for
+   `"linear"`, `survey::cal.logit` for `"logit"`), and `maxit`/`epsilon` from `control`.
+5. Updated full-sample and replicate weights are extracted from the `svyrep.design` result
+   and written back into `primary_design`.
+6. If `svrep::calibrate_to_sample()` throws a calibration error, catch it and re-throw as
+   `surveywts_error_calibration_not_converged`.
 7. If `method = "linear"` produces negative weights in the full-sample calibration,
    warn with `surveywts_warning_negative_calibrated_weights`. Do NOT warn for individual
    replicate calibrations — this would produce up to `R` warnings; a single summary
@@ -263,21 +262,19 @@ Returns a `survey_replicate` with:
    non-intercept column names of `model.matrix(formula, design@data)`. Mismatch → error.
 3. `vcov_estimate` must be a numeric matrix with dimensions `p × p` where
    `p = length(estimate)`. Must be symmetric (checked to tolerance `1e-8`). No NAs.
-   Non-positive-definite matrices are accepted with a warning but not rejected
-   (Cholesky factorization will fail at perturbation time if truly not PSD → error).
+   Non-positive-definite matrices will cause `svrep::calibrate_to_estimate()` to fail —
+   those errors propagate as-is.
 4. All variables named in `formula` must exist in `design@data`. Missing → error.
-5. **Perturbation algorithm:** For each replicate `r`, the perturbed control total is:
-   `estimate_r = estimate + L %*% z_r`
-   where `L` is the lower Cholesky factor of `vcov_estimate` and `z_r` is derived from
-   the signed deviation of replicate `r`'s weights from the full-sample weights.
-   The exact perturbation formula follows `svrep::calibrate_to_estimate()`.
+5. `design` is converted to a `svyrep.design` via `.to_svyrep_design()`.
+   `svrep::calibrate_to_estimate()` is called with `rep_design`, `estimate`,
+   `vcov_estimate`, `cal_formula = formula`, `calfun` derived from `method`,
+   and `maxit`/`epsilon` from `control`. The perturbation of control totals
+   across replicates — including Cholesky factorization and replicate-type-specific
+   scaling — is handled entirely by `svrep`.
 
-   > ⚠️ **GAP:** The precise perturbation formula depends on the replicate weight type
-   > (`type`, `scale`, `rscales`). The implementer must reproduce the formula from
-   > `svrep::calibrate_to_estimate()` and document any deviation here before PR is opened.
-
-6. Each of the `R + 1` calibrations uses `.calibrate_engine()`. Same convergence and
-   negative-weight rules as `calibrate_to_survey()` (rule 6 and 7 from §III).
+6. Updated weights are extracted from the `svyrep.design` result and written back into
+   `design`. Same convergence-error and negative-weight-warning rules as
+   `calibrate_to_survey()` (rules 6 and 7 from §III).
 7. History entry records: `formula` as character, `method`, `n_replicates`,
    `estimate` names, `vcov` dimension.
 
@@ -293,7 +290,6 @@ Returns a `survey_replicate` with:
 | `surveywts_error_estimate_names_mismatch` | `names(estimate)` do not match model matrix column names |
 | `surveywts_error_vcov_dimension_mismatch` | `vcov_estimate` is not `p × p` |
 | `surveywts_error_vcov_not_symmetric` | `vcov_estimate` is not symmetric (tolerance `1e-8`) |
-| `surveywts_error_vcov_cholesky_failed` | Cholesky decomposition failed (vcov is not positive semi-definite) |
 | `surveywts_error_calibration_not_converged` | Any calibration failed to converge (reuse existing) |
 
 ### Warning Table
@@ -510,20 +506,20 @@ adjust_nonresponse(
 
 ## VII. Shared Helpers
 
-### `.compute_model_matrix_totals(formula, data, weights)`
+### `.to_svyrep_design(design)`
 
-Computes the weighted column sums of `model.matrix(formula, data)`.
+Converts a `survey_replicate` to a `survey` package `svyrep.design` object — the input
+format required by `svrep::calibrate_to_sample()` and `svrep::calibrate_to_estimate()`.
 
 ```
 Arguments:
-  formula : one-sided R formula
-  data    : data.frame
-  weights : numeric vector (length = nrow(data))
+  design : survey_replicate
 
-Returns: named numeric vector (one entry per model matrix column including intercept)
+Returns: a `svyrep.design` (survey package class)
 ```
 
-Used by both `calibrate_to_survey()` and `calibrate_to_estimate()`. Lives in `R/utils.R`.
+Lives in `R/utils.R`. Used by `calibrate_to_survey()` (twice: primary and control) and
+`calibrate_to_estimate()`.
 
 ### `.validate_formula_variables(formula, data, design_label)`
 
@@ -567,11 +563,9 @@ Checks that `formula` is a valid one-sided R formula object. Throws
 - `test_invariants()` called on result
 
 **2. Numerical correctness**
-```r
-skip_if_not_installed("svrep")
-# Compare calibrated full-sample weights against svrep::calibrate_to_sample()
-```
-Tolerance: `1e-8` for weights (matching `testing-surveywts.md` convention).
+- Calibrated full-sample weights satisfy the calibration constraints:
+  `abs(sum(w_new * X) - sum(w_control * X)) < 1e-8` for all formula variables.
+- Weight totals are conserved: `sum(w_new) ≈ sum(w_original)`.
 
 **3. Error paths**
 - `primary_design` is `survey_taylor` → `surveywts_error_primary_not_replicate`
@@ -596,10 +590,8 @@ Tolerance: `1e-8` for weights (matching `testing-surveywts.md` convention).
 - History entry correct
 
 **2. Numerical correctness**
-```r
-skip_if_not_installed("svrep")
-# Compare against svrep::calibrate_to_estimate()
-```
+- Calibrated full-sample weights satisfy the calibration constraints:
+  `abs(sum(w_new * X) - estimate) < 1e-8` for all calibration variables.
 
 **3. Error paths**
 - `design` not `survey_replicate` → `surveywts_error_primary_not_replicate`
@@ -687,8 +679,8 @@ All of the following must be true before the Nonresponse phase PR is considered 
 - [ ] Snapshot tests added for all new user-facing `cli_abort()` calls
 - [ ] `devtools::document()` run; NAMESPACE and man/ files are in sync
 - [ ] All exported function examples are runnable (`R CMD check --run-dontrun`)
-- [ ] `calibrate_to_survey()` and `calibrate_to_estimate()` numerical correctness verified
-  against `svrep` (results within `1e-8` for weights)
+- [ ] `calibrate_to_survey()` and `calibrate_to_estimate()` calibration constraints
+  verified: calibrated full-sample weights satisfy target totals within `1e-8`
 - [ ] History entries use correct `operation` strings (see §III–VI)
 - [ ] `test_invariants()` called in every new constructor test block
 
@@ -711,7 +703,6 @@ The following new classes must be added before the Implementation Plan is writte
 - `surveywts_error_estimate_names_mismatch`
 - `surveywts_error_vcov_dimension_mismatch`
 - `surveywts_error_vcov_not_symmetric`
-- `surveywts_error_vcov_cholesky_failed`
 
 **New for `redistribute_weights()`:**
 - `surveywts_error_reduce_if_not_found`
@@ -748,10 +739,11 @@ redistribute_weights <- function(...)
 
 ### Dependency: `svrep`
 
-`svrep` is the numerical reference for `calibrate_to_survey()` and
-`calibrate_to_estimate()`. It belongs in `Suggests` (test-only). No new `Imports`
-are required for this phase — `stats::glm()` (propensity-cell) and `stats::chol()`
-(vcov factorization) are base R.
+`svrep` is called directly by `calibrate_to_survey()` (via `svrep::calibrate_to_sample()`)
+and `calibrate_to_estimate()`. It must be in `Imports` — add it to `DESCRIPTION` at the
+start of this phase. No other new `Imports` are required — `stats::glm()` (propensity-cell)
+is base R. `stats::chol()` is no longer needed since `svrep` handles vcov factorization
+internally.
 
 ### Interaction with Propensity Phase
 

@@ -206,7 +206,7 @@
     Condition
       Error in `.calibrate_engine()`:
       x Raking did not converge after 2 full sweeps.
-      i anesrake::anesrake() reported: No convergence in 2 iterations
+      i Internal raking engine reported: No convergence in 2 iterations
       v Increase `control$maxit` or relax `control$improvement` in the `control` list.
 
 # rake() rejects cap with method = 'survey'

@@ -21,7 +21,7 @@ then sample-calibration functions, then the two nonresponse extensions.
 
 - [x] PR 1: `feature/nonresponse-infrastructure` — Shared helpers, svrep dependency, and error class registry
 - [x] PR 2: `feature/sample-calibration` — `calibrate_to_survey()` and `calibrate_to_estimate()`
-- [ ] PR 3: `feature/redistribute-weights` — `redistribute_weights()` primitive
+- [x] PR 3: `feature/redistribute-weights` — `redistribute_weights()` primitive
 - [ ] PR 4: `feature/propensity-cell` — `adjust_nonresponse(method = "propensity-cell")`
 
 ---

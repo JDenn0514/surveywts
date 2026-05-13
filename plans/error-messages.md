@@ -70,6 +70,50 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_error_response_status_multiple_columns` | `adjust_nonresponse()` | `response_status` selects > 1 column |
 | `surveywts_error_propensity_not_available` | `adjust_nonresponse()` | `method` is `"propensity"` or `"propensity-cell"` (not yet available) |
 
+### `calibrate_to_survey()` / `calibrate_to_estimate()`
+
+| Class | Thrown by | Condition |
+|-------|-----------|-----------|
+| `surveywts_error_primary_not_replicate` | `calibrate_to_survey()`, `calibrate_to_estimate()` | `primary_design` / `design` is not `survey_replicate` |
+| `surveywts_error_control_not_replicate` | `calibrate_to_survey()` | `control_design` is not `survey_replicate` |
+| `surveywts_error_replicate_count_mismatch` | `calibrate_to_survey()` | Number of replicates differs between `primary_design` and `control_design` |
+| `surveywts_error_formula_variable_not_found` | `calibrate_to_survey()`, `calibrate_to_estimate()`, `adjust_nonresponse(method = "propensity-cell")` | A formula variable not found in the design data |
+| `surveywts_error_formula_invalid` | `calibrate_to_survey()`, `calibrate_to_estimate()`, `adjust_nonresponse(method = "propensity-cell")` | `formula` is not a one-sided formula object |
+| `surveywts_error_estimate_not_named` | `calibrate_to_estimate()` | `estimate` vector is not named |
+| `surveywts_error_estimate_has_na` | `calibrate_to_estimate()` | `estimate` vector has `NA` values |
+| `surveywts_error_estimate_length_mismatch` | `calibrate_to_estimate()` | Length of `estimate` does not match model matrix columns |
+| `surveywts_error_estimate_names_mismatch` | `calibrate_to_estimate()` | Names of `estimate` do not match model matrix column names |
+| `surveywts_error_vcov_dimension_mismatch` | `calibrate_to_estimate()` | `vcov_estimate` dimensions do not match `estimate` length |
+| `surveywts_error_vcov_has_na` | `calibrate_to_estimate()` | `vcov_estimate` has `NA` values |
+| `surveywts_error_vcov_not_symmetric` | `calibrate_to_estimate()` | `vcov_estimate` is not symmetric (within 1e-8 tolerance) |
+| `surveywts_error_vcov_cholesky_failed` | `calibrate_to_estimate()` | `vcov_estimate` is not positive definite (Cholesky fails) |
+| `surveywts_error_calibration_not_converged` | `.calibrate_engine()`, `calibrate_to_survey()`, `calibrate_to_estimate()` | Max iterations reached without convergence — **reuse existing class** |
+
+### `redistribute_weights()`
+
+| Class | Thrown by | Condition |
+|-------|-----------|-----------|
+| `surveywts_error_reduce_if_not_found` | `redistribute_weights()` | `reduce_if` column not found in data |
+| `surveywts_error_increase_if_not_found` | `redistribute_weights()` | `increase_if` column not found in data |
+| `surveywts_error_reduce_if_not_binary` | `redistribute_weights()` | `reduce_if` column is not 0/1 or logical |
+| `surveywts_error_increase_if_not_binary` | `redistribute_weights()` | `increase_if` column is not 0/1 or logical |
+| `surveywts_error_reduce_if_has_na` | `redistribute_weights()` | `reduce_if` column has `NA` values |
+| `surveywts_error_increase_if_has_na` | `redistribute_weights()` | `increase_if` column has `NA` values |
+| `surveywts_error_indicators_overlap` | `redistribute_weights()` | A row has both `reduce_if = 1` and `increase_if = 1` |
+| `surveywts_error_no_recipients_in_group` | `redistribute_weights()` | A group has `reduce_if` rows but no `increase_if` rows |
+| `surveywts_error_wt_name_conflict` | `redistribute_weights()` | `wt_name` matches an existing non-weight column |
+
+### `adjust_nonresponse()` — propensity-cell
+
+| Class | Thrown by | Condition |
+|-------|-----------|-----------|
+| `surveywts_error_formula_required_for_propensity_cell` | `adjust_nonresponse()` | `method = "propensity-cell"` but `formula = NULL` |
+| `surveywts_error_formula_variable_has_na` | `adjust_nonresponse()` | A formula variable contains `NA` values |
+| `surveywts_error_n_cells_invalid` | `adjust_nonresponse()` | `control$n_cells` is not a whole number ≥ 2 |
+| `surveywts_error_no_respondents_in_propensity_cell` | `adjust_nonresponse()` | A propensity score cell contains no respondents |
+| _See also:_ `surveywts_error_formula_invalid` | — | Shared with calibration section above |
+| _See also:_ `surveywts_error_formula_variable_not_found` | — | Shared with calibration section above |
+
 ### Diagnostics
 
 | Class | Thrown by | Condition |
@@ -113,6 +157,10 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_warning_negative_calibrated_weights` | `calibrate()` | Linear calibration produced negative calibrated weights |
 | `surveywts_warning_class_near_empty` | `adjust_nonresponse()` | A weighting class cell has fewer than `control$min_cell` respondents (default 20) OR adjustment factor exceeds `control$max_adjust` (default 2.0) |
 | `surveywts_warning_control_param_ignored` | `rake()` | A `control` parameter is not applicable to the specified `method` (e.g., `control$pval` with `method = "survey"`, or `control$epsilon` with `method = "anesrake"`) |
+| `surveywts_warning_replicate_scheme_mismatch` | `calibrate_to_survey()` | `primary_design` and `control_design` have different replicate weight types (e.g., `"bootstrap"` vs `"JK1"`) |
+| `surveywts_warning_by_ignored_for_propensity_cell` | `adjust_nonresponse()` | `by` is non-`NULL` with `method = "propensity-cell"` — `by` is ignored for this method |
+| _See also:_ `surveywts_warning_negative_calibrated_weights` | — | Shared with `calibrate()` section; also thrown by `calibrate_to_survey()` and `calibrate_to_estimate()` |
+| _See also:_ `surveywts_warning_class_near_empty` | — | Shared with `adjust_nonresponse()` section; also thrown by `redistribute_weights()` |
 
 ## Messages
 

@@ -113,6 +113,17 @@ make_taylor_design <- function(
   surveycore::as_survey(df, ids = psu_id, strata = stratum, weights = base_weight)
 }
 
+# Replicate design for nonresponse phase tests.
+# Returns a survey_replicate built from make_surveywts_data().
+make_replicate_design <- function(n_replicates = 50L, seed = 42L) {
+  df <- make_surveywts_data(n = 200L, seed = seed)
+  taylor <- surveycore::survey_taylor(
+    data = df,
+    variables = list(weights = "base_weight")
+  )
+  create_bootstrap_weights(taylor, replicates = n_replicates)
+}
+
 # Paired-PSU design for BRR tests.
 # Returns a survey_taylor with exactly 2 PSUs per stratum.
 make_paired_design <- function(n_strata = 3L, obs_per_psu = 10L, seed = 42L) {

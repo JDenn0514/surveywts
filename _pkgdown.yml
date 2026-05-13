@@ -21,6 +21,13 @@ reference:
       - calibrate
       - rake
       - poststratify
+  - title: Sample-Based Calibration
+    desc: >
+      Functions for calibrating replicate-weight designs to a control survey or
+      to estimated totals with uncertainty.
+    contents:
+      - calibrate_to_survey
+      - calibrate_to_estimate
   - title: Nonresponse Adjustment
     desc: >
       Functions for adjusting survey weights for unit nonresponse.

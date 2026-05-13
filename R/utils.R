@@ -1273,11 +1273,26 @@
   repweights_df <- design@data[vars$repweights]
   mse_val <- if (!is.null(vars$mse)) vars$mse else TRUE
 
+  type_map <- c(
+    "bootstrap" = "bootstrap",
+    "BRR" = "BRR",
+    "Fay" = "Fay",
+    "JK1" = "JK1",
+    "JK2" = "JK2",
+    "JKn" = "JKn",
+    "successive-difference" = "successive-difference",
+    "ACS" = "ACS",
+    "Random-groups jackknife" = "JK1",
+    "other" = "other"
+  )
+  svyrep_type <- type_map[vars$type]
+  if (is.na(svyrep_type)) svyrep_type <- "other"
+
   survey::svrepdesign(
     data = design@data,
     weights = weights_vec,
     repweights = repweights_df,
-    type = vars$type,
+    type = svyrep_type,
     scale = vars$scale,
     rscales = vars$rscales,
     combined.weights = FALSE,

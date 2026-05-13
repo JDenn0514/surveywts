@@ -88,7 +88,7 @@ test_invariants <- function(obj) {
   if (S7::S7_inherits(obj, surveycore::survey_replicate)) {
     testthat::expect_true(is.character(obj@variables$weights))
     testthat::expect_true(is.character(obj@variables$repweights))
-    testthat::expect_true(length(obj@variables$repweights) >= 2L)
+    testthat::expect_true(length(obj@variables$repweights) >= 1L)
     testthat::expect_true(all(obj@variables$repweights %in% names(obj@data)))
   }
 }

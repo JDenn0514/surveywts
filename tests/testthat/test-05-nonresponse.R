@@ -1067,3 +1067,702 @@ test_that("adjust_nonresponse() records wt_name in weighting history", {
   history <- attr(result, "weighting_history")
   expect_identical(history[[length(history)]]$weight_col, "nr_wt")
 })
+
+# ===========================================================================
+# redistribute_weights() tests
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# RW-1. Happy path — data.frame input → weighted_df (all rows retained)
+# ---------------------------------------------------------------------------
+
+test_that("redistribute_weights() with data.frame input returns weighted_df", {
+  df <- make_surveywts_data(seed = 20, include_nonrespondents = TRUE)
+  df$reduce_col   <- 1L - df$responded
+  df$increase_col <- df$responded
+
+  result <- redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col)
+
+  test_invariants(result)
+  expect_true(inherits(result, "weighted_df"))
+  expect_equal(nrow(result), nrow(df))
+  expect_true(all(result[["wts"]][df$reduce_col == 1L] == 0))
+  expect_true(all(result[["wts"]][df$increase_col == 1L] > 0))
+})
+
+# ---------------------------------------------------------------------------
+# RW-2. Happy path — weighted_df input → weighted_df
+# ---------------------------------------------------------------------------
+
+test_that("redistribute_weights() with weighted_df input returns weighted_df", {
+  df <- make_surveywts_data(seed = 21, include_nonrespondents = TRUE)
+  df$reduce_col   <- 1L - df$responded
+  df$increase_col <- df$responded
+  wdf <- .make_weighted_df(df, "base_weight", list())
+
+  result <- redistribute_weights(wdf, reduce_if = reduce_col, increase_if = increase_col)
+
+  test_invariants(result)
+  expect_true(inherits(result, "weighted_df"))
+  expect_equal(nrow(result), nrow(wdf))
+})
+
+# ---------------------------------------------------------------------------
+# RW-3. Happy path — survey_nonprob input → survey_nonprob (reduce_if rows filtered)
+# ---------------------------------------------------------------------------
+
+test_that("redistribute_weights() with survey_nonprob input returns survey_nonprob", {
+  df <- make_surveywts_data(seed = 22, include_nonrespondents = TRUE)
+  df$reduce_col   <- 1L - df$responded
+  df$increase_col <- df$responded
+
+  snp <- surveycore::survey_nonprob(
+    data = df,
+    variables = list(
+      ids = NULL, strata = NULL, fpc = NULL,
+      weights = "base_weight", nest = FALSE
+    ),
+    metadata = surveycore::survey_metadata(),
+    groups = character(0),
+    call = NULL,
+    calibration = NULL
+  )
+
+  result <- redistribute_weights(snp, reduce_if = reduce_col, increase_if = increase_col)
+
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  n_reduce <- sum(df$reduce_col == 1L)
+  expect_equal(nrow(result@data), nrow(df) - n_reduce)
+  expect_true(all(result@data[[result@variables$weights]] > 0))
+})
+
+# ---------------------------------------------------------------------------
+# RW-4. Happy path — survey_taylor input → survey_taylor (reduce_if rows filtered)
+# ---------------------------------------------------------------------------
+
+test_that("redistribute_weights() with survey_taylor input returns survey_taylor, respondents only", {
+  df <- make_surveywts_data(seed = 23, include_nonrespondents = TRUE)
+  df$reduce_col   <- 1L - df$responded
+  df$increase_col <- df$responded
+  design <- .make_test_taylor_nr(df)
+
+  result <- redistribute_weights(design, reduce_if = reduce_col, increase_if = increase_col)
+
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_taylor))
+  expect_false(S7::S7_inherits(result, surveycore::survey_nonprob))
+  n_reduce <- sum(df$reduce_col == 1L)
+  expect_equal(nrow(result@data), nrow(df) - n_reduce)
+  expect_true(all(result@data[[result@variables$weights]] > 0))
+})
+
+# ---------------------------------------------------------------------------
+# RW-5. Happy path — by = NULL performs global redistribution
+# ---------------------------------------------------------------------------
+
+test_that("redistribute_weights() with by = NULL performs global redistribution", {
+  n <- 100L
+  df <- data.frame(
+    wt         = rep(1, n),
+    reduce_col  = c(rep(1L, 20L), rep(0L, 80L)),
+    increase_col = c(rep(0L, 20L), rep(1L, 80L))
+  )
+
+  result <- redistribute_weights(
+    df,
+    reduce_if  = reduce_col,
+    increase_if = increase_col,
+    weights    = wt
+  )
+
+  w_new <- result[["wts"]]
+  # W_total = 100, W_increase = 80; factor = 100/80 = 1.25
+  expected_wt <- n / 80L
+  expect_equal(unique(w_new[df$increase_col == 1L]), expected_wt, tolerance = 1e-10)
+  expect_true(all(w_new[df$reduce_col == 1L] == 0))
+})
+
+# ---------------------------------------------------------------------------
+# RW-6. Happy path — by groups processed independently
+# ---------------------------------------------------------------------------
+
+test_that("redistribute_weights() with by groups processes each group independently", {
+  df <- data.frame(
+    grp        = c(rep("A", 10L), rep("B", 10L)),
+    wt         = rep(1, 20L),
+    reduce_col  = c(rep(1L, 3L), rep(0L, 7L), rep(1L, 4L), rep(0L, 6L)),
+    increase_col = c(rep(0L, 3L), rep(1L, 7L), rep(0L, 4L), rep(1L, 6L))
+  )
+
+  result <- redistribute_weights(
+    df,
+    reduce_if  = reduce_col,
+    increase_if = increase_col,
+    weights    = wt,
+    by         = grp,
+    control    = list(min_cell = 1L)  # suppress sparse-cell warning; not testing that here
+  )
+
+  w_new <- result[["wts"]]
+  for (g in c("A", "B")) {
+    idx_all  <- df$grp == g
+    idx_resp <- idx_all & df$increase_col == 1L
+    expect_equal(sum(w_new[idx_resp]), sum(df$wt[idx_all]), tolerance = 1e-10)
+  }
+})
+
+# ---------------------------------------------------------------------------
+# RW-7. Happy path — rows matching neither indicator have unchanged weights
+# ---------------------------------------------------------------------------
+
+test_that("redistribute_weights() rows matching neither indicator have unchanged weights", {
+  df <- data.frame(
+    wt         = c(1, 2, 3, 4, 5),
+    reduce_col  = c(1L, 0L, 0L, 0L, 0L),
+    increase_col = c(0L, 1L, 0L, 0L, 0L)
+  )
+
+  result <- redistribute_weights(
+    df,
+    reduce_if  = reduce_col,
+    increase_if = increase_col,
+    weights    = wt,
+    control    = list(min_cell = 1L)  # suppress sparse-cell warning; not testing that here
+  )
+
+  neither_idx <- df$reduce_col == 0L & df$increase_col == 0L
+  expect_equal(result[["wts"]][neither_idx], df$wt[neither_idx], tolerance = 1e-10)
+})
+
+# ---------------------------------------------------------------------------
+# RW-8. Numerical correctness — matches adjust_nonresponse() for equivalent inputs
+# ---------------------------------------------------------------------------
+
+test_that("redistribute_weights() result matches adjust_nonresponse() weighting-class for equivalent inputs", {
+  df <- make_surveywts_data(seed = 27, include_nonrespondents = TRUE)
+  df$reduce_col   <- 1L - df$responded
+  df$increase_col <- df$responded
+
+  result_rw <- redistribute_weights(
+    df,
+    reduce_if  = reduce_col,
+    increase_if = increase_col,
+    weights    = base_weight,
+    wt_name    = "wts"
+  )
+  result_adj <- adjust_nonresponse(df, response_status = responded, weights = base_weight)
+
+  resp_idx    <- df$responded == 1L
+  nonresp_idx <- df$responded == 0L
+  expect_equal(result_rw[["wts"]][resp_idx], result_adj[["wts"]][resp_idx], tolerance = 1e-10)
+  expect_true(all(result_rw[["wts"]][nonresp_idx] == 0))
+  expect_true(all(result_adj[["wts"]][nonresp_idx] == 0))
+})
+
+# ---------------------------------------------------------------------------
+# RW-9. Error — survey_replicate input
+# ---------------------------------------------------------------------------
+
+test_that("redistribute_weights() errors for survey_replicate input", {
+  rsd <- make_replicate_design(seed = 30)
+
+  expect_error(
+    redistribute_weights(rsd, reduce_if = x, increase_if = y),
+    class = "surveywts_error_replicate_not_supported"
+  )
+  expect_snapshot(
+    error = TRUE,
+    redistribute_weights(rsd, reduce_if = x, increase_if = y)
+  )
+})
+
+# ---------------------------------------------------------------------------
+# RW-10. Error — 0-row data frame
+# ---------------------------------------------------------------------------
+
+test_that("redistribute_weights() errors for 0-row data frame", {
+  empty_df <- data.frame(
+    wt = numeric(0), reduce_col = integer(0), increase_col = integer(0)
+  )
+
+  expect_error(
+    redistribute_weights(empty_df, reduce_if = reduce_col, increase_if = increase_col, weights = wt),
+    class = "surveywts_error_empty_data"
+  )
+  expect_snapshot(
+    error = TRUE,
+    redistribute_weights(empty_df, reduce_if = reduce_col, increase_if = increase_col, weights = wt)
+  )
+})
+
+# ---------------------------------------------------------------------------
+# RW-11. Error — named weight column is missing
+# ---------------------------------------------------------------------------
+
+test_that("redistribute_weights() errors when named weight column is missing", {
+  df <- data.frame(
+    reduce_col = 0L, increase_col = 1L
+  )
+
+  expect_error(
+    redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col, weights = no_such_col),
+    class = "surveywts_error_weights_not_found"
+  )
+  expect_snapshot(
+    error = TRUE,
+    redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col, weights = no_such_col)
+  )
+})
+
+# ---------------------------------------------------------------------------
+# RW-12. Error — weight column is not numeric
+# ---------------------------------------------------------------------------
+
+test_that("redistribute_weights() errors when weight column is not numeric", {
+  df <- data.frame(
+    wt = c("a", "b", "c"),
+    reduce_col  = c(1L, 0L, 0L),
+    increase_col = c(0L, 1L, 0L)
+  )
+
+  expect_error(
+    redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col, weights = wt),
+    class = "surveywts_error_weights_not_numeric"
+  )
+  expect_snapshot(
+    error = TRUE,
+    redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col, weights = wt)
+  )
+})
+
+# ---------------------------------------------------------------------------
+# RW-13. Error — weight column has non-positive values
+# ---------------------------------------------------------------------------
+
+test_that("redistribute_weights() errors when weight column has non-positive values", {
+  df <- data.frame(
+    wt = c(-1, 1, 1),
+    reduce_col  = c(1L, 0L, 0L),
+    increase_col = c(0L, 1L, 1L)
+  )
+
+  expect_error(
+    redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col, weights = wt),
+    class = "surveywts_error_weights_nonpositive"
+  )
+  expect_snapshot(
+    error = TRUE,
+    redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col, weights = wt)
+  )
+})
+
+# ---------------------------------------------------------------------------
+# RW-14. Error — weight column has NA
+# ---------------------------------------------------------------------------
+
+test_that("redistribute_weights() errors when weight column has NA", {
+  df <- data.frame(
+    wt = c(NA_real_, 1, 1),
+    reduce_col  = c(1L, 0L, 0L),
+    increase_col = c(0L, 1L, 1L)
+  )
+
+  expect_error(
+    redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col, weights = wt),
+    class = "surveywts_error_weights_na"
+  )
+  expect_snapshot(
+    error = TRUE,
+    redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col, weights = wt)
+  )
+})
+
+# ---------------------------------------------------------------------------
+# RW-15. Error — wt_name is not character(1)
+# ---------------------------------------------------------------------------
+
+test_that("redistribute_weights() errors when wt_name is not character(1)", {
+  df <- data.frame(
+    wt = 1, reduce_col = 1L, increase_col = 0L
+  )
+
+  expect_error(
+    redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col, weights = wt, wt_name = 42),
+    class = "surveywts_error_wt_name_not_scalar"
+  )
+  expect_snapshot(
+    error = TRUE,
+    redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col, weights = wt, wt_name = 42)
+  )
+})
+
+# ---------------------------------------------------------------------------
+# RW-16. Error — wt_name is NA or empty string
+# ---------------------------------------------------------------------------
+
+test_that("redistribute_weights() errors when wt_name is NA or empty string", {
+  df <- data.frame(
+    wt = 1, reduce_col = 1L, increase_col = 0L
+  )
+
+  expect_error(
+    redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col, weights = wt, wt_name = ""),
+    class = "surveywts_error_wt_name_empty"
+  )
+  expect_snapshot(
+    error = TRUE,
+    redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col, weights = wt, wt_name = "")
+  )
+  expect_error(
+    redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col, weights = wt, wt_name = NA_character_),
+    class = "surveywts_error_wt_name_empty"
+  )
+})
+
+# ---------------------------------------------------------------------------
+# RW-17. Error — wt_name conflicts with existing non-weight column
+# ---------------------------------------------------------------------------
+
+test_that("redistribute_weights() errors when wt_name conflicts with an existing non-weight column", {
+  df <- make_surveywts_data(seed = 31, include_nonrespondents = TRUE)
+  df$reduce_col   <- 1L - df$responded
+  df$increase_col <- df$responded
+
+  # "age_group" is an existing non-weight column; using it as wt_name should error
+  expect_error(
+    redistribute_weights(
+      df,
+      reduce_if  = reduce_col,
+      increase_if = increase_col,
+      wt_name    = "age_group"
+    ),
+    class = "surveywts_error_wt_name_conflict"
+  )
+  expect_snapshot(
+    error = TRUE,
+    redistribute_weights(
+      df,
+      reduce_if  = reduce_col,
+      increase_if = increase_col,
+      wt_name    = "age_group"
+    )
+  )
+})
+
+# ---------------------------------------------------------------------------
+# RW-18. Error — reduce_if column not found
+# ---------------------------------------------------------------------------
+
+test_that("redistribute_weights() errors when reduce_if column is not found", {
+  df <- make_surveywts_data(seed = 32, include_nonrespondents = TRUE)
+  df$increase_col <- df$responded
+
+  expect_error(
+    redistribute_weights(df, reduce_if = no_such_col, increase_if = increase_col),
+    class = "surveywts_error_reduce_if_not_found"
+  )
+  expect_snapshot(
+    error = TRUE,
+    redistribute_weights(df, reduce_if = no_such_col, increase_if = increase_col)
+  )
+})
+
+# ---------------------------------------------------------------------------
+# RW-19. Error — increase_if column not found
+# ---------------------------------------------------------------------------
+
+test_that("redistribute_weights() errors when increase_if column is not found", {
+  df <- make_surveywts_data(seed = 33, include_nonrespondents = TRUE)
+  df$reduce_col <- 1L - df$responded
+
+  expect_error(
+    redistribute_weights(df, reduce_if = reduce_col, increase_if = no_such_col),
+    class = "surveywts_error_increase_if_not_found"
+  )
+  expect_snapshot(
+    error = TRUE,
+    redistribute_weights(df, reduce_if = reduce_col, increase_if = no_such_col)
+  )
+})
+
+# ---------------------------------------------------------------------------
+# RW-20. Error — reduce_if is not binary (factor input)
+# ---------------------------------------------------------------------------
+
+test_that("redistribute_weights() errors when reduce_if is not binary (factor input)", {
+  df <- make_surveywts_data(seed = 34, include_nonrespondents = TRUE)
+  df$reduce_col   <- factor(1L - df$responded)
+  df$increase_col <- df$responded
+
+  expect_error(
+    redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col),
+    class = "surveywts_error_reduce_if_not_binary"
+  )
+  expect_snapshot(
+    error = TRUE,
+    redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col)
+  )
+})
+
+# ---------------------------------------------------------------------------
+# RW-21. Error — increase_if is not binary (character input)
+# ---------------------------------------------------------------------------
+
+test_that("redistribute_weights() errors when increase_if is not binary (character input)", {
+  df <- make_surveywts_data(seed = 35, include_nonrespondents = TRUE)
+  df$reduce_col   <- 1L - df$responded
+  df$increase_col <- as.character(df$responded)
+
+  expect_error(
+    redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col),
+    class = "surveywts_error_increase_if_not_binary"
+  )
+  expect_snapshot(
+    error = TRUE,
+    redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col)
+  )
+})
+
+# ---------------------------------------------------------------------------
+# RW-22. Error — reduce_if has NA values
+# ---------------------------------------------------------------------------
+
+test_that("redistribute_weights() errors when reduce_if has NA values", {
+  df <- make_surveywts_data(seed = 36, include_nonrespondents = TRUE)
+  df$reduce_col   <- 1L - df$responded
+  df$reduce_col[1L] <- NA_integer_
+  df$increase_col <- df$responded
+
+  expect_error(
+    redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col),
+    class = "surveywts_error_reduce_if_has_na"
+  )
+  expect_snapshot(
+    error = TRUE,
+    redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col)
+  )
+})
+
+# ---------------------------------------------------------------------------
+# RW-23. Error — increase_if has NA values
+# ---------------------------------------------------------------------------
+
+test_that("redistribute_weights() errors when increase_if has NA values", {
+  df <- make_surveywts_data(seed = 37, include_nonrespondents = TRUE)
+  df$reduce_col   <- 1L - df$responded
+  df$increase_col <- df$responded
+  df$increase_col[1L] <- NA_integer_
+
+  expect_error(
+    redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col),
+    class = "surveywts_error_increase_if_has_na"
+  )
+  expect_snapshot(
+    error = TRUE,
+    redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col)
+  )
+})
+
+# ---------------------------------------------------------------------------
+# RW-24. Error — reduce_if and increase_if overlap
+# ---------------------------------------------------------------------------
+
+test_that("redistribute_weights() errors when reduce_if and increase_if overlap", {
+  df <- data.frame(
+    wt          = c(1, 1, 1, 1, 1),
+    reduce_col  = c(1L, 1L, 0L, 0L, 0L),
+    increase_col = c(1L, 0L, 1L, 1L, 1L)  # row 1: both 1 → overlap
+  )
+
+  expect_error(
+    redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col, weights = wt),
+    class = "surveywts_error_indicators_overlap"
+  )
+  expect_snapshot(
+    error = TRUE,
+    redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col, weights = wt)
+  )
+})
+
+# ---------------------------------------------------------------------------
+# RW-25. Error — group has no increase_if rows
+# ---------------------------------------------------------------------------
+
+test_that("redistribute_weights() errors when a group has no increase_if rows", {
+  df <- data.frame(
+    wt          = rep(1, 5L),
+    reduce_col  = rep(1L, 5L),   # everyone is reduce_if
+    increase_col = rep(0L, 5L)   # nobody is increase_if
+  )
+
+  expect_error(
+    redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col, weights = wt),
+    class = "surveywts_error_no_recipients_in_group"
+  )
+  expect_snapshot(
+    error = TRUE,
+    redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col, weights = wt)
+  )
+})
+
+# ---------------------------------------------------------------------------
+# RW-26. Error — by variable has NA values
+# ---------------------------------------------------------------------------
+
+test_that("redistribute_weights() errors when a by variable has NA values", {
+  df <- make_surveywts_data(seed = 38, include_nonrespondents = TRUE)
+  df$reduce_col   <- 1L - df$responded
+  df$increase_col <- df$responded
+  df$age_group[1L] <- NA_character_
+
+  expect_error(
+    redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col, by = age_group),
+    class = "surveywts_error_variable_has_na"
+  )
+  expect_snapshot(
+    error = TRUE,
+    redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col, by = age_group)
+  )
+})
+
+# ---------------------------------------------------------------------------
+# RW-27. Warning — group has fewer than min_cell increase_if respondents
+# ---------------------------------------------------------------------------
+
+test_that("redistribute_weights() warns when a group has fewer than min_cell recipients", {
+  df <- data.frame(
+    wt          = rep(1, 25L),
+    reduce_col  = c(rep(1L, 22L), rep(0L, 3L)),
+    increase_col = c(rep(0L, 22L), rep(1L, 3L))  # 3 recipients < min_cell default of 20
+  )
+
+  expect_warning(
+    result <- redistribute_weights(
+      df,
+      reduce_if  = reduce_col,
+      increase_if = increase_col,
+      weights    = wt
+    ),
+    class = "surveywts_warning_class_near_empty"
+  )
+  test_invariants(result)
+})
+
+# ---------------------------------------------------------------------------
+# RW-28. Warning — adjustment factor exceeds max_adjust
+# ---------------------------------------------------------------------------
+
+test_that("redistribute_weights() warns when adjustment factor exceeds max_adjust", {
+  # 30 reduce rows (wt=10 each) and 30 increase rows (wt=1 each)
+  # W_total = 330, W_increase = 30; factor = 330/30 = 11 > 2.0
+  df <- data.frame(
+    wt          = c(rep(10, 30L), rep(1, 30L)),
+    reduce_col  = c(rep(1L, 30L), rep(0L, 30L)),
+    increase_col = c(rep(0L, 30L), rep(1L, 30L))
+  )
+
+  expect_warning(
+    result <- redistribute_weights(
+      df,
+      reduce_if  = reduce_col,
+      increase_if = increase_col,
+      weights    = wt,
+      control    = list(min_cell = 1L)  # suppress sparse warning; only want factor warning
+    ),
+    class = "surveywts_warning_class_near_empty"
+  )
+  test_invariants(result)
+})
+
+# ---------------------------------------------------------------------------
+# RW-29. Edge case — no reduce_if rows: weights unchanged, no error
+# ---------------------------------------------------------------------------
+
+test_that("redistribute_weights() with no reduce_if rows leaves weights unchanged", {
+  df <- make_surveywts_data(seed = 39, include_nonrespondents = TRUE)
+  df$reduce_col   <- 0L  # nobody is reduced
+  df$increase_col <- df$responded
+
+  result <- redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col)
+
+  # No redistribution needed — all weights should be unchanged in output
+  # (uniform weights since weights = NULL for plain df)
+  expect_true(inherits(result, "weighted_df"))
+  test_invariants(result)
+  # All rows retained
+  expect_equal(nrow(result), nrow(df))
+})
+
+# ---------------------------------------------------------------------------
+# RW-30. Edge case — zero-weight rows in increase_if caught by weight validator
+# ---------------------------------------------------------------------------
+
+test_that("redistribute_weights() handles zero-weight rows in increase_if", {
+  df <- data.frame(
+    wt          = c(1, 0, 1, 1, 1),  # row 2 has zero weight → error
+    reduce_col  = c(1L, 0L, 0L, 0L, 0L),
+    increase_col = c(0L, 1L, 1L, 1L, 1L)
+  )
+
+  # Zero weights caught by weight validator before redistribution logic
+  expect_error(
+    redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col, weights = wt),
+    class = "surveywts_error_weights_nonpositive"
+  )
+})
+
+# ---------------------------------------------------------------------------
+# RW-31. Edge case — with by: one group all-reduce triggers error
+# ---------------------------------------------------------------------------
+
+test_that("redistribute_weights() with by: one group all-reduce triggers error, other groups succeed", {
+  df <- data.frame(
+    grp         = c("A", "A", "A", "B", "B"),
+    wt          = rep(1, 5L),
+    reduce_col  = c(0L, 0L, 0L, 1L, 1L),  # group B: all reduce, no increase
+    increase_col = c(1L, 1L, 1L, 0L, 0L)
+  )
+
+  expect_error(
+    redistribute_weights(
+      df,
+      reduce_if  = reduce_col,
+      increase_if = increase_col,
+      weights    = wt,
+      by         = grp
+    ),
+    class = "surveywts_error_no_recipients_in_group"
+  )
+  expect_snapshot(
+    error = TRUE,
+    redistribute_weights(
+      df,
+      reduce_if  = reduce_col,
+      increase_if = increase_col,
+      weights    = wt,
+      by         = grp
+    )
+  )
+})
+
+# ---------------------------------------------------------------------------
+# RW-32. Edge case — history step correct when chained after prior operation
+# ---------------------------------------------------------------------------
+
+test_that("redistribute_weights() history step number is correct when chained after calibration", {
+  df <- make_surveywts_data(seed = 40, include_nonrespondents = TRUE)
+  df$reduce_col   <- 1L - df$responded
+  df$increase_col <- df$responded
+
+  # Simulate a weighted_df with one prior history step (e.g., from calibrate())
+  prior_entry <- list(step = 1L, operation = "calibration")
+  wdf <- .make_weighted_df(df, "base_weight", list(prior_entry))
+
+  result <- redistribute_weights(wdf, reduce_if = reduce_col, increase_if = increase_col)
+
+  history <- attr(result, "weighting_history")
+  expect_equal(length(history), 2L)
+  expect_equal(history[[2L]]$step, 2L)
+  expect_identical(history[[2L]]$operation, "redistribute_weights")
+})

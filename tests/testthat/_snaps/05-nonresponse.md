@@ -241,3 +241,204 @@
       Error in `.validate_wt_name()`:
       x `wt_name` must be a non-empty, non-NA string.
 
+# redistribute_weights() errors for survey_replicate input
+
+    Code
+      redistribute_weights(rsd, reduce_if = x, increase_if = y)
+    Condition
+      Error in `.check_input_class()`:
+      x <survey_replicate> objects are not yet supported.
+      i Replicate-weight support requires the Replicate release.
+      v Use a <survey_taylor> design, or wait for the Replicate release.
+
+# redistribute_weights() errors for 0-row data frame
+
+    Code
+      redistribute_weights(empty_df, reduce_if = reduce_col, increase_if = increase_col,
+        weights = wt)
+    Condition
+      Error in `redistribute_weights()`:
+      x `data` has 0 rows.
+      i This operation is undefined on empty data.
+      v Ensure `data` has at least one row.
+
+# redistribute_weights() errors when named weight column is missing
+
+    Code
+      redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col,
+        weights = no_such_col)
+    Condition
+      Error in `.validate_weights()`:
+      x Weight column no_such_col not found in `data`.
+      i Available columns: reduce_col and increase_col.
+      v Pass the column name as a bare name, e.g., `weights = wt_col`.
+
+# redistribute_weights() errors when weight column is not numeric
+
+    Code
+      redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col,
+        weights = wt)
+    Condition
+      Error in `.validate_weights()`:
+      x Weight column wt must be numeric.
+      i Got <character>.
+      v Use `as.numeric(wt)` to convert.
+
+# redistribute_weights() errors when weight column has non-positive values
+
+    Code
+      redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col,
+        weights = wt)
+    Condition
+      Error in `.validate_weights()`:
+      x Weight column wt contains 1 non-positive value(s).
+      i All starting weights must be strictly positive (> 0).
+      v Remove or replace non-positive weights before proceeding.
+
+# redistribute_weights() errors when weight column has NA
+
+    Code
+      redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col,
+        weights = wt)
+    Condition
+      Error in `.validate_weights()`:
+      x Weight column wt contains 1 NA value(s).
+      i Weights must be fully observed.
+      v Remove rows with missing weights before proceeding.
+
+# redistribute_weights() errors when wt_name is not character(1)
+
+    Code
+      redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col,
+        weights = wt, wt_name = 42)
+    Condition
+      Error in `.validate_wt_name()`:
+      x `wt_name` must be a single character string.
+      i Got <numeric> of length 1.
+
+# redistribute_weights() errors when wt_name is NA or empty string
+
+    Code
+      redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col,
+        weights = wt, wt_name = "")
+    Condition
+      Error in `.validate_wt_name()`:
+      x `wt_name` must be a non-empty, non-NA string.
+
+# redistribute_weights() errors when wt_name conflicts with an existing non-weight column
+
+    Code
+      redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col,
+        wt_name = "age_group")
+    Condition
+      Error in `redistribute_weights()`:
+      x `wt_name` "age_group" conflicts with an existing column in `data`.
+      i age_group is already present and is not the weight column.
+      v Choose a different name for the output weight column.
+
+# redistribute_weights() errors when reduce_if column is not found
+
+    Code
+      redistribute_weights(df, reduce_if = no_such_col, increase_if = increase_col)
+    Condition
+      Error in `redistribute_weights()`:
+      x `reduce_if` column no_such_col not found in `data`.
+      i Available columns: id, age_group, sex, education, region, base_weight, responded, increase_col, and wts.
+      v Pass a bare column name, e.g., `reduce_if = my_indicator`.
+
+# redistribute_weights() errors when increase_if column is not found
+
+    Code
+      redistribute_weights(df, reduce_if = reduce_col, increase_if = no_such_col)
+    Condition
+      Error in `redistribute_weights()`:
+      x `increase_if` column no_such_col not found in `data`.
+      i Available columns: id, age_group, sex, education, region, base_weight, responded, reduce_col, and wts.
+      v Pass a bare column name, e.g., `increase_if = my_indicator`.
+
+# redistribute_weights() errors when reduce_if is not binary (factor input)
+
+    Code
+      redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col)
+    Condition
+      Error in `.validate_response_status_binary()`:
+      x reduce_if column reduce_col must be binary (0/1 or logical).
+      i Got <factor> with values: 0 and 1.
+      i Factor columns are not binary regardless of their levels.
+      v Convert to logical (`TRUE`/`FALSE`) or integer (`0`/`1`) before calling `redistribute_weights()`.
+
+# redistribute_weights() errors when increase_if is not binary (character input)
+
+    Code
+      redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col)
+    Condition
+      Error in `.validate_response_status_binary()`:
+      x increase_if column increase_col must be binary (0/1 or logical).
+      i Got <character> with values: "1" and "0".
+      i Factor columns are not binary regardless of their levels.
+      v Convert to logical (`TRUE`/`FALSE`) or integer (`0`/`1`) before calling `redistribute_weights()`.
+
+# redistribute_weights() errors when reduce_if has NA values
+
+    Code
+      redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col)
+    Condition
+      Error in `redistribute_weights()`:
+      x `reduce_if` column reduce_col contains 1 NA value(s).
+      i The reduce indicator must be fully observed.
+      v Remove rows with missing values in reduce_col before calling `redistribute_weights()`.
+
+# redistribute_weights() errors when increase_if has NA values
+
+    Code
+      redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col)
+    Condition
+      Error in `redistribute_weights()`:
+      x `increase_if` column increase_col contains 1 NA value(s).
+      i The increase indicator must be fully observed.
+      v Remove rows with missing values in increase_col before calling `redistribute_weights()`.
+
+# redistribute_weights() errors when reduce_if and increase_if overlap
+
+    Code
+      redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col,
+        weights = wt)
+    Condition
+      Error in `redistribute_weights()`:
+      x 1 row(s) have both `reduce_if` and `increase_if` set to `TRUE`.
+      i `reduce_if` and `increase_if` must be mutually exclusive.
+      v Ensure no row has both indicators set to 1 or `TRUE`.
+
+# redistribute_weights() errors when a group has no increase_if rows
+
+    Code
+      redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col,
+        weights = wt)
+    Condition
+      Error in `redistribute_weights()`:
+      x Group "(all rows)" has 5 reduce_if row(s) but no increase_if rows.
+      i Cannot redistribute weight to an empty recipient set.
+      v Ensure each group has at least one row with `increase_if` = `TRUE`.
+
+# redistribute_weights() errors when a by variable has NA values
+
+    Code
+      redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col,
+        by = age_group)
+    Condition
+      Error in `redistribute_weights()`:
+      x By variable age_group contains 1 NA value(s).
+      i NA values in grouping variables are not allowed.
+      v Remove or impute NA values in age_group before calling `redistribute_weights()`.
+
+# redistribute_weights() with by: one group all-reduce triggers error, other groups succeed
+
+    Code
+      redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col,
+        weights = wt, by = grp)
+    Condition
+      Error in `redistribute_weights()`:
+      x Group "B" has 2 reduce_if row(s) but no increase_if rows.
+      i Cannot redistribute weight to an empty recipient set.
+      v Ensure each group has at least one row with `increase_if` = `TRUE`.
+

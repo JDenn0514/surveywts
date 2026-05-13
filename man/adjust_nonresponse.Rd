@@ -99,4 +99,8 @@ df <- data.frame(
 result <- adjust_nonresponse(df, response_status = responded)
 
 }
+\seealso{
+Other nonresponse: 
+\code{\link{redistribute_weights}()}
+}
 \concept{nonresponse}

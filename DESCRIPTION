@@ -25,6 +25,7 @@ Imports:
     S7 (>= 0.2.0),
     survey (>= 4.2-1),
     surveycore (>= 0.8.0),
+    svrep (>= 0.9.1),
     tibble (>= 3.2.0),
     tidyselect (>= 1.2.0)
 Suggests:
@@ -32,7 +33,6 @@ Suggests:
     covr,
     knitr,
     rmarkdown,
-    svrep (>= 0.6.0),
     testthat (>= 3.2.0),
     withr (>= 2.5.0)
 Remotes:

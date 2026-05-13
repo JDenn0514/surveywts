@@ -197,3 +197,199 @@ No additional issues beyond those already flagged under Lens 1. The formulas in 
 **Total issues:** 8
 
 **Overall assessment:** The calibration and redistribution formulas are correct. Two BLOCKING issues must be resolved before implementation: a wrong test assertion (weight sum conservation) and a three-way inconsistency around `surveywts_error_vcov_cholesky_failed`. The four REQUIRED issues address unstated statistical assumptions (MAR, multivariate normality, replicate scheme compatibility, glm non-convergence) that will either produce user confusion or silent wrong behavior.
+
+---
+
+## Methodology Review: nonresponse — Pass 2 (2026-05-12)
+
+---
+
+### Prior Issues (Pass 1)
+
+| # | Title | Lens | Status |
+|---|---|---|---|
+| 1 | Weight sum conservation assertion is wrong for `calibrate_to_survey()` | 1 | ⚠️ Still open |
+| 2 | `surveywts_error_vcov_cholesky_failed` inconsistency across spec sections | 1 | ⚠️ Still open |
+| 3 | Replicate scheme compatibility between primary and control designs not specified | 1 | ⚠️ Still open |
+| 4 | Multivariate normality assumption for `calibrate_to_estimate()` perturbation not stated | 2 | ⚠️ Still open |
+| 5 | Variance estimation after propensity-cell adjustment does not account for propensity score uncertainty | 2 | ⚠️ Still open |
+| 6 | `glm()` non-convergence in propensity-cell not specified | 3 | ⚠️ Still open |
+| 7 | MAR assumption for propensity-cell method not stated | 4 | ⚠️ Still open |
+| 8 | Cell definition uses unweighted quantiles — design choice not documented | 4 | ⚠️ Still open |
+
+All 8 prior issues remain open. The spec was not updated between Pass 1 and Pass 2.
+
+---
+
+### New Issues
+
+#### Lens 1 — Method Validity
+
+**Issue 9: `redistribute_weights()` output contract for `survey_taylor` and `survey_nonprob` doesn't specify how zero-weight rows are handled**
+Severity: BLOCKING
+Lens: 1 — Method Validity
+Resolution type: JUDGMENT CALL
+
+§V Output Contract states: "survey_taylor or survey_nonprob → same class as input." But the redistribution sets `reduce_if` rows to weight 0, and both `survey_taylor` and `survey_nonprob` have S7 validators that enforce strictly positive weights (per `surveywts-conventions.md`: "All values are strictly positive (> 0)").
+
+If a `reduce_if` row has its weight set to 0 and remains in the returned object, the S7 validator will reject the object. If the zero-weight rows are silently filtered out before returning, the spec must say so.
+
+The propensity-cell section (§VI) handles this by referencing the existing weighting-class behavior: "same respondent-only filtering applies as in the weighting-class method (zero weights violate the Taylor validator)." But `redistribute_weights()` has no such language. As a general-purpose primitive, it may be called with `reduce_if` = nonrespondents, but could equally be called with other semantics (e.g., to zero out a group for downweighting).
+
+The issue is more fundamental for `redistribute_weights()` than for `adjust_nonresponse()`: with a general reduce/increase interface, filtering out `reduce_if` rows always may not be the right default — the caller might intend to keep zero-weight rows in the dataset for downstream filtering steps.
+
+Options:
+- **[A]** For `survey_taylor` and `survey_nonprob` inputs: filter out `reduce_if` rows from the output (same as the weighting-class method). Document this in §V. — Effort: low, Risk: low, Impact: consistent with Taylor/nonprob constraints; callers lose access to zero-weight rows, Maintenance: none
+- **[B]** Disallow `survey_taylor` and `survey_nonprob` as inputs to `redistribute_weights()` (change Input Class Support table to ✗). These classes can't hold zero-weight rows; callers should convert to `weighted_df` first, use `redistribute_weights()`, then reconstruct the survey object. — Effort: low, Risk: low, Impact: narrower API; forces explicit conversion but is honest about the constraint, Maintenance: none
+- **[C]** Keep `survey_taylor` and `survey_nonprob` as inputs but error if any `reduce_if` row would result in a zero-weight row being left in a design that can't hold it — i.e., effectively disallowing `reduce_if` for these classes unless all reduce_if rows can be filtered. This is complex to specify. — Effort: high, Risk: medium, Maintenance: ongoing
+- **[D] Do nothing** — implementation crashes on S7 validator rejection, or silently filters rows with undocumented behavior
+
+**Recommendation: A** — Filtering `reduce_if` rows from the output for survey objects is the most consistent path. It mirrors the documented behavior of `adjust_nonresponse()` and is the only way to satisfy the S7 validator. The spec must state it explicitly so the behavior is not a surprise.
+
+---
+
+#### Lens 2 — Variance Estimation Validity
+
+No new issues. Lens 2 issues from Pass 1 remain open.
+
+#### Lens 3 — Algorithmic Correctness
+
+No new issues. Lens 3 issues from Pass 1 remain open.
+
+#### Lens 4 — Statistical Assumptions
+
+No new issues. Lens 4 issues from Pass 1 remain open.
+
+#### Lens 5 — Formula Integrity
+
+No new issues.
+
+---
+
+### Summary (Pass 2)
+
+| Severity | Count |
+|---|---|
+| BLOCKING | 1 (new) + 2 (prior open) = 3 total open |
+| REQUIRED | 4 (prior open) |
+| SUGGESTION | 2 (prior open) |
+
+**New issues this pass:** 1 (Issue 9, BLOCKING)
+**Total open issues:** 9
+
+**Overall assessment:** No prior issues were resolved. One new BLOCKING issue was found: `redistribute_weights()` promises to accept `survey_taylor` and `survey_nonprob` inputs but the output contract is silent on how zero-weight rows are handled — both classes enforce strictly positive weights via their S7 validators, so the current spec will produce either a crash or undocumented silent filtering. This must be resolved alongside the two prior BLOCKING issues before implementation begins.
+
+---
+
+## Methodology Review: nonresponse — Pass 3 (2026-05-12)
+
+---
+
+### Prior Issues (Pass 1 + Pass 2)
+
+| # | Title | Lens | Status |
+|---|---|---|---|
+| 1 | Weight sum conservation assertion is wrong for `calibrate_to_survey()` | 1 | ✅ Resolved |
+| 2 | `surveywts_error_vcov_cholesky_failed` inconsistency across spec sections | 1 | ✅ Resolved |
+| 3 | Replicate scheme compatibility between primary and control designs not specified | 1 | ✅ Resolved |
+| 4 | Multivariate normality assumption for `calibrate_to_estimate()` perturbation not stated | 2 | ✅ Resolved |
+| 5 | Variance estimation after propensity-cell adjustment does not account for propensity score uncertainty | 2 | ✅ Resolved |
+| 6 | `glm()` non-convergence in propensity-cell not specified | 3 | ✅ Resolved |
+| 7 | MAR assumption for propensity-cell method not stated | 4 | ✅ Resolved |
+| 8 | Cell definition uses unweighted quantiles — design choice not documented | 4 | ✅ Resolved |
+| 9 | `redistribute_weights()` output contract for `survey_taylor` and `survey_nonprob` doesn't specify how zero-weight rows are handled | 1 | ✅ Resolved |
+
+All 9 prior issues resolved. Notes on each:
+- Issues 1 & 2 (BLOCKING): §III Output Contract now documents the intercept-forces-control-total behavior; §IV Behavior Rule 3 now catches Cholesky failure and re-throws as `surveywts_error_vcov_cholesky_failed`; §IV Error Table and §X integration list now include this class; PSD vs PD language corrected.
+- Issue 3 (REQUIRED): §III Behavior Rule 2 now warns with `surveywts_warning_replicate_scheme_mismatch` on type mismatch and proceeds.
+- Issues 4, 5, 7, 8 (REQUIRED/SUGGESTION): Statistical assumptions sections added to §IV and §VI; MAR stated, propensity-as-known stated, unweighted quantile convention documented with citation.
+- Issue 6 (REQUIRED): §VI Behavior Notes now documents that glm convergence warnings pass through unchanged.
+- Issue 9 (BLOCKING): §V Output Contract now states `reduce_if` rows are filtered out for `survey_taylor` and `survey_nonprob`.
+
+---
+
+### New Issues
+
+#### Lens 1 — Method Validity
+
+No new issues.
+
+#### Lens 2 — Variance Estimation Validity
+
+No new issues.
+
+#### Lens 3 — Algorithmic Correctness
+
+No new issues.
+
+#### Lens 4 — Statistical Assumptions
+
+No new issues.
+
+#### Lens 5 — Formula Integrity
+
+**Issue 10: `vcov_estimate` NA values produce a misleading or unhandled error**
+Severity: REQUIRED
+Lens: 5 — Formula Integrity
+Resolution type: UNAMBIGUOUS
+
+§IV Behavior Rule 3 says `vcov_estimate` must have "No NAs." The symmetry check is specified as `abs(vcov - t(vcov)) < 1e-8`. In R, `all(abs(vcov - t(vcov)) < 1e-8)` when `vcov` contains `NA` values evaluates to `NA`, not `FALSE`. An `if (NA)` then throws an unhandled R error ("missing value where TRUE/FALSE needed"), not a clean surveywts class. Alternatively, if the check is written with `isTRUE(all(...))`, it silently falls through to the Cholesky step, which then fails and throws `surveywts_error_vcov_cholesky_failed` — the wrong class for what is actually an NA input error.
+
+Neither outcome is correct. The spec does not include a `surveywts_error_vcov_has_na` class, does not list an NA test case for `vcov_estimate` in §VIII, and does not include the class in §X's integration list.
+
+Fix: add an explicit NA check on `vcov_estimate` before the symmetry check, with a dedicated error class. This is the same pattern used for `estimate` (which has `surveywts_error_estimate_has_na`).
+
+Options:
+- **[A]** Add `surveywts_error_vcov_has_na` class: check `anyNA(vcov_estimate)` before the symmetry check; throw `surveywts_error_vcov_has_na` if TRUE. Add the class to §IV Error Table, §VIII test plan, and §X integration list. — Effort: low, Risk: low, Impact: user gets a clear actionable error instead of an internal R exception or wrong class, Maintenance: none
+- **[B]** Handle NAs inside the symmetry check: treat any NA in `vcov_estimate` as a symmetry violation and throw `surveywts_error_vcov_not_symmetric`. Document in the error message that NA values were detected. — Effort: low, Risk: low, Impact: slightly imprecise error class but user is informed; avoids adding a new class, Maintenance: none
+- **[C] Do nothing** — implementer will likely add the check instinctively, but without a spec entry there's no test and no error class; behavior remains undefined
+
+**Recommendation: A** — Mirrors the `surveywts_error_estimate_has_na` pattern already in this spec. Consistent, low effort, and gives the user the most informative message.
+
+---
+
+**Issue 11: `method = "logit"` with default infinite bounds is undocumented as an error condition**
+Severity: SUGGESTION
+Lens: 5 — Formula Integrity
+Resolution type: UNAMBIGUOUS
+
+§III and §IV specify `bounds = list(lower = -Inf, upper = Inf)` as the default. The argument description notes: "For `method = 'logit'`, set finite bounds to constrain calibrated weights within a specified range." However, the spec does not state what happens when a user calls `calibrate_to_survey()` or `calibrate_to_estimate()` with `method = "logit"` and the default infinite bounds — specifically, whether this is an error, a warning, or silently delegated to svrep/survey (which would then fail with a non-surveywts error from `survey::cal.logit`).
+
+`survey::cal.logit` requires finite bounds. Passing infinite bounds will produce an error from the survey package, not a surveywts-classed error. There is no `surveywts_error_logit_bounds_required` class specified.
+
+This is a SUGGESTION rather than REQUIRED because: (a) the svrep/survey error message will be visible and informative to most users, and (b) the argument description does tell users to set bounds for logit.
+
+Options:
+- **[A]** Add a pre-flight check: if `method = "logit"` and either `bounds$lower == -Inf` or `bounds$upper == Inf`, throw `surveywts_error_logit_bounds_required`. Add to error table and §X. — Effort: low, Risk: low, Impact: user gets a surveywts-classed error with a clear message, Maintenance: none
+- **[B]** Add a `@details` note in the function documentation only: "When `method = 'logit'`, both `bounds$lower` and `bounds$upper` must be finite; the default infinite bounds will cause `survey::cal.logit` to fail." No new error class. — Effort: low, Risk: none, Impact: user is informed but only via documentation; runtime error is a raw survey package message, Maintenance: none
+- **[C] Do nothing** — current argument description is a soft hint; raw survey error propagates
+
+**Recommendation: B** — The documentation note is sufficient. Adding a surveywts pre-flight check is low-effort but adds a new error class and test without proportionate user benefit; the survey package error is clear.
+
+---
+
+### Summary (Pass 3)
+
+| Severity | Count |
+|---|---|
+| BLOCKING | 0 |
+| REQUIRED | 1 (Issue 10) |
+| SUGGESTION | 1 (Issue 11) |
+
+**New issues this pass:** 2
+**Total open issues:** 2
+
+**Overall assessment:** All 9 prior issues have been resolved and the spec is in strong methodological shape. One REQUIRED issue remains: `vcov_estimate` NA inputs are unspecified — the current symmetry check logic will produce an unhandled R exception or the wrong surveywts error class. This is a one-line fix with a new error class. One SUGGESTION: document that `method = "logit"` requires finite `bounds` in `@details`. No blocking methodology issues remain; the spec is ready to advance to Stage 3 after Issue 10 is resolved.
+
+---
+
+## Stage 2 Resolve — Methodology Lock (2026-05-12)
+
+Issues 10 and 11 resolved (both unambiguous). No judgment calls; no decisions log entry.
+
+| # | Title | Resolution |
+|---|---|---|
+| 10 | `vcov_estimate` NA values produce unhandled error | Added `surveywts_error_vcov_has_na`: explicit `anyNA()` check before symmetry check added to §IV Behavior Rule 3, Error Table, §VIII test plan, §X integration list |
+| 11 | `method = "logit"` with infinite bounds undocumented | Added `@details` note to §III bounds argument description |
+
+**Spec version:** 0.4 — Methodology Locked. All 11 issues across 3 passes resolved.

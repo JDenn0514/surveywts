@@ -19,6 +19,9 @@
 #   .check_input_class()             — validates input class (4 callers)
 #   .get_history()                   — extracts weighting history from any class
 #   .calibrate_engine()               — dispatches to calibration algorithms
+#   .validate_formula()               — validates one-sided formula object
+#   .validate_formula_variables()     — validates formula variables exist in data
+#   .to_svyrep_design()               — converts survey_replicate to svyrep.design
 #
 # NOTE (GAP #6 departure): .make_history_entry() adds a `step` parameter not
 # in the spec signature. The step number must be computed by the calling
@@ -1163,6 +1166,7 @@
 # Throw surveywts_error_calibration_not_converged for the maxit = 0 case.
 # context: the calibration method (linear, logit, ipf, anesrake, poststratify)
 .throw_not_converged_zero_maxit <- function(method, control) {
+
   if (method %in% c("linear", "logit")) {
     cli::cli_abort(
       c(
@@ -1191,3 +1195,92 @@
   }
 }
 
+# ============================================================================
+# .validate_formula()
+# ============================================================================
+
+# Validates that formula is a one-sided formula object (~ RHS).
+# A two-sided formula (LHS ~ RHS) is rejected because calibration and
+# nonresponse functions construct the LHS internally.
+#
+# Arguments:
+#   formula : object to validate
+#
+# Returns: invisible(TRUE) on success (errors otherwise).
+.validate_formula <- function(formula) {
+  if (!inherits(formula, "formula") || length(formula) != 2L) {
+    cli::cli_abort(
+      c(
+        "x" = "{.arg formula} must be a one-sided formula (e.g., {.code ~ age + sex}).",
+        "i" = "Got {.cls {class(formula)[[1]]}}."
+      ),
+      class = "surveywts_error_formula_invalid"
+    )
+  }
+  invisible(TRUE)
+}
+
+# ============================================================================
+# .validate_formula_variables()
+# ============================================================================
+
+# Validates that all variables in formula exist in data.
+# Errors on the first missing variable found.
+#
+# Arguments:
+#   formula      : a validated one-sided formula (call .validate_formula() first)
+#   data         : data.frame to check against
+#   design_label : character(1) — name shown in error messages (e.g., "primary_design")
+#
+# Returns: invisible(TRUE) on success (errors otherwise).
+.validate_formula_variables <- function(formula, data, design_label) {
+  vars <- all.vars(formula)
+  for (var in vars) {
+    if (!var %in% names(data)) {
+      cli::cli_abort(
+        c(
+          "x" = "Variable {.field {var}} not found in {.arg {design_label}}.",
+          "i" = "All variables in {.arg formula} must be columns in {.arg {design_label}}.",
+          "v" = "Check spelling or add {.field {var}} to the data before calling this function."
+        ),
+        class = "surveywts_error_formula_variable_not_found"
+      )
+    }
+  }
+  invisible(TRUE)
+}
+
+# ============================================================================
+# .to_svyrep_design()
+# ============================================================================
+
+# Converts a survey_replicate object to a survey::svyrep.design for use with
+# svrep calibration functions.
+#
+# surveywts stores replicate weights as scale factors (combined.weights = FALSE),
+# matching svrep::as_bootstrap_design() and survey::as.svrepdesign(). The
+# survey::svrepdesign() default is combined.weights = TRUE, which would
+# misinterpret scale factors as full sampling weights. This function always
+# passes combined.weights = FALSE.
+#
+# Arguments:
+#   design : survey_replicate object
+#
+# Returns: svyrep.design object
+.to_svyrep_design <- function(design) {
+  vars <- design@variables
+  weights_vec <- design@data[[vars$weights]]
+  repweights_df <- design@data[vars$repweights]
+  mse_val <- if (!is.null(vars$mse)) vars$mse else TRUE
+
+  survey::svrepdesign(
+    data = design@data,
+    weights = weights_vec,
+    repweights = repweights_df,
+    type = vars$type,
+    scale = vars$scale,
+    rscales = vars$rscales,
+    combined.weights = FALSE,
+    mse = mse_val
+  )
+}

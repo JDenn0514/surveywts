@@ -1,8 +1,8 @@
 # surveywts Nonresponse Phase Spec
 
-**Version:** 0.1 — Draft
-**Date:** 2026-05-08
-**Status:** Draft — Stage 1
+**Version:** 0.5 — Approved
+**Date:** 2026-05-13
+**Status:** Methodology Locked — Ready for Implementation
 **ID:** `nonresponse`
 
 ---
@@ -76,8 +76,9 @@ For `calibrate_to_survey()`: `control_design` must also be `survey_replicate`. I
 R/
   sample-calibration.R    ← NEW: calibrate_to_survey(), calibrate_to_estimate()
   nonresponse.R           ← EXTEND: + redistribute_weights(), + propensity-cell branch
-  utils.R                 ← EXTEND: + .compute_model_matrix_totals(),
-                                     + .validate_formula_variables()
+  utils.R                 ← EXTEND: + .to_svyrep_design(),
+                                     + .validate_formula_variables(),
+                                     + .validate_formula()
 ```
 
 `R/sample-calibration.R` is a new file following the naming convention of existing
@@ -91,7 +92,8 @@ roadmap's `06-` / `07-` prefixes were planning artifacts that were not used).
 | Helper | Signature | Used by |
 |--------|-----------|---------|
 | `.to_svyrep_design()` | `(design)` | `calibrate_to_survey()`, `calibrate_to_estimate()` |
-| `.validate_formula_variables()` | `(formula, data, design_label)` | `calibrate_to_survey()`, `calibrate_to_estimate()` |
+| `.validate_formula_variables()` | `(formula, data, design_label)` | `calibrate_to_survey()`, `calibrate_to_estimate()`, `adjust_nonresponse()` |
+| `.validate_formula()` | `(formula)` | `calibrate_to_survey()`, `calibrate_to_estimate()`, `adjust_nonresponse()` |
 
 ### Replicate Weight Structure (Reference)
 
@@ -128,7 +130,8 @@ calibrate_to_survey(
   primary_design,
   control_design,
   formula,
-  method = c("linear", "logit"),
+  method = c("raking", "linear", "logit"),
+  bounds = list(lower = -Inf, upper = Inf),
   control = list(maxit = 50, epsilon = 1e-7)
 )
 ```
@@ -140,7 +143,8 @@ calibrate_to_survey(
 | `primary_design` | `survey_replicate` | required | The design to calibrate. Must be `survey_replicate`. |
 | `control_design` | `survey_replicate` | required | Provides control totals. Must be `survey_replicate` with the same number of replicates as `primary_design`. |
 | `formula` | one-sided R formula | required | Specifies calibration variables, e.g. `~ age_group + sex`. Standard R formula; no NSE. Variables must exist in both `primary_design@data` and `control_design@data`. |
-| `method` | `character(1)` | `"linear"` | `"linear"`: one-step GREG (may produce negative weights). `"logit"`: bounded iterative (always positive). |
+| `method` | `character(1)` | `"raking"` | `"raking"`: iterative multiplicative calibration (raking ratio; always positive weights). `"linear"`: one-step GREG (may produce negative weights). `"logit"`: bounded iterative (always positive). |
+| `bounds` | named list | `list(lower = -Inf, upper = Inf)` | Weight bounds passed to svrep. `lower` and `upper` define the minimum and maximum calibrated weight values. Default is unbounded (no-op for raking and linear calibration). For `method = "logit"`, set finite bounds to constrain calibrated weights within a specified range. Document in `@details`: when `method = "logit"`, both `bounds$lower` and `bounds$upper` must be finite; the default infinite bounds will cause `survey::cal.logit` to fail with a raw survey package error rather than a surveywts-classed one. |
 | `control` | named list | `list(maxit = 50, epsilon = 1e-7)` | Convergence parameters, merged with defaults. Applies to every individual calibration call (full-sample + each replicate). |
 
 ### Output Contract
@@ -154,28 +158,38 @@ Returns a `survey_replicate` with:
   `rscales`, `mse`)
 - `@metadata@weighting_history` with one new entry:
   `operation = "sample_calibration_replicate"` appended
+- **Note:** The intercept constraint forces the calibrated weight sum to equal the
+  control survey's weight sum (`sum(w_new) ≈ sum(control_design@data[[control_design@variables$weights]])`),
+  not the primary design's original weight sum. This is expected calibration behavior,
+  not a weight total preservation guarantee.
 
 ### Behavior Rules
 
 1. Both `primary_design` and `control_design` must have the same number of replicates
    (`length(@variables$repweights)`). Mismatch → error.
-2. All variables named in `formula` must exist in BOTH `@data` sets. Missing in either
+2. If `primary_design@variables$type ≠ control_design@variables$type`, warn with
+   `surveywts_warning_replicate_scheme_mismatch`. Mismatched schemes (e.g., bootstrap
+   vs. BRR) may produce non-standard variance estimates due to scale-factor differences.
+   Proceed after warning — the user may have legitimate reasons (e.g., scheme names
+   differ by convention: `"boot"` vs. `"bootstrap"`).
+3. All variables named in `formula` must exist in BOTH `@data` sets. Missing in either
    design → error (separate error for each design).
-3. Both designs are converted to `svyrep.design` objects via `.to_svyrep_design()`.
-4. `svrep::calibrate_to_sample()` is called with `primary_rep_design`, `control_rep_design`,
-   `cal_formula = formula`, `calfun` derived from `method` (`survey::cal.linear` for
-   `"linear"`, `survey::cal.logit` for `"logit"`), and `maxit`/`epsilon` from `control`.
-5. Updated full-sample and replicate weights are extracted from the `svyrep.design` result
+4. Both designs are converted to `svyrep.design` objects via `.to_svyrep_design()`.
+5. `svrep::calibrate_to_sample()` is called with `primary_rep_design`, `control_rep_design`,
+   `cal_formula = formula`, `calfun` derived from `method` (`survey::cal.raking` for
+   `"raking"`, `survey::cal.linear` for `"linear"`, `survey::cal.logit` for `"logit"`),
+   `bounds` (the `lower`/`upper` list), and `maxit`/`epsilon` from `control`.
+6. Updated full-sample and replicate weights are extracted from the `svyrep.design` result
    and written back into `primary_design`.
-6. If `svrep::calibrate_to_sample()` throws a calibration error, catch it and re-throw as
+7. If `svrep::calibrate_to_sample()` throws a calibration error, catch it and re-throw as
    `surveywts_error_calibration_not_converged`.
-7. If `method = "linear"` produces negative weights in the full-sample calibration,
+8. If `method = "linear"` produces negative weights in the full-sample calibration,
    warn with `surveywts_warning_negative_calibrated_weights`. Do NOT warn for individual
    replicate calibrations — this would produce up to `R` warnings; a single summary
    warning for the full-sample calibration is sufficient.
-8. The history entry records: `formula` as a character string (`deparse(formula)`),
+9. The history entry records: `formula` as a character string (`deparse(formula)`),
    `method`, `n_replicates`, `control_design` class and number of replicates.
-9. `wt_name` is not applicable — this function only operates on survey objects.
+10. `wt_name` is not applicable — this function only operates on survey objects.
 
 ### Error Table
 
@@ -193,6 +207,7 @@ Returns a `survey_replicate` with:
 | Warning class | Condition |
 |---|---|
 | `surveywts_warning_negative_calibrated_weights` | Full-sample linear calibration produced negative weights (reuse existing class) |
+| `surveywts_warning_replicate_scheme_mismatch` | `primary_design@variables$type ≠ control_design@variables$type` |
 
 ### Example
 
@@ -227,10 +242,11 @@ Reference implementation: `svrep::calibrate_to_estimate()`.
 ```r
 calibrate_to_estimate(
   design,
+  formula,
   estimate,
   vcov_estimate,
-  formula,
-  method = c("linear", "logit"),
+  method = c("raking", "linear", "logit"),
+  bounds = list(lower = -Inf, upper = Inf),
   control = list(maxit = 50, epsilon = 1e-7)
 )
 ```
@@ -240,10 +256,11 @@ calibrate_to_estimate(
 | Argument | Type | Default | Description |
 |---|---|---|---|
 | `design` | `survey_replicate` | required | The design to calibrate. Must be `survey_replicate`. |
+| `formula` | one-sided R formula | required | Specifies calibration variables, e.g. `~ age_group + sex`. Defines the model matrix; `estimate` names must match the non-intercept columns of `model.matrix(formula, design@data)`. |
 | `estimate` | named `numeric` vector | required | Point estimates of the control totals. Names must match the non-intercept columns of `model.matrix(formula, design@data)`. |
-| `vcov_estimate` | numeric matrix | required | Variance-covariance matrix of `estimate`. Must be symmetric positive semi-definite with `nrow == ncol == length(estimate)`. |
-| `formula` | one-sided R formula | required | Specifies calibration variables, e.g. `~ age_group + sex`. Must match the `estimate` vector names. |
-| `method` | `character(1)` | `"linear"` | `"linear"` or `"logit"`. Same semantics as `calibrate_to_survey()`. |
+| `vcov_estimate` | numeric matrix | required | Variance-covariance matrix of `estimate`. Must be symmetric positive definite with `nrow == ncol == length(estimate)`. Singular (PSD but not PD) matrices will cause Cholesky factorization to fail with `surveywts_error_vcov_cholesky_failed`. |
+| `method` | `character(1)` | `"raking"` | `"raking"`, `"linear"`, or `"logit"`. Same semantics as `calibrate_to_survey()`. |
+| `bounds` | named list | `list(lower = -Inf, upper = Inf)` | Weight bounds passed to svrep. Same semantics as `calibrate_to_survey()`. |
 | `control` | named list | `list(maxit = 50, epsilon = 1e-7)` | Convergence parameters, merged with defaults. |
 
 ### Output Contract
@@ -260,17 +277,21 @@ Returns a `survey_replicate` with:
 1. `design` must be `survey_replicate`. Other classes → error.
 2. `estimate` must be a named numeric vector. Names must exactly match the
    non-intercept column names of `model.matrix(formula, design@data)`. Mismatch → error.
+2a. `estimate` must not contain any `NA` values. Any `NA` → `surveywts_error_estimate_has_na`.
 3. `vcov_estimate` must be a numeric matrix with dimensions `p × p` where
-   `p = length(estimate)`. Must be symmetric (checked to tolerance `1e-8`). No NAs.
-   Non-positive-definite matrices will cause `svrep::calibrate_to_estimate()` to fail —
-   those errors propagate as-is.
+   `p = length(estimate)`. Check `anyNA(vcov_estimate)` first — any NA →
+   `surveywts_error_vcov_has_na`. Must be symmetric (checked to tolerance `1e-8`).
+   No NAs. Non-positive-definite matrices will cause Cholesky factorization to fail —
+   catch and re-throw as `surveywts_error_vcov_cholesky_failed`.
 4. All variables named in `formula` must exist in `design@data`. Missing → error.
 5. `design` is converted to a `svyrep.design` via `.to_svyrep_design()`.
    `svrep::calibrate_to_estimate()` is called with `rep_design`, `estimate`,
-   `vcov_estimate`, `cal_formula = formula`, `calfun` derived from `method`,
-   and `maxit`/`epsilon` from `control`. The perturbation of control totals
-   across replicates — including Cholesky factorization and replicate-type-specific
-   scaling — is handled entirely by `svrep`.
+   `vcov_estimate`, `cal_formula = formula`, `calfun` derived from `method`
+   (`survey::cal.raking` for `"raking"`, `survey::cal.linear` for `"linear"`,
+   `survey::cal.logit` for `"logit"`), `bounds` (the `lower`/`upper` list),
+   and `maxit`/`epsilon` from `control`.
+   The perturbation of control totals across replicates — including Cholesky
+   factorization and replicate-type-specific scaling — is handled entirely by `svrep`.
 
 6. Updated weights are extracted from the `svyrep.design` result and written back into
    `design`. Same convergence-error and negative-weight-warning rules as
@@ -286,10 +307,13 @@ Returns a `survey_replicate` with:
 | `surveywts_error_formula_variable_not_found` | A formula variable not in `design@data` |
 | `surveywts_error_formula_invalid` | `formula` is not a valid one-sided formula |
 | `surveywts_error_estimate_not_named` | `estimate` is not a named numeric vector |
+| `surveywts_error_estimate_has_na` | `estimate` contains one or more `NA` values |
 | `surveywts_error_estimate_length_mismatch` | `length(estimate)` ≠ number of non-intercept model matrix columns |
 | `surveywts_error_estimate_names_mismatch` | `names(estimate)` do not match model matrix column names |
 | `surveywts_error_vcov_dimension_mismatch` | `vcov_estimate` is not `p × p` |
+| `surveywts_error_vcov_has_na` | `vcov_estimate` contains one or more `NA` values |
 | `surveywts_error_vcov_not_symmetric` | `vcov_estimate` is not symmetric (tolerance `1e-8`) |
+| `surveywts_error_vcov_cholesky_failed` | `vcov_estimate` is not positive definite (Cholesky factorization fails) |
 | `surveywts_error_calibration_not_converged` | Any calibration failed to converge (reuse existing) |
 
 ### Warning Table
@@ -297,6 +321,15 @@ Returns a `survey_replicate` with:
 | Warning class | Condition |
 |---|---|
 | `surveywts_warning_negative_calibrated_weights` | Full-sample linear calibration produced negative weights (reuse existing) |
+
+### Statistical Assumptions
+
+The perturbation approach assumes the control totals are approximately multivariate
+normally distributed — i.e., the sampling distribution of `estimate` can be
+approximated by a multivariate normal with mean `estimate` and covariance
+`vcov_estimate`. For large control surveys this is satisfied by the CLT. For small
+control samples or non-normal sampling distributions, the perturbation may produce
+misleading variance estimates. Document this assumption in the function's `@note`.
 
 ---
 
@@ -341,15 +374,17 @@ redistribute_weights(
 | `weights` | bare name (NSE) | `NULL` | Weight column. Auto-detected from `weighted_df` attribute or `@variables$weights`. For plain `data.frame` with `NULL`, uniform starting weights are used. |
 | `by` | `<tidy-select>` | `NULL` | Grouping variable(s). Redistribution is performed within each group. `NULL` → global redistribution. |
 | `wt_name` | `character(1)` | `"wts"` | Output weight column name for `data.frame` / `weighted_df` inputs. Ignored for survey objects. |
-| `control` | named list | `list()` | Optional: `min_cell` (default 20) and `max_adjust` (default 2.0) thresholds for the sparse-cell warning, following the same semantics as `adjust_nonresponse()`. |
+| `control` | named list | `list()` | Merged with defaults `list(min_cell = 20, max_adjust = 2.0)`. `min_cell` and `max_adjust` are thresholds for the sparse-cell warning, following the same semantics as `adjust_nonresponse()`. |
 
 **Constraint:** `reduce_if` and `increase_if` must be mutually exclusive — no row may
 have both indicators set to `TRUE`. Overlap → error.
 
 ### Output Contract
 
-- `data.frame` or `weighted_df` → `weighted_df`
-- `survey_taylor` or `survey_nonprob` → same class as input
+- `data.frame` or `weighted_df` → `weighted_df` (all rows retained; `reduce_if` rows have weight 0)
+- `survey_taylor` or `survey_nonprob` → same class as input, with `reduce_if` rows
+  **filtered out** (zero-weight rows would violate the S7 strictly-positive-weights
+  validator; filtering mirrors the behavior of `adjust_nonresponse()` weighting-class)
 - History entry: `operation = "redistribute_weights"`, parameters include
   `reduce_col`, `increase_col`, `by_variables`, `method = "general_redistribution"`
 
@@ -387,6 +422,9 @@ Rows matching neither indicator: weights unchanged within the group.
 6. Sparse/extreme-adjustment warning fires under the same conditions as
    `adjust_nonresponse()`: `n_increase < control$min_cell` OR
    `W_total / W_increase > control$max_adjust` in any group.
+7. If `wt_name` matches an existing column in `data` that is not the current weight
+   column, throw `surveywts_error_wt_name_conflict`. Applies to `data.frame` and
+   `weighted_df` inputs only (survey objects ignore `wt_name`).
 
 ### Error Table
 
@@ -400,6 +438,7 @@ Rows matching neither indicator: weights unchanged within the group.
 | `surveywts_error_weights_na` | Weight column has NA (reuse existing) |
 | `surveywts_error_wt_name_not_scalar` | `wt_name` not `character(1)` (reuse existing) |
 | `surveywts_error_wt_name_empty` | `wt_name` is NA or `""` (reuse existing) |
+| `surveywts_error_wt_name_conflict` | `wt_name` matches an existing non-weight column in `data` |
 | `surveywts_error_reduce_if_not_found` | `reduce_if` column not in `data` |
 | `surveywts_error_increase_if_not_found` | `increase_if` column not in `data` |
 | `surveywts_error_reduce_if_not_binary` | `reduce_if` column is not binary (0/1 or logical) |
@@ -470,14 +509,18 @@ adjust_nonresponse(
 5. **Redistribute within cells:** Same formula as `weighting-class`:
    `new_weight_i = weight_i × (W_cell / W_cell_resp)` for respondents,
    `new_weight_i = 0` for nonrespondents.
+   Before redistribution, check that each cell contains at least one respondent. If any
+   cell contains zero respondents, throw `surveywts_error_no_respondents_in_propensity_cell`
+   with the cell index and the propensity score range of that cell in the message.
    Sparse/extreme-adjustment warning fires under same conditions as weighting-class.
 6. **Return value:** Same output contract as `method = "weighting-class"`.
    History entry: `operation = "nonresponse_propensity_cell"`, parameters include
-   `formula` (as character), `n_cells`, `by_variables`.
+   `formula` (as character), `n_cells`. (`by` is not used and not recorded.)
 
 ### Behavior Notes
 
-- Formula variables must exist in `plain_df`. Missing variable → `surveywts_error_formula_variable_not_found`.
+- `formula` must be a valid one-sided R formula. Call `.validate_formula(formula)` (shared helper from §VII) before fitting the model → `surveywts_error_formula_invalid`.
+- Formula variables must exist in `plain_df`. Validate via `.validate_formula_variables(formula, plain_df, "data")` (shared helper from §VII) → `surveywts_error_formula_variable_not_found`.
 - Formula variable NAs: `glm()` drops NA rows silently. To be consistent with the
   package's NA-intolerant stance, check for NAs in formula variables and error before
   fitting the model.
@@ -486,15 +529,37 @@ adjust_nonresponse(
   Do not silently discard — the user may have intended the weighting-class method.
 - `survey_taylor` input: same respondent-only filtering applies as in the weighting-class
   method (zero weights violate the Taylor validator).
+- `glm()` convergence warnings (e.g., from perfect separation or very sparse data)
+  pass through unchanged — surveywts does not catch or re-wrap them. Document in
+  `@details` that users should inspect their propensity model if this warning appears.
+
+### Statistical Assumptions
+
+- **MAR:** The propensity-cell method assumes nonresponse is Missing at Random (MAR)
+  conditional on the propensity score. Within each cell, respondents and nonrespondents
+  are assumed exchangeable for survey outcome variables. Bias reduction depends on how
+  well the propensity model covariates predict both response propensity and survey
+  outcomes. Document in `@note`.
+- **Propensity as known:** Variance estimates after propensity-cell adjustment treat
+  the estimated propensity scores as known and do not account for uncertainty from
+  model estimation. This is standard practice for propensity-cell nonresponse
+  adjustment but is a known limitation. Document in `@note`.
+- **Unweighted quantiles:** Cell boundaries are defined by unweighted quantiles of
+  the predicted scores (via `quantile()` + `findInterval()`), so each cell contains
+  approximately the same number of sampled units. This matches the svrep reference
+  implementation (`ntile()`) and the conventional approach (Rosenbaum & Rubin 1984;
+  Little 1986). Do not switch to weighted quantiles. Document in `@details`.
 
 ### Error Table (New Errors Only)
 
 | Error class | Condition |
 |---|---|
 | `surveywts_error_formula_required_for_propensity_cell` | `method = "propensity-cell"` but `formula = NULL` |
+| `surveywts_error_formula_invalid` | `formula` is not a valid one-sided formula (reuse class from §III) |
 | `surveywts_error_formula_variable_not_found` | A formula covariate not in `data` (reuse new class from §III) |
 | `surveywts_error_formula_variable_has_na` | A formula covariate has NA values |
 | `surveywts_error_n_cells_invalid` | `control$n_cells` is not a whole number ≥ 2 |
+| `surveywts_error_no_respondents_in_propensity_cell` | A propensity cell contains zero respondents (cell index + propensity range in message) |
 
 ### Warning Table (New Warnings Only)
 
@@ -551,7 +616,9 @@ Checks that `formula` is a valid one-sided R formula object. Throws
 | Source file | Test file |
 |---|---|
 | `R/sample-calibration.R` | `tests/testthat/test-sample-calibration.R` (new) |
-| `R/nonresponse.R` (extensions) | `tests/testthat/test-nonresponse.R` (extend) |
+| `R/nonresponse.R` (extensions) | `tests/testthat/test-05-nonresponse.R` (extend) |
+
+All Layer 3 error paths use the dual pattern per testing-surveywts.md: `expect_error(class=)` + `expect_snapshot(error=TRUE)`.
 
 ### `calibrate_to_survey()` Test Categories
 
@@ -565,7 +632,7 @@ Checks that `formula` is a valid one-sided R formula object. Throws
 **2. Numerical correctness**
 - Calibrated full-sample weights satisfy the calibration constraints:
   `abs(sum(w_new * X) - sum(w_control * X)) < 1e-8` for all formula variables.
-- Weight totals are conserved: `sum(w_new) ≈ sum(w_original)`.
+- Weight totals conserve to the control survey: `sum(w_new) ≈ sum(control_design@data[[control_design@variables$weights]])`, not `sum(w_original)` (intercept constraint forces alignment with control weight total).
 
 **3. Error paths**
 - `primary_design` is `survey_taylor` → `surveywts_error_primary_not_replicate`
@@ -576,9 +643,14 @@ Checks that `formula` is a valid one-sided R formula object. Throws
 - `formula` is not a formula object → `surveywts_error_formula_invalid`
 - Calibration fails to converge → `surveywts_error_calibration_not_converged`
 
-**4. Edge cases**
+**4. Warning paths**
+- Scheme mismatch (e.g., `primary_design@variables$type = "bootstrap"`, `control_design@variables$type = "JK1"`) → `surveywts_warning_replicate_scheme_mismatch`; calibration still proceeds and result passes `test_invariants()`
+- `method = "linear"` with control totals that produce negative full-sample weights → `surveywts_warning_negative_calibrated_weights`; calibration result is still returned
+
+**5. Edge cases**
 - Single formula variable
 - Formula with interaction terms `~ age * sex`
+- Method `"linear"`
 - Method `"logit"`
 - Single replicate (n_rep = 1)
 
@@ -595,17 +667,25 @@ Checks that `formula` is a valid one-sided R formula object. Throws
 
 **3. Error paths**
 - `design` not `survey_replicate` → `surveywts_error_primary_not_replicate`
+- Formula variable missing from `design@data` → `surveywts_error_formula_variable_not_found`
+- `formula` is not a formula object → `surveywts_error_formula_invalid`
 - `estimate` not named → `surveywts_error_estimate_not_named`
+- `estimate` has NA values → `surveywts_error_estimate_has_na`
 - `estimate` wrong length → `surveywts_error_estimate_length_mismatch`
 - `estimate` wrong names → `surveywts_error_estimate_names_mismatch`
 - `vcov_estimate` wrong dimensions → `surveywts_error_vcov_dimension_mismatch`
+- `vcov_estimate` has NA values → `surveywts_error_vcov_has_na`
 - `vcov_estimate` not symmetric → `surveywts_error_vcov_not_symmetric`
 - Non-PSD `vcov_estimate` → `surveywts_error_vcov_cholesky_failed`
 - Calibration not converged → `surveywts_error_calibration_not_converged`
 
-**4. Edge cases**
+**4. Warning paths**
+- `method = "linear"` with estimates that produce negative full-sample weights → `surveywts_warning_negative_calibrated_weights`; calibration result is still returned
+
+**5. Edge cases**
 - Identity covariance (zero uncertainty in control totals)
 - Single calibration variable
+- Method `"linear"`
 - Method `"logit"`
 
 ### `redistribute_weights()` Test Categories
@@ -625,18 +705,28 @@ Checks that `formula` is a valid one-sided R formula object. Throws
 
 **3. Error paths**
 - `survey_replicate` input → `surveywts_error_unsupported_class`
+- 0-row data frame input → `surveywts_error_empty_data`
+- Named weight column missing → `surveywts_error_weights_not_found`
+- Weight column not numeric → `surveywts_error_weights_not_numeric`
+- Weight column has non-positive value → `surveywts_error_weights_nonpositive`
+- Weight column has NA → `surveywts_error_weights_na`
+- `wt_name` not `character(1)` → `surveywts_error_wt_name_not_scalar`
+- `wt_name` is NA or `""` → `surveywts_error_wt_name_empty`
 - `reduce_if` column not found → `surveywts_error_reduce_if_not_found`
 - `increase_if` column not found → `surveywts_error_increase_if_not_found`
 - `reduce_if` not binary (factor) → `surveywts_error_reduce_if_not_binary`
 - `increase_if` not binary (character) → `surveywts_error_increase_if_not_binary`
+- `reduce_if` column has NA → `surveywts_error_reduce_if_has_na`
+- `increase_if` column has NA → `surveywts_error_increase_if_has_na`
 - Indicator overlap → `surveywts_error_indicators_overlap`
 - Group with no recipients → `surveywts_error_no_recipients_in_group`
 - `by` variable with NA → `surveywts_error_variable_has_na`
+- `wt_name` matches existing non-weight column → `surveywts_error_wt_name_conflict`
 
 **4. Edge cases**
 - All rows are `reduce_if` (global: error; with `by`: one group all-reduce + other groups fine)
 - No rows are `reduce_if` → weights unchanged, no error, no warning
-- Zero-weight rows in `increase_if`
+- Zero-weight rows in `increase_if` → caught by `surveywts_error_weights_nonpositive` before redistribution logic runs (tests the weight validator, not redistribution)
 - Sparse cell → `surveywts_warning_class_near_empty`
 - History: step number correct when chained after calibration
 
@@ -654,15 +744,18 @@ Checks that `formula` is a valid one-sided R formula object. Throws
 
 **3. Error paths (new)**
 - `method = "propensity-cell"` without `formula` → `surveywts_error_formula_required_for_propensity_cell`
+- `formula` is not a formula object → `surveywts_error_formula_invalid`
 - Formula variable missing → `surveywts_error_formula_variable_not_found`
 - Formula variable has NA → `surveywts_error_formula_variable_has_na`
 - `control$n_cells = 1` → `surveywts_error_n_cells_invalid`
 - `method = "propensity"` still errors → `surveywts_error_propensity_not_available` (existing)
+- Propensity cell contains no respondents → `surveywts_error_no_respondents_in_propensity_cell`
 
 **4. Edge cases**
 - `by` non-NULL with propensity-cell → warning `surveywts_warning_by_ignored_for_propensity_cell`
 - `control$n_cells = 2`
 - Very high propensity concentration (all scores near 0 or 1)
+- One propensity cell contains fewer than `control$min_cell` respondents → `surveywts_warning_class_near_empty`
 
 ---
 
@@ -696,13 +789,17 @@ The following new classes must be added before the Implementation Plan is writte
 - `surveywts_error_primary_not_replicate`
 - `surveywts_error_control_not_replicate`
 - `surveywts_error_replicate_count_mismatch`
+- `surveywts_warning_replicate_scheme_mismatch`
 - `surveywts_error_formula_variable_not_found`
 - `surveywts_error_formula_invalid`
 - `surveywts_error_estimate_not_named`
+- `surveywts_error_estimate_has_na`
 - `surveywts_error_estimate_length_mismatch`
 - `surveywts_error_estimate_names_mismatch`
 - `surveywts_error_vcov_dimension_mismatch`
+- `surveywts_error_vcov_has_na`
 - `surveywts_error_vcov_not_symmetric`
+- `surveywts_error_vcov_cholesky_failed`
 
 **New for `redistribute_weights()`:**
 - `surveywts_error_reduce_if_not_found`
@@ -713,11 +810,14 @@ The following new classes must be added before the Implementation Plan is writte
 - `surveywts_error_increase_if_has_na`
 - `surveywts_error_indicators_overlap`
 - `surveywts_error_no_recipients_in_group`
+- `surveywts_error_wt_name_conflict`
 
 **New for `adjust_nonresponse()` propensity-cell:**
 - `surveywts_error_formula_required_for_propensity_cell`
+- `surveywts_error_formula_invalid` (reuse — also used by calibration functions)
 - `surveywts_error_formula_variable_has_na`
 - `surveywts_error_n_cells_invalid`
+- `surveywts_error_no_respondents_in_propensity_cell`
 - `surveywts_warning_by_ignored_for_propensity_cell`
 
 ### `surveywts-conventions.md`

@@ -569,19 +569,6 @@ test_that("adjust_nonresponse() rejects method = 'propensity' (not-yet-available
   )
 })
 
-test_that("adjust_nonresponse() rejects method = 'propensity-cell' (not-yet-available stub)", {
-  df <- make_surveywts_data(seed = 18, include_nonrespondents = TRUE)
-
-  expect_error(
-    adjust_nonresponse(df, response_status = responded, method = "propensity-cell"),
-    class = "surveywts_error_propensity_not_available"
-  )
-  expect_snapshot(
-    error = TRUE,
-    adjust_nonresponse(df, response_status = responded, method = "propensity-cell")
-  )
-})
-
 # ---------------------------------------------------------------------------
 # 14. Warning — class_near_empty triggered by low count (< 20 respondents)
 # ---------------------------------------------------------------------------
@@ -1765,4 +1752,384 @@ test_that("redistribute_weights() history step number is correct when chained af
   expect_equal(length(history), 2L)
   expect_equal(history[[2L]]$step, 2L)
   expect_identical(history[[2L]]$operation, "redistribute_weights")
+})
+
+# ===========================================================================
+# adjust_nonresponse() — propensity-cell method
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# PC-1. Happy path — data.frame input → weighted_df
+# ---------------------------------------------------------------------------
+
+test_that("adjust_nonresponse(method='propensity-cell') returns weighted_df for data.frame input", {
+  df <- make_surveywts_data(seed = 50, include_nonrespondents = TRUE)
+
+  result <- adjust_nonresponse(
+    df,
+    response_status = responded,
+    formula = ~age_group,
+    method = "propensity-cell"
+  )
+
+  expect_true(inherits(result, "weighted_df"))
+  test_invariants(result)
+  expect_equal(nrow(result), nrow(df))
+})
+
+# ---------------------------------------------------------------------------
+# PC-2. Happy path — nonrespondent weights are 0
+# ---------------------------------------------------------------------------
+
+test_that("adjust_nonresponse(method='propensity-cell') sets nonrespondent weights to 0", {
+  df <- make_surveywts_data(seed = 51, include_nonrespondents = TRUE)
+  is_resp <- df$responded == 1L
+
+  result <- adjust_nonresponse(
+    df,
+    response_status = responded,
+    formula = ~age_group,
+    method = "propensity-cell"
+  )
+
+  wt_col <- attr(result, "weight_col")
+  expect_true(all(result[[wt_col]][!is_resp] == 0))
+  expect_true(all(result[[wt_col]][is_resp] > 0))
+})
+
+# ---------------------------------------------------------------------------
+# PC-3. Happy path — history entry operation is 'nonresponse_propensity_cell'
+# ---------------------------------------------------------------------------
+
+test_that("adjust_nonresponse(method='propensity-cell') history entry has operation = 'nonresponse_propensity_cell'", {
+  df <- make_surveywts_data(seed = 52, include_nonrespondents = TRUE)
+
+  result <- adjust_nonresponse(
+    df,
+    response_status = responded,
+    formula = ~age_group,
+    method = "propensity-cell"
+  )
+
+  history <- attr(result, "weighting_history")
+  expect_equal(length(history), 1L)
+  expect_identical(history[[1L]]$operation, "nonresponse_propensity_cell")
+})
+
+# ---------------------------------------------------------------------------
+# PC-4. Happy path — survey_taylor input → survey_taylor (respondent rows only)
+# ---------------------------------------------------------------------------
+
+test_that("adjust_nonresponse(method='propensity-cell') returns survey_taylor for survey_taylor input", {
+  df <- make_surveywts_data(seed = 53, include_nonrespondents = TRUE)
+  design <- .make_test_taylor_nr(df)
+
+  result <- adjust_nonresponse(
+    design,
+    response_status = responded,
+    formula = ~age_group,
+    method = "propensity-cell"
+  )
+
+  expect_true(S7::S7_inherits(result, surveycore::survey_taylor))
+  test_invariants(result)
+  # survey_taylor does not support zero weights — respondent rows only returned
+  expect_true(nrow(result@data) < nrow(df))
+  expect_true(all(result@data[[result@variables$weights]] > 0))
+})
+
+# ---------------------------------------------------------------------------
+# PC-5. Numerical correctness — within-cell weight sums are conserved
+# ---------------------------------------------------------------------------
+
+test_that("propensity-cell respondent weights within each cell scale correctly", {
+  df <- make_surveywts_data(seed = 54, include_nonrespondents = TRUE)
+  # Uniform weights: what adjust_nonresponse() uses internally for a plain
+  # data.frame with no explicit weights argument
+  old_wts <- rep(1 / nrow(df), nrow(df))
+  is_resp <- df$responded == 1L
+
+  result <- adjust_nonresponse(
+    df,
+    response_status = responded,
+    formula = ~age_group,
+    method = "propensity-cell"
+  )
+  new_wts <- result[[attr(result, "weight_col")]]
+
+  # Replicate propensity scores and cell assignment to verify per-cell scaling
+  model  <- stats::glm(responded ~ age_group, family = stats::binomial,
+                       data = df, weights = old_wts)
+  scores <- stats::predict(model, type = "response")
+  n_cells <- 5L  # default
+  cuts    <- stats::quantile(scores, probs = seq(0, 1, 1 / n_cells))
+  cells   <- findInterval(scores, cuts, rightmost.closed = TRUE)
+
+  for (k in seq_len(n_cells)) {
+    in_cell <- cells == k
+    if (!any(in_cell & is_resp)) next
+    expect_equal(
+      sum(new_wts[in_cell & is_resp]),
+      sum(old_wts[in_cell]),
+      tolerance = 1e-10
+    )
+  }
+})
+
+# ---------------------------------------------------------------------------
+# PC-6. Error — formula = NULL with method = 'propensity-cell'
+# ---------------------------------------------------------------------------
+
+test_that("adjust_nonresponse() errors when method='propensity-cell' and formula is NULL", {
+  df <- make_surveywts_data(seed = 50, include_nonrespondents = TRUE)
+
+  expect_error(
+    adjust_nonresponse(df, response_status = responded, method = "propensity-cell"),
+    class = "surveywts_error_formula_required_for_propensity_cell"
+  )
+  expect_snapshot(
+    error = TRUE,
+    adjust_nonresponse(df, response_status = responded, method = "propensity-cell")
+  )
+})
+
+# ---------------------------------------------------------------------------
+# PC-7. Error — formula is not a formula object
+# ---------------------------------------------------------------------------
+
+test_that("adjust_nonresponse() errors when formula is not a formula object (propensity-cell)", {
+  df <- make_surveywts_data(seed = 50, include_nonrespondents = TRUE)
+
+  expect_error(
+    adjust_nonresponse(df, response_status = responded,
+                       formula = "age_group", method = "propensity-cell"),
+    class = "surveywts_error_formula_invalid"
+  )
+  expect_snapshot(
+    error = TRUE,
+    adjust_nonresponse(df, response_status = responded,
+                       formula = "age_group", method = "propensity-cell")
+  )
+})
+
+# ---------------------------------------------------------------------------
+# PC-8. Error — formula variable not found in data
+# ---------------------------------------------------------------------------
+
+test_that("adjust_nonresponse() errors when a formula variable is missing (propensity-cell)", {
+  df <- make_surveywts_data(seed = 50, include_nonrespondents = TRUE)
+
+  expect_error(
+    adjust_nonresponse(df, response_status = responded,
+                       formula = ~nonexistent_var, method = "propensity-cell"),
+    class = "surveywts_error_formula_variable_not_found"
+  )
+  expect_snapshot(
+    error = TRUE,
+    adjust_nonresponse(df, response_status = responded,
+                       formula = ~nonexistent_var, method = "propensity-cell")
+  )
+})
+
+# ---------------------------------------------------------------------------
+# PC-9. Error — formula variable has NA values
+# ---------------------------------------------------------------------------
+
+test_that("adjust_nonresponse() errors when a formula variable has NA values", {
+  df <- make_surveywts_data(seed = 50, include_nonrespondents = TRUE)
+  df$age_group[1L] <- NA
+
+  expect_error(
+    adjust_nonresponse(df, response_status = responded,
+                       formula = ~age_group, method = "propensity-cell"),
+    class = "surveywts_error_formula_variable_has_na"
+  )
+  expect_snapshot(
+    error = TRUE,
+    adjust_nonresponse(df, response_status = responded,
+                       formula = ~age_group, method = "propensity-cell")
+  )
+})
+
+# ---------------------------------------------------------------------------
+# PC-10. Error — control$n_cells < 2
+# ---------------------------------------------------------------------------
+
+test_that("adjust_nonresponse() errors when control$n_cells = 1", {
+  df <- make_surveywts_data(seed = 50, include_nonrespondents = TRUE)
+
+  expect_error(
+    adjust_nonresponse(df, response_status = responded,
+                       formula = ~age_group, method = "propensity-cell",
+                       control = list(n_cells = 1)),
+    class = "surveywts_error_n_cells_invalid"
+  )
+  expect_snapshot(
+    error = TRUE,
+    adjust_nonresponse(df, response_status = responded,
+                       formula = ~age_group, method = "propensity-cell",
+                       control = list(n_cells = 1))
+  )
+})
+
+# ---------------------------------------------------------------------------
+# PC-11. Error — method = 'propensity' still errors (stub unchanged)
+# ---------------------------------------------------------------------------
+
+test_that("adjust_nonresponse() still errors for method = 'propensity' (stub unchanged)", {
+  df <- make_surveywts_data(seed = 59, include_nonrespondents = TRUE)
+
+  expect_error(
+    adjust_nonresponse(df, response_status = responded, method = "propensity"),
+    class = "surveywts_error_propensity_not_available"
+  )
+  expect_snapshot(
+    error = TRUE,
+    adjust_nonresponse(df, response_status = responded, method = "propensity")
+  )
+})
+
+# ---------------------------------------------------------------------------
+# PC-12. Error — a propensity cell contains no respondents
+# ---------------------------------------------------------------------------
+
+test_that("adjust_nonresponse() errors when a propensity cell contains no respondents", {
+  set.seed(60)
+  x_pred     <- runif(30)
+  responded  <- sample(c(rep(1L, 2L), rep(0L, 28L)))
+  df_no_resp <- data.frame(x_pred = x_pred, responded = responded,
+                            wt = rep(1, 30))
+
+  expect_error(
+    adjust_nonresponse(df_no_resp, response_status = responded, weights = wt,
+                       formula = ~x_pred, method = "propensity-cell",
+                       control = list(n_cells = 10)),
+    class = "surveywts_error_no_respondents_in_propensity_cell"
+  )
+  expect_snapshot(
+    error = TRUE,
+    adjust_nonresponse(df_no_resp, response_status = responded, weights = wt,
+                       formula = ~x_pred, method = "propensity-cell",
+                       control = list(n_cells = 10))
+  )
+})
+
+# ---------------------------------------------------------------------------
+# PC-13. Warning — by is non-NULL with method = 'propensity-cell'
+# ---------------------------------------------------------------------------
+
+test_that("adjust_nonresponse() warns when by is non-NULL with method='propensity-cell'", {
+  df <- make_surveywts_data(seed = 55, include_nonrespondents = TRUE)
+
+  expect_warning(
+    result <- adjust_nonresponse(
+      df,
+      response_status = responded,
+      by = age_group,
+      formula = ~sex,
+      method = "propensity-cell"
+    ),
+    class = "surveywts_warning_by_ignored_for_propensity_cell"
+  )
+
+  # by is ignored — result is still valid
+  test_invariants(result)
+})
+
+# ---------------------------------------------------------------------------
+# PC-14. Warning — cell has fewer than min_cell respondents
+# ---------------------------------------------------------------------------
+
+test_that("adjust_nonresponse() warns when a cell has fewer than min_cell respondents", {
+  df <- make_surveywts_data(n = 200, seed = 55, include_nonrespondents = TRUE)
+
+  # min_cell = 9999 guarantees all cells trigger (each has far fewer respondents);
+  # max_adjust = Inf disables the max_adjust condition so only min_cell triggers
+  expect_warning(
+    adjust_nonresponse(
+      df,
+      response_status = responded,
+      formula = ~age_group,
+      method = "propensity-cell",
+      control = list(n_cells = 5, max_adjust = Inf, min_cell = 9999)
+    ),
+    class = "surveywts_warning_class_near_empty"
+  )
+})
+
+# ---------------------------------------------------------------------------
+# PC-15. Warning — adjustment factor exceeds max_adjust in a cell
+# ---------------------------------------------------------------------------
+
+test_that("adjust_nonresponse() warns when adjustment factor exceeds max_adjust in a cell", {
+  df <- make_surveywts_data(n = 500, seed = 65, include_nonrespondents = TRUE)
+
+  # max_adjust = 1.1 is below the actual adj_factor (~1.25 with ~20% nonresponse)
+  expect_warning(
+    adjust_nonresponse(
+      df,
+      response_status = responded,
+      formula = ~age_group,
+      method = "propensity-cell",
+      control = list(n_cells = 5, max_adjust = 1.1, min_cell = 0L)
+    ),
+    class = "surveywts_warning_class_near_empty"
+  )
+})
+
+# ---------------------------------------------------------------------------
+# PC-16. Edge case — control$n_cells = 2
+# ---------------------------------------------------------------------------
+
+test_that("propensity-cell works with control$n_cells = 2", {
+  df <- make_surveywts_data(seed = 56, include_nonrespondents = TRUE)
+
+  result <- adjust_nonresponse(
+    df,
+    response_status = responded,
+    formula = ~age_group,
+    method = "propensity-cell",
+    control = list(n_cells = 2)
+  )
+
+  test_invariants(result)
+  is_resp <- df$responded == 1L
+  wt_col  <- attr(result, "weight_col")
+  expect_true(all(result[[wt_col]][!is_resp] == 0))
+})
+
+# ---------------------------------------------------------------------------
+# PC-17. Edge case — high propensity concentration (bimodal scores)
+# ---------------------------------------------------------------------------
+
+test_that("propensity-cell handles high propensity concentration (all scores near 0 or 1)", {
+  # Binary predictor creates bimodal scores; suppressWarnings since small cells
+  # trigger class_near_empty warnings (expected in this edge case)
+  set.seed(57)
+  df_bimodal <- data.frame(
+    x_pred    = rep(c(0L, 1L), each = 50L),
+    responded = c(
+      sample(c(rep(1L, 5L), rep(0L, 45L))),   # 10% response when x=0
+      sample(c(rep(1L, 45L), rep(0L, 5L)))    # 90% response when x=1
+    ),
+    wt = rep(1, 100)
+  )
+
+  result <- suppressWarnings(
+    adjust_nonresponse(
+      df_bimodal,
+      response_status = responded,
+      weights = wt,
+      formula = ~x_pred,
+      method = "propensity-cell",
+      control = list(n_cells = 2, min_cell = 0L, max_adjust = Inf)
+    )
+  )
+
+  test_invariants(result)
+  is_resp <- df_bimodal$responded == 1L
+  wt_col  <- attr(result, "weight_col")
+  expect_true(all(result[[wt_col]][!is_resp] == 0))
+  # Total weight conserved (respondent weights absorb nonrespondent weights)
+  expect_equal(sum(result[[wt_col]]), sum(df_bimodal$wt), tolerance = 1e-10)
 })

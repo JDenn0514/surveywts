@@ -160,16 +160,6 @@
       i Propensity-based methods ("\"propensity\"" and "\"propensity-cell\"") require the Propensity release.
       v Use `method = "weighting-class"` for now.
 
-# adjust_nonresponse() rejects method = 'propensity-cell' (not-yet-available stub)
-
-    Code
-      adjust_nonresponse(df, response_status = responded, method = "propensity-cell")
-    Condition
-      Error in `adjust_nonresponse()`:
-      x `method = "propensity-cell"` is not yet available.
-      i Propensity-based methods ("\"propensity\"" and "\"propensity-cell\"") require the Propensity release.
-      v Use `method = "weighting-class"` for now.
-
 # adjust_nonresponse() warns when a cell has fewer than 20 respondents
 
     Code
@@ -441,4 +431,77 @@
       x Group "B" has 2 reduce_if row(s) but no increase_if rows.
       i Cannot redistribute weight to an empty recipient set.
       v Ensure each group has at least one row with `increase_if` = `TRUE`.
+
+# adjust_nonresponse() errors when method='propensity-cell' and formula is NULL
+
+    Code
+      adjust_nonresponse(df, response_status = responded, method = "propensity-cell")
+    Condition
+      Error in `adjust_nonresponse()`:
+      x `formula` is required when `method = "propensity-cell"`.
+      i Provide a one-sided formula, e.g., `formula = ~ age_group + sex`.
+
+# adjust_nonresponse() errors when formula is not a formula object (propensity-cell)
+
+    Code
+      adjust_nonresponse(df, response_status = responded, formula = "age_group",
+        method = "propensity-cell")
+    Condition
+      Error in `.validate_formula()`:
+      x `formula` must be a one-sided formula (e.g., `~ age + sex`).
+      i Got <character>.
+
+# adjust_nonresponse() errors when a formula variable is missing (propensity-cell)
+
+    Code
+      adjust_nonresponse(df, response_status = responded, formula = ~nonexistent_var,
+        method = "propensity-cell")
+    Condition
+      Error in `.validate_formula_variables()`:
+      x Variable nonexistent_var not found in `data`.
+      i All variables in `formula` must be columns in `data`.
+      v Check spelling or add nonexistent_var to the data before calling this function.
+
+# adjust_nonresponse() errors when a formula variable has NA values
+
+    Code
+      adjust_nonresponse(df, response_status = responded, formula = ~age_group,
+        method = "propensity-cell")
+    Condition
+      Error in `adjust_nonresponse()`:
+      x Formula variable age_group contains 1 NA value(s).
+      i All formula variables must be fully observed for GLM fitting.
+      v Remove or impute NA values in age_group before calling `adjust_nonresponse()`.
+
+# adjust_nonresponse() errors when control$n_cells = 1
+
+    Code
+      adjust_nonresponse(df, response_status = responded, formula = ~age_group,
+        method = "propensity-cell", control = list(n_cells = 1))
+    Condition
+      Error in `adjust_nonresponse()`:
+      x `control$n_cells` must be a whole number >= 2.
+      i Got 1.
+      v Set `control$n_cells` to an integer >= 2, e.g., `control = list(n_cells = 5)`.
+
+# adjust_nonresponse() still errors for method = 'propensity' (stub unchanged)
+
+    Code
+      adjust_nonresponse(df, response_status = responded, method = "propensity")
+    Condition
+      Error in `adjust_nonresponse()`:
+      x `method = "propensity"` is not yet available.
+      i Propensity-based methods ("\"propensity\"" and "\"propensity-cell\"") require the Propensity release.
+      v Use `method = "weighting-class"` for now.
+
+# adjust_nonresponse() errors when a propensity cell contains no respondents
+
+    Code
+      adjust_nonresponse(df_no_resp, response_status = responded, weights = wt,
+        formula = ~x_pred, method = "propensity-cell", control = list(n_cells = 10))
+    Condition
+      Error in `adjust_nonresponse()`:
+      x Propensity cell 1 has no respondents.
+      i Propensity score range for cell 1: [0.0511, 0.0528].
+      v Reduce `control$n_cells` or ensure respondents exist across all propensity score strata.
 

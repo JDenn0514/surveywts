@@ -108,8 +108,7 @@
     return(attr(x, "weight_col"))
   }
 
-  if (S7::S7_inherits(x, surveycore::survey_taylor) ||
-      S7::S7_inherits(x, surveycore::survey_nonprob)) {
+  if (S7::S7_inherits(x, surveycore::survey_base)) {
     return(x@variables$weights)
   }
 

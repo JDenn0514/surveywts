@@ -141,6 +141,20 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_error_taylor_from_nonprob_replicate` | `as_taylor_design()` | Source was `survey_nonprob` |
 | `surveywts_error_unsupported_class` | All `create_*_weights()`, `as_taylor_design()` | Input class is not a supported survey design type |
 
+### `trim_weights()` / `stabilize_weights()`
+
+| Class | Thrown by | Condition |
+|-------|-----------|-----------|
+| `surveywts_error_null_bound_percentile` | `trim_weights()` | `upper = NULL` with `type = "percentile"` |
+| `surveywts_error_k_not_scalar` | `trim_weights()` | `k` is not `numeric(1)` or is `NA` |
+| `surveywts_error_k_nonpositive` | `trim_weights()` | `k <= 0` |
+| `surveywts_error_lower_not_scalar` | `trim_weights()` | `lower` is not `numeric(1)` or is `NA` |
+| `surveywts_error_upper_not_scalar` | `trim_weights()` | `upper` is not `numeric(1)` or is `NA` |
+| `surveywts_error_bounds_invalid` | `trim_weights()` | Resolved `lower_abs >= upper_abs` |
+| `surveywts_error_upper_nonpositive` | `trim_weights()` | `upper <= 0` when `type = "absolute"` |
+| `surveywts_error_percentile_out_of_range` | `trim_weights()` | Bound not in [0, 1] with `type = "percentile"` |
+| `surveywts_error_by_variable_not_found` | `stabilize_weights()` | A `by` variable not in `data` |
+
 ### Internal / Utility
 
 | Class | Thrown by | Condition |
@@ -159,6 +173,8 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_warning_control_param_ignored` | `rake()` | A `control` parameter is not applicable to the specified `method` (e.g., `control$pval` with `method = "survey"`, or `control$epsilon` with `method = "anesrake"`) |
 | `surveywts_warning_replicate_scheme_mismatch` | `calibrate_to_survey()` | `primary_design` and `control_design` have different replicate weight types (e.g., `"bootstrap"` vs `"JK1"`) |
 | `surveywts_warning_by_ignored_for_propensity_cell` | `adjust_nonresponse()` | `by` is non-`NULL` with `method = "propensity-cell"` — `by` is ignored for this method |
+| `surveywts_warning_no_weights_trimmed` | `trim_weights()` | No main weights fell outside the resolved bounds |
+| `surveywts_warning_trimming_failed` | `trim_weights()` | All remaining units already trimmed; no untrimmed units to absorb excess |
 | _See also:_ `surveywts_warning_negative_calibrated_weights` | — | Shared with `calibrate()` section; also thrown by `calibrate_to_survey()` and `calibrate_to_estimate()` |
 | _See also:_ `surveywts_warning_class_near_empty` | — | Shared with `adjust_nonresponse()` section; also thrown by `redistribute_weights()` |
 

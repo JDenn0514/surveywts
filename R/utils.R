@@ -21,6 +21,7 @@
 #   .calibrate_engine()               — dispatches to calibration algorithms
 #   .validate_formula()               — validates one-sided formula object
 #   .validate_formula_variables()     — validates formula variables exist in data
+#   .trim_weights_internal()          — clip-and-redistribute primitive for trim_weights()
 #   .to_svyrep_design()               — converts survey_replicate to svyrep.design
 #
 # NOTE (GAP #6 departure): .make_history_entry() adds a `step` parameter not
@@ -156,7 +157,8 @@
 # (1 / nrow(x)) — these are the starting weights before calibration.
 #
 # Arguments:
-#   x           : data.frame, weighted_df, survey_taylor, or survey_nonprob
+#   x           : data.frame, weighted_df, survey_taylor, survey_nonprob,
+#                 or survey_replicate
 #   weights_quo : quosure from rlang::enquo(weights) in the calling function
 #
 # Returns: numeric vector (length nrow(data))
@@ -178,6 +180,10 @@
 
   if (S7::S7_inherits(x, surveycore::survey_taylor) ||
       S7::S7_inherits(x, surveycore::survey_nonprob)) {
+    return(data_df[[x@variables$weights]])
+  }
+
+  if (S7::S7_inherits(x, surveycore::survey_replicate)) {
     return(data_df[[x@variables$weights]])
   }
 
@@ -1248,6 +1254,29 @@
     }
   }
   invisible(TRUE)
+}
+
+# ============================================================================
+# .trim_weights_internal()
+# ============================================================================
+
+# Clip-and-redistribute logic adapted from survey::do_trimWeights (Thomas Lumley, GPL-2/3).
+# Source: https://github.com/cran/survey/blob/4834b8bc91f6414ad4514552daaed8990a86d9c1/R/grake.R#L449
+.trim_weights_internal <- function(weights, lower, upper, has_trimmed) {
+  outside <- weights < lower | weights > upper
+  if (!any(outside)) return(list(weights = weights, has_trimmed = has_trimmed))
+  weights_new <- pmax(lower, pmin(weights, upper))
+  trimmings <- weights - weights_new
+  can_adjust <- !outside & !has_trimmed
+  if (!any(can_adjust)) {
+    cli::cli_warn(
+      c("!" = "Weight redistribution failed: no untrimmed units remain to absorb the trimmed excess."),
+      class = "surveywts_warning_trimming_failed"
+    )
+  } else {
+    weights_new[can_adjust] <- weights_new[can_adjust] + sum(trimmings) / sum(can_adjust)
+  }
+  list(weights = weights_new, has_trimmed = outside | has_trimmed)
 }
 
 # ============================================================================

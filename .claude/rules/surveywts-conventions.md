@@ -48,8 +48,9 @@ with surveywts-specific examples and detailed guidance.
 | `nonresponse` | `adjust_nonresponse()`, `redistribute_weights()` |
 | `diagnostics` | `effective_sample_size()`, `weight_variability()`, `summarize_weights()` |
 | `replicate-weights` | `create_bootstrap_weights()`, `create_jackknife_weights()`, `create_brr_weights()`, `create_gen_boot_weights()`, `create_gen_rep_weights()`, `create_sdr_weights()`, `create_replicate_weights()`, `as_taylor_design()` |
+| `utilities` | `trim_weights()`, `stabilize_weights()` |
 
-Use `@family calibration`, `@family sample-calibration`, `@family nonresponse`, `@family diagnostics`, `@family replicate-weights` in roxygen2.
+Use `@family calibration`, `@family sample-calibration`, `@family nonresponse`, `@family diagnostics`, `@family replicate-weights`, `@family utilities` in roxygen2.
 
 ---
 

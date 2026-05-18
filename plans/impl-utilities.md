@@ -22,7 +22,7 @@ phase.
 ## PR Map
 
 - [x] PR 1: `feature/weight-utils-infra` — Doc updates + utils.R extensions (`.trim_weights_internal`, `.get_weight_vec` survey_replicate branch)
-- [ ] PR 2: `feature/weight-utils` — `trim_weights()`, `stabilize_weights()`, and full test suite
+- [x] PR 2: `feature/weight-utils` — `trim_weights()`, `stabilize_weights()`, and full test suite
 
 ---
 

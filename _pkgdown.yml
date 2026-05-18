@@ -46,6 +46,12 @@ reference:
       - create_sdr_weights
       - create_replicate_weights
       - as_taylor_design
+  - title: Weight Utilities
+    desc: >
+      Functions for trimming and stabilizing survey weights.
+    contents:
+      - trim_weights
+      - stabilize_weights
   - title: Diagnostics
     desc: >
       Functions for assessing the distribution and quality of survey weights.

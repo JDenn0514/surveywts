@@ -323,3 +323,13 @@
       Error in `.validate_wt_name()`:
       x `wt_name` must be a non-empty, non-NA string.
 
+# rake() rejects non-taylor reference_design
+
+    Code
+      rake(df, margins = margins, reference_design = list())
+    Condition
+      Error in `.validate_reference_design()`:
+      x `reference_design` must be a <survey_taylor>.
+      i Got class <list>.
+      v Pass the <survey_taylor> object used to compute the targets.
+

@@ -142,8 +142,8 @@ the weight column is removed.
 
 | Function | Argument order |
 |----------|----------------|
-| `calibrate()` | `data, variables, population, weights = NULL, method = "linear", type = "prop", control = list()` |
-| `rake()` | `data, margins, weights = NULL, type = "prop", method = "anesrake", cap = NULL, control = list()` |
+| `calibrate()` | `data, variables, population, weights = NULL, method = "linear", type = "prop", control = list(), reference_design = NULL` |
+| `rake()` | `data, margins, weights = NULL, type = "prop", method = "anesrake", cap = NULL, control = list(), reference_design = NULL` |
 | `poststratify()` | `data, strata, population, weights = NULL, type = "prop"` |
 | `adjust_nonresponse()` | `data, response_status, weights = NULL, by = NULL, method = "weighting_class", control = list()` |
 | `effective_sample_size()` | `x, weights = NULL` |

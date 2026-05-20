@@ -1610,3 +1610,57 @@ test_that("rake() history capping records pre-cap weights correctly when cap fir
   capped_idx <- which(abs(final - 1.5) < 1e-8)
   expect_true(all(capping$precap_weights[capped_idx] >= 1.5))
 })
+
+# ---------------------------------------------------------------------------
+# reference_design — history recording (NPS bootstrap compatibility)
+# ---------------------------------------------------------------------------
+
+test_that("rake() records type in history parameters", {
+  df      <- make_surveywts_data(seed = 1)
+  margins <- .make_margins()
+
+  result <- rake(df, margins = margins)
+  entry  <- attr(result, "weighting_history")[[1L]]
+
+  expect_true("type" %in% names(entry$parameters))
+  expect_identical(entry$parameters$type, "prop")
+})
+
+test_that("rake() records reference_design and targets_from_reference = TRUE in history", {
+  df         <- make_surveywts_data(seed = 1)
+  margins    <- .make_margins()
+  ref_taylor <- .make_test_taylor_rake(df)
+
+  result <- rake(df, margins = margins, reference_design = ref_taylor)
+
+  test_invariants(result)
+  entry <- attr(result, "weighting_history")[[1L]]
+  expect_true(entry$parameters$targets_from_reference)
+  expect_identical(entry$parameters$reference_design, ref_taylor)
+})
+
+test_that("rake() records targets_from_reference = FALSE when reference_design = NULL", {
+  df      <- make_surveywts_data(seed = 1)
+  margins <- .make_margins()
+
+  result <- rake(df, margins = margins)
+
+  test_invariants(result)
+  entry <- attr(result, "weighting_history")[[1L]]
+  expect_false(entry$parameters$targets_from_reference)
+  expect_null(entry$parameters$reference_design)
+})
+
+test_that("rake() rejects non-taylor reference_design", {
+  df      <- make_surveywts_data(seed = 1)
+  margins <- .make_margins()
+
+  expect_error(
+    rake(df, margins = margins, reference_design = list()),
+    class = "surveywts_error_reference_design_not_taylor"
+  )
+  expect_snapshot(
+    error = TRUE,
+    rake(df, margins = margins, reference_design = list())
+  )
+})

@@ -71,6 +71,11 @@
 #'   weight exceeding `cap * mean(w)` is set to `cap * mean(w)`. Applied
 #'   after each per-margin adjustment step (not post-hoc). `NULL` (default)
 #'   means no cap. Applies to both methods.
+#' @param reference_design A `survey_taylor` object or `NULL` (default). The
+#'   reference probability survey from which `margins` were estimated. When
+#'   non-`NULL`, stored in the history entry and `targets_from_reference` is
+#'   set to `TRUE`. Pass the same `survey_taylor` object used to compute the
+#'   margin targets. `NULL` means targets are fixed population benchmarks.
 #' @param control Named list of algorithm parameters. Merged with
 #'   method-specific defaults. Omitted keys retain their defaults.
 #'
@@ -136,12 +141,13 @@
 rake <- function(
   data,
   margins,
-  weights = NULL,
-  wt_name = "wts",
-  type    = c("prop", "count"),
-  method  = c("anesrake", "survey"),
-  cap     = NULL,
-  control = list()
+  weights          = NULL,
+  wt_name          = "wts",
+  type             = c("prop", "count"),
+  method           = c("anesrake", "survey"),
+  cap              = NULL,
+  control          = list(),
+  reference_design = NULL
 ) {
   # ---- Capture call and arguments before any evaluation --------------------
   call_str <- deparse(match.call())
@@ -149,6 +155,7 @@ rake <- function(
   type   <- rlang::arg_match(type)
   weights_quo <- rlang::enquo(weights)
   .validate_wt_name(wt_name)
+  .validate_reference_design(reference_design)
 
   # ---- Cap + method = "survey" guard (fail fast, before margin parsing) ----
   if (!is.null(cap) && method == "survey") {
@@ -349,11 +356,14 @@ rake <- function(
     },
     call_str = call_str,
     parameters = list(
-      variables = margin_var_names,
-      margins   = margins_a,   # always stored as Format A per spec §VII
-      method    = method,
-      cap       = cap,
-      control   = control_resolved
+      variables              = margin_var_names,
+      margins                = margins_a,   # always stored as Format A per spec §VII
+      type                   = type,
+      method                 = method,
+      cap                    = cap,
+      control                = control_resolved,
+      targets_from_reference = !is.null(reference_design),
+      reference_design       = reference_design
     ),
     before_stats = before_stats,
     after_stats  = after_stats,

@@ -24,6 +24,7 @@ templates (organized by function in subsections XII.A through XII.G).
 
 | Class | Thrown by | Condition |
 |-------|-----------|-----------|
+| `surveywts_error_reference_design_not_taylor` | `calibrate()` | `reference_design` is non-`NULL` and is not a `survey_taylor` object |
 | `surveywts_error_variable_not_categorical` | `calibrate()` | Calibration variable is numeric or integer |
 | `surveywts_error_variable_has_na` | `calibrate()` | A calibration variable has `NA` values |
 | `surveywts_error_population_variable_not_found` | `calibrate()` | A `population` name not found in `data` |
@@ -36,6 +37,7 @@ templates (organized by function in subsections XII.A through XII.G).
 
 | Class | Thrown by | Condition |
 |-------|-----------|-----------|
+| `surveywts_error_reference_design_not_taylor` | `rake()` | `reference_design` is non-`NULL` and is not a `survey_taylor` object |
 | `surveywts_error_margins_format_invalid` | `rake()` | `margins` is not a named list or valid long data frame |
 | `surveywts_error_margins_variable_not_found` | `rake()` | A margins variable not found in `data` |
 | `surveywts_error_variable_not_categorical` | `rake()` | Raking variable is numeric or integer |

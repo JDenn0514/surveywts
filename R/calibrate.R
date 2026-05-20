@@ -43,6 +43,12 @@
 #'   are proportions. `"count"`: `population` values are counts.
 #' @param control Named list of convergence parameters. Merged with defaults
 #'   `list(maxit = 50, epsilon = 1e-7)`. Omitted keys retain their defaults.
+#' @param reference_design A `survey_taylor` object or `NULL` (default). The
+#'   reference probability survey from which `population` targets were
+#'   estimated. When non-`NULL`, stored in the history entry and
+#'   `targets_from_reference` is set to `TRUE`. Pass the same `survey_taylor`
+#'   object used to compute the population targets. `NULL` means targets are
+#'   fixed population benchmarks.
 #'
 #' @return
 #'   - `data.frame` or `weighted_df` input -> `weighted_df`
@@ -71,11 +77,12 @@ calibrate <- function(
   data,
   variables,
   population,
-  weights = NULL,
-  wt_name = "wts",
-  method = c("linear", "logit"),
-  type = c("prop", "count"),
-  control = list(maxit = 50, epsilon = 1e-7)
+  weights          = NULL,
+  wt_name          = "wts",
+  method           = c("linear", "logit"),
+  type             = c("prop", "count"),
+  control          = list(maxit = 50, epsilon = 1e-7),
+  reference_design = NULL
 ) {
   # ---- Capture call and arguments before any evaluation --------------------
   call_str <- deparse(match.call())
@@ -83,6 +90,7 @@ calibrate <- function(
   type <- rlang::arg_match(type)
   weights_quo <- rlang::enquo(weights)
   .validate_wt_name(wt_name)
+  .validate_reference_design(reference_design)
 
   # Merge control with defaults
   control <- utils::modifyList(list(maxit = 50, epsilon = 1e-7), control)
@@ -222,11 +230,13 @@ calibrate <- function(
     },
     call_str = call_str,
     parameters = list(
-      variables = variable_names,
-      population = population,
-      method = method,
-      type = type,
-      control = control
+      variables              = variable_names,
+      population             = population,
+      method                 = method,
+      type                   = type,
+      control                = control,
+      targets_from_reference = !is.null(reference_design),
+      reference_design       = reference_design
     ),
     before_stats = before_stats,
     after_stats = after_stats,

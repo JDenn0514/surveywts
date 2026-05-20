@@ -165,7 +165,7 @@ list(
   step                  = <integer>,
   timestamp             = Sys.time(),
   formula               = <formula>,        # propensity model formula
-  method                = "logistic",       # or "ranger", etc.
+  method                = "logit",          # or "probit", "cloglog", "ranger" etc.
   estimator             = "hajek",          # or "ht"
   trim                  = c(0.05, 0.95),    # or NULL
   reference_design      = <survey_taylor>,  # stored reference design object
@@ -332,12 +332,28 @@ survey that already has replicate weights should be handled via
 `calibrate_to_survey()` (the Opsomer & Erciulescu approach), not by passing
 it here.
 
+### Return type for NPS types
+
+Both `"quasi-randomization"` and `"hybrid"` require `survey_nonprob` input and
+return `survey_nonprob` — same class as the input, with repweight columns
+(`repwt_1`…`repwt_R`) added to `@data` and `@calibration` populated. The
+returned object is immediately ready for analysis without an additional
+`as_survey_nonprob()` call.
+
+`weighted_df` input produces an informative error for both NPS types — users
+must promote to `survey_nonprob` via `as_survey_nonprob()` first. The NPS
+bootstrap types require the weighting history in `@metadata@weighting_history`
+(to replay `ipw()` and `rake()`/`calibrate()` on each draw), which `weighted_df`
+does not carry.
+
 ### Validation rules for new types
 
 | Check | Error class |
 |---|---|
 | `type = "quasi-randomization"` with `survey_taylor` input | `surveywts_error_qr_bootstrap_requires_nonprob` |
+| `type = "quasi-randomization"` with `weighted_df` input | `surveywts_error_qr_bootstrap_requires_nonprob` |
 | `type = "hybrid"` with `survey_taylor` input | `surveywts_error_hybrid_bootstrap_requires_nonprob` |
+| `type = "hybrid"` with `weighted_df` input | `surveywts_error_hybrid_bootstrap_requires_nonprob` |
 | `type = "quasi-randomization"`, no reference found anywhere | `surveywts_error_qr_bootstrap_no_reference` |
 | `type = "hybrid"`, no mass imputation history entry found | `surveywts_error_hybrid_bootstrap_no_imputation_history` |
 | `type = "hybrid"`, mass imputation history has no reference design | `surveywts_error_hybrid_bootstrap_no_reference` |

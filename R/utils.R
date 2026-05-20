@@ -8,6 +8,7 @@
 #                                       (moved here from classes.R in PR 4)
 #   .get_weight_col_name()            — returns weight column name as character
 #   .validate_wt_name()              — validates wt_name argument (scalar string)
+#   .validate_reference_design()      — validates reference_design argument (survey_taylor or NULL)
 #   .get_weight_vec()                 — extracts weight vector from any input class
 #   .validate_weights()               — validates weight column (4 errors)
 #   .validate_calibration_variables() — validates calibration/raking variables
@@ -145,6 +146,32 @@
     )
   }
   invisible(TRUE)
+}
+
+# ============================================================================
+# .validate_reference_design()
+# ============================================================================
+
+# Validates the reference_design argument: must be a survey_taylor or NULL.
+# Used by rake() and calibrate() (two call sites → lives in utils.R).
+#
+# Arguments:
+#   reference_design : object to validate
+#
+# Returns: invisible(NULL) on success (errors otherwise).
+.validate_reference_design <- function(reference_design) {
+  if (!is.null(reference_design) &&
+        !S7::S7_inherits(reference_design, surveycore::survey_taylor)) {
+    cli::cli_abort(
+      c(
+        "x" = "{.arg reference_design} must be a {.cls survey_taylor}.",
+        "i" = "Got class {.cls {class(reference_design)[[1L]]}}.",
+        "v" = "Pass the {.cls survey_taylor} object used to compute the targets."
+      ),
+      class = "surveywts_error_reference_design_not_taylor"
+    )
+  }
+  invisible(NULL)
 }
 
 # ============================================================================

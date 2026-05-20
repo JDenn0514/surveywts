@@ -1016,3 +1016,51 @@ test_that("calibrate() skips single-level variable when mixed with multi-level v
   test_invariants(result)
   expect_true(inherits(result, "weighted_df"))
 })
+
+# ---------------------------------------------------------------------------
+# reference_design — history recording (NPS bootstrap compatibility)
+# ---------------------------------------------------------------------------
+
+test_that("calibrate() records reference_design and targets_from_reference = TRUE in history", {
+  df         <- make_surveywts_data(seed = 1)
+  pop        <- .make_pop()
+  ref_taylor <- .make_test_taylor(df)
+
+  result <- calibrate(
+    df, variables = c(age_group, sex), population = pop,
+    reference_design = ref_taylor
+  )
+
+  test_invariants(result)
+  entry <- attr(result, "weighting_history")[[1L]]
+  expect_true(entry$parameters$targets_from_reference)
+  expect_identical(entry$parameters$reference_design, ref_taylor)
+})
+
+test_that("calibrate() records targets_from_reference = FALSE when reference_design = NULL", {
+  df  <- make_surveywts_data(seed = 1)
+  pop <- .make_pop()
+
+  result <- calibrate(df, variables = c(age_group, sex), population = pop)
+
+  test_invariants(result)
+  entry <- attr(result, "weighting_history")[[1L]]
+  expect_false(entry$parameters$targets_from_reference)
+  expect_null(entry$parameters$reference_design)
+})
+
+test_that("calibrate() rejects non-taylor reference_design", {
+  df  <- make_surveywts_data(seed = 1)
+  pop <- .make_pop()
+
+  expect_error(
+    calibrate(df, variables = c(age_group, sex), population = pop,
+              reference_design = list()),
+    class = "surveywts_error_reference_design_not_taylor"
+  )
+  expect_snapshot(
+    error = TRUE,
+    calibrate(df, variables = c(age_group, sex), population = pop,
+              reference_design = list())
+  )
+})

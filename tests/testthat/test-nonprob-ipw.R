@@ -886,11 +886,11 @@ test_that("ipw() works when NPS has more rows than the reference", {
   expect_true(all(result@data$ipw_weight > 0))
 })
 
-test_that("ipw() trim=TRUE with extreme weights: n_trimmed > 0 and sum < estimated_pop_size", {
+test_that("ipw() trim=TRUE with extreme weights: n_trimmed > 0; mass conserved by clip-and-redistribute", {
   # 1 "rare" unit in NPS vs 200 "rare" in reference.
-  # pi("rare") = 1/200 = 0.005 → weight = 200.
-  # All other weights ≈ 1.005 with IQR ≈ 0, so trim_limit ≈ 1.005 and the
-  # "rare" unit (weight=200) is trimmed → n_trimmed > 0.
+  # pi("rare") ≈ 1/201 → weight ≈ 201; all common ≈ 2.0 with IQR ≈ 0.
+  # trim_limit ≈ median + 5*IQR ≈ 2.0, so the "rare" unit is trimmed.
+  # .trim_weights_internal() clips and redistributes — total mass is conserved.
   nps_extreme <- data.frame(
     group = c("rare", rep("common", 199L)),
     stringsAsFactors = FALSE
@@ -912,7 +912,11 @@ test_that("ipw() trim=TRUE with extreme weights: n_trimmed > 0 and sum < estimat
   test_invariants(result)
   entry <- result@metadata@weighting_history[[1L]]
   expect_true(entry$n_trimmed > 0L)
-  expect_true(sum(result@data$ipw_weight) < entry$estimated_population_size)
+  expect_equal(
+    sum(result@data$ipw_weight),
+    entry$estimated_population_size,
+    tolerance = 1e-10
+  )
 })
 
 # ---------------------------------------------------------------------------

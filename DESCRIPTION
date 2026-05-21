@@ -32,6 +32,8 @@ Suggests:
     anesrake,
     covr,
     knitr,
+    mice,
+    nonprobsvy,
     rmarkdown,
     testthat (>= 3.2.0),
     withr (>= 2.5.0)
@@ -43,3 +45,4 @@ URL: https://github.com/JDenn0514/surveywts, https://jdenn0514.github.io/surveyw
 BugReports: https://github.com/JDenn0514/surveywts/issues
 X-schema.org-keywords: survey, statistics, weights, calibration, tidyverse
 RoxygenNote: 7.3.3
+LazyData: true

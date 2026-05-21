@@ -105,6 +105,24 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_error_no_recipients_in_group` | `redistribute_weights()` | A group has `reduce_if` rows but no `increase_if` rows |
 | `surveywts_error_wt_name_conflict` | `redistribute_weights()` | `wt_name` matches an existing non-weight column |
 
+### `ipw()`
+
+| Class | Thrown by | Condition |
+|-------|-----------|-----------|
+| `surveywts_error_not_data_frame` | `ipw()` | `data` is not a `data.frame` |
+| `surveywts_error_svydesign_not_taylor` | `ipw()` | `reference` is not `survey_taylor` |
+| `surveywts_error_reference_weights_nonpositive` | `ipw()` | Any reference design weight ≤ 0 |
+| `surveywts_error_selection_missing` | `ipw()` | Both `selection` and `predictors` are `NULL` |
+| `surveywts_error_selection_conflict` | `ipw()` | Both `selection` and `predictors` are non-`NULL` |
+| `surveywts_error_formula_variable_not_in_reference` | `ipw()` | A `selection` variable missing from `reference@data` |
+| `surveywts_error_propensity_level_not_in_reference` | `ipw()` | A factor/char level in `data` absent from `reference@data` |
+| `surveywts_error_propensity_invalid_maxit` | `ipw()` | `maxit < 1L` |
+| `surveywts_error_propensity_invalid_epsilon` | `ipw()` | `epsilon <= 0` |
+| `surveywts_error_propensity_scores_degenerate` | `ipw()` | Any estimated score ≤ 0 or ≥ 1 |
+| `surveywts_error_propensity_hessian_singular` | `.fit_participation_propensity()` | Hessian singular during Newton-Raphson |
+| `surveywts_error_separate_numeric_na` | `ipw()` | `missing_method = "separate"` and a numeric selection variable in `data` has NA values |
+| `surveywts_error_mice_not_installed` | `ipw()` | `missing_method = "impute"` but the `mice` package is not installed |
+
 ### `adjust_nonresponse()` — propensity-cell
 
 | Class | Thrown by | Condition |
@@ -175,6 +193,11 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_warning_control_param_ignored` | `rake()` | A `control` parameter is not applicable to the specified `method` (e.g., `control$pval` with `method = "survey"`, or `control$epsilon` with `method = "anesrake"`) |
 | `surveywts_warning_replicate_scheme_mismatch` | `calibrate_to_survey()` | `primary_design` and `control_design` have different replicate weight types (e.g., `"bootstrap"` vs `"JK1"`) |
 | `surveywts_warning_by_ignored_for_propensity_cell` | `adjust_nonresponse()` | `by` is non-`NULL` with `method = "propensity-cell"` — `by` is ignored for this method |
+| `surveywts_warning_extreme_propensity_scores` | `ipw()`, `adjust_nonresponse()` | Any estimated propensity score < 0.01 |
+| `surveywts_warning_propensity_nr_no_convergence` | `ipw()` | Newton-Raphson exhausted `maxit` without convergence |
+| `surveywts_warning_ipw_data_na_omitted` | `ipw()` | `missing_method = "omit"` dropped NPS rows with NA in selection variables; reports count and variable names |
+| `surveywts_warning_ipw_reference_na_omitted` | `ipw()` | Reference rows with NA in selection variables excluded from model fitting; reports count and variable names |
+| `surveywts_warning_ipw_mice_m_ignored` | `ipw()` | User passed `m` in `mice_args` but `m = 1` is fixed; user value is ignored |
 | `surveywts_warning_no_weights_trimmed` | `trim_weights()` | No main weights fell outside the resolved bounds |
 | `surveywts_warning_trimming_failed` | `trim_weights()` | All remaining units already trimmed; no untrimmed units to absorb excess |
 | _See also:_ `surveywts_warning_negative_calibrated_weights` | — | Shared with `calibrate()` section; also thrown by `calibrate_to_survey()` and `calibrate_to_estimate()` |

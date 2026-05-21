@@ -28,6 +28,19 @@ reference:
     contents:
       - calibrate_to_survey
       - calibrate_to_estimate
+  - title: Propensity Weighting
+    desc: >
+      Functions for inverse probability weighting of non-probability samples.
+    contents:
+      - ipw
+  - title: Example Datasets
+    desc: >
+      Bundled datasets for use in IPW examples and tests.
+    contents:
+      - ns_wave1_ipw
+      - gss_ipw_ref
+      - npors_2025_ipw
+      - acs_ipw_ref
   - title: Nonresponse Adjustment
     desc: >
       Functions for adjusting survey weights for unit nonresponse.

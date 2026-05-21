@@ -93,6 +93,51 @@ test_invariants <- function(obj) {
   }
 }
 
+# NPS reference design for ipw() tests.
+# Returns a survey_taylor from a probability sample with the same covariate
+# columns as make_surveywts_data(). The reference represents the population
+# against which NPS participation propensity is estimated.
+make_nps_reference <- function(n = 1000L, seed = 42L) {
+  set.seed(seed)
+  age_group <- sample(
+    c("18-34", "35-54", "55+"),
+    size = n,
+    replace = TRUE,
+    prob = c(0.30, 0.40, 0.30)
+  )
+  sex <- sample(
+    c("M", "F"),
+    size = n,
+    replace = TRUE,
+    prob = c(0.48, 0.52)
+  )
+  education <- sample(
+    c("<HS", "HS", "College", "Graduate"),
+    size = n,
+    replace = TRUE,
+    prob = c(0.10, 0.30, 0.40, 0.20)
+  )
+  region <- sample(
+    c("Northeast", "South", "Midwest", "West"),
+    size = n,
+    replace = TRUE,
+    prob = c(0.20, 0.35, 0.25, 0.20)
+  )
+  base_weight <- exp(rnorm(n, mean = 0, sd = 0.4))
+  ref_df <- data.frame(
+    age_group  = age_group,
+    sex        = sex,
+    education  = education,
+    region     = region,
+    base_weight = base_weight,
+    stringsAsFactors = FALSE
+  )
+  surveycore::survey_taylor(
+    data      = ref_df,
+    variables = list(weights = "base_weight")
+  )
+}
+
 # Clustered, stratified design for general replicate weight testing.
 # Returns a survey_taylor with PSU IDs, strata, and base weights.
 make_taylor_design <- function(

@@ -80,6 +80,14 @@
       rep_str <- if (!is.null(n_rep)) paste0(", replicates = ", n_rep) else ""
       paste0("replicate_creation (method = \"", method_str, "\"", type_str, rep_str, ")")
     },
+    "ipw" = {
+      fml_str <- deparse(entry$formula)
+      paste0(
+        "ipw [", fml_str, ", ", entry$method,
+        ", n_ref=", entry$n_reference,
+        ", N_hat=", round(entry$estimated_population_size), "]"
+      )
+    },
     op # default: just the operation name
   )
 
@@ -1263,9 +1271,19 @@
 #   formula      : a validated one-sided formula (call .validate_formula() first)
 #   data         : data.frame to check against
 #   design_label : character(1) — name shown in error messages (e.g., "primary_design")
+#   error_class  : character(1) or NULL — when NULL, uses
+#                  "surveywts_error_formula_variable_not_found" (existing behavior);
+#                  when non-NULL, uses the supplied class instead (e.g., for
+#                  reporting that the variable is missing from the reference design)
 #
 # Returns: invisible(TRUE) on success (errors otherwise).
-.validate_formula_variables <- function(formula, data, design_label) {
+.validate_formula_variables <- function(formula, data, design_label,
+                                        error_class = NULL) {
+  cls <- if (is.null(error_class)) {
+    "surveywts_error_formula_variable_not_found"
+  } else {
+    error_class
+  }
   vars <- all.vars(formula)
   for (var in vars) {
     if (!var %in% names(data)) {
@@ -1275,7 +1293,7 @@
           "i" = "All variables in {.arg formula} must be columns in {.arg {design_label}}.",
           "v" = "Check spelling or add {.field {var}} to the data before calling this function."
         ),
-        class = "surveywts_error_formula_variable_not_found"
+        class = cls
       )
     }
   }
@@ -1353,4 +1371,14 @@
     combined.weights = FALSE,
     mse = mse_val
   )
+}
+
+# ============================================================================
+# .has_package()
+# ============================================================================
+
+# Thin wrapper around requireNamespace() so tests can mock package availability
+# without needing to mock a base function.
+.has_package <- function(pkg) {
+  requireNamespace(pkg, quietly = TRUE)
 }

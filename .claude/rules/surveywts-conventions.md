@@ -49,8 +49,9 @@ with surveywts-specific examples and detailed guidance.
 | `diagnostics` | `effective_sample_size()`, `weight_variability()`, `summarize_weights()` |
 | `replicate-weights` | `create_bootstrap_weights()`, `create_jackknife_weights()`, `create_brr_weights()`, `create_gen_boot_weights()`, `create_gen_rep_weights()`, `create_sdr_weights()`, `create_replicate_weights()`, `as_taylor_design()` |
 | `utilities` | `trim_weights()`, `stabilize_weights()` |
+| `propensity` | `ipw()` |
 
-Use `@family calibration`, `@family sample-calibration`, `@family nonresponse`, `@family diagnostics`, `@family replicate-weights`, `@family utilities` in roxygen2.
+Use `@family calibration`, `@family sample-calibration`, `@family nonresponse`, `@family diagnostics`, `@family replicate-weights`, `@family utilities`, `@family propensity` in roxygen2.
 
 ---
 
@@ -149,6 +150,7 @@ the weight column is removed.
 | `effective_sample_size()` | `x, weights = NULL` |
 | `weight_variability()` | `x, weights = NULL` |
 | `summarize_weights()` | `x, weights = NULL, by = NULL` |
+| `ipw()` | `data, reference, selection = NULL, predictors = NULL, missing_method = c("omit", "separate", "impute"), mice_args = list(), method = "logit", maxit = 25L, epsilon = 1e-8, trim = FALSE, wt_name = "ipw_weight"` |
 
 ---
 

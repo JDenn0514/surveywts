@@ -75,6 +75,23 @@ as_survey <- function(
 set_var_label <- function(x, var, label) {
 ```
 
+**`@examples` blocks:** `air` does not format roxygen2 comments. Wrap
+function calls manually when the `#' result <- fn(...)` line exceeds 80
+characters — break after the opening `(`, one argument per line, closing `)`
+on its own line:
+```r
+# Good — call fits on one line
+#' result <- ipw(nps, ref, selection = ~age + sex)
+
+# Good — call is too long; break after (
+#' result <- ipw(
+#'   npors_2025_ipw,
+#'   acs_ipw_ref,
+#'   selection = ~gender + age_group + race_ethn + educ,
+#'   missing_method = "omit"
+#' )
+```
+
 For long `cli_abort()` calls, break the named vector across lines:
 ```r
 cli::cli_abort(

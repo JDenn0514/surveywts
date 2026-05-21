@@ -214,30 +214,50 @@
 #' InGRID-2 project 730998 -- H2020.
 #'
 #' @examples
-#' library(surveywts)
-#' set.seed(42L)
-#' # Non-probability sample: overrepresents "55+" relative to population
-#' nps <- data.frame(
-#'   age_group = sample(c("18-34", "35-54", "55+"), 100L,
-#'                      replace = TRUE, prob = c(0.20, 0.30, 0.50)),
-#'   sex       = sample(c("M", "F"), 100L, replace = TRUE),
-#'   stringsAsFactors = FALSE
-#' )
-#' # Reference probability sample with population-like proportions
-#' ref_df <- data.frame(
-#'   age_group   = sample(c("18-34", "35-54", "55+"), 400L,
-#'                        replace = TRUE, prob = c(0.30, 0.40, 0.30)),
-#'   sex         = sample(c("M", "F"), 400L, replace = TRUE),
-#'   base_weight = 1,
-#'   stringsAsFactors = FALSE
-#' )
-#' ref <- surveycore::survey_taylor(ref_df, variables = list(weights = "base_weight"))
+#' # --- Pair 1: ns_wave1 (NPS) + gss_2024 (probability reference) ---
+#' data(ns_wave1_ipw)
+#' data(gss_ipw_ref)
 #'
 #' # Formula interface
-#' result <- ipw(nps, ref, selection = ~age_group + sex)
+#' result1 <- ipw(ns_wave1_ipw, gss_ipw_ref, selection = ~gender + age)
 #'
-#' # Programmatic interface - suitable for lapply()
-#' result2 <- ipw(nps, ref, predictors = c("age_group", "sex"))
+#' # Programmatic interface — suitable for lapply()
+#' result2 <- ipw(ns_wave1_ipw, gss_ipw_ref, predictors = c("gender", "age"))
+#'
+#' # Inspect weight quality before analysis
+#' effective_sample_size(result1)
+#' weight_variability(result1)
+#'
+#' # --- Pair 2: pew_npors_2025 (NPS) + acs_pums_wy (probability reference) ---
+#' # npors_2025_ipw has real NA values in predictors (from refuse/DK recoded 99 -> NA)
+#' data(npors_2025_ipw)
+#' data(acs_ipw_ref)
+#'
+#' # missing_method = "omit" (default): rows with NA in selection vars are dropped
+#' result_omit <- ipw(
+#'   npors_2025_ipw,
+#'   acs_ipw_ref,
+#'   selection = ~gender + age_group + race_ethn + educ,
+#'   missing_method = "omit"
+#' )
+#'
+#' # missing_method = "separate": NA recoded to "(Missing)" level; all rows kept
+#' result_sep <- ipw(
+#'   npors_2025_ipw,
+#'   acs_ipw_ref,
+#'   selection = ~gender + age_group + race_ethn + educ,
+#'   missing_method = "separate"
+#' )
+#'
+#' # missing_method = "impute": NA imputed via mice::mice() (requires mice package)
+#' if (requireNamespace("mice", quietly = TRUE)) {
+#'   result_imp <- ipw(
+#'     npors_2025_ipw,
+#'     acs_ipw_ref,
+#'     selection = ~gender + age_group + race_ethn + educ,
+#'     missing_method = "impute"
+#'   )
+#' }
 ipw <- function(
   data,
   reference,

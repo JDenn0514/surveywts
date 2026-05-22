@@ -38,20 +38,31 @@ object (\code{survey_taylor} or \code{survey_nonprob}).}
 
 \item{method}{Character scalar. Adjustment method. One of
 \code{"weighting-class"} (default), \code{"propensity-cell"}, or \code{"propensity"}.
-\code{"propensity"} is an API-stable stub that errors until the Propensity
-release.}
+\itemize{
+\item \code{"weighting-class"}: cells are defined by \code{by} groups; adjustment
+factors are applied cell-by-cell.
+\item \code{"propensity-cell"}: fits a logistic response propensity model via
+\code{formula}, bins scores into \code{control$n_cells} quantile cells, then
+applies cell-level adjustments.
+\item \code{"propensity"}: fits a logistic response propensity model via \code{formula}
+and applies individual-level inverse-probability weights
+(\code{weight_i / propensity_i}) to each respondent. Requires \code{formula}.
+}}
 
 \item{formula}{A one-sided formula (e.g., \code{~ age_group + sex}) used for
-propensity score estimation when \code{method = "propensity-cell"}. Ignored for
-other methods. All variables must be present in \code{data} with no \code{NA} values.}
+propensity score estimation when \code{method = "propensity-cell"} or
+\code{method = "propensity"}. Required for \code{"propensity"}. All variables must
+be present in \code{data} with no \code{NA} values.}
 
 \item{control}{Named list of control parameters. Merged with defaults
 \code{list(min_cell = 20, max_adjust = 2.0, n_cells = 5)}.
 \itemize{
 \item \code{min_cell}: warn when a cell has fewer than this many respondents
-(default 20, per NAEP methodology).
-\item \code{max_adjust}: warn when the nonresponse adjustment factor for a cell
-exceeds this value (default 2.0, per \code{survey::sparseCells()} convention).
+(default 20, per NAEP methodology). Used only for \code{"propensity-cell"}.
+\item \code{max_adjust}: warn when the nonresponse adjustment factor exceeds
+this value (default 5.0). For \code{"propensity-cell"}, the cell-level
+factor; for \code{"propensity"}, the individual IPW ratio relative to the
+mean respondent weight.
 \item \code{n_cells}: number of propensity score cells (default 5). Must be a whole
 number >= 2. Used only when \code{method = "propensity-cell"}.
 Either \code{min_cell} or \code{max_adjust} condition alone triggers the warning.
@@ -69,8 +80,9 @@ rows only, because \code{survey_taylor} does not support zero weights)
 }
 
 A history entry with \code{operation = "nonresponse_weighting_class"} (for
-\code{method = "weighting-class"}) or \code{operation = "nonresponse_propensity_cell"}
-(for \code{method = "propensity-cell"}) is appended to \code{weighting_history}.
+\code{method = "weighting-class"}), \code{operation = "nonresponse_propensity_cell"}
+(for \code{method = "propensity-cell"}), or \code{operation = "nonresponse_propensity"}
+(for \code{method = "propensity"}) is appended to \code{weighting_history}.
 }
 \description{
 Redistributes the weights of nonrespondents to respondents within weighting

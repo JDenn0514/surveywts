@@ -214,46 +214,60 @@
 #' InGRID-2 project 730998 -- H2020.
 #'
 #' @examples
-#' # --- Pair 1: ns_wave1 (NPS) + gss_2024 (probability reference) ---
 #' data(ns_wave1_ipw)
+#'
+#' # --- GSS 2024 as probability reference ---
 #' data(gss_ipw_ref)
 #'
 #' # Formula interface
-#' result1 <- ipw(ns_wave1_ipw, gss_ipw_ref, selection = ~gender + age)
+#' result1 <- ipw(ns_wave1_ipw, gss_ipw_ref, selection = ~gender + age_group)
 #'
 #' # Programmatic interface — suitable for lapply()
-#' result2 <- ipw(ns_wave1_ipw, gss_ipw_ref, predictors = c("gender", "age"))
+#' result2 <- ipw(
+#'   ns_wave1_ipw,
+#'   gss_ipw_ref,
+#'   predictors = c("gender", "age_group")
+#' )
 #'
 #' # Inspect weight quality before analysis
 #' effective_sample_size(result1)
 #' weight_variability(result1)
 #'
-#' # --- Pair 2: pew_npors_2025 (NPS) + acs_pums_wy (probability reference) ---
-#' # npors_2025_ipw has real NA values in predictors (from refuse/DK recoded 99 -> NA)
-#' data(npors_2025_ipw)
+#' # --- ACS PUMS Wyoming as probability reference ---
 #' data(acs_ipw_ref)
-#'
-#' # missing_method = "omit" (default): rows with NA in selection vars are dropped
-#' result_omit <- ipw(
-#'   npors_2025_ipw,
+#' result_acs <- ipw(
+#'   ns_wave1_ipw,
 #'   acs_ipw_ref,
+#'   selection = ~gender + age_group + race_ethn + educ,
+#'   missing_method = "omit"
+#' )
+#'
+#' # --- Pew NPORS 2025 as probability reference ---
+#' # ns_wave1_ipw has ~120 NA values in race_ethn; missing_method controls
+#' # how these are handled.
+#' data(npors_2025_ref)
+#'
+#' # missing_method = "omit" (default): rows with NA in race_ethn are dropped
+#' result_omit <- ipw(
+#'   ns_wave1_ipw,
+#'   npors_2025_ref,
 #'   selection = ~gender + age_group + race_ethn + educ,
 #'   missing_method = "omit"
 #' )
 #'
 #' # missing_method = "separate": NA recoded to "(Missing)" level; all rows kept
 #' result_sep <- ipw(
-#'   npors_2025_ipw,
-#'   acs_ipw_ref,
+#'   ns_wave1_ipw,
+#'   npors_2025_ref,
 #'   selection = ~gender + age_group + race_ethn + educ,
 #'   missing_method = "separate"
 #' )
 #'
-#' # missing_method = "impute": NA imputed via mice::mice() (requires mice package)
+#' # missing_method = "impute": NA imputed via mice::mice() (requires mice)
 #' if (requireNamespace("mice", quietly = TRUE)) {
 #'   result_imp <- ipw(
-#'     npors_2025_ipw,
-#'     acs_ipw_ref,
+#'     ns_wave1_ipw,
+#'     npors_2025_ref,
 #'     selection = ~gender + age_group + race_ethn + educ,
 #'     missing_method = "impute"
 #'   )

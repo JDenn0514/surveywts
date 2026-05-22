@@ -22,7 +22,7 @@ Two PRs total, sequenced so infrastructure ships first.
 ## PR Map
 
 - [x] PR 1: `feature/ipw` — `ipw()` + utils.R infrastructure + docs updates ✅ complete
-- [ ] PR 2: `feature/nonresponse-propensity` — `adjust_nonresponse(method = "propensity")`
+- [x] PR 2: `feature/nonresponse-propensity` — `adjust_nonresponse(method = "propensity")`
 
 ---
 

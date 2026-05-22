@@ -40,7 +40,6 @@
 .format_history_step <- function(entry) {
   op <- entry$operation
   params <- entry$parameters
-  ts <- entry$timestamp
 
   label <- switch(
     op,
@@ -91,8 +90,7 @@
     op # default: just the operation name
   )
 
-  date_str <- format(ts, "%Y-%m-%d")
-  paste0("#   Step ", entry$step, " [", date_str, "]: ", label)
+  paste0("#   Step ", entry$step, ": ", label)
 }
 
 # ============================================================================

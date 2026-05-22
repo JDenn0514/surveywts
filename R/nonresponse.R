@@ -1,9 +1,9 @@
 # R/nonresponse.R
 #
-# adjust_nonresponse() — weighting-class and propensity-cell nonresponse
-# adjustment. Redistributes nonrespondent weights to respondents within cells
-# defined by `by` (weighting-class) or propensity score quantiles
-# (propensity-cell). Returns all rows; nonrespondent weights = 0.
+# adjust_nonresponse() — weighting-class, propensity-cell, and propensity
+# nonresponse adjustment. Redistributes nonrespondent weights to respondents
+# within cells (weighting-class / propensity-cell) or applies individual IPW
+# (propensity). Returns all rows; nonrespondent weights = 0.
 #
 # redistribute_weights() — general-purpose weight redistribution primitive.
 #
@@ -40,17 +40,26 @@
 #'   object (`survey_taylor` or `survey_nonprob`).
 #' @param method Character scalar. Adjustment method. One of
 #'   `"weighting-class"` (default), `"propensity-cell"`, or `"propensity"`.
-#'   `"propensity"` is an API-stable stub that errors until the Propensity
-#'   release.
+#'   - `"weighting-class"`: cells are defined by `by` groups; adjustment
+#'     factors are applied cell-by-cell.
+#'   - `"propensity-cell"`: fits a logistic response propensity model via
+#'     `formula`, bins scores into `control$n_cells` quantile cells, then
+#'     applies cell-level adjustments.
+#'   - `"propensity"`: fits a logistic response propensity model via `formula`
+#'     and applies individual-level inverse-probability weights
+#'     (`weight_i / propensity_i`) to each respondent. Requires `formula`.
 #' @param formula A one-sided formula (e.g., `~ age_group + sex`) used for
-#'   propensity score estimation when `method = "propensity-cell"`. Ignored for
-#'   other methods. All variables must be present in `data` with no `NA` values.
+#'   propensity score estimation when `method = "propensity-cell"` or
+#'   `method = "propensity"`. Required for `"propensity"`. All variables must
+#'   be present in `data` with no `NA` values.
 #' @param control Named list of control parameters. Merged with defaults
 #'   `list(min_cell = 20, max_adjust = 2.0, n_cells = 5)`.
 #'   - `min_cell`: warn when a cell has fewer than this many respondents
-#'     (default 20, per NAEP methodology).
-#'   - `max_adjust`: warn when the nonresponse adjustment factor for a cell
-#'     exceeds this value (default 2.0, per `survey::sparseCells()` convention).
+#'     (default 20, per NAEP methodology). Used only for `"propensity-cell"`.
+#'   - `max_adjust`: warn when the nonresponse adjustment factor exceeds
+#'     this value (default 5.0). For `"propensity-cell"`, the cell-level
+#'     factor; for `"propensity"`, the individual IPW ratio relative to the
+#'     mean respondent weight.
 #'   - `n_cells`: number of propensity score cells (default 5). Must be a whole
 #'     number >= 2. Used only when `method = "propensity-cell"`.
 #'   Either `min_cell` or `max_adjust` condition alone triggers the warning.
@@ -66,8 +75,9 @@
 #'     rows only, because `survey_taylor` does not support zero weights)
 #'
 #'   A history entry with `operation = "nonresponse_weighting_class"` (for
-#'   `method = "weighting-class"`) or `operation = "nonresponse_propensity_cell"`
-#'   (for `method = "propensity-cell"`) is appended to `weighting_history`.
+#'   `method = "weighting-class"`), `operation = "nonresponse_propensity_cell"`
+#'   (for `method = "propensity-cell"`), or `operation = "nonresponse_propensity"`
+#'   (for `method = "propensity"`) is appended to `weighting_history`.
 #'
 #' @details
 #'   Zero-weight observations are retained for design-based variance estimation.
@@ -170,25 +180,6 @@ adjust_nonresponse <- function(
 
   # ---- 5. Validate weights --------------------------------------------------
   .validate_weights(plain_df, weight_col)
-
-  # ---- 6. Method stub — "propensity" not yet available ----------------------
-  if (method == "propensity") {
-    cli::cli_abort(
-      c(
-        "x" = paste0(
-          "{.code method = {.val {method}}} is not yet available."
-        ),
-        "i" = paste0(
-          "Propensity-based methods ({.val \"propensity\"} and ",
-          "{.val \"propensity-cell\"}) require the Propensity release."
-        ),
-        "v" = paste0(
-          "Use {.code method = \"weighting-class\"} for now."
-        )
-      ),
-      class = "surveywts_error_propensity_not_available"
-    )
-  }
 
   # ---- 7. Resolve and validate response_status column -----------------------
   status_pos <- tryCatch(
@@ -472,7 +463,240 @@ adjust_nonresponse <- function(
     }
   }  # end propensity-cell branch
 
-  # ---- 9. Resolve by variable names via tidy-select (weighting-class) -------
+  # ---- 9. Propensity branch (continuous individual-level IPW) ---------------
+  if (method == "propensity") {
+    # Require formula
+    if (is.null(formula)) {
+      cli::cli_abort(
+        c(
+          "x" = paste0(
+            "{.arg formula} is required when ",
+            "{.code method = \"propensity\"}."
+          ),
+          "i" = paste0(
+            "Provide a one-sided formula, e.g., ",
+            "{.code formula = ~ age_group + sex}."
+          )
+        ),
+        class = "surveywts_error_formula_required_for_propensity"
+      )
+    }
+
+    # Validate formula structure (one-sided)
+    .validate_formula(formula)
+
+    # Validate formula variables exist in data
+    .validate_formula_variables(formula, plain_df, "data")
+
+    # Check for NA in formula variables
+    for (var in all.vars(formula)) {
+      if (anyNA(plain_df[[var]])) {
+        n_na_pvar <- sum(is.na(plain_df[[var]]))
+        cli::cli_abort(
+          c(
+            "x" = paste0(
+              "Formula variable {.field {var}} contains ",
+              "{n_na_pvar} NA value(s)."
+            ),
+            "i" = "All formula variables must be fully observed for GLM fitting.",
+            "v" = paste0(
+              "Remove or impute NA values in {.field {var}} before calling ",
+              "{.fn adjust_nonresponse}."
+            )
+          ),
+          class = "surveywts_error_formula_variable_has_na"
+        )
+      }
+    }
+
+    # Warn if by is non-NULL — ignored for propensity
+    if (!rlang::quo_is_null(by_quo)) {
+      cli::cli_warn(
+        c(
+          "!" = paste0(
+            "The {.arg by} argument is ignored when ",
+            "{.code method = \"propensity\"}."
+          ),
+          "i" = paste0(
+            "Propensity weighting applies individual-level adjustments; ",
+            "stratified adjustment via {.arg by} is not supported."
+          )
+        ),
+        class = "surveywts_warning_by_ignored_for_propensity"
+      )
+    }
+
+    # Fit response propensity model with GLM
+    weights_vec_p  <- plain_df[[weight_col]]
+    prop_formula_p <- stats::as.formula(
+      paste(status_var, "~", deparse(formula[[2]]))
+    )
+    before_stats_p <- .compute_weight_stats(weights_vec_p)
+
+    # Catch GLM convergence warning and re-emit with a more informative message
+    fit_p <- withCallingHandlers(
+      stats::glm(
+        prop_formula_p,
+        data    = plain_df,
+        weights = weights_vec_p,
+        family  = stats::binomial(link = "logit"),
+        control = stats::glm.control(maxit = 25L, epsilon = 1e-8)
+      ),
+      warning = function(w) {
+        if (grepl("algorithm did not converge", conditionMessage(w))) {
+          cli::cli_warn(
+            c(
+              "!" = paste0(
+                "The response propensity GLM did not converge in 25 iterations."
+              ),
+              "i" = paste0(
+                "Propensity scores from a non-converged model are unreliable. ",
+                "Results should be treated with caution."
+              ),
+              "i" = paste0(
+                "Simplify {.arg formula} or inspect covariate distributions ",
+                "for near-perfect separation."
+              )
+            ),
+            class = "surveywts_warning_propensity_glm_convergence"
+          )
+          invokeRestart("muffleWarning")
+        }
+      }
+    )
+
+    # Predict scores for all units (respondents + nonrespondents)
+    scores_p <- stats::predict(fit_p, type = "response")
+
+    # Validate scores: must be strictly in (0, 1).
+    # Defensive guard: stats::glm() with maxit = 25 does not produce exactly
+    # 0 or 1 in practice, but this check is retained for correctness.
+    # nocov start
+    if (any(scores_p <= 0 | scores_p >= 1)) {
+      cli::cli_abort(
+        c(
+          "x" = paste0(
+            "Estimated response propensity scores include values ",
+            "\u22640 or \u22651."
+          ),
+          "i" = paste0(
+            "Degenerate scores indicate near-perfect separation in the ",
+            "response propensity model."
+          ),
+          "v" = paste0(
+            "Simplify {.arg formula} or inspect covariate distributions ",
+            "for near-perfect predictor-response alignment."
+          )
+        ),
+        class = "surveywts_error_propensity_scores_degenerate"
+      )
+    }
+    # nocov end
+
+    # Warn on extreme scores (< 0.01)
+    n_extreme_p <- sum(scores_p < 0.01)
+    if (n_extreme_p > 0L) {
+      min_score_p <- min(scores_p)
+      cli::cli_warn(
+        c(
+          "!" = paste0(
+            "{n_extreme_p} estimated propensity score(s) are below 0.01 ",
+            "(minimum: {round(min_score_p, 4)})."
+          ),
+          "i" = paste0(
+            "Scores near 0 produce extreme inverse-probability weights ",
+            "with high variance."
+          ),
+          "i" = paste0(
+            "Consider simplifying {.arg formula} or adding ",
+            "covariate groupings to stabilize scores."
+          )
+        ),
+        class = "surveywts_warning_extreme_propensity_scores"
+      )
+    }
+
+    # Compute adjusted weights: w_i / score_i for respondents; 0 for nonrespondents
+    new_weights_p <- ifelse(is_respondent,
+                            weights_vec_p / scores_p,
+                            0)
+
+    # Extreme-adjustment check
+    if (!is.null(control$max_adjust)) {
+      resp_wts_p <- weights_vec_p[is_respondent]
+      adj_ratios  <- weights_vec_p[is_respondent] / scores_p[is_respondent]
+      if (length(resp_wts_p) > 0L && mean(resp_wts_p) > 0) {
+        max_adj_ratio <- max(adj_ratios) / mean(resp_wts_p)
+        if (max_adj_ratio > control$max_adjust) {
+          cli::cli_warn(
+            c(
+              "!" = paste0(
+                "The maximum propensity adjustment factor ",
+                "({round(max_adj_ratio, 2)}\u00d7) exceeds ",
+                "{.code control$max_adjust} ",
+                "({control$max_adjust}\u00d7)."
+              ),
+              "i" = paste0(
+                "Large adjustment factors indicate strong nonresponse bias; ",
+                "weights may be highly variable."
+              ),
+              "i" = paste0(
+                "Consider simplifying {.arg formula}, using ",
+                "{.fn trim_weights}, or increasing ",
+                "{.code control$max_adjust} to suppress this warning."
+              )
+            ),
+            class = "surveywts_warning_extreme_propensity_adjustment"
+          )
+        }
+      }
+    }
+
+    # Prepare output data frame (all rows; nonrespondent weights = 0)
+    out_df_p  <- plain_df
+    out_col_p <- if (inherits(data, "data.frame")) wt_name else weight_col
+    out_df_p[[out_col_p]] <- new_weights_p
+
+    # Build history entry
+    after_stats_p  <- .compute_weight_stats(new_weights_p[is_respondent])
+    current_hist_p <- .get_history(data)
+
+    history_entry_p <- .make_history_entry(
+      step        = length(current_hist_p) + 1L,
+      operation   = "nonresponse_propensity",
+      weight_col  = if (inherits(data, "data.frame")) {
+        wt_name
+      } else {
+        data@variables$weights
+      },
+      call_str    = call_str,
+      parameters  = list(
+        formula = deparse(formula),
+        method  = "propensity"
+      ),
+      before_stats = before_stats_p,
+      after_stats  = after_stats_p,
+      convergence  = NULL
+    )
+
+    # Return same class as input
+    if (inherits(data, "data.frame")) {
+      new_history_p <- c(current_hist_p, list(history_entry_p))
+      return(.make_weighted_df(out_df_p, wt_name, new_history_p))
+    } else if (S7::S7_inherits(data, surveycore::survey_nonprob)) {
+      return(.update_survey_weights(data, new_weights_p, history_entry_p))
+    } else {
+      resp_rows_p      <- which(is_respondent)
+      filtered_p       <- data
+      filtered_p@data  <- out_df_p[resp_rows_p, , drop = FALSE]
+      return(
+        .update_survey_weights(filtered_p, new_weights_p[resp_rows_p],
+                               history_entry_p)
+      )
+    }
+  }  # end propensity branch
+
+  # ---- 10. Resolve by variable names via tidy-select (weighting-class) ------
   by_names <- if (rlang::quo_is_null(by_quo)) {
     character(0)
   } else {

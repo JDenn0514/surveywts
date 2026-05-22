@@ -39,7 +39,7 @@ reference:
     contents:
       - ns_wave1_ipw
       - gss_ipw_ref
-      - npors_2025_ipw
+      - npors_2025_ref
       - acs_ipw_ref
   - title: Nonresponse Adjustment
     desc: >

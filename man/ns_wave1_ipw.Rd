@@ -5,10 +5,16 @@
 \alias{ns_wave1_ipw}
 \title{National Survey Wave 1 IPW subset}
 \format{
-A data frame with 6,422 rows and 2 columns:
+A data frame with 6,422 rows and 4 columns:
 \describe{
 \item{gender}{Factor with levels \code{"Male"}, \code{"Female"}.}
-\item{age}{Integer. Respondent age in years.}
+\item{age_group}{Factor with levels \code{"18-34"}, \code{"35-54"}, \code{"55+"}.}
+\item{race_ethn}{Factor with levels \code{"White"}, \code{"Black"},
+\code{"Hispanic"}, \code{"Asian"}, \code{"Other"}. Approximately 120 rows have
+\code{NA} (respondents who reported \code{"some other race"} with no Hispanic
+origin, which cannot be mapped to a standard category).}
+\item{educ}{Factor with levels \code{"Less than HS"}, \code{"HS/Some college"},
+\code{"College+"}. No \code{NA} values.}
 }
 }
 \source{
@@ -21,7 +27,8 @@ ns_wave1_ipw
 \description{
 A harmonized subset of the \code{ns_wave1} dataset from
 \code{surveycore}, prepared for use in IPW examples and tests. Contains
-gender and age variables with factor labels aligned to \code{gss_ipw_ref}.
+demographic variables with factor labels aligned to \code{gss_ipw_ref},
+\code{acs_ipw_ref}, and \code{npors_2025_ref}.
 }
 \details{
 National Survey Wave 1 IPW subset

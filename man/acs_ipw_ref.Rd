@@ -8,13 +8,12 @@
 A \code{survey_taylor} object with 4,736 rows. The underlying data
 frame contains:
 \describe{
-\item{age_group}{Factor with 13 levels: \code{"18-24"}, \code{"25-29"}, ...,
-\code{"80+"}.}
 \item{gender}{Factor with levels \code{"Male"}, \code{"Female"}.}
-\item{race_ethn}{Factor with levels \code{"White"}, \code{"Black"}, \code{"Hispanic"},
-\code{"Asian"}, \code{"Other"}.}
+\item{age_group}{Factor with levels \code{"18-34"}, \code{"35-54"}, \code{"55+"}.}
+\item{race_ethn}{Factor with levels \code{"White"}, \code{"Black"},
+\code{"Hispanic"}, \code{"Asian"}, \code{"Other"}.}
 \item{educ}{Factor with levels \code{"Less than HS"}, \code{"HS/Some college"},
-\code{"College+"}.}
+\code{"College+"}. No \code{NA} values.}
 \item{pwgtp}{Person weight from the ACS PUMS.}
 }
 }
@@ -29,7 +28,7 @@ acs_ipw_ref
 A harmonized \code{survey_taylor} reference design derived from
 the \code{acs_pums_wy} dataset in \code{surveycore}, restricted to adults
 (age >= 18). Factor levels for \code{age_group}, \code{gender}, \code{race_ethn}, and
-\code{educ} are identical to \code{npors_2025_ipw}.
+\code{educ} are identical to \code{ns_wave1_ipw}.
 }
 \details{
 ACS PUMS Wyoming IPW reference design

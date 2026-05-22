@@ -70,7 +70,17 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_error_response_status_all_zero` | `adjust_nonresponse()` | All rows are nonrespondents |
 | `surveywts_error_class_cell_empty` | `adjust_nonresponse()` | Weighting class cell has no respondents |
 | `surveywts_error_response_status_multiple_columns` | `adjust_nonresponse()` | `response_status` selects > 1 column |
-| `surveywts_error_propensity_not_available` | `adjust_nonresponse()` | `method` is `"propensity"` or `"propensity-cell"` (not yet available) |
+| ~~`surveywts_error_propensity_not_available`~~ | `adjust_nonresponse()` | Retired in Propensity phase — `method = "propensity"` is now fully implemented. |
+
+### `adjust_nonresponse(method = "propensity")`
+
+| Class | Thrown by | Condition |
+|-------|-----------|-----------|
+| `surveywts_error_formula_required_for_propensity` | `adjust_nonresponse()` | `method = "propensity"` and `formula = NULL` |
+| `surveywts_error_formula_variable_has_na` | `adjust_nonresponse()` | A formula variable contains `NA` values (reuse) |
+| _See also:_ `surveywts_error_formula_invalid` | — | Shared with calibration section above |
+| _See also:_ `surveywts_error_formula_variable_not_found` | — | Shared with calibration section above |
+| _See also:_ `surveywts_error_propensity_scores_degenerate` | — | Shared with `ipw()` section above |
 
 ### `calibrate_to_survey()` / `calibrate_to_estimate()`
 
@@ -193,6 +203,9 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_warning_control_param_ignored` | `rake()` | A `control` parameter is not applicable to the specified `method` (e.g., `control$pval` with `method = "survey"`, or `control$epsilon` with `method = "anesrake"`) |
 | `surveywts_warning_replicate_scheme_mismatch` | `calibrate_to_survey()` | `primary_design` and `control_design` have different replicate weight types (e.g., `"bootstrap"` vs `"JK1"`) |
 | `surveywts_warning_by_ignored_for_propensity_cell` | `adjust_nonresponse()` | `by` is non-`NULL` with `method = "propensity-cell"` — `by` is ignored for this method |
+| `surveywts_warning_by_ignored_for_propensity` | `adjust_nonresponse()` | `by` is non-`NULL` with `method = "propensity"` — `by` is ignored for this method |
+| `surveywts_warning_extreme_propensity_adjustment` | `adjust_nonresponse()` | Maximum weight adjustment ratio (`max(w/score) / mean(w)`) exceeds `control$max_adjust` (default 5.0) |
+| `surveywts_warning_propensity_glm_convergence` | `adjust_nonresponse()` | `stats::glm()` emits an "algorithm did not converge" warning during response propensity fitting |
 | `surveywts_warning_extreme_propensity_scores` | `ipw()`, `adjust_nonresponse()` | Any estimated propensity score < 0.01 |
 | `surveywts_warning_propensity_nr_no_convergence` | `ipw()` | Newton-Raphson exhausted `maxit` without convergence |
 | `surveywts_warning_ipw_data_na_omitted` | `ipw()` | `missing_method = "omit"` dropped NPS rows with NA in selection variables; reports count and variable names |

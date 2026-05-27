@@ -141,7 +141,17 @@
 #'
 #' @param data A `data.frame` containing the non-probability sample.
 #' @param reference A `survey_taylor` object representing the probability-based
-#'   reference sample. Must have strictly positive design weights.
+#'   reference sample. Must have strictly positive design weights. The reference
+#'   sample must itself represent the target population without material coverage
+#'   or nonresponse bias — design weights alone do not correct for an internally
+#'   biased reference survey. Elliott & Valliant (2017) recommend using large,
+#'   well-controlled probability surveys (e.g., government-conducted household
+#'   surveys) as the reference; a biased reference will produce biased propensity
+#'   estimates regardless of model specification. Shared covariates must be
+#'   measured with the same question wording, response options, and measurement
+#'   period in both samples — category differences (e.g., 4-point vs. 5-point
+#'   scales) produce spurious covariate imbalance that the propensity model
+#'   cannot correct (Valliant, 2020).
 #' @param selection A one-sided formula (e.g., `~ age + sex`) specifying
 #'   the covariates used to model participation propensity. Exactly one of
 #'   `selection` and `predictors` must be supplied.
@@ -161,7 +171,14 @@
 #'       **Numeric selection variables with NA values are not supported** —
 #'       `ipw()` errors with `surveywts_error_separate_numeric_na`. Convert
 #'       the variable to a factor (e.g. with `cut()`) or use
-#'       `missing_method = "impute"` instead.}
+#'       `missing_method = "impute"` instead.
+#'       **Caveat:** The pseudo-likelihood is fitted on complete-case NPS
+#'       rows only; propensity scores are predicted for all rows by
+#'       substituting `"(Missing)"` with the reference baseline level.
+#'       This adaptation is not derived from the pseudo-likelihood framework
+#'       and has no published theoretical validation. Use
+#'       `missing_method = "impute"` for a more principled missing data
+#'       approach.}
 #'     \item{`"impute"`}{Missing values are imputed via a single iteration of
 #'       predictive mean matching using `mice::mice()` (requires the `mice`
 #'       package). All NPS units receive weights.}
@@ -175,27 +192,33 @@
 #'   not `"impute"`.
 #' @param method Link function for the propensity model. One of `"logit"`
 #'   (default), `"probit"`, or `"cloglog"`. Partial matching is supported.
+#'   Asymptotic consistency and normality results in the cited literature
+#'   (Chen, Li & Wu, 2020; Beresewicz et al., 2025) are derived specifically
+#'   for logistic regression. `"probit"` and `"cloglog"` are computationally
+#'   valid alternatives but have weaker formal backing in the pseudo-likelihood
+#'   framework for non-probability samples.
 #' @param estimating_eq Estimating equation for the propensity model. One of
 #'   `"mle"` (default) or `"gee"`. Partial matching is supported.
 #'
 #'   - `"mle"` uses the pseudo-likelihood score equation
 #'     (Chen, Li & Wu, 2020; Beresewicz et al., 2025, eq. 3.1). Weights
-#'     reproduce the reference-weighted covariate totals in expectation but
-#'     not exactly.
+#'     reproduce the reference-weighted covariate totals in expectation
+#'     but not exactly.
 #'   - `"gee"` uses the calibration estimating equations
-#'     (Beresewicz et al., 2025, eq. 3.3). At convergence, the weighted NPS
-#'     covariate totals exactly reproduce the reference-weighted totals:
-#'     `sum(w_k * x_k) = sum(d_k * x_k)`. When `adjust_reference = TRUE`
-#'     and `nps_fraction > 0.05`, the calibration target is the
-#'     Valliant-adjusted reference totals `sum(adjust_factor * d_k * x_k)`
-#'     (where `adjust_factor = 1 - nps_fraction`), not the original
-#'     design-weight totals. This covariate balance guarantee
-#'     makes `"gee"` the building block for doubly robust estimation.
-#'     When `missing_method = "separate"`, the guarantee applies only to
-#'     complete-case NPS rows.
+#'     (Beresewicz et al., 2025, eq. 3.3). At convergence, the weighted
+#'     NPS covariate totals exactly reproduce the reference-weighted
+#'     totals: `sum(w_k * x_k) = sum(d_k * x_k)`. When
+#'     `adjust_reference = TRUE` and `nps_fraction > 0.05`, the
+#'     calibration target is the Valliant-adjusted reference totals
+#'     `sum(adjust_factor * d_k * x_k)` (where
+#'     `adjust_factor = 1 - nps_fraction`), not the original
+#'     design-weight totals. This covariate balance guarantee makes
+#'     `"gee"` the building block for doubly robust estimation.
+#'     When `missing_method = "separate"`, the guarantee applies only
+#'     to complete-case NPS rows.
 #'
-#'   Beresewicz et al. (2025) show GEE-based methods generally outperform MLE
-#'   in simulation. For most applications `"gee"` is preferred.
+#'   Beresewicz et al. (2025) show GEE-based methods generally outperform
+#'   MLE in simulation. For most applications `"gee"` is preferred.
 #' @param maxit Maximum number of Newton-Raphson iterations. Must be >= 1.
 #'   Default `25L`.
 #' @param epsilon Convergence threshold on the maximum absolute step size.
@@ -243,10 +266,107 @@
 #' warning is issued and the result from the last iteration is returned.
 #' Inspect the data for extreme covariate imbalance or increase `maxit`.
 #'
+#' **Variance estimation — refit required:** Naive variance estimates from
+#' the returned `survey_nonprob` object treat the propensity scores as fixed
+#' and underestimate variance. Correct variance estimation requires a
+#' replication approach in which the propensity model is **refit at every
+#' replicate** (bootstrap resample or jackknife group) so that estimation
+#' uncertainty in the propensity parameters is captured (Elliott & Valliant,
+#' 2017; Valliant, 2020).
+#'
+#' Jackknife is generally preferred over bootstrap when point estimates are
+#' nearly unbiased: Valliant (2020, Table 9) shows jackknife confidence
+#' interval coverage consistently nearer the 95% nominal level than bootstrap
+#' with replacement. Both require refitting the propensity model at each
+#' replicate.
+#'
+#' A correct jackknife procedure (preferred):
+#' 1. Partition `data` into G groups (G = 20 is a standard choice;
+#'    Valliant (2020, §2.1.4) uses G = 20 in simulations).
+#' 2. For each group g (1..G), omit group g from `data` and call `ipw()` on
+#'    the reduced NPS dataset and the full `reference`.
+#' 3. Compute the estimand from each of the G replicate weighted samples.
+#' 4. Compute jackknife variance:
+#'    `V_JK = ((G - 1) / G) * sum((theta_g - mean(theta_g))^2)`.
+#'
+#' A correct bootstrap procedure (valid alternative):
+#' 1. Resample `data` with replacement (simple random, or cluster-aware if
+#'    the NPS has a known cluster structure).
+#' 2. Resample `reference` using a design-respecting method — for complex
+#'    designs, use Rao-Wu rescaled bootstrap
+#'    (`survey::as.svrepdesign(type = "subbootstrap")`) rather than plain
+#'    SRS resampling.
+#' 3. Call `ipw()` on each resample pair to produce new weights.
+#' 4. Compute the estimand from each replicate's weighted sample.
+#' 5. Use replicate variance as the variance estimate.
+#'
+#' Both procedures apply equally when `estimating_eq = "gee"`. Variance
+#' estimates that do not refit the propensity model at each replicate will
+#' be anti-conservative.
+#'
+#' **Estimating equation:** `ipw()` uses the *unconditional* pseudo-likelihood
+#' approach (Valliant & Dever, 2011, as described in Elliott & Valliant, 2017,
+#' p. 256). NPS units enter the score equation with implicit weight 1;
+#' reference units enter with their design weights. This estimates
+#' P(NPS | in population) directly, rather than P(NPS | in combined sample).
+#' The alternative *conditional* approach — pooling both samples and running an
+#' unweighted logistic regression with NPS membership as the outcome — is not
+#' used because it does not account for reference design weights and estimates
+#' a different quantity (Chen, Li & Wu, 2020, §2.1).
+#'
+#' **Doubly robust estimation (recommended):** The papers in `@references`
+#' unanimously recommend combining IPW weights with an outcome regression model
+#' to form a doubly robust (DR) estimator. A DR estimator is consistent if
+#' *either* the propensity model *or* the outcome regression model is correctly
+#' specified — providing protection against misspecification of either.
+#' Valliant (2020) found DR "was the best combination in this study in terms
+#' of bias, RMSE, and confidence interval coverage"; Yang et al. (2020) show
+#' that DR substantially outperforms IPW-only under propensity
+#' misspecification. The weights returned by `ipw()` are the propensity
+#' component of such a DR pipeline; the outcome regression step is planned
+#' for a future release.
+#'
+#' **Sensitivity to propensity model misspecification:** IPW estimates can be
+#' severely biased when selection is nonlinear and the `selection` formula does
+#' not capture this nonlinearity. Chen, Li & Wu (2020, Table 1) demonstrate
+#' ~25% relative bias under a misspecified propensity model even when the
+#' correct variables are included. Beresewicz et al. (2025) show RMSE
+#' increases of 30x or more under nonlinear selection. To mitigate this risk:
+#' add interaction or polynomial terms to `selection` if nonlinear selection
+#' is suspected; follow `ipw()` with a doubly robust step; or use
+#' `diagnose_propensity()` (planned) to assess covariate balance.
+#'
+#' **High-dimensional selection:** For large covariate vectors, Elliott &
+#' Valliant (2017) recommend regularized alternatives such as LASSO-penalized
+#' logistic regression, BART, or super learner. `ipw()` uses Newton-Raphson
+#' on the full unpenalized model and may overfit in high-dimensional settings.
+#' In such cases, fit the propensity model externally, extract predicted
+#' probabilities, and use them directly.
+#'
+#' **Quantile balancing approximation:** Beresewicz et al. (2025) show that
+#' augmenting the propensity model with quantile-indicator variables for
+#' continuous covariates substantially reduces bias under nonlinear selection
+#' ("quantile balancing IPW"). Users can approximate this by adding cut-point
+#' indicators to `selection`:
+#' ```r
+#' nps$age_q <- cut(nps$age, quantile(nps$age, c(0, .25, .5, .75, 1)),
+#'                  include.lowest = TRUE)
+#' ipw(nps, ref, selection = ~age_q + sex)
+#' ```
+#' Native QBIPW support (Beresewicz et al., 2025, eqs. 4.1--4.2) is planned
+#' for a future release.
+#'
 #' @note
-#' **Selection on observables:** IPW adjusts only for observable covariates.
-#' If important predictors of NPS participation are unmeasured, the resulting
-#' weights may be biased.
+#' **Missing at random (MAR) assumption:** `ipw()` is consistent only if NPS
+#' participation is independent of the outcome variable given the observed
+#' covariates in `selection` — formally, P(I_NPS = 1 | X, Y) = P(I_NPS = 1 |
+#' X). This is called "missing at random" (MAR) or "non-informative sampling"
+#' in the survey statistics literature (Chen, Li & Wu, 2020, Assumption A1;
+#' Valliant, 2020). It is not testable from observed data. If participation
+#' depends on Y even after conditioning on X (not missing at random, NMAR),
+#' IPW weights will be biased regardless of model quality. Common causes of
+#' NMAR in opt-in panels include self-selection on health, income, or political
+#' engagement when those outcomes are also the study variables.
 #'
 #' **Common support:** IPW requires that every covariate combination observed
 #' in the NPS is also present in the reference. If not, scores approach 1 and
@@ -263,6 +383,34 @@
 #' **Pre-trim population size:** `estimated_population_size` in the history
 #' entry always equals `sum(w)` before trimming, regardless of `trim`.
 #'
+#' **Independence of participation:** The pseudo-likelihood assumes NPS
+#' participation decisions are independent across units given the covariates
+#' in `selection` (Chen, Li & Wu, 2020, Assumption A3). This assumption fails
+#' when NPS units are clustered — for example, household panels where multiple
+#' family members participate together, or snowball-recruited samples. In
+#' clustered NPS settings the propensity model should include cluster-level
+#' covariates, and variance estimation should use cluster-aware resampling.
+#'
+#' **Non-overlapping samples:** The pseudo-likelihood codes NPS units as
+#' members (1) and reference units as non-members (0). If the same individual
+#' appears in both `data` and `reference`, the coding is inconsistent and
+#' propensity estimates will be biased. Remove any units present in both
+#' samples from `reference` before calling `ipw()` (Valliant, 2020, §2.1.2).
+#'
+#' @seealso
+#'   [adjust_nonresponse()] for unit nonresponse adjustment via weighting
+#'   class methods, which can serve as the IPW step in a doubly robust pipeline
+#'   when the nonresponse mechanism is modeled.
+#'
+#'   [calibrate_to_survey()] for post-stratification and raking calibration
+#'   that can be applied after `ipw()` as the regression correction step of a
+#'   doubly robust estimator.
+#'
+#'   `diagnose_propensity()` (planned) for propensity score diagnostics
+#'   including AUC, covariate balance plots, and standardized mean differences.
+#'   Uses the `propensity_scores` stored in the history entry returned by
+#'   `ipw()` without refitting the model.
+#'
 #' @family propensity
 #' @export
 #'
@@ -278,6 +426,23 @@
 #' N., Schirripa Spagnolo, F. and Zhang, L.-C. (2021). Methods for sampling
 #' and inference with non-probability samples. Deliverable D11.8,
 #' InGRID-2 project 730998 -- H2020.
+#'
+#' Valliant, R. and Dever, J.A. (2011). Estimating propensity adjustments
+#' for volunteer web surveys. *Sociological Methods & Research*
+#' **40**(1), 105--137.
+#'
+#' Valliant, R. (2020). Comparing alternatives for estimation from
+#' nonprobability samples. *Survey Methods: Insights from the Field*
+#' **16**(1). \doi{10.13094/SMIF-2020-00011}
+#'
+#' Yang, S., Kim, J.K. and Song, R. (2020). Doubly robust inference when
+#' combining probability and non-probability samples with high dimensional
+#' data. *Journal of the Royal Statistical Society: Series B* **82**(2),
+#' 445--465.
+#'
+#' Beresewicz, M., Szymkowiak, M. and Chlebicki, P. (2025). Quantile
+#' balancing inverse probability weighting for non-probability samples.
+#' *arXiv preprint* arXiv:2403.09028.
 #'
 #' @examples
 #' data(ns_wave1_ipw)
@@ -338,6 +503,48 @@
 #'     missing_method = "impute"
 #'   )
 #' }
+#'
+#' # --- GEE estimating equation ---
+#' # GEE guarantees sum(w * x) = sum(d * x) at convergence;
+#' # generally preferred over the default MLE when covariate balance matters.
+#' # GEE converges best when NPS and reference are similar in size;
+#' # use balanced synthetic data here to illustrate the API.
+#' set.seed(42L)
+#' nps_gee <- data.frame(
+#'   age_group = sample(c("18-34", "35-54", "55+"), 200L, replace = TRUE),
+#'   sex       = sample(c("M", "F"), 200L, replace = TRUE),
+#'   stringsAsFactors = FALSE
+#' )
+#' ref_gee_df <- data.frame(
+#'   age_group   = sample(c("18-34", "35-54", "55+"), 500L,
+#'                        replace = TRUE, prob = c(0.3, 0.4, 0.3)),
+#'   sex         = sample(c("M", "F"), 500L, replace = TRUE),
+#'   base_weight = 1,
+#'   stringsAsFactors = FALSE
+#' )
+#' ref_gee <- surveycore::survey_taylor(
+#'   ref_gee_df,
+#'   variables = list(weights = "base_weight")
+#' )
+#' result_gee <- ipw(
+#'   nps_gee,
+#'   ref_gee,
+#'   selection      = ~age_group + sex,
+#'   estimating_eq  = "gee",
+#'   adjust_reference = FALSE
+#' )
+#'
+#' # --- Known population size ---
+#' # Supply N from a census frame to record it in the history entry.
+#' # The returned weights are unchanged; N enables manual IPW1 means:
+#' #   sum(result@data[["ipw_weight"]] * y) / population_size
+#' result_known_n <- ipw(
+#'   ns_wave1_ipw,
+#'   gss_ipw_ref,
+#'   selection = ~gender + age_group,
+#'   population_size = 258000000L
+#' )
+#' result_known_n@metadata@weighting_history[[1]]$population_size_known
 ipw <- function(
   data,
   reference,

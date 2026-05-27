@@ -52,7 +52,8 @@ test_that("create_replicate_weights() passes ... to underlying function", {
   skip_if_not_installed("svrep")
   td     <- make_taylor_design(seed = 1L)
   result <- create_replicate_weights(td, method = "bootstrap",
-                                      replicates = 10L, mse = FALSE, seed = 1L)
+                                      replicates = 10L,
+                                      mse = "uncentered", seed = 1L)
   test_invariants(result)
   expect_false(result@variables$mse)
 })

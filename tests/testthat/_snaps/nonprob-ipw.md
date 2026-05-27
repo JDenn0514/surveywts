@@ -233,12 +233,8 @@
 # ipw() errors when Hessian is singular (collinear covariates)
 
     Code
-      ipw(nps_coll, ref_coll, selection = ~ x1 + x2)
+      ipw(nps_coll, ref_coll, selection = ~ x1 + x2, adjust_reference = FALSE)
     Condition
-      Warning:
-      ! NPS (50 units) is 25% of the estimated population (N_hat = 200).
-      i Reference weights adjusted by factor 0.75 per Valliant (2020) eq. (1): w* = w * (N_hat - n_NPS) / N_hat.
-      v Set `adjust_reference = FALSE` to skip this adjustment if the NPS is known to be disjoint from the reference frame.
       Error in `value[[3L]]()`:
       x Propensity Hessian is singular: Lapack routine dgesv: system is exactly singular: U[3,3] = 0
       i Collinear or degenerate covariates in `selection`.

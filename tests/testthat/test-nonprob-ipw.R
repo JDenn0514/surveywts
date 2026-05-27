@@ -668,12 +668,12 @@ test_that("ipw() errors when Hessian is singular (collinear covariates)", {
   )
 
   expect_error(
-    ipw(nps_coll, ref_coll, selection = ~x1 + x2),
+    ipw(nps_coll, ref_coll, selection = ~x1 + x2, adjust_reference = FALSE),
     class = "surveywts_error_propensity_hessian_singular"
   )
   expect_snapshot(
     error = TRUE,
-    ipw(nps_coll, ref_coll, selection = ~x1 + x2)
+    ipw(nps_coll, ref_coll, selection = ~x1 + x2, adjust_reference = FALSE)
   )
 })
 

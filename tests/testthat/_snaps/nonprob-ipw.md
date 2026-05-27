@@ -7,7 +7,7 @@
       # Variance: model-assisted (SRS assumption)
       # IDs: ~1 | Strata: NULL | Weights: ipw_weight 
       # Weighting history: 1 step 
-      #   Step 1: ipw [~age_group + sex, logit, n_ref=1000, N_hat=1085] 
+      #   Step 1: ipw [~age_group + sex, logit, n_ref=1000, N_hat=885] 
 
 # ipw() errors when data is not a data.frame
 
@@ -133,6 +133,10 @@
     Code
       ipw(nps, ref, selection = ~ age_group + base_weight, missing_method = "separate")
     Condition
+      Warning:
+      ! NPS (200 units) is 18.4% of the estimated population (N_hat = 1085).
+      i Reference weights adjusted by factor 0.8157 per Valliant (2020) eq. (1): w* = w * (N_hat - n_NPS) / N_hat.
+      v Set `adjust_reference = FALSE` to skip this adjustment if the NPS is known to be disjoint from the reference frame.
       Error in `ipw()`:
       x `missing_method = "separate"` cannot handle numeric selection variables with NA values.
       i Variable base_weight is <numeric> and has 1 NA value(s).
@@ -143,6 +147,10 @@
     Code
       ipw(nps, ref, selection = ~ age_group + sex, missing_method = "impute")
     Condition
+      Warning:
+      ! NPS (200 units) is 18.4% of the estimated population (N_hat = 1085).
+      i Reference weights adjusted by factor 0.8157 per Valliant (2020) eq. (1): w* = w * (N_hat - n_NPS) / N_hat.
+      v Set `adjust_reference = FALSE` to skip this adjustment if the NPS is known to be disjoint from the reference frame.
       Error in `ipw()`:
       x Package mice is required for `missing_method = "impute"`.
       i mice is not installed.
@@ -153,6 +161,10 @@
     Code
       ipw(nps, ref, selection = ~ age_group + sex, wt_name = NULL)
     Condition
+      Warning:
+      ! NPS (200 units) is 18.4% of the estimated population (N_hat = 1085).
+      i Reference weights adjusted by factor 0.8157 per Valliant (2020) eq. (1): w* = w * (N_hat - n_NPS) / N_hat.
+      v Set `adjust_reference = FALSE` to skip this adjustment if the NPS is known to be disjoint from the reference frame.
       Error in `.validate_wt_name()`:
       x `wt_name` must be a single character string.
       i Got <NULL> of length 0.
@@ -162,6 +174,10 @@
     Code
       ipw(nps, ref, selection = ~ age_group + sex, wt_name = 1L)
     Condition
+      Warning:
+      ! NPS (200 units) is 18.4% of the estimated population (N_hat = 1085).
+      i Reference weights adjusted by factor 0.8157 per Valliant (2020) eq. (1): w* = w * (N_hat - n_NPS) / N_hat.
+      v Set `adjust_reference = FALSE` to skip this adjustment if the NPS is known to be disjoint from the reference frame.
       Error in `.validate_wt_name()`:
       x `wt_name` must be a single character string.
       i Got <integer> of length 1.
@@ -171,6 +187,10 @@
     Code
       ipw(nps, ref, selection = ~ age_group + sex, wt_name = "")
     Condition
+      Warning:
+      ! NPS (200 units) is 18.4% of the estimated population (N_hat = 1085).
+      i Reference weights adjusted by factor 0.8157 per Valliant (2020) eq. (1): w* = w * (N_hat - n_NPS) / N_hat.
+      v Set `adjust_reference = FALSE` to skip this adjustment if the NPS is known to be disjoint from the reference frame.
       Error in `.validate_wt_name()`:
       x `wt_name` must be a non-empty, non-NA string.
 
@@ -179,6 +199,10 @@
     Code
       ipw(nps, ref, selection = ~ age_group + sex, wt_name = NA_character_)
     Condition
+      Warning:
+      ! NPS (200 units) is 18.4% of the estimated population (N_hat = 1085).
+      i Reference weights adjusted by factor 0.8157 per Valliant (2020) eq. (1): w* = w * (N_hat - n_NPS) / N_hat.
+      v Set `adjust_reference = FALSE` to skip this adjustment if the NPS is known to be disjoint from the reference frame.
       Error in `.validate_wt_name()`:
       x `wt_name` must be a non-empty, non-NA string.
 
@@ -187,6 +211,10 @@
     Code
       ipw(nps, ref, selection = ~ age_group + sex, wt_name = "age_group")
     Condition
+      Warning:
+      ! NPS (200 units) is 18.4% of the estimated population (N_hat = 1085).
+      i Reference weights adjusted by factor 0.8157 per Valliant (2020) eq. (1): w* = w * (N_hat - n_NPS) / N_hat.
+      v Set `adjust_reference = FALSE` to skip this adjustment if the NPS is known to be disjoint from the reference frame.
       Error in `ipw()`:
       x `wt_name` "age_group" already exists as a column in `data`.
       i The output weight column must be distinct from all input columns.
@@ -205,7 +233,8 @@
 # ipw() errors when Hessian is singular (collinear covariates)
 
     Code
-      ipw(nps_coll, ref_coll, selection = ~ x1 + x2)
+      suppressWarnings(ipw(nps_coll, ref_coll, selection = ~ x1 + x2,
+      adjust_reference = FALSE))
     Condition
       Error in `value[[3L]]()`:
       x Propensity Hessian is singular: Lapack routine dgesv: system is exactly singular: U[3,3] = 0
@@ -217,6 +246,10 @@
     Code
       ipw(nps, ref, selection = ~ age_group + sex, maxit = 0L)
     Condition
+      Warning:
+      ! NPS (200 units) is 18.4% of the estimated population (N_hat = 1085).
+      i Reference weights adjusted by factor 0.8157 per Valliant (2020) eq. (1): w* = w * (N_hat - n_NPS) / N_hat.
+      v Set `adjust_reference = FALSE` to skip this adjustment if the NPS is known to be disjoint from the reference frame.
       Error in `ipw()`:
       x `maxit` must be a whole number >= 1.
       i Got 0.
@@ -227,6 +260,10 @@
     Code
       ipw(nps, ref, selection = ~ age_group + sex, epsilon = 0)
     Condition
+      Warning:
+      ! NPS (200 units) is 18.4% of the estimated population (N_hat = 1085).
+      i Reference weights adjusted by factor 0.8157 per Valliant (2020) eq. (1): w* = w * (N_hat - n_NPS) / N_hat.
+      v Set `adjust_reference = FALSE` to skip this adjustment if the NPS is known to be disjoint from the reference frame.
       Error in `ipw()`:
       x `epsilon` must be a positive number.
       i Got 0.
@@ -237,6 +274,10 @@
     Code
       ipw(nps, ref, selection = ~ age_group + sex, epsilon = -1)
     Condition
+      Warning:
+      ! NPS (200 units) is 18.4% of the estimated population (N_hat = 1085).
+      i Reference weights adjusted by factor 0.8157 per Valliant (2020) eq. (1): w* = w * (N_hat - n_NPS) / N_hat.
+      v Set `adjust_reference = FALSE` to skip this adjustment if the NPS is known to be disjoint from the reference frame.
       Error in `ipw()`:
       x `epsilon` must be a positive number.
       i Got -1.
@@ -261,4 +302,26 @@
       x `population_size` must be a positive finite number.
       i Got "50000".
       v Supply a known census population count or leave `population_size = NULL` to use the self-normalizing estimate.
+
+# adjust_reference = TRUE warns and adjusts when nps_fraction > 0.05
+
+    Code
+      expect_warning(ipw(nps, ref, selection = ~ age_group + sex, adjust_reference = TRUE),
+      class = "surveywts_warning_ipw_reference_weight_adjusted")
+
+# adjust_reference = FALSE warns but does not adjust when nps_fraction > 0.05
+
+    Code
+      expect_warning(ipw(nps, ref, selection = ~ age_group + sex, adjust_reference = FALSE),
+      class = "surveywts_warning_ipw_reference_unadjusted_large_nps")
+
+# adjust_reference validation — non-logical rejected (dual pattern)
+
+    Code
+      ipw(nps, ref, selection = ~ age_group + sex, adjust_reference = "yes")
+    Condition
+      Error in `ipw()`:
+      x `adjust_reference` must be TRUE or FALSE.
+      i Got <character> of length 1.
+      v Set `adjust_reference = TRUE` (default) or `adjust_reference = FALSE`.
 

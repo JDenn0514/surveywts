@@ -239,7 +239,10 @@ test_that("ipw() weights match manual Newton-Raphson at tolerance 1e-10", {
   nps <- .make_ipw_nps(seed = 7L)
   ref <- .make_ipw_ref(seed = 77L)
 
-  result <- ipw(nps, ref, selection = ~age_group + sex)
+  # Use adjust_reference = FALSE so that manual NR (without adjustment) matches.
+  result <- suppressWarnings(
+    ipw(nps, ref, selection = ~age_group + sex, adjust_reference = FALSE)
+  )
 
   # Manual NR computation — must align factor levels to reference (same as ipw())
   formula <- ~age_group + sex
@@ -277,7 +280,11 @@ test_that("ipw() estimates match nonprobsvy at tolerance 1e-6 [numerical cross-v
   nps <- .make_ipw_nps(seed = 5L)
   ref <- .make_ipw_ref(seed = 55L)
 
-  result <- ipw(nps, ref, selection = ~age_group + sex)
+  # nonprobsvy does not apply the Valliant reference weight adjustment;
+  # use adjust_reference = FALSE to make the comparison valid.
+  result <- suppressWarnings(
+    ipw(nps, ref, selection = ~age_group + sex, adjust_reference = FALSE)
+  )
 
   # Use HT total / N_ref to match nonprobsvy's estimator (divides by sum of
   # reference weights, not by sum of IPW weights as weighted.mean() would)
@@ -661,12 +668,16 @@ test_that("ipw() errors when Hessian is singular (collinear covariates)", {
   )
 
   expect_error(
-    ipw(nps_coll, ref_coll, selection = ~x1 + x2),
+    suppressWarnings(
+      ipw(nps_coll, ref_coll, selection = ~x1 + x2, adjust_reference = FALSE)
+    ),
     class = "surveywts_error_propensity_hessian_singular"
   )
   expect_snapshot(
     error = TRUE,
-    ipw(nps_coll, ref_coll, selection = ~x1 + x2)
+    suppressWarnings(
+      ipw(nps_coll, ref_coll, selection = ~x1 + x2, adjust_reference = FALSE)
+    )
   )
 })
 
@@ -720,6 +731,8 @@ test_that("ipw() warns for extreme propensity scores (score < 0.01)", {
   # Binary covariate: 1 "low" unit in NPS vs 200 "low" in reference.
   # pi("low") = 1/200 = 0.005 < 0.01 → warning fires.
   # n_nps_k <= n_ref_k for both levels → score equations are feasible, NR converges.
+  # Use adjust_reference = FALSE to isolate the extreme-score warning from the
+  # reference-weight-adjustment warning (nps_fraction = 200/400 = 50% > 5%).
   set.seed(123L)
   nps_skewed <- data.frame(
     group = c("low", rep("high", 199L)),
@@ -735,9 +748,19 @@ test_that("ipw() warns for extreme propensity scores (score < 0.01)", {
     variables = list(weights = "base_weight")
   )
 
-  expect_warning(
-    result <- ipw(nps_skewed, ref_skewed, selection = ~group),
-    class = "surveywts_warning_extreme_propensity_scores"
+  # Capture all warnings and check that extreme propensity warning is among them.
+  warns <- list()
+  result <- withCallingHandlers(
+    ipw(nps_skewed, ref_skewed, selection = ~group, adjust_reference = FALSE),
+    warning = function(w) {
+      warns[[length(warns) + 1L]] <<- w
+      invokeRestart("muffleWarning")
+    }
+  )
+  classes <- vapply(warns, function(w) class(w)[[1L]], character(1L))
+  expect_true(
+    "surveywts_warning_extreme_propensity_scores" %in% classes,
+    label = "extreme propensity score warning was fired"
   )
   test_invariants(result)
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
@@ -824,6 +847,8 @@ test_that("ipw() works with interaction term", {
 })
 
 test_that("ipw() gives roughly uniform weights when NPS and reference have identical distributions", {
+  # Use adjust_reference = FALSE to isolate uniform-weight property from the
+  # reference weight adjustment (nps_fraction = 100/200 = 50% > 5%).
   set.seed(1L)
   n <- 300L
   common_df <- data.frame(
@@ -839,7 +864,10 @@ test_that("ipw() gives roughly uniform weights when NPS and reference have ident
     variables = list(weights = "base_weight")
   )
 
-  result <- ipw(nps_same, ref_same, selection = ~age_group + sex)
+  result <- suppressWarnings(
+    ipw(nps_same, ref_same, selection = ~age_group + sex,
+        adjust_reference = FALSE)
+  )
 
   test_invariants(result)
   wts <- result@data$ipw_weight
@@ -891,6 +919,8 @@ test_that("ipw() trim=TRUE with extreme weights: n_trimmed > 0; mass conserved b
   # pi("rare") ≈ 1/201 → weight ≈ 201; all common ≈ 2.0 with IQR ≈ 0.
   # trim_limit ≈ median + 5*IQR ≈ 2.0, so the "rare" unit is trimmed.
   # .trim_weights_internal() clips and redistributes — total mass is conserved.
+  # Use adjust_reference = FALSE to isolate trimming behavior from the
+  # reference weight adjustment (nps_fraction = 200/400 = 50% > 5%).
   nps_extreme <- data.frame(
     group = c("rare", rep("common", 199L)),
     stringsAsFactors = FALSE
@@ -906,7 +936,8 @@ test_that("ipw() trim=TRUE with extreme weights: n_trimmed > 0; mass conserved b
   )
 
   result <- suppressWarnings(
-    ipw(nps_extreme, ref_extreme, selection = ~group, trim = TRUE)
+    ipw(nps_extreme, ref_extreme, selection = ~group, trim = TRUE,
+        adjust_reference = FALSE)
   )
 
   test_invariants(result)
@@ -1201,4 +1232,160 @@ test_that("population_size = Inf → error", {
     ipw(nps, ref, selection = ~age_group + sex, population_size = Inf),
     class = "surveywts_error_population_size_invalid"
   )
+})
+
+# ---------------------------------------------------------------------------
+# PR 2 — C-3: adjust_reference argument
+# ---------------------------------------------------------------------------
+
+test_that("adjust_reference = TRUE warns and adjusts when nps_fraction > 0.05", {
+  # Construct data where n_nps / n_hat will exceed 5%.
+  # n_nps = 200, reference base_weight = 1 → n_hat ≈ 1000 → fraction = 20%.
+  nps <- .make_ipw_nps(seed = 42L)  # n = 200
+  ref <- .make_ipw_ref(seed = 42L)  # n = 1000, base_weight = 1 → n_hat = 1000
+
+  expect_warning(
+    result <- ipw(nps, ref, selection = ~age_group + sex,
+                  adjust_reference = TRUE),
+    class = "surveywts_warning_ipw_reference_weight_adjusted"
+  )
+  expect_snapshot(
+    expect_warning(
+      ipw(nps, ref, selection = ~age_group + sex, adjust_reference = TRUE),
+      class = "surveywts_warning_ipw_reference_weight_adjusted"
+    )
+  )
+  test_invariants(result)
+  hist <- result@metadata@weighting_history[[1L]]
+  expect_true(hist$adjust_reference)
+  expect_true(hist$nps_fraction > 0.05)
+  nps_fraction <- hist$nps_fraction
+  expect_equal(hist$adjust_factor, 1 - nps_fraction, tolerance = 1e-10)
+})
+
+test_that("adjust_reference = FALSE warns but does not adjust when nps_fraction > 0.05", {
+  nps <- .make_ipw_nps(seed = 42L)
+  ref <- .make_ipw_ref(seed = 42L)
+
+  expect_warning(
+    result <- ipw(nps, ref, selection = ~age_group + sex,
+                  adjust_reference = FALSE),
+    class = "surveywts_warning_ipw_reference_unadjusted_large_nps"
+  )
+  expect_snapshot(
+    expect_warning(
+      ipw(nps, ref, selection = ~age_group + sex, adjust_reference = FALSE),
+      class = "surveywts_warning_ipw_reference_unadjusted_large_nps"
+    )
+  )
+  test_invariants(result)
+  hist <- result@metadata@weighting_history[[1L]]
+  expect_false(hist$adjust_reference)
+  expect_true(hist$nps_fraction > 0.05)
+  expect_equal(hist$adjust_factor, 1.0, tolerance = 1e-10)
+})
+
+test_that("no warning or adjustment when nps_fraction <= 0.05", {
+  # n_nps = 10, reference with n_hat = 10000 → fraction = 0.001 (0.1%)
+  # No adjust_reference warning should fire (nps_fraction < 5% threshold).
+  nps_small <- .make_ipw_nps(seed = 1L)[1L:10L, ]
+  # Build a large reference with base_weight = 1 (n_hat = 10000 rows)
+  set.seed(99L)
+  ref_large_df <- data.frame(
+    age_group   = sample(c("18-34", "35-54", "55+"), 10000L, replace = TRUE),
+    sex         = sample(c("M", "F"), 10000L, replace = TRUE),
+    base_weight = 1,
+    stringsAsFactors = FALSE
+  )
+  ref_large <- surveycore::survey_taylor(
+    data      = ref_large_df,
+    variables = list(weights = "base_weight")
+  )
+
+  # Suppress unrelated extreme-propensity warning (n_nps = 10 is very small).
+  # The key assertion: no adjust_reference-related warning class fires.
+  result <- suppressWarnings(
+    ipw(nps_small, ref_large, selection = ~age_group + sex,
+        adjust_reference = TRUE)
+  )
+  expect_no_warning(
+    suppressWarnings(
+      ipw(nps_small, ref_large, selection = ~age_group + sex,
+          adjust_reference = TRUE)
+    ),
+    class = "surveywts_warning_ipw_reference_weight_adjusted"
+  )
+  test_invariants(result)
+  hist <- result@metadata@weighting_history[[1L]]
+  expect_true(hist$nps_fraction <= 0.05)
+  expect_equal(hist$adjust_factor, 1.0, tolerance = 1e-10)
+})
+
+test_that("adjust_reference validation — non-logical rejected (dual pattern)", {
+  nps <- .make_ipw_nps()
+  ref <- .make_ipw_ref()
+
+  expect_error(
+    ipw(nps, ref, selection = ~age_group + sex, adjust_reference = "yes"),
+    class = "surveywts_error_adjust_reference_invalid"
+  )
+  expect_snapshot(
+    error = TRUE,
+    ipw(nps, ref, selection = ~age_group + sex, adjust_reference = "yes")
+  )
+})
+
+test_that("adjust_reference = NA is rejected", {
+  nps <- .make_ipw_nps()
+  ref <- .make_ipw_ref()
+
+  expect_error(
+    ipw(nps, ref, selection = ~age_group + sex, adjust_reference = NA),
+    class = "surveywts_error_adjust_reference_invalid"
+  )
+})
+
+# ---------------------------------------------------------------------------
+# PR 2 — M-4: nps_fraction in history entry
+# ---------------------------------------------------------------------------
+
+test_that("nps_fraction is correctly recorded in history entry", {
+  nps <- .make_ipw_nps(seed = 42L)
+  ref <- .make_ipw_ref(seed = 42L)  # n = 1000, base_weight = 1
+
+  result <- suppressWarnings(
+    ipw(nps, ref, selection = ~age_group + sex)
+  )
+
+  test_invariants(result)
+  hist <- result@metadata@weighting_history[[1L]]
+  expect_true(is.numeric(hist$nps_fraction))
+  expect_length(hist$nps_fraction, 1L)
+  # nps_fraction = nrow(nps) / sum(ref_weights_for_fit) = 200 / 1000
+  ref_weights <- ref@data[[ref@variables$weights]]
+  n_hat_expected <- sum(ref_weights)
+  nps_fraction_expected <- nrow(nps) / n_hat_expected
+  expect_equal(hist$nps_fraction, nps_fraction_expected, tolerance = 1e-10)
+})
+
+test_that("nps_fraction uses pre-NA-deletion NPS row count", {
+  # 10 NPS rows have NA in age_group; missing_method = "omit" will drop them.
+  # nps_fraction should use nrow(nps_original) = 200, NOT 190 (post-drop).
+  nps <- .make_ipw_nps(seed = 42L)
+  nps$age_group[1L:10L] <- NA_character_
+  ref <- .make_ipw_ref(seed = 42L)
+
+  result <- suppressWarnings(
+    ipw(nps, ref, selection = ~age_group + sex,
+        missing_method = "omit")
+  )
+
+  test_invariants(result)
+  hist <- result@metadata@weighting_history[[1L]]
+  # n_hat from ref (no reference NAs in this fixture)
+  ref_weights <- ref@data[[ref@variables$weights]]
+  n_hat_expected <- sum(ref_weights)
+  # Full pre-deletion NPS count is 200
+  nps_fraction_expected <- 200 / n_hat_expected
+  expect_equal(hist$nps_fraction, nps_fraction_expected, tolerance = 1e-10)
 })

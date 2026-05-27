@@ -14,6 +14,7 @@ ipw(
   method = "logit",
   maxit = 25L,
   epsilon = 1e-08,
+  adjust_reference = TRUE,
   trim = FALSE,
   population_size = NULL,
   wt_name = "ipw_weight"
@@ -68,6 +69,17 @@ Default \code{25L}.}
 
 \item{epsilon}{Convergence threshold on the maximum absolute step size.
 Must be > 0. Default \code{1e-8}.}
+
+\item{adjust_reference}{Logical (default \code{TRUE}). Whether to apply Valliant
+(2020) Eq. (1) reference weight adjustment when the NPS is a non-negligible
+fraction of the estimated population. When \code{nps_fraction = nrow(data) / sum(d)} (where \code{d} are the reference design weights after excluding rows
+with \code{NA} in any selection variable) exceeds 0.05, the reference weights
+are multiplied by \code{(N_hat - n_NPS) / N_hat} to prevent the reference-side
+score denominator from being inflated by NPS units already counted on the
+NPS side. When \code{nps_fraction <= 0.05}, no adjustment is applied regardless
+of this argument. Set \code{adjust_reference = FALSE} to skip the adjustment
+when the NPS and reference frames are known to be disjoint and the
+correction is inappropriate.}
 
 \item{trim}{Logical. If \code{TRUE}, IPW weights are trimmed at
 \code{median(w) + 5 * IQR(w)} after estimation. Default \code{FALSE}.}

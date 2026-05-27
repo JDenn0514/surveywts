@@ -120,6 +120,7 @@ templates (organized by function in subsections XII.A through XII.G).
 | Class | Thrown by | Condition |
 |-------|-----------|-----------|
 | `surveywts_error_population_size_invalid` | `ipw()` | `population_size` is non-NULL and is not a positive finite numeric scalar |
+| `surveywts_error_adjust_reference_invalid` | `ipw()` | `adjust_reference` is not `logical(1)` or is `NA` |
 | `surveywts_error_not_data_frame` | `ipw()` | `data` is not a `data.frame` |
 | `surveywts_error_svydesign_not_taylor` | `ipw()` | `reference` is not `survey_taylor` |
 | `surveywts_error_reference_weights_nonpositive` | `ipw()` | Any reference design weight ≤ 0 |
@@ -212,6 +213,8 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_warning_ipw_data_na_omitted` | `ipw()` | `missing_method = "omit"` dropped NPS rows with NA in selection variables; reports count and variable names |
 | `surveywts_warning_ipw_reference_na_omitted` | `ipw()` | Reference rows with NA in selection variables excluded from model fitting; reports count and variable names |
 | `surveywts_warning_ipw_mice_m_ignored` | `ipw()` | User passed `m` in `mice_args` but `m = 1` is fixed; user value is ignored |
+| `surveywts_warning_ipw_reference_weight_adjusted` | `ipw()` | `adjust_reference = TRUE` and `nps_fraction > 0.05` — reference weights multiplied by `1 - nps_fraction` |
+| `surveywts_warning_ipw_reference_unadjusted_large_nps` | `ipw()` | `adjust_reference = FALSE` and `nps_fraction > 0.05` — no adjustment applied despite large NPS fraction |
 | `surveywts_warning_no_weights_trimmed` | `trim_weights()` | No main weights fell outside the resolved bounds |
 | `surveywts_warning_trimming_failed` | `trim_weights()` | All remaining units already trimmed; no untrimmed units to absorb excess |
 | _See also:_ `surveywts_warning_negative_calibrated_weights` | — | Shared with `calibrate()` section; also thrown by `calibrate_to_survey()` and `calibrate_to_estimate()` |

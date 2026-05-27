@@ -565,6 +565,75 @@ ipw <- function(
     adjust_factor <- 1
   }
 
+  # Behavior Rule 8b: numeric covariate range check (M-1)
+  # Uses ref_data_for_fit (post-NA-deletion), NOT reference@data.
+  # Fires once per variable whose NPS range exceeds the reference range.
+  for (var in sel_vars) {
+    if (is.numeric(data[[var]]) && is.numeric(ref_data_for_fit[[var]])) {
+      nps_range <- range(data[[var]], na.rm = TRUE)
+      ref_range <- range(ref_data_for_fit[[var]], na.rm = TRUE)
+      if (nps_range[1L] < ref_range[1L] || nps_range[2L] > ref_range[2L]) {
+        cli::cli_warn(
+          c(
+            "!" = paste0(
+              "Variable {.field {var}} has a wider range in {.arg data} ",
+              "([{nps_range[1]}, {nps_range[2]}]) than in {.arg reference} ",
+              "([{ref_range[1]}, {ref_range[2]}])."
+            ),
+            "i" = paste0(
+              "NPS units outside the reference covariate range violate the ",
+              "common support assumption and may produce extreme propensity ",
+              "scores."
+            ),
+            "v" = paste0(
+              "Consider removing NPS units with {.field {var}} values outside ",
+              "[{ref_range[1]}, {ref_range[2]}], or trimming with ",
+              "{.code trim = TRUE}."
+            )
+          ),
+          class = "surveywts_warning_ipw_covariate_range_extrapolation"
+        )
+      }
+    }
+  }
+
+  # Behavior Rule 8c: reference factor levels absent from NPS (M-1)
+  # Uses ref_data_for_fit (post-NA-deletion), NOT reference@data.
+  # Warns when reference has a level absent from NPS (inverse of Rule 8 which
+  # errors on NPS levels absent from reference).
+  for (var in sel_vars) {
+    if (is.character(data[[var]]) || is.factor(data[[var]])) {
+      nps_levels <- unique(
+        as.character(data[[var]][!is.na(data[[var]])])
+      )
+      ref_levels <- unique(
+        as.character(ref_data_for_fit[[var]][!is.na(ref_data_for_fit[[var]])])
+      )
+      absent_in_nps <- setdiff(ref_levels, nps_levels)
+      if (length(absent_in_nps) > 0L) {
+        cli::cli_warn(
+          c(
+            "!" = paste0(
+              "{length(absent_in_nps)} level(s) of variable {.field {var}} ",
+              "are present in {.arg reference} but not in {.arg data}: ",
+              "{.and {.val {absent_in_nps}}}."
+            ),
+            "i" = paste0(
+              "Reference units in these cells have no NPS analog. Their ",
+              "propensity scores will be near 0, contributing extreme weights ",
+              "to the score equation."
+            ),
+            "v" = paste0(
+              "Review whether {.field {var}} is measured equivalently in ",
+              "both samples."
+            )
+          ),
+          class = "surveywts_warning_ipw_reference_levels_absent_from_nps"
+        )
+      }
+    }
+  }
+
   # Behavior Rules 9b / 9c / 9d: NPS NA handling
   if (missing_method == "omit") {
     # Rule 9b: drop rows with any NA in any selection variable

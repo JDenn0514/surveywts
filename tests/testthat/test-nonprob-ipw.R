@@ -1389,3 +1389,181 @@ test_that("nps_fraction uses pre-NA-deletion NPS row count", {
   nps_fraction_expected <- 200 / n_hat_expected
   expect_equal(hist$nps_fraction, nps_fraction_expected, tolerance = 1e-10)
 })
+
+# ---------------------------------------------------------------------------
+# PR 3 — M-1: common support validation (numeric range + reverse factor levels)
+# ---------------------------------------------------------------------------
+
+test_that("numeric covariate range extrapolation warns (Rule 8b)", {
+  # Build NPS with a numeric covariate extending beyond the reference range.
+  # Use nps_fraction <= 0.05 (10 NPS vs 10000 reference) to avoid triggering
+  # adjust_reference warnings that would clutter the snapshot.
+  # Reference has age in [20, 60]; NPS has age in [10, 70] → wider.
+  set.seed(42L)
+  nps_with_wide_age <- data.frame(
+    age         = c(10, seq(20, 70, length.out = 8L), 70),  # n=10, range [10, 70]
+    sex         = sample(c("M", "F"), 10L, replace = TRUE),
+    base_weight = 1,
+    stringsAsFactors = FALSE
+  )
+  set.seed(99L)
+  ref_narrow_age_df <- data.frame(
+    age         = seq(20, 60, length.out = 10000L),  # n=10000, range [20, 60]
+    sex         = sample(c("M", "F"), 10000L, replace = TRUE),
+    base_weight = 1,
+    stringsAsFactors = FALSE
+  )
+  ref_narrow_age <- surveycore::survey_taylor(
+    data      = ref_narrow_age_df,
+    variables = list(weights = "base_weight")
+  )
+
+  expect_warning(
+    result <- ipw(nps_with_wide_age, ref_narrow_age, selection = ~age + sex),
+    class = "surveywts_warning_ipw_covariate_range_extrapolation"
+  )
+  expect_snapshot(
+    expect_warning(
+      ipw(nps_with_wide_age, ref_narrow_age, selection = ~age + sex),
+      class = "surveywts_warning_ipw_covariate_range_extrapolation"
+    )
+  )
+  test_invariants(result)
+})
+
+test_that("numeric covariate within reference range — no range warning (Rule 8b)", {
+  # NPS age range [25, 55] ⊆ reference range [20, 60] → no warning.
+  # Use small NPS (nps_fraction <= 0.05) to avoid adjust_reference warnings.
+  set.seed(42L)
+  nps_narrow_age <- data.frame(
+    age         = seq(25, 55, length.out = 10L),
+    sex         = sample(c("M", "F"), 10L, replace = TRUE),
+    base_weight = 1,
+    stringsAsFactors = FALSE
+  )
+  set.seed(99L)
+  ref_wide_age_df <- data.frame(
+    age         = seq(20, 60, length.out = 10000L),
+    sex         = sample(c("M", "F"), 10000L, replace = TRUE),
+    base_weight = 1,
+    stringsAsFactors = FALSE
+  )
+  ref_wide_age <- surveycore::survey_taylor(
+    data      = ref_wide_age_df,
+    variables = list(weights = "base_weight")
+  )
+
+  expect_no_warning(
+    suppressWarnings(
+      ipw(nps_narrow_age, ref_wide_age, selection = ~age + sex)
+    ),
+    class = "surveywts_warning_ipw_covariate_range_extrapolation"
+  )
+})
+
+test_that("reference factor levels absent from NPS warns (Rule 8c)", {
+  # Reference has sex = {"M", "F", "Other"}; NPS only has {"M", "F"}.
+  # "Other" is in reference but absent from NPS → warning (Rule 8c).
+  # Use small NPS (nps_fraction <= 0.05) to avoid adjust_reference warnings.
+  set.seed(42L)
+  nps_no_other <- data.frame(
+    age_group   = sample(c("18-34", "35-54", "55+"), 10L,
+                         replace = TRUE),
+    sex         = sample(c("M", "F"), 10L, replace = TRUE),
+    base_weight = 1,
+    stringsAsFactors = FALSE
+  )
+  set.seed(99L)
+  ref_with_other_df <- data.frame(
+    age_group   = sample(c("18-34", "35-54", "55+"), 10000L,
+                         replace = TRUE),
+    sex         = c(sample(c("M", "F"), 9900L, replace = TRUE),
+                    rep("Other", 100L)),
+    base_weight = 1,
+    stringsAsFactors = FALSE
+  )
+  ref_with_other <- surveycore::survey_taylor(
+    data      = ref_with_other_df,
+    variables = list(weights = "base_weight")
+  )
+
+  expect_warning(
+    result <- ipw(nps_no_other, ref_with_other, selection = ~age_group + sex),
+    class = "surveywts_warning_ipw_reference_levels_absent_from_nps"
+  )
+  expect_snapshot(
+    expect_warning(
+      ipw(nps_no_other, ref_with_other, selection = ~age_group + sex),
+      class = "surveywts_warning_ipw_reference_levels_absent_from_nps"
+    )
+  )
+  test_invariants(result)
+})
+
+test_that("NPS levels absent from reference still errors (Rule 8 regression)", {
+  # NPS has sex = "Other" but reference only has {"M", "F"}.
+  # This is the existing Rule 8 — NPS level absent from reference → error.
+  set.seed(42L)
+  nps_with_other <- data.frame(
+    age_group   = sample(c("18-34", "35-54", "55+"), 100L,
+                         replace = TRUE),
+    sex         = c(sample(c("M", "F"), 90L, replace = TRUE),
+                    rep("Other", 10L)),
+    base_weight = 1,
+    stringsAsFactors = FALSE
+  )
+  set.seed(99L)
+  ref_no_other_df <- data.frame(
+    age_group   = sample(c("18-34", "35-54", "55+"), 1000L,
+                         replace = TRUE),
+    sex         = sample(c("M", "F"), 1000L, replace = TRUE),
+    base_weight = 1,
+    stringsAsFactors = FALSE
+  )
+  ref_no_other <- surveycore::survey_taylor(
+    data      = ref_no_other_df,
+    variables = list(weights = "base_weight")
+  )
+
+  expect_error(
+    ipw(nps_with_other, ref_no_other, selection = ~age_group + sex),
+    class = "surveywts_error_propensity_level_not_in_reference"
+  )
+})
+
+test_that("range and reverse-factor warnings can both fire (M-1 block 5)", {
+  # Setup: NPS has numeric age outside ref range AND ref has "Other" sex absent
+  # from NPS. Two independent warnings — test each with a separate ipw() call.
+  # Use small NPS (nps_fraction <= 0.05) to avoid adjust_reference warnings.
+  set.seed(42L)
+  nps_wide_age <- data.frame(
+    age         = c(10, seq(20, 60, length.out = 8L), 70),  # n=10, range [10, 70]
+    sex         = sample(c("M", "F"), 10L, replace = TRUE),
+    base_weight = 1,
+    stringsAsFactors = FALSE
+  )
+  set.seed(99L)
+  ref_narrow_other_df <- data.frame(
+    age         = seq(20, 60, length.out = 10000L),  # range [20, 60]
+    sex         = c(sample(c("M", "F"), 9900L, replace = TRUE),
+                    rep("Other", 100L)),
+    base_weight = 1,
+    stringsAsFactors = FALSE
+  )
+  ref_narrow_other <- surveycore::survey_taylor(
+    data      = ref_narrow_other_df,
+    variables = list(weights = "base_weight")
+  )
+
+  # Range warning fires (NPS age outside ref range)
+  expect_warning(
+    ipw(nps_wide_age, ref_narrow_other, selection = ~age + sex),
+    class = "surveywts_warning_ipw_covariate_range_extrapolation"
+  )
+
+  # Reverse-factor warning fires ("Other" in reference but not in NPS)
+  expect_warning(
+    ipw(nps_wide_age, ref_narrow_other, selection = ~age + sex),
+    class = "surveywts_warning_ipw_reference_levels_absent_from_nps"
+  )
+})

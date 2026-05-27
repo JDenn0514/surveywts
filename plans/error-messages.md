@@ -215,6 +215,8 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_warning_ipw_mice_m_ignored` | `ipw()` | User passed `m` in `mice_args` but `m = 1` is fixed; user value is ignored |
 | `surveywts_warning_ipw_reference_weight_adjusted` | `ipw()` | `adjust_reference = TRUE` and `nps_fraction > 0.05` — reference weights multiplied by `1 - nps_fraction` |
 | `surveywts_warning_ipw_reference_unadjusted_large_nps` | `ipw()` | `adjust_reference = FALSE` and `nps_fraction > 0.05` — no adjustment applied despite large NPS fraction |
+| `surveywts_warning_ipw_covariate_range_extrapolation` | `ipw()` | A selection numeric variable has a wider range in `data` than in `reference` (post-NA-deletion) — common support assumption may be violated |
+| `surveywts_warning_ipw_reference_levels_absent_from_nps` | `ipw()` | A reference factor/character level is absent from the NPS for a selection variable — reference units in these cells have near-zero propensity scores |
 | `surveywts_warning_no_weights_trimmed` | `trim_weights()` | No main weights fell outside the resolved bounds |
 | `surveywts_warning_trimming_failed` | `trim_weights()` | All remaining units already trimmed; no untrimmed units to absorb excess |
 | _See also:_ `surveywts_warning_negative_calibrated_weights` | — | Shared with `calibrate()` section; also thrown by `calibrate_to_survey()` and `calibrate_to_estimate()` |

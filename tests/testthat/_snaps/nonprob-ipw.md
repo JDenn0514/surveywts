@@ -137,6 +137,10 @@
       ! NPS (200 units) is 18.4% of the estimated population (N_hat = 1085).
       i Reference weights adjusted by factor 0.8157 per Valliant (2020) eq. (1): w* = w * (N_hat - n_NPS) / N_hat.
       v Set `adjust_reference = FALSE` to skip this adjustment if the NPS is known to be disjoint from the reference frame.
+      Warning:
+      ! Variable base_weight has a wider range in `data` ([0.300226094582475, 4.59105879739239]) than in `reference` ([0.247619179875111, 3.79135571884963]).
+      i NPS units outside the reference covariate range violate the common support assumption and may produce extreme propensity scores.
+      v Consider removing NPS units with base_weight values outside [0.247619179875111, 3.79135571884963], or trimming with `trim = TRUE`.
       Error in `ipw()`:
       x `missing_method = "separate"` cannot handle numeric selection variables with NA values.
       i Variable base_weight is <numeric> and has 1 NA value(s).
@@ -324,4 +328,30 @@
       x `adjust_reference` must be TRUE or FALSE.
       i Got <character> of length 1.
       v Set `adjust_reference = TRUE` (default) or `adjust_reference = FALSE`.
+
+# numeric covariate range extrapolation warns (Rule 8b)
+
+    Code
+      expect_warning(ipw(nps_with_wide_age, ref_narrow_age, selection = ~ age + sex),
+      class = "surveywts_warning_ipw_covariate_range_extrapolation")
+    Condition
+      Warning:
+      ! 10 propensity score(s) are below 0.01, producing extreme IPW weights (> 100).
+      i Very low participation propensity scores indicate NPS units with covariate combinations that are rare in the NPS but common in the reference.
+      v Consider trimming (`trim = TRUE`) or reviewing covariate balance between `data` and `reference`.
+
+# reference factor levels absent from NPS warns (Rule 8c)
+
+    Code
+      expect_warning(ipw(nps_no_other, ref_with_other, selection = ~ age_group + sex),
+      class = "surveywts_warning_ipw_reference_levels_absent_from_nps")
+    Condition
+      Warning:
+      ! Newton-Raphson did not converge after 25 iterations (max |delta| = 1).
+      i Propensity scores from the last iteration are returned.
+      v Increase `maxit`, relax `epsilon`, or check for extreme covariate imbalance between `data` and `reference`.
+      Warning:
+      ! 10 propensity score(s) are below 0.01, producing extreme IPW weights (> 100).
+      i Very low participation propensity scores indicate NPS units with covariate combinations that are rare in the NPS but common in the reference.
+      v Consider trimming (`trim = TRUE`) or reviewing covariate balance between `data` and `reference`.
 

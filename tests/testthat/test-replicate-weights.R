@@ -156,10 +156,10 @@ test_that("create_bootstrap_weights() Rao-Wu and Rao-Wu-Yue-Beaumont differ", {
 
 # ---- Spec §XIII 1d: mse = FALSE passes through correctly ---------------------
 
-test_that("create_bootstrap_weights() mse = FALSE is stored in history", {
+test_that("create_bootstrap_weights() mse = uncentered is stored in history", {
   skip_if_not_installed("svrep")
   td     <- make_taylor_design(seed = 1)
-  result <- create_bootstrap_weights(td, replicates = 20L, mse = FALSE, seed = 1L)
+  result <- create_bootstrap_weights(td, replicates = 20L, mse = "uncentered", seed = 1L)
   test_invariants(result)
   history <- result@metadata@weighting_history
   expect_false(history[[1L]]$parameters$mse)
@@ -180,11 +180,13 @@ test_that("create_bootstrap_weights() all-equal base weights succeeds", {
 
 # ---- .validate_replicates_arg() — NULL and non-numeric paths (lines 54–59) --
 
-test_that("create_bootstrap_weights() passes NULL replicates to svrep (which errors)", {
+test_that("create_bootstrap_weights() resolves NULL replicates to 500L for prob-sample types", {
   skip_if_not_installed("svrep")
   td <- make_taylor_design(seed = 1)
-  # NULL passes .validate_replicates_arg() (line 54) but svrep rejects it
-  expect_error(create_bootstrap_weights(td, replicates = NULL))
+  # NULL resolves to 500L for probability-sample types (new default behavior)
+  result <- create_bootstrap_weights(td, replicates = NULL, seed = 1L)
+  expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
+  expect_identical(length(result@variables$repweights), 500L)
 })
 
 test_that("create_bootstrap_weights() rejects character replicates", {

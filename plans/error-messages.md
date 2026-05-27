@@ -119,6 +119,7 @@ templates (organized by function in subsections XII.A through XII.G).
 
 | Class | Thrown by | Condition |
 |-------|-----------|-----------|
+| `surveywts_error_population_size_invalid` | `ipw()` | `population_size` is non-NULL and is not a positive finite numeric scalar |
 | `surveywts_error_not_data_frame` | `ipw()` | `data` is not a `data.frame` |
 | `surveywts_error_svydesign_not_taylor` | `ipw()` | `reference` is not `survey_taylor` |
 | `surveywts_error_reference_weights_nonpositive` | `ipw()` | Any reference design weight ≤ 0 |

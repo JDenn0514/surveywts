@@ -242,3 +242,23 @@
       i Got -1.
       v Set `epsilon` to a small positive value (e.g., `epsilon = 1e-8`).
 
+# population_size = 0 or negative → error
+
+    Code
+      ipw(nps, ref, selection = ~ age_group + sex, population_size = 0)
+    Condition
+      Error in `ipw()`:
+      x `population_size` must be a positive finite number.
+      i Got 0.
+      v Supply a known census population count or leave `population_size = NULL` to use the self-normalizing estimate.
+
+# population_size = non-numeric → error
+
+    Code
+      ipw(nps, ref, selection = ~ age_group + sex, population_size = "50000")
+    Condition
+      Error in `ipw()`:
+      x `population_size` must be a positive finite number.
+      i Got "50000".
+      v Supply a known census population count or leave `population_size = NULL` to use the self-normalizing estimate.
+

@@ -968,14 +968,14 @@ test_that("ipw() history operation = 'ipw' (not 'propensity_ipw')", {
   expect_identical(entry$operation, "ipw")
 })
 
-test_that("ipw() history estimator = 'ht'", {
+test_that("ipw() history estimator = 'ipw2' (regression: was 'ht')", {
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref()
 
   result <- ipw(nps, ref, selection = ~age_group + sex)
 
   entry <- result@metadata@weighting_history[[1L]]
-  expect_identical(entry$estimator, "ht")
+  expect_identical(entry$estimator, "ipw2")
 })
 
 test_that("ipw() history: trim = FALSE (default) / TRUE (when passed)", {
@@ -1042,4 +1042,163 @@ test_that("ipw() history missing_method reflects the argument value", {
   result2 <- ipw(nps, ref, selection = ~age_group + sex, missing_method = "separate")
   entry2 <- result2@metadata@weighting_history[[1L]]
   expect_identical(entry2$missing_method, "separate")
+})
+
+# ---------------------------------------------------------------------------
+# PR 1 — C-1: estimator field fixed to "ipw2"
+# ---------------------------------------------------------------------------
+
+test_that("ipw() history entry records estimator = 'ipw2'", {
+  nps <- .make_ipw_nps()
+  ref <- .make_ipw_ref()
+
+  result <- ipw(nps, ref, selection = ~age_group + sex)
+
+  test_invariants(result)
+  entry <- result@metadata@weighting_history[[1L]]
+  expect_identical(entry$estimator, "ipw2")
+  expect_true(entry$estimator != "ht")
+})
+
+# ---------------------------------------------------------------------------
+# PR 1 — M-6: propensity_scores in history entry
+# ---------------------------------------------------------------------------
+
+test_that("propensity_scores are in history entry as numeric vector", {
+  nps <- .make_ipw_nps()
+  ref <- .make_ipw_ref()
+
+  result <- ipw(nps, ref, selection = ~age_group + sex)
+
+  test_invariants(result)
+  hist <- result@metadata@weighting_history[[1L]]
+  expect_true(is.numeric(hist$propensity_scores))
+  expect_true(length(hist$propensity_scores) == nrow(nps))
+})
+
+test_that("all propensity_scores are in (0, 1)", {
+  nps <- .make_ipw_nps()
+  ref <- .make_ipw_ref()
+
+  result <- ipw(nps, ref, selection = ~age_group + sex)
+
+  hist <- result@metadata@weighting_history[[1L]]
+  scores <- hist$propensity_scores
+  eps <- .Machine$double.eps
+  expect_true(all(scores > eps))
+  expect_true(all(scores < 1 - eps))
+})
+
+test_that("propensity_scores length equals n_nps after omit", {
+  nps <- .make_ipw_nps()
+  nps$sex[1L:10L] <- NA_character_
+  ref <- .make_ipw_ref()
+
+  result_omit <- suppressWarnings(
+    ipw(nps, ref, selection = ~age_group + sex, missing_method = "omit")
+  )
+
+  test_invariants(result_omit)
+  hist_omit <- result_omit@metadata@weighting_history[[1L]]
+  expect_equal(length(hist_omit$propensity_scores), hist_omit$n_nps)
+})
+
+test_that("propensity_scores matches 1/weights before trimming", {
+  nps <- .make_ipw_nps()
+  ref <- .make_ipw_ref()
+
+  result <- ipw(nps, ref, selection = ~age_group + sex, trim = FALSE)
+
+  test_invariants(result)
+  hist <- result@metadata@weighting_history[[1L]]
+  weights_from_scores <- unname(1 / hist$propensity_scores)
+  weights_in_data <- result@data[["ipw_weight"]]
+  expect_equal(weights_in_data, weights_from_scores, tolerance = 1e-10)
+})
+
+# ---------------------------------------------------------------------------
+# PR 1 — L-4: population_size argument
+# ---------------------------------------------------------------------------
+
+test_that("population_size = NULL → population_size_known = FALSE", {
+  nps <- .make_ipw_nps()
+  ref <- .make_ipw_ref()
+
+  result <- ipw(nps, ref, selection = ~age_group + sex)
+
+  test_invariants(result)
+  hist <- result@metadata@weighting_history[[1L]]
+  expect_false(hist$population_size_known)
+})
+
+test_that("population_size supplied → population_size_known = TRUE, estimated_population_size = supplied value", {
+  nps <- .make_ipw_nps()
+  ref <- .make_ipw_ref()
+
+  result_known_n <- ipw(nps, ref, selection = ~age_group + sex,
+                        population_size = 50000)
+
+  test_invariants(result_known_n)
+  hist_known <- result_known_n@metadata@weighting_history[[1L]]
+  expect_true(hist_known$population_size_known)
+  expect_equal(hist_known$estimated_population_size, 50000, tolerance = 1e-10)
+})
+
+test_that("population_size does not change the weights", {
+  nps <- .make_ipw_nps()
+  ref <- .make_ipw_ref()
+
+  result_null <- ipw(nps, ref, selection = ~age_group + sex)
+  result_50k  <- ipw(nps, ref, selection = ~age_group + sex,
+                     population_size = 50000)
+
+  test_invariants(result_null)
+  test_invariants(result_50k)
+  expect_equal(
+    result_null@data[["ipw_weight"]],
+    result_50k@data[["ipw_weight"]],
+    tolerance = 1e-10
+  )
+})
+
+test_that("population_size = 0 or negative → error", {
+  nps <- .make_ipw_nps()
+  ref <- .make_ipw_ref()
+
+  expect_error(
+    ipw(nps, ref, selection = ~age_group + sex, population_size = 0),
+    class = "surveywts_error_population_size_invalid"
+  )
+  expect_snapshot(
+    error = TRUE,
+    ipw(nps, ref, selection = ~age_group + sex, population_size = 0)
+  )
+  expect_error(
+    ipw(nps, ref, selection = ~age_group + sex, population_size = -100),
+    class = "surveywts_error_population_size_invalid"
+  )
+})
+
+test_that("population_size = non-numeric → error", {
+  nps <- .make_ipw_nps()
+  ref <- .make_ipw_ref()
+
+  expect_error(
+    ipw(nps, ref, selection = ~age_group + sex, population_size = "50000"),
+    class = "surveywts_error_population_size_invalid"
+  )
+  expect_snapshot(
+    error = TRUE,
+    ipw(nps, ref, selection = ~age_group + sex, population_size = "50000")
+  )
+})
+
+test_that("population_size = Inf → error", {
+  nps <- .make_ipw_nps()
+  ref <- .make_ipw_ref()
+
+  expect_error(
+    ipw(nps, ref, selection = ~age_group + sex, population_size = Inf),
+    class = "surveywts_error_population_size_invalid"
+  )
 })

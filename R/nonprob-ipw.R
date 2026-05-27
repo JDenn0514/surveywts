@@ -160,6 +160,19 @@
 #'   Must be > 0. Default `1e-8`.
 #' @param trim Logical. If `TRUE`, IPW weights are trimmed at
 #'   `median(w) + 5 * IQR(w)` after estimation. Default `FALSE`.
+#' @param population_size Optional positive numeric scalar. If the population
+#'   size N is known from a census or frame, supply it here. When provided,
+#'   `estimated_population_size` in the history entry records this known value
+#'   and `population_size_known` is set to `TRUE`. This value is stored for
+#'   reference only and does not affect the returned weights or any downstream
+#'   `svymean()` call (which always uses the Hájek/IPW2 estimator). To compute
+#'   an IPW1-style mean manually: `sum(result@data[[wt_name]] * y) /
+#'   population_size`. When `NULL` (default), `population_size_known = FALSE`
+#'   and the self-normalizing estimate `N_hat = sum(1 / pi_hat)` is recorded
+#'   (IPW2/Hájek). If `population_size < nrow(data)`, the recorded value will
+#'   be smaller than the sample size — this indicates a user error (N < n is
+#'   impossible). Verify that `population_size` is the total population count N,
+#'   not a subsample or domain size.
 #' @param wt_name Name for the output weight column in `@data`. Must be a
 #'   non-empty character scalar that does not already exist in `data`.
 #'   Default `"ipw_weight"`.
@@ -275,18 +288,38 @@
 ipw <- function(
   data,
   reference,
-  selection      = NULL,
-  predictors     = NULL,
-  missing_method = c("omit", "separate", "impute"),
-  mice_args      = list(),
-  method         = "logit",
-  maxit          = 25L,
-  epsilon        = 1e-8,
-  trim           = FALSE,
-  wt_name        = "ipw_weight"
+  selection       = NULL,
+  predictors      = NULL,
+  missing_method  = c("omit", "separate", "impute"),
+  mice_args       = list(),
+  method          = "logit",
+  maxit           = 25L,
+  epsilon         = 1e-8,
+  trim            = FALSE,
+  population_size = NULL,
+  wt_name         = "ipw_weight"
 ) {
   # Behavior Rule 0: partial-match method
   method <- match.arg(method, c("logit", "probit", "cloglog"))
+
+  # Behavior Rule 0f: validate population_size
+  if (!is.null(population_size)) {
+    if (!is.numeric(population_size) || length(population_size) != 1L ||
+        is.na(population_size) || !is.finite(population_size) ||
+        population_size <= 0) {
+      cli::cli_abort(
+        c(
+          "x" = "{.arg population_size} must be a positive finite number.",
+          "i" = "Got {.val {population_size}}.",
+          "v" = paste0(
+            "Supply a known census population count or leave ",
+            "{.arg population_size = NULL} to use the self-normalizing estimate."
+          )
+        ),
+        class = "surveywts_error_population_size_invalid"
+      )
+    }
+  }
 
   # Behavior Rule 0a: conflict check
   if (!is.null(selection) && !is.null(predictors)) {
@@ -739,14 +772,17 @@ ipw <- function(
     formula                   = selection,
     method                    = method,
     missing_method            = missing_method,
-    estimator                 = "ht",
+    estimator                 = "ipw2",
     trim                      = trim,
     n_nps                     = nrow(data),
     n_reference               = nrow(ref_data_for_fit),
-    estimated_population_size = estimated_population_size,
+    estimated_population_size = if (!is.null(population_size)) population_size
+                                else estimated_population_size,
+    population_size_known     = !is.null(population_size),
     n_trimmed                 = as.integer(n_trimmed),
     reference_design          = reference,
-    targets_from_reference    = FALSE
+    targets_from_reference    = FALSE,
+    propensity_scores         = scores
   )
   meta <- result@metadata
   meta@weighting_history <- c(meta@weighting_history, list(history_entry))

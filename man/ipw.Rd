@@ -12,6 +12,7 @@ ipw(
   missing_method = c("omit", "separate", "impute"),
   mice_args = list(),
   method = "logit",
+  estimating_eq = c("mle", "gee"),
   maxit = 25L,
   epsilon = 1e-08,
   adjust_reference = TRUE,
@@ -63,6 +64,29 @@ not \code{"impute"}.}
 
 \item{method}{Link function for the propensity model. One of \code{"logit"}
 (default), \code{"probit"}, or \code{"cloglog"}. Partial matching is supported.}
+
+\item{estimating_eq}{Estimating equation for the propensity model. One of
+\code{"mle"} (default) or \code{"gee"}. Partial matching is supported.
+\itemize{
+\item \code{"mle"} uses the pseudo-likelihood score equation
+(Chen, Li & Wu, 2020; Beresewicz et al., 2025, eq. 3.1). Weights
+reproduce the reference-weighted covariate totals in expectation but
+not exactly.
+\item \code{"gee"} uses the calibration estimating equations
+(Beresewicz et al., 2025, eq. 3.3). At convergence, the weighted NPS
+covariate totals exactly reproduce the reference-weighted totals:
+\code{sum(w_k * x_k) = sum(d_k * x_k)}. When \code{adjust_reference = TRUE}
+and \code{nps_fraction > 0.05}, the calibration target is the
+Valliant-adjusted reference totals \code{sum(adjust_factor * d_k * x_k)}
+(where \code{adjust_factor = 1 - nps_fraction}), not the original
+design-weight totals. This covariate balance guarantee
+makes \code{"gee"} the building block for doubly robust estimation.
+When \code{missing_method = "separate"}, the guarantee applies only to
+complete-case NPS rows.
+}
+
+Beresewicz et al. (2025) show GEE-based methods generally outperform MLE
+in simulation. For most applications \code{"gee"} is preferred.}
 
 \item{maxit}{Maximum number of Newton-Raphson iterations. Must be >= 1.
 Default \code{25L}.}

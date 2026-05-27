@@ -13,7 +13,7 @@
 #' @keywords internal
 #' @noRd
 .fit_participation_propensity <- function(
-  selection, nps_data, ref_data, ref_weights, method, maxit, epsilon
+  selection, nps_data, ref_data, ref_weights, method, estimating_eq, maxit, epsilon
 ) {
   sel_vars <- all.vars(selection)
 
@@ -61,6 +61,10 @@
   converged <- FALSE
   delta     <- rep(Inf, ncol(X_nps_fit))
 
+  # GEE path: reference population covariate totals are constant across NR
+  # iterations (do not depend on gamma). Compute once before the loop.
+  ref_totals <- colSums(X_ref * d_ref)
+
   for (iter in seq_len(maxit)) {
     # Guard: detect NPS score saturation on the PREDICTION matrix (all NPS rows).
     # R's link functions cap at 1 - .Machine$double.eps rather than 1.0 exactly.
@@ -77,9 +81,26 @@
       ))
     }
 
-    pi_ref <- link(drop(X_ref %*% gamma))
-    score  <- colSums(X_nps_fit) - drop(t(X_ref) %*% (d_ref * pi_ref))
-    hess   <- -crossprod(X_ref, X_ref * (d_ref * pi_ref * (1 - pi_ref)))
+    if (estimating_eq == "mle") {
+      pi_ref <- link(drop(X_ref %*% gamma))
+      score  <- colSums(X_nps_fit) - drop(t(X_ref) %*% (d_ref * pi_ref))
+      hess   <- -crossprod(X_ref, X_ref * (d_ref * pi_ref * (1 - pi_ref)))
+    } else {
+      # GEE path: calibration score that guarantees sum(w * x) = sum(d_ref * x)
+      # at convergence. Jacobian sums over NPS rows (not reference rows).
+      pi_nps <- link(drop(X_nps_fit %*% gamma))
+      # Inner GEE guard: if any NPS propensity hits the float boundary, return
+      # early — same converged = FALSE path as the outer saturation guard.
+      if (any(pi_nps <= eps)) {
+        return(list(
+          scores      = link(drop(X_nps_pred %*% gamma)),
+          converged   = FALSE,
+          final_delta = max(abs(delta))
+        ))
+      }
+      score <- colSums(X_nps_fit / pi_nps) - ref_totals
+      hess  <- -crossprod(X_nps_fit, X_nps_fit * ((1 - pi_nps) / pi_nps))
+    }
     delta  <- tryCatch(
       solve(hess, score),
       error = function(e) cli::cli_abort(
@@ -154,6 +175,27 @@
 #'   not `"impute"`.
 #' @param method Link function for the propensity model. One of `"logit"`
 #'   (default), `"probit"`, or `"cloglog"`. Partial matching is supported.
+#' @param estimating_eq Estimating equation for the propensity model. One of
+#'   `"mle"` (default) or `"gee"`. Partial matching is supported.
+#'
+#'   - `"mle"` uses the pseudo-likelihood score equation
+#'     (Chen, Li & Wu, 2020; Beresewicz et al., 2025, eq. 3.1). Weights
+#'     reproduce the reference-weighted covariate totals in expectation but
+#'     not exactly.
+#'   - `"gee"` uses the calibration estimating equations
+#'     (Beresewicz et al., 2025, eq. 3.3). At convergence, the weighted NPS
+#'     covariate totals exactly reproduce the reference-weighted totals:
+#'     `sum(w_k * x_k) = sum(d_k * x_k)`. When `adjust_reference = TRUE`
+#'     and `nps_fraction > 0.05`, the calibration target is the
+#'     Valliant-adjusted reference totals `sum(adjust_factor * d_k * x_k)`
+#'     (where `adjust_factor = 1 - nps_fraction`), not the original
+#'     design-weight totals. This covariate balance guarantee
+#'     makes `"gee"` the building block for doubly robust estimation.
+#'     When `missing_method = "separate"`, the guarantee applies only to
+#'     complete-case NPS rows.
+#'
+#'   Beresewicz et al. (2025) show GEE-based methods generally outperform MLE
+#'   in simulation. For most applications `"gee"` is preferred.
 #' @param maxit Maximum number of Newton-Raphson iterations. Must be >= 1.
 #'   Default `25L`.
 #' @param epsilon Convergence threshold on the maximum absolute step size.
@@ -304,6 +346,7 @@ ipw <- function(
   missing_method   = c("omit", "separate", "impute"),
   mice_args        = list(),
   method           = "logit",
+  estimating_eq    = c("mle", "gee"),
   maxit            = 25L,
   epsilon          = 1e-8,
   adjust_reference = TRUE,
@@ -313,6 +356,9 @@ ipw <- function(
 ) {
   # Behavior Rule 0: partial-match method
   method <- match.arg(method, c("logit", "probit", "cloglog"))
+
+  # Behavior Rule 0d: partial-match estimating_eq
+  estimating_eq <- match.arg(estimating_eq, c("mle", "gee"))
 
   # Behavior Rule 0e: validate adjust_reference
   if (!is.logical(adjust_reference) || length(adjust_reference) != 1L ||
@@ -803,13 +849,14 @@ ipw <- function(
 
   # Behavior Rule 14: fit propensity model; check convergence
   fit <- .fit_participation_propensity(
-    selection   = selection,
-    nps_data    = data,
-    ref_data    = ref_data_for_fit,
-    ref_weights = ref_weights_for_fit,
-    method      = method,
-    maxit       = as.integer(maxit),
-    epsilon     = epsilon
+    selection     = selection,
+    nps_data      = data,
+    ref_data      = ref_data_for_fit,
+    ref_weights   = ref_weights_for_fit,
+    method        = method,
+    estimating_eq = estimating_eq,
+    maxit         = as.integer(maxit),
+    epsilon       = epsilon
   )
   if (!fit$converged) {
     cli::cli_warn(
@@ -919,6 +966,7 @@ ipw <- function(
     operation                 = "ipw",
     formula                   = selection,
     method                    = method,
+    estimating_eq             = estimating_eq,
     missing_method            = missing_method,
     estimator                 = "ipw2",
     adjust_reference          = adjust_reference,

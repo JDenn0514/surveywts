@@ -41,7 +41,8 @@ a warning) when \code{type} is a probability-sample type. \code{survey_replicate
 
 \item{mse}{\code{character(1)}. Variance formula for bootstrap variance.
 \code{"mse"} (default): mean squared deviation from the full-sample estimate,
-\verb{(1/B) Σ (θ̂^(b) − θ̂)²}. \code{"chrostowski"}: \verb{(1/(B−1)) Σ (θ̂^(b) − θ̂)²}
+\eqn{(1/B) \sum (\hat{\theta}^{(b)} - \hat{\theta})^2}.
+\code{"chrostowski"}: \eqn{(1/(B-1)) \sum (\hat{\theta}^{(b)} - \hat{\theta})^2}
 (NPS types only; errors for probability-sample types). \code{"uncentered"}:
 standard Bessel-corrected variance centered on the bootstrap mean.
 For probability-sample types, \code{"mse"} maps to \code{TRUE} and \code{"uncentered"}

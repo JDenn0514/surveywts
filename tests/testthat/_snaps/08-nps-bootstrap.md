@@ -134,3 +134,14 @@
       i `mse = TRUE` and `mse = FALSE` are no longer accepted.
       v Use `mse = "mse"` (replaces `TRUE`) or `mse = "uncentered"` (replaces `FALSE`).
 
+# create_bootstrap_weights() errors when all draws fail
+
+    Code
+      suppressWarnings(create_bootstrap_weights(nps_raked, type = "quasi-randomization",
+        replicates = 10L, seed = 8L))
+    Condition
+      Error in `.quasi_randomization_bootstrap()`:
+      x All 10 bootstrap draws failed; no replicate weights could be produced.
+      i Every resampled draw produced degenerate propensity scores or calibration divergence.
+      v Check the `data` for single-level covariates or extreme covariate imbalance with the reference.
+

@@ -585,7 +585,8 @@
 #'   → error.
 #' @param mse `character(1)`. Variance formula for bootstrap variance.
 #'   `"mse"` (default): mean squared deviation from the full-sample estimate,
-#'   `(1/B) Σ (θ̂^(b) − θ̂)²`. `"chrostowski"`: `(1/(B−1)) Σ (θ̂^(b) − θ̂)²`
+#'   \eqn{(1/B) \sum (\hat{\theta}^{(b)} - \hat{\theta})^2}.
+#'   `"chrostowski"`: \eqn{(1/(B-1)) \sum (\hat{\theta}^{(b)} - \hat{\theta})^2}
 #'   (NPS types only; errors for probability-sample types). `"uncentered"`:
 #'   standard Bessel-corrected variance centered on the bootstrap mean.
 #'   For probability-sample types, `"mse"` maps to `TRUE` and `"uncentered"`

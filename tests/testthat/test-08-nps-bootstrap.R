@@ -613,6 +613,15 @@ test_that("create_bootstrap_weights() errors when all draws fail", {
     )),
     class = "surveywts_error_bootstrap_all_draws_failed"
   )
+  expect_snapshot(
+    error = TRUE,
+    suppressWarnings(create_bootstrap_weights(
+      nps_raked,
+      type       = "quasi-randomization",
+      replicates = 10L,
+      seed       = 8L
+    ))
+  )
 })
 
 # EC3: mse variants stored correctly in history

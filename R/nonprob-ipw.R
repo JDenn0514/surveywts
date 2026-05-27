@@ -158,6 +158,17 @@
 #'   Default `25L`.
 #' @param epsilon Convergence threshold on the maximum absolute step size.
 #'   Must be > 0. Default `1e-8`.
+#' @param adjust_reference Logical (default `TRUE`). Whether to apply Valliant
+#'   (2020) Eq. (1) reference weight adjustment when the NPS is a non-negligible
+#'   fraction of the estimated population. When `nps_fraction = nrow(data) /
+#'   sum(d)` (where `d` are the reference design weights after excluding rows
+#'   with `NA` in any selection variable) exceeds 0.05, the reference weights
+#'   are multiplied by `(N_hat - n_NPS) / N_hat` to prevent the reference-side
+#'   score denominator from being inflated by NPS units already counted on the
+#'   NPS side. When `nps_fraction <= 0.05`, no adjustment is applied regardless
+#'   of this argument. Set `adjust_reference = FALSE` to skip the adjustment
+#'   when the NPS and reference frames are known to be disjoint and the
+#'   correction is inappropriate.
 #' @param trim Logical. If `TRUE`, IPW weights are trimmed at
 #'   `median(w) + 5 * IQR(w)` after estimation. Default `FALSE`.
 #' @param population_size Optional positive numeric scalar. If the population
@@ -288,19 +299,39 @@
 ipw <- function(
   data,
   reference,
-  selection       = NULL,
-  predictors      = NULL,
-  missing_method  = c("omit", "separate", "impute"),
-  mice_args       = list(),
-  method          = "logit",
-  maxit           = 25L,
-  epsilon         = 1e-8,
-  trim            = FALSE,
-  population_size = NULL,
-  wt_name         = "ipw_weight"
+  selection        = NULL,
+  predictors       = NULL,
+  missing_method   = c("omit", "separate", "impute"),
+  mice_args        = list(),
+  method           = "logit",
+  maxit            = 25L,
+  epsilon          = 1e-8,
+  adjust_reference = TRUE,
+  trim             = FALSE,
+  population_size  = NULL,
+  wt_name          = "ipw_weight"
 ) {
   # Behavior Rule 0: partial-match method
   method <- match.arg(method, c("logit", "probit", "cloglog"))
+
+  # Behavior Rule 0e: validate adjust_reference
+  if (!is.logical(adjust_reference) || length(adjust_reference) != 1L ||
+      is.na(adjust_reference)) {
+    cli::cli_abort(
+      c(
+        "x" = "{.arg adjust_reference} must be TRUE or FALSE.",
+        "i" = paste0(
+          "Got {.cls {class(adjust_reference)}} of ",
+          "length {length(adjust_reference)}."
+        ),
+        "v" = paste0(
+          "Set {.code adjust_reference = TRUE} (default) or ",
+          "{.code adjust_reference = FALSE}."
+        )
+      ),
+      class = "surveywts_error_adjust_reference_invalid"
+    )
+  }
 
   # Behavior Rule 0f: validate population_size
   if (!is.null(population_size)) {
@@ -484,6 +515,54 @@ ipw <- function(
     )
     ref_data_for_fit <- ref_data_for_fit[!ref_na_mask, , drop = FALSE]
     ref_weights_for_fit <- ref_weights_for_fit[!ref_na_mask]
+  }
+
+  # Behavior Rule 9a-ii: Reference weight adjustment (Valliant 2020, Eq. 1)
+  # n_hat from post-NA-deletion reference weights; nps_fraction from full NPS.
+  n_hat        <- sum(ref_weights_for_fit)
+  nps_fraction <- nrow(data) / n_hat
+  if (adjust_reference && nps_fraction > 0.05) {
+    adjust_factor       <- 1 - nps_fraction
+    ref_weights_for_fit <- ref_weights_for_fit * adjust_factor
+    cli::cli_warn(
+      c(
+        "!" = paste0(
+          "NPS ({nrow(data)} units) is ",
+          "{round(nps_fraction * 100, 1)}% of the estimated population ",
+          "(N_hat = {round(n_hat)})."
+        ),
+        "i" = paste0(
+          "Reference weights adjusted by factor {round(adjust_factor, 4)} per ",
+          "Valliant (2020) eq. (1): w* = w * (N_hat - n_NPS) / N_hat."
+        ),
+        "v" = paste0(
+          "Set {.code adjust_reference = FALSE} to skip this adjustment if the ",
+          "NPS is known to be disjoint from the reference frame."
+        )
+      ),
+      class = "surveywts_warning_ipw_reference_weight_adjusted"
+    )
+  } else if (!adjust_reference && nps_fraction > 0.05) {
+    adjust_factor <- 1
+    cli::cli_warn(
+      c(
+        "!" = paste0(
+          "NPS fraction is {round(nps_fraction * 100, 1)}% of the estimated ",
+          "population but {.code adjust_reference = FALSE}."
+        ),
+        "i" = paste0(
+          "Valliant (2020) recommends adjusting reference weights when ",
+          "n_NPS / N_hat > 5%."
+        ),
+        "v" = paste0(
+          "Set {.code adjust_reference = TRUE} (the default) to apply the ",
+          "correction."
+        )
+      ),
+      class = "surveywts_warning_ipw_reference_unadjusted_large_nps"
+    )
+  } else {
+    adjust_factor <- 1
   }
 
   # Behavior Rules 9b / 9c / 9d: NPS NA handling
@@ -773,6 +852,9 @@ ipw <- function(
     method                    = method,
     missing_method            = missing_method,
     estimator                 = "ipw2",
+    adjust_reference          = adjust_reference,
+    nps_fraction              = nps_fraction,
+    adjust_factor             = adjust_factor,
     trim                      = trim,
     n_nps                     = nrow(data),
     n_reference               = nrow(ref_data_for_fit),

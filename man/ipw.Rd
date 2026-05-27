@@ -15,6 +15,7 @@ ipw(
   maxit = 25L,
   epsilon = 1e-08,
   trim = FALSE,
+  population_size = NULL,
   wt_name = "ipw_weight"
 )
 }
@@ -70,6 +71,19 @@ Must be > 0. Default \code{1e-8}.}
 
 \item{trim}{Logical. If \code{TRUE}, IPW weights are trimmed at
 \code{median(w) + 5 * IQR(w)} after estimation. Default \code{FALSE}.}
+
+\item{population_size}{Optional positive numeric scalar. If the population
+size N is known from a census or frame, supply it here. When provided,
+\code{estimated_population_size} in the history entry records this known value
+and \code{population_size_known} is set to \code{TRUE}. This value is stored for
+reference only and does not affect the returned weights or any downstream
+\code{svymean()} call (which always uses the Hájek/IPW2 estimator). To compute
+an IPW1-style mean manually: \code{sum(result@data[[wt_name]] * y) / population_size}. When \code{NULL} (default), \code{population_size_known = FALSE}
+and the self-normalizing estimate \code{N_hat = sum(1 / pi_hat)} is recorded
+(IPW2/Hájek). If \code{population_size < nrow(data)}, the recorded value will
+be smaller than the sample size — this indicates a user error (N < n is
+impossible). Verify that \code{population_size} is the total population count N,
+not a subsample or domain size.}
 
 \item{wt_name}{Name for the output weight column in \verb{@data}. Must be a
 non-empty character scalar that does not already exist in \code{data}.

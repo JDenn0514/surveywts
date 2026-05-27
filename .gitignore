@@ -52,3 +52,6 @@ docs
 .quarto
 .Rproj.user
 .claude/settings.local.json
+
+# Pipeline workspace (runtime artifacts — not committed)
+.surveywts-workspace/

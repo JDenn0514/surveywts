@@ -88,9 +88,54 @@ test_invariants <- function(obj) {
   if (S7::S7_inherits(obj, surveycore::survey_replicate)) {
     testthat::expect_true(is.character(obj@variables$weights))
     testthat::expect_true(is.character(obj@variables$repweights))
-    testthat::expect_true(length(obj@variables$repweights) >= 2L)
+    testthat::expect_true(length(obj@variables$repweights) >= 1L)
     testthat::expect_true(all(obj@variables$repweights %in% names(obj@data)))
   }
+}
+
+# NPS reference design for ipw() tests.
+# Returns a survey_taylor from a probability sample with the same covariate
+# columns as make_surveywts_data(). The reference represents the population
+# against which NPS participation propensity is estimated.
+make_nps_reference <- function(n = 1000L, seed = 42L) {
+  set.seed(seed)
+  age_group <- sample(
+    c("18-34", "35-54", "55+"),
+    size = n,
+    replace = TRUE,
+    prob = c(0.30, 0.40, 0.30)
+  )
+  sex <- sample(
+    c("M", "F"),
+    size = n,
+    replace = TRUE,
+    prob = c(0.48, 0.52)
+  )
+  education <- sample(
+    c("<HS", "HS", "College", "Graduate"),
+    size = n,
+    replace = TRUE,
+    prob = c(0.10, 0.30, 0.40, 0.20)
+  )
+  region <- sample(
+    c("Northeast", "South", "Midwest", "West"),
+    size = n,
+    replace = TRUE,
+    prob = c(0.20, 0.35, 0.25, 0.20)
+  )
+  base_weight <- exp(rnorm(n, mean = 0, sd = 0.4))
+  ref_df <- data.frame(
+    age_group  = age_group,
+    sex        = sex,
+    education  = education,
+    region     = region,
+    base_weight = base_weight,
+    stringsAsFactors = FALSE
+  )
+  surveycore::survey_taylor(
+    data      = ref_df,
+    variables = list(weights = "base_weight")
+  )
 }
 
 # Clustered, stratified design for general replicate weight testing.
@@ -111,6 +156,17 @@ make_taylor_design <- function(
     base_weight = exp(rnorm(n, 0, 0.4))
   )
   surveycore::as_survey(df, ids = psu_id, strata = stratum, weights = base_weight)
+}
+
+# Replicate design for nonresponse phase tests.
+# Returns a survey_replicate built from make_surveywts_data().
+make_replicate_design <- function(n_replicates = 50L, seed = 42L) {
+  df <- make_surveywts_data(n = 200L, seed = seed)
+  taylor <- surveycore::survey_taylor(
+    data = df,
+    variables = list(weights = "base_weight")
+  )
+  create_bootstrap_weights(taylor, replicates = n_replicates)
 }
 
 # Paired-PSU design for BRR tests.

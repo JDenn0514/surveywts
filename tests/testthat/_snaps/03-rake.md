@@ -206,7 +206,7 @@
     Condition
       Error in `.calibrate_engine()`:
       x Raking did not converge after 2 full sweeps.
-      i anesrake::anesrake() reported: No convergence in 2 iterations
+      i Internal raking engine reported: No convergence in 2 iterations
       v Increase `control$maxit` or relax `control$improvement` in the `control` list.
 
 # rake() rejects cap with method = 'survey'
@@ -322,4 +322,14 @@
     Condition
       Error in `.validate_wt_name()`:
       x `wt_name` must be a non-empty, non-NA string.
+
+# rake() rejects non-taylor reference_design
+
+    Code
+      rake(df, margins = margins, reference_design = list())
+    Condition
+      Error in `.validate_reference_design()`:
+      x `reference_design` must be a <survey_taylor>.
+      i Got class <list>.
+      v Pass the <survey_taylor> object used to compute the targets.
 

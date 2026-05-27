@@ -12,7 +12,8 @@ rake(
   type = c("prop", "count"),
   method = c("anesrake", "survey"),
   cap = NULL,
-  control = list()
+  control = list(),
+  reference_design = NULL
 )
 }
 \arguments{
@@ -89,6 +90,12 @@ method-specific defaults. Omitted keys retain their defaults.
 Passing anesrake-specific keys when \code{method = "survey"} (or vice versa)
 triggers a \code{surveywts_warning_control_param_ignored} warning per
 ignored parameter.}
+
+\item{reference_design}{A \code{survey_taylor} object or \code{NULL} (default). The
+reference probability survey from which \code{margins} were estimated. When
+non-\code{NULL}, stored in the history entry and \code{targets_from_reference} is
+set to \code{TRUE}. Pass the same \code{survey_taylor} object used to compute the
+margin targets. \code{NULL} means targets are fixed population benchmarks.}
 }
 \value{
 \itemize{
@@ -134,6 +141,12 @@ margins <- list(
 )
 result <- rake(df, margins = margins)
 
+}
+\references{
+DeBell, M. and Krosnick, J. A. (2009). \emph{Computing Weights for American
+National Election Study Survey Data}. ANES Technical Report series,
+no. nes012427. Ann Arbor, MI, and Palo Alto, CA: American National
+Election Studies.
 }
 \seealso{
 Other calibration: 

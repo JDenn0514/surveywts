@@ -11,7 +11,8 @@ adjust_nonresponse(
   by = NULL,
   wt_name = "wts",
   method = c("weighting-class", "propensity-cell", "propensity"),
-  control = list(min_cell = 20, max_adjust = 2)
+  formula = NULL,
+  control = list(min_cell = 20, max_adjust = 2, n_cells = 5)
 )
 }
 \arguments{
@@ -35,17 +36,36 @@ all rows.}
 returned \code{weighted_df}. Default \code{"wts"}. Ignored when \code{data} is a survey
 object (\code{survey_taylor} or \code{survey_nonprob}).}
 
-\item{method}{Character scalar. Adjustment method. Currently, only
-\code{"weighting-class"} is supported. \code{"propensity"} and \code{"propensity-cell"}
-are API-stable stubs that error until the Propensity release.}
+\item{method}{Character scalar. Adjustment method. One of
+\code{"weighting-class"} (default), \code{"propensity-cell"}, or \code{"propensity"}.
+\itemize{
+\item \code{"weighting-class"}: cells are defined by \code{by} groups; adjustment
+factors are applied cell-by-cell.
+\item \code{"propensity-cell"}: fits a logistic response propensity model via
+\code{formula}, bins scores into \code{control$n_cells} quantile cells, then
+applies cell-level adjustments.
+\item \code{"propensity"}: fits a logistic response propensity model via \code{formula}
+and applies individual-level inverse-probability weights
+(\code{weight_i / propensity_i}) to each respondent. Requires \code{formula}.
+}}
 
-\item{control}{Named list of warning thresholds:
+\item{formula}{A one-sided formula (e.g., \code{~ age_group + sex}) used for
+propensity score estimation when \code{method = "propensity-cell"} or
+\code{method = "propensity"}. Required for \code{"propensity"}. All variables must
+be present in \code{data} with no \code{NA} values.}
+
+\item{control}{Named list of control parameters. Merged with defaults
+\code{list(min_cell = 20, max_adjust = 2.0, n_cells = 5)}.
 \itemize{
 \item \code{min_cell}: warn when a cell has fewer than this many respondents
-(default 20, per NAEP methodology).
-\item \code{max_adjust}: warn when the nonresponse adjustment factor for a cell
-exceeds this value (default 2.0, per \code{survey::sparseCells()} convention).
-Either condition alone triggers the warning.
+(default 20, per NAEP methodology). Used only for \code{"propensity-cell"}.
+\item \code{max_adjust}: warn when the nonresponse adjustment factor exceeds
+this value (default 5.0). For \code{"propensity-cell"}, the cell-level
+factor; for \code{"propensity"}, the individual IPW ratio relative to the
+mean respondent weight.
+\item \code{n_cells}: number of propensity score cells (default 5). Must be a whole
+number >= 2. Used only when \code{method = "propensity-cell"}.
+Either \code{min_cell} or \code{max_adjust} condition alone triggers the warning.
 }}
 }
 \value{
@@ -59,8 +79,10 @@ the total weight within each cell.
 rows only, because \code{survey_taylor} does not support zero weights)
 }
 
-A history entry with \code{operation = "nonresponse_weighting_class"} is
-appended to \code{weighting_history}.
+A history entry with \code{operation = "nonresponse_weighting_class"} (for
+\code{method = "weighting-class"}), \code{operation = "nonresponse_propensity_cell"}
+(for \code{method = "propensity-cell"}), or \code{operation = "nonresponse_propensity"}
+(for \code{method = "propensity"}) is appended to \code{weighting_history}.
 }
 \description{
 Redistributes the weights of nonrespondents to respondents within weighting
@@ -89,6 +111,20 @@ computing statistics.
 Re-calibrating post-nonresponse data requires filtering to respondents
 first, because \code{\link[=calibrate]{calibrate()}}, \code{\link[=rake]{rake()}}, and \code{\link[=poststratify]{poststratify()}} reject
 zero weights.
+
+\strong{Propensity-cell method:} A logistic regression is fitted via
+\code{\link[stats:glm]{stats::glm()}} with \code{family = binomial}. GLM convergence warnings (e.g.,
+fitted probabilities numerically 0 or 1) pass through unchanged. Cell
+boundaries are defined by unweighted quantiles of the predicted propensity
+scores. The \code{by} argument is silently ignored (a warning is issued).
+}
+\note{
+The propensity-cell method assumes \strong{Missing At Random (MAR)}: response
+propensity is fully captured by the formula variables. Violations of MAR
+(i.e., response depends on unobserved variables) cannot be detected or
+corrected by this method. Additionally, propensity scores are treated as
+known (estimated from the data), not as true population propensities; this
+understates variance and should be accounted for in downstream analysis.
 }
 \examples{
 df <- data.frame(
@@ -98,5 +134,12 @@ df <- data.frame(
 )
 result <- adjust_nonresponse(df, response_status = responded)
 
+}
+\seealso{
+\code{\link[=redistribute_weights]{redistribute_weights()}} for the general weight redistribution
+primitive that underlies \code{method = "weighting-class"}.
+
+Other nonresponse: 
+\code{\link{redistribute_weights}()}
 }
 \concept{nonresponse}

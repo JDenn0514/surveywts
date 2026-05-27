@@ -780,3 +780,145 @@ test_that("create_bootstrap_weights() quasi-randomization SE is within reasonabl
   expect_true(boot_se > 0)
   expect_true(boot_se < 5 * theo_se)
 })
+
+# ============================================================================
+# Coverage gap tests (BLOCK-3)
+# ============================================================================
+
+# CG1: .validate_replicates_arg(NULL) early return (line 54)
+test_that(".validate_replicates_arg(NULL) returns NULL", {
+  result <- surveywts:::.validate_replicates_arg(NULL)
+  expect_null(result)
+})
+
+# CG2: missing_method = "separate" reversion in draw loop (lines 350-360)
+test_that("create_bootstrap_weights() handles NPS built with missing_method = 'separate'", {
+  skip_if_not_installed("svrep")
+  df  <- make_surveywts_data(seed = 1)
+  # Introduce NAs in age_group for some rows so missing_method = "separate" matters
+  df$age_group[sample(nrow(df), 20)] <- NA
+  ref <- make_nps_ref(seed = 101)
+
+  nps_sep <- suppressWarnings(ipw(
+    data           = df,
+    reference      = ref,
+    selection      = ~age_group + sex,
+    missing_method = "separate"
+  ))
+
+  result <- suppressWarnings(create_bootstrap_weights(
+    nps_sep,
+    type       = "quasi-randomization",
+    replicates = 20L,
+    seed       = 1L
+  ))
+
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  expect_true(length(result@variables$repweights) >= 1L)
+  boot_entry <- result@metadata@weighting_history[[
+    length(result@metadata@weighting_history)
+  ]]
+  expect_identical(boot_entry$operation, "bootstrap_weights")
+})
+
+# CG3: calibrate() else branch in draw loop (lines 418-425)
+# NPS weighting history has calibrate() (operation = "calibration") not rake()
+test_that("create_bootstrap_weights() handles NPS built with calibrate() instead of rake()", {
+  skip_if_not_installed("svrep")
+  df  <- make_surveywts_data(seed = 3)
+  ref <- make_nps_ref(seed = 103)
+
+  nps_ipw <- suppressWarnings(ipw(
+    data      = df,
+    reference = ref,
+    selection = ~age_group + sex
+  ))
+
+  # Use calibrate() instead of rake() so the history entry has
+  # operation = "calibration", exercising the else branch at lines 418-425
+  pop_targets <- list(
+    age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+    sex       = c("M" = 0.49, "F" = 0.51)
+  )
+  nps_calibrated <- suppressWarnings(calibrate(
+    nps_ipw,
+    variables  = c(age_group, sex),
+    population = pop_targets,
+    type       = "prop"
+  ))
+
+  result <- suppressWarnings(create_bootstrap_weights(
+    nps_calibrated,
+    type       = "quasi-randomization",
+    replicates = 20L,
+    seed       = 3L
+  ))
+
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  expect_true(length(result@variables$repweights) >= 1L)
+  boot_entry <- result@metadata@weighting_history[[
+    length(result@metadata@weighting_history)
+  ]]
+  expect_identical(boot_entry$operation, "bootstrap_weights")
+  expect_identical(boot_entry$level, "A")
+})
+
+# CG4: type = "count" branch in .reestimate_margins_from_reference() (lines 549-552)
+# Level B bootstrap with rake(..., type = "count", reference_design = ref)
+test_that("create_bootstrap_weights() Level B with type = 'count' margins re-estimates correctly", {
+  skip_if_not_installed("svrep")
+  df  <- make_surveywts_data(seed = 5)
+  ref <- make_nps_ref(seed = 105)
+
+  nps_ipw <- suppressWarnings(ipw(
+    data      = df,
+    reference = ref,
+    selection = ~age_group + sex
+  ))
+
+  # rake with type = "count" and reference_design → Level B, count margins
+  # Population counts from reference design
+  ref_wts <- ref@data[[ref@variables$weights]]
+  ref_age <- as.character(ref@data$age_group)
+  ref_sex <- as.character(ref@data$sex)
+  count_margins <- list(
+    age_group = c(
+      "18-34" = sum(ref_wts[ref_age == "18-34"]),
+      "35-54" = sum(ref_wts[ref_age == "35-54"]),
+      "55+"   = sum(ref_wts[ref_age == "55+"])
+    ),
+    sex = c(
+      "M" = sum(ref_wts[ref_sex == "M"]),
+      "F" = sum(ref_wts[ref_sex == "F"])
+    )
+  )
+
+  nps_raked_count <- suppressWarnings(rake(
+    nps_ipw,
+    margins          = count_margins,
+    type             = "count",
+    reference_design = ref
+  ))
+
+  result <- suppressWarnings(create_bootstrap_weights(
+    nps_raked_count,
+    type       = "quasi-randomization",
+    replicates = 20L,
+    seed       = 5L
+  ))
+
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  expect_true(length(result@variables$repweights) >= 1L)
+  # Verify Level B is detected (targets_from_reference = TRUE)
+  boot_entry <- result@metadata@weighting_history[[
+    length(result@metadata@weighting_history)
+  ]]
+  expect_identical(boot_entry$level, "B")
+  # Repwt columns are present and numeric
+  for (col in result@variables$repweights) {
+    expect_true(is.numeric(result@data[[col]]))
+  }
+})

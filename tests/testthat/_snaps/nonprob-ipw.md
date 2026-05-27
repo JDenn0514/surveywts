@@ -233,7 +233,8 @@
 # ipw() errors when Hessian is singular (collinear covariates)
 
     Code
-      suppressWarnings(ipw(nps_coll, ref_coll, selection = ~ x1 + x2, adjust_reference = FALSE))
+      suppressWarnings(ipw(nps_coll, ref_coll, selection = ~ x1 + x2,
+      adjust_reference = FALSE))
     Condition
       Error in `value[[3L]]()`:
       x Propensity Hessian is singular: Lapack routine dgesv: system is exactly singular: U[3,3] = 0

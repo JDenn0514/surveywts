@@ -184,3 +184,52 @@ make_paired_design <- function(n_strata = 3L, obs_per_psu = 10L, seed = 42L) {
   )
   surveycore::as_survey(df, ids = psu_id, strata = stratum, weights = base_weight)
 }
+
+# NPS bootstrap helpers -------------------------------------------------------
+
+make_nps_ref <- function(seed = 42) {
+  ref_df <- make_surveywts_data(n = 1000, seed = seed)
+  surveycore::as_survey(ref_df, weights = base_weight)
+}
+
+# Level A: margins are fixed population targets, NOT derived from ref design.
+# targets_from_reference = FALSE in the rake history entry.
+make_nps_level_a <- function(seed = 1, n = 500) {
+  nps_df <- make_surveywts_data(n = n, seed = seed)
+  ref    <- make_nps_ref(seed = seed + 100)
+  ipw_result <- surveywts::ipw(
+    data      = nps_df,
+    reference = ref,
+    selection = ~age_group + sex
+  )
+  surveywts::rake(
+    ipw_result,
+    margins = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+    # No reference_design= argument → targets_from_reference = FALSE
+  )
+}
+
+# Level B: calibration margins derived from the reference design.
+# targets_from_reference = TRUE in the rake history entry.
+make_nps_level_b <- function(seed = 2, n = 500) {
+  ref <- make_nps_ref(seed = seed + 100)
+  nps_df <- make_surveywts_data(n = n, seed = seed)
+  ipw_result <- surveywts::ipw(
+    data      = nps_df,
+    reference = ref,
+    selection = ~age_group + sex
+  )
+  surveywts::rake(
+    ipw_result,
+    margins = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type             = "prop",
+    reference_design = ref  # -> targets_from_reference = TRUE
+  )
+}

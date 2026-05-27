@@ -173,6 +173,21 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_error_taylor_from_nonprob_replicate` | `as_taylor_design()` | Source was `survey_nonprob` |
 | `surveywts_error_unsupported_class` | All `create_*_weights()`, `as_taylor_design()` | Input class is not a supported survey design type |
 
+### NPS Bootstrap — `create_bootstrap_weights()` NPS types
+
+| Class | Thrown by | Condition |
+|-------|-----------|-----------|
+| `surveywts_error_qr_bootstrap_requires_nonprob` | `create_bootstrap_weights()` | `type = "quasi-randomization"` with non-`survey_nonprob` input |
+| `surveywts_error_hybrid_bootstrap_requires_nonprob` | `create_bootstrap_weights()` | `type = "hybrid"` with non-`survey_nonprob` input |
+| `surveywts_error_qr_bootstrap_no_ipw_history` | `.quasi_randomization_bootstrap()` | No `operation = "ipw"` entry in `@metadata@weighting_history` |
+| `surveywts_error_qr_bootstrap_no_reference` | `.quasi_randomization_bootstrap()` | `reference_design = NULL` in ipw history AND `reference_sample` not provided |
+| `surveywts_error_hybrid_bootstrap_not_implemented` | `create_bootstrap_weights()` | `type = "hybrid"` (any input) |
+| `surveywts_error_reference_sample_class` | `create_bootstrap_weights()` | `reference_sample` is non-`NULL` and not `survey_taylor` (includes `survey_replicate`) |
+| `surveywts_error_chrostowski_prob_sample` | `create_bootstrap_weights()` | `mse = "chrostowski"` with a probability-sample type |
+| `surveywts_error_bootstrap_all_draws_failed` | `.quasi_randomization_bootstrap()` | All B draws failed; 0 successful draws |
+| `surveywts_error_mse_not_character` | `create_bootstrap_weights()` | `mse` is `logical` (legacy boolean API) |
+| `surveywts_error_reference_bootstrap_failed` | `.quasi_randomization_bootstrap()` (Level B) | `svrep::as_bootstrap_design()` fails on the reference design |
+
 ### `trim_weights()` / `stabilize_weights()`
 
 | Class | Thrown by | Condition |
@@ -221,6 +236,9 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_warning_trimming_failed` | `trim_weights()` | All remaining units already trimmed; no untrimmed units to absorb excess |
 | _See also:_ `surveywts_warning_negative_calibrated_weights` | — | Shared with `calibrate()` section; also thrown by `calibrate_to_survey()` and `calibrate_to_estimate()` |
 | _See also:_ `surveywts_warning_class_near_empty` | — | Shared with `adjust_nonresponse()` section; also thrown by `redistribute_weights()` |
+| `surveywts_warning_reference_sample_ignored` | `create_bootstrap_weights()` | `reference_sample` non-`NULL` and `type` is a probability-sample type |
+| `surveywts_warning_bootstrap_draws_failed` | `.quasi_randomization_bootstrap()` | More than 10% of draws failed |
+| `surveywts_warning_repweights_overwritten` | `create_bootstrap_weights()` | `@variables$repweights` already populated (second call overwrites) |
 
 ## Messages
 

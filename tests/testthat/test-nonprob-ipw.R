@@ -1567,3 +1567,319 @@ test_that("range and reverse-factor warnings can both fire (M-1 block 5)", {
     class = "surveywts_warning_ipw_reference_levels_absent_from_nps"
   )
 })
+
+# ---------------------------------------------------------------------------
+# H-6 — GEE estimating equation
+# ---------------------------------------------------------------------------
+
+# H-6 blocks 1-4 use unit-weight synthetic data (n_NPS=200, n_hat=1000) to
+# ensure GEE convergence. GEE NR diverges from gamma=0 when n_hat >> n_NPS
+# (population-scaled weights such as gss_ipw_ref cause the first NR step to
+# overshoot by a factor of N_hat / n_NPS). Unit weights keep n_hat = n_ref,
+# making the scale comparable to n_NPS and enabling convergence.
+.make_gee_nps <- function() {
+  set.seed(42L)
+  data.frame(
+    age_group   = sample(c("18-34", "35-54", "55+"), 200L, replace = TRUE),
+    sex         = sample(c("M", "F"), 200L, replace = TRUE),
+    base_weight = 1,
+    stringsAsFactors = FALSE
+  )
+}
+
+.make_gee_ref <- function() {
+  set.seed(99L)
+  ref_df <- data.frame(
+    age_group   = sample(c("18-34", "35-54", "55+"), 1000L,
+                         replace = TRUE, prob = c(0.4, 0.4, 0.2)),
+    sex         = sample(c("M", "F"), 1000L, replace = TRUE),
+    base_weight = 1,
+    stringsAsFactors = FALSE
+  )
+  surveycore::survey_taylor(data = ref_df, variables = list(weights = "base_weight"))
+}
+
+test_that("estimating_eq = 'gee' converges on balanced data (H-6 block 1)", {
+  nps <- .make_gee_nps()
+  ref <- .make_gee_ref()
+
+  result <- suppressWarnings(
+    ipw(
+      nps,
+      ref,
+      selection        = ~age_group + sex,
+      estimating_eq    = "gee",
+      adjust_reference = FALSE
+    )
+  )
+
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+})
+
+test_that("GEE covariate balance guarantee at convergence (H-6 block 2)", {
+  # GEE guarantee: sum(w * x) = sum(d_ref * x) for all model matrix columns.
+  # Use adjust_reference = FALSE to isolate GEE from reference adjustment.
+  nps <- .make_gee_nps()
+  ref <- .make_gee_ref()
+
+  result <- suppressWarnings(
+    ipw(
+      nps,
+      ref,
+      selection        = ~age_group + sex,
+      estimating_eq    = "gee",
+      adjust_reference = FALSE
+    )
+  )
+
+  # Extract weights and build model matrices
+  w       <- result@data[["ipw_weight"]]
+  sel     <- ~age_group + sex
+  nps_fit <- result@data
+  ref_df  <- ref@data
+  ref_wts <- ref_df[[ref@variables$weights]]
+
+  # Align factor levels: use ref as authoritative
+  for (v in all.vars(sel)) {
+    if (is.character(ref_df[[v]]) || is.factor(ref_df[[v]])) {
+      ref_lv       <- sort(unique(as.character(ref_df[[v]][!is.na(ref_df[[v]])])))
+      nps_fit[[v]] <- factor(as.character(nps_fit[[v]]), levels = ref_lv)
+      ref_df[[v]]  <- factor(ref_df[[v]], levels = ref_lv)
+    }
+  }
+  X_nps <- stats::model.matrix(sel, data = nps_fit)
+  X_ref <- stats::model.matrix(sel, data = ref_df)
+
+  nps_totals <- colSums(X_nps * w)
+  ref_totals <- colSums(X_ref * ref_wts)
+
+  expect_equal(nps_totals, ref_totals, tolerance = 1e-6)
+})
+
+test_that(
+  "GEE balance holds against Valliant-adjusted reference totals (H-6 block 2b)",
+  {
+    # When nps_fraction > 0.05, adjust_reference = TRUE adjusts d_ref by
+    # (1 - nps_fraction). GEE calibration target is the adjusted totals.
+    set.seed(42L)
+    nps_small_df <- data.frame(
+      age_group   = sample(c("18-34", "35-54", "55+"), 50L,
+                           replace = TRUE, prob = c(0.3, 0.4, 0.3)),
+      sex         = sample(c("M", "F"), 50L, replace = TRUE),
+      base_weight = 1,
+      stringsAsFactors = FALSE
+    )
+    # Reference: 500 rows with weight 1 → n_hat = 500,  nps_fraction = 0.1 > 0.05
+    set.seed(99L)
+    ref_df <- data.frame(
+      age_group   = sample(c("18-34", "35-54", "55+"), 500L,
+                           replace = TRUE, prob = c(0.4, 0.4, 0.2)),
+      sex         = sample(c("M", "F"), 500L, replace = TRUE),
+      base_weight = 1,
+      stringsAsFactors = FALSE
+    )
+    ref_small <- surveycore::survey_taylor(
+      data      = ref_df,
+      variables = list(weights = "base_weight")
+    )
+
+    # Run with adjust_reference = TRUE (default); expect warning
+    result <- suppressWarnings(
+      ipw(
+        nps_small_df,
+        ref_small,
+        selection        = ~age_group + sex,
+        estimating_eq    = "gee",
+        adjust_reference = TRUE
+      )
+    )
+
+    hist        <- result@metadata@weighting_history[[1L]]
+    adj_factor  <- hist$adjust_factor
+    w           <- result@data[["ipw_weight"]]
+
+    # Align factor levels
+    sel      <- ~age_group + sex
+    nps_fit  <- result@data
+    ref_df2  <- ref_small@data
+    ref_wts  <- ref_df2[[ref_small@variables$weights]]
+    for (v in all.vars(sel)) {
+      if (is.character(ref_df2[[v]]) || is.factor(ref_df2[[v]])) {
+        ref_lv       <- sort(unique(as.character(ref_df2[[v]])))
+        nps_fit[[v]] <- factor(as.character(nps_fit[[v]]), levels = ref_lv)
+        ref_df2[[v]] <- factor(ref_df2[[v]], levels = ref_lv)
+      }
+    }
+    X_nps <- stats::model.matrix(sel, data = nps_fit)
+    X_ref <- stats::model.matrix(sel, data = ref_df2)
+
+    nps_totals <- colSums(X_nps * w)
+    adj_totals <- colSums(X_ref * ref_wts) * adj_factor
+
+    expect_equal(nps_totals, adj_totals, tolerance = 1e-6)
+  }
+)
+
+test_that(
+  "estimating_eq is recorded as 'gee' or 'mle' in history entry (H-6 block 3)",
+  {
+    nps <- .make_gee_nps()
+    ref <- .make_gee_ref()
+
+    result_gee <- suppressWarnings(
+      ipw(
+        nps,
+        ref,
+        selection        = ~age_group + sex,
+        estimating_eq    = "gee",
+        adjust_reference = FALSE
+      )
+    )
+    result_mle <- suppressWarnings(
+      ipw(
+        nps,
+        ref,
+        selection        = ~age_group + sex,
+        estimating_eq    = "mle",
+        adjust_reference = FALSE
+      )
+    )
+
+    expect_identical(
+      result_gee@metadata@weighting_history[[1L]]$estimating_eq,
+      "gee"
+    )
+    expect_identical(
+      result_mle@metadata@weighting_history[[1L]]$estimating_eq,
+      "mle"
+    )
+  }
+)
+
+test_that(
+  "estimating_eq = 'gee' and 'mle' produce different weights (H-6 block 4)",
+  {
+    nps <- .make_gee_nps()
+    ref <- .make_gee_ref()
+
+    result_gee <- suppressWarnings(
+      ipw(
+        nps,
+        ref,
+        selection        = ~age_group + sex,
+        estimating_eq    = "gee",
+        adjust_reference = FALSE
+      )
+    )
+    result_mle <- suppressWarnings(
+      ipw(
+        nps,
+        ref,
+        selection        = ~age_group + sex,
+        estimating_eq    = "mle",
+        adjust_reference = FALSE
+      )
+    )
+
+    w_gee <- result_gee@data[["ipw_weight"]]
+    w_mle <- result_mle@data[["ipw_weight"]]
+
+    expect_false(isTRUE(all.equal(w_gee, w_mle)))
+  }
+)
+
+test_that(
+  "GEE saturation guard triggers surveywts_error_propensity_scores_degenerate (H-6 block 5)",
+  {
+    # NPS has 50% F but reference has only 0.1% F — the GEE score pushes
+    # pi(F) → 0 (F is severely over-represented in NPS vs reference). This
+    # causes the NR to diverge, failing to converge, and the final scores
+    # saturate at the float boundary, triggering the degenerate-scores error.
+    set.seed(1L)
+    nps_df <- data.frame(
+      sex         = c(rep("M", 50L), rep("F", 50L)),
+      base_weight = 1,
+      stringsAsFactors = FALSE
+    )
+    set.seed(2L)
+    ref_df <- data.frame(
+      sex         = c(rep("M", 9990L), rep("F", 10L)),
+      base_weight = 1,
+      stringsAsFactors = FALSE
+    )
+    ref_design <- surveycore::survey_taylor(
+      data      = ref_df,
+      variables = list(weights = "base_weight")
+    )
+
+    expect_error(
+      suppressWarnings(
+        ipw(
+          nps_df,
+          ref_design,
+          selection        = ~sex,
+          estimating_eq    = "gee",
+          adjust_reference = FALSE
+        )
+      ),
+      class = "surveywts_error_propensity_scores_degenerate"
+    )
+  }
+)
+
+test_that(
+  "estimating_eq = 'gee' + missing_method = 'separate' emits no gee partial warning (H-6 block 6)",
+  {
+    # Decision 1 from decisions-ipw-extensions.md: no runtime warning for this
+    # combination. The limitation is doc-only. Assert that the call does NOT
+    # produce surveywts_warning_ipw_gee_calibration_partial.
+    # Use synthetic unit-weight data so GEE converges (population-scaled
+    # weights cause divergence from gamma=0).
+    set.seed(7L)
+    nps_with_na <- data.frame(
+      age_group   = sample(c("18-34", "35-54", "55+"), 200L, replace = TRUE),
+      sex         = c(
+        sample(c("M", "F"), 180L, replace = TRUE),
+        rep(NA_character_, 20L)
+      ),
+      base_weight = 1,
+      stringsAsFactors = FALSE
+    )
+    set.seed(8L)
+    ref_df2 <- data.frame(
+      age_group   = sample(c("18-34", "35-54", "55+"), 1000L,
+                           replace = TRUE, prob = c(0.4, 0.4, 0.2)),
+      sex         = sample(c("M", "F"), 1000L, replace = TRUE),
+      base_weight = 1,
+      stringsAsFactors = FALSE
+    )
+    ref2 <- surveycore::survey_taylor(
+      data      = ref_df2,
+      variables = list(weights = "base_weight")
+    )
+
+    # Capture warnings explicitly so we can inspect classes
+    w_classes <- character(0L)
+    withCallingHandlers(
+      suppressWarnings(
+        ipw(
+          nps_with_na,
+          ref2,
+          selection        = ~age_group + sex,
+          estimating_eq    = "gee",
+          missing_method   = "separate",
+          adjust_reference = FALSE
+        )
+      ),
+      warning = function(w) {
+        w_classes <<- c(w_classes, class(w))
+        invokeRestart("muffleWarning")
+      }
+    )
+
+    expect_false(
+      "surveywts_warning_ipw_gee_calibration_partial" %in% w_classes
+    )
+  }
+)

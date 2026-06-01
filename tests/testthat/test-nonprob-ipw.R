@@ -1858,15 +1858,19 @@ test_that("ipw() history entry includes correct numeric trim_threshold when trim
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref()
 
+  # Run without trimming to get the pre-trim weights.
+  result_notrim <- ipw(nps, ref, selection = ~age_group + sex, trim = FALSE)
+  w_notrim <- result_notrim@data[["ipw_weight"]]
+  expected_threshold <- median(w_notrim) + 5 * IQR(w_notrim)
+
   result <- ipw(nps, ref, selection = ~age_group + sex, trim = TRUE)
 
   entry <- result@metadata@weighting_history[[1L]]
   expect_true(is.numeric(entry$trim_threshold))
   expect_length(entry$trim_threshold, 1L)
-  # trim_threshold = median(w) + 5 * IQR(w) from pre-trim weights.
-  # We cannot recompute w_before_trim exactly here, so verify the value is
-  # plausible (positive) and that the field exists and is non-NULL.
   expect_true(entry$trim_threshold > 0)
+  # trim_threshold = median(w) + 5 * IQR(w) from the pre-trim weight vector.
+  expect_equal(entry$trim_threshold, expected_threshold, tolerance = 1e-10)
 })
 
 test_that(

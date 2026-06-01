@@ -124,3 +124,35 @@
       #   Step 2: group_jackknife_weights 
       #   Step 3: group_jackknife_weights 
 
+# create_group_jackknife_weights() warns when average group size < 5
+
+    Code
+      withCallingHandlers(create_group_jackknife_weights(datasets$A, groups = 200L,
+      seed = 1L), warning = function(w) {
+        if (!inherits(w, "surveywts_warning_dagjk_small_groups")) {
+          invokeRestart("muffleWarning")
+        }
+      })
+    Condition
+      Warning:
+      ! Average group size is 2 unit(s) (580 combined / 200 groups).
+      i Groups with fewer than 5 units may cause the logistic model to fail to converge in some replicates.
+      v Reduce `groups` or ensure the combined NPS + reference dataset is large enough relative to the number of groups.
+    Output
+      # A calibrated survey design: 80 observations, 203 variables
+      # Variance: model-assisted (SRS assumption)
+      # IDs: ~1 | Strata: NULL | Weights: ipw_weight 
+      # Weighting history: 2 steps 
+      #   Step 1: ipw [~age_group + sex, logit, n_ref=500, N_hat=501] 
+      #   Step 2: group_jackknife_weights 
+
+# create_group_jackknife_weights() errors when all replicates fail (corrupted formula)
+
+    Code
+      suppressWarnings(create_group_jackknife_weights(base, groups = 5L, seed = 1L))
+    Condition
+      Error in `create_group_jackknife_weights()`:
+      x All 5 group replicates failed; no replicate weights could be produced.
+      i Every replicate produced degenerate propensity scores or calibration divergence.
+      v Check `data` for single-level covariates or extreme covariate imbalance with the reference. Consider reducing `groups`.
+

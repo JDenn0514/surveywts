@@ -1,6 +1,6 @@
 # R/nps-group-jackknife.R
 #
-# create_group_jackknife_weights() — delete-a-group jackknife (DAGJK) replicate
+# create_group_jackknife_weights() -- delete-a-group jackknife (DAGJK) replicate
 # weights for non-probability samples (NPS).
 
 # ============================================================================
@@ -79,20 +79,20 @@
 # Throws surveywts_error_dagjk_degenerate_replicate on any failure condition.
 #
 # Arguments:
-#   g               : integer — the group index being deleted (1..G)
-#   group_assign    : integer vector of length (n_nps + n_ref) — group membership
-#   nps_data        : data.frame — the NPS @data
-#   ref_data        : data.frame — the reference @data
-#   ref_wt_col      : character(1) — name of weight column in ref_data
-#   ipw_entry       : list — the ipw() history entry
-#   calib_entry     : list or NULL — the last calibration history entry
-#   n_nps           : integer — total NPS row count
-#   n_ref           : integer — total reference row count
-#   use_level_b     : logical — TRUE if targets_from_reference
-#   ref_design      : survey_taylor — original reference design
-#   wt_col          : character(1) — name of the weight column in the NPS output
+#   g               : integer -- the group index being deleted (1..G)
+#   group_assign    : integer vector of length (n_nps + n_ref) -- group membership
+#   nps_data        : data.frame -- the NPS @data
+#   ref_data        : data.frame -- the reference @data
+#   ref_wt_col      : character(1) -- name of weight column in ref_data
+#   ipw_entry       : list -- the ipw() history entry
+#   calib_entry     : list or NULL -- the last calibration history entry
+#   n_nps           : integer -- total NPS row count
+#   n_ref           : integer -- total reference row count
+#   use_level_b     : logical -- TRUE if targets_from_reference
+#   ref_design      : survey_taylor -- original reference design
+#   wt_col          : character(1) -- name of the weight column in the NPS output
 #
-# Returns: numeric vector of length n_nps — replicate pseudo-weights.
+# Returns: numeric vector of length n_nps -- replicate pseudo-weights.
 #   Entries for group-g NPS units are 0 (assigned by the caller after return).
 .dagjk_single_replicate <- function(
   g, group_assign, nps_data, ref_data, ref_wt_col, ipw_entry,
@@ -187,7 +187,7 @@
     )),
     error = function(e) {
       cli::cli_abort(
-        c("x" = "Replicate {g}: ipw() failed — {conditionMessage(e)}"),
+        c("x" = "Replicate {g}: ipw() failed -- {conditionMessage(e)}"),
         class = "surveywts_error_dagjk_degenerate_replicate"
       )
     }
@@ -197,12 +197,17 @@
   w_g <- ipw_result_g@data[[wt_col]]
 
   # Validate: no NA, no non-positive values
+  # nocov start
+  # Defensive: ipw() validates its own output; this fires only if ipw() produces
+  # NA/non-positive weights despite passing its own internal checks -- not reachable
+  # through the public API in practice.
   if (any(is.na(w_g)) || any(w_g <= 0)) {
     cli::cli_abort(
       c("x" = "Replicate {g}: degenerate pseudo-weights (NA or <= 0)."),
       class = "surveywts_error_dagjk_degenerate_replicate"
     )
   }
+  # nocov end
 
   # Scale replicate weights to N_hat_g
   w_g <- w_g * (N_hat_g / sum(w_g))
@@ -261,7 +266,7 @@
       }
     }, error = function(e) {
       cli::cli_abort(
-        c("x" = "Replicate {g}: calibration failed — {conditionMessage(e)}"),
+        c("x" = "Replicate {g}: calibration failed -- {conditionMessage(e)}"),
         class = "surveywts_error_dagjk_degenerate_replicate"
       )
     })
@@ -324,7 +329,7 @@
 #'
 #' **Scaling factor:** Always `(G-1)/G` where `G` is the number of groups.
 #' Using total sample size n in place of G would inflate variance estimates
-#' by approximately (n-1)/(G-1) — a severe overestimate at typical values
+#' by approximately (n-1)/(G-1) -- a severe overestimate at typical values
 #' (e.g., n=500, G=50 gives approximately 10x inflation).
 #'
 #' **Groups span both samples:** Random groups are formed across the full
@@ -358,12 +363,12 @@
 #' `v_J = (G-1)/G * sum((theta_g - theta)^2)`. Setting `mse = FALSE` would
 #' produce a different variance estimator not justified by the DAGJK literature.
 #' When fewer than G replicates succeed, the scale is updated to
-#' `(G_success - 1) / G_success` — a pragmatic approximation that treats the
+#' `(G_success - 1) / G_success` -- a pragmatic approximation that treats the
 #' G_success successful replicates as the effective G.
 #'
 #' **Full-sample estimate `theta`:** The full-sample estimate `theta` in the
 #' DAGJK formula is the estimate computed using the weight column currently in
-#' `@data` — which reflects all weighting steps applied before calling this
+#' `@data` -- which reflects all weighting steps applied before calling this
 #' function. The downstream survey infrastructure uses `mse = TRUE` to enforce
 #' this centering.
 #'
@@ -382,7 +387,7 @@
 #' **Reference sample precedence:** When `reference_sample` is supplied and
 #' the `ipw()` history also stores a reference design, the `reference_sample`
 #' argument takes precedence silently. Verify that the supplied reference
-#' matches the one used in `ipw()` — using a different reference for the
+#' matches the one used in `ipw()` -- using a different reference for the
 #' replicate loop than for the full-sample model produces methodologically
 #' inconsistent variance estimates.
 #'
@@ -642,6 +647,11 @@ create_group_jackknife_weights <- function(
 
   # Negative weight warning (after assembling all replicate columns)
   rep_mat <- as.matrix(data@data[, repwt_names, drop = FALSE])
+  # nocov start
+  # Defensive: calibration normally keeps weights non-negative; this branch fires
+  # only when downstream calibration forces negative replicate weights -- a rare
+  # degenerate scenario that depends on extreme covariate imbalance and calibration
+  # targets. Not reachable with normal survey data through the public API.
   if (any(rep_mat < 0, na.rm = TRUE)) {
     cli::cli_warn(
       c(
@@ -658,6 +668,7 @@ create_group_jackknife_weights <- function(
       class = "surveywts_warning_dagjk_negative_replicate_weights"
     )
   }
+  # nocov end
 
   data@variables$repweights <- repwt_names
   data@variables$scale      <- (G_success - 1L) / G_success

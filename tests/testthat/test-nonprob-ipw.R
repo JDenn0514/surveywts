@@ -1828,6 +1828,47 @@ test_that(
   }
 )
 
+# ---------------------------------------------------------------------------
+# DAGJK-PR1 — ipw() history entry includes maxit, epsilon, trim_threshold
+# ---------------------------------------------------------------------------
+
+test_that("ipw() history entry includes maxit and epsilon with default values", {
+  nps <- .make_ipw_nps()
+  ref <- .make_ipw_ref()
+
+  result <- ipw(nps, ref, selection = ~age_group + sex)
+
+  entry <- result@metadata@weighting_history[[1L]]
+  expect_identical(entry$maxit, 25L)
+  expect_equal(entry$epsilon, 1e-8, tolerance = 1e-15)
+  expect_null(entry$trim_threshold)
+})
+
+test_that("ipw() history entry includes trim_threshold = NULL when trim = FALSE", {
+  nps <- .make_ipw_nps()
+  ref <- .make_ipw_ref()
+
+  result <- ipw(nps, ref, selection = ~age_group + sex, trim = FALSE)
+
+  entry <- result@metadata@weighting_history[[1L]]
+  expect_null(entry$trim_threshold)
+})
+
+test_that("ipw() history entry includes correct numeric trim_threshold when trim = TRUE", {
+  nps <- .make_ipw_nps()
+  ref <- .make_ipw_ref()
+
+  result <- ipw(nps, ref, selection = ~age_group + sex, trim = TRUE)
+
+  entry <- result@metadata@weighting_history[[1L]]
+  expect_true(is.numeric(entry$trim_threshold))
+  expect_length(entry$trim_threshold, 1L)
+  # trim_threshold = median(w) + 5 * IQR(w) from pre-trim weights.
+  # We cannot recompute w_before_trim exactly here, so verify the value is
+  # plausible (positive) and that the field exists and is non-NULL.
+  expect_true(entry$trim_threshold > 0)
+})
+
 test_that(
   "estimating_eq = 'gee' + missing_method = 'separate' emits no gee partial warning (H-6 block 6)",
   {

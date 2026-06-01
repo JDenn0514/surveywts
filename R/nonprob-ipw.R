@@ -1141,11 +1141,13 @@ ipw <- function(
   # Behavior Rule 18: optionally trim; record n_trimmed
   w_before_trim <- w
   n_trimmed <- 0L
+  trim_threshold <- NULL
   if (trim) {
+    trim_threshold <- stats::median(w) + 5 * stats::IQR(w)
     trim_result <- .trim_weights_internal(
       weights     = w,
       lower       = -Inf,
-      upper       = stats::median(w) + 5 * stats::IQR(w),
+      upper       = trim_threshold,
       has_trimmed = rep(FALSE, length(w))
     )
     w         <- trim_result$weights
@@ -1179,7 +1181,10 @@ ipw <- function(
     adjust_reference          = adjust_reference,
     nps_fraction              = nps_fraction,
     adjust_factor             = adjust_factor,
+    maxit                     = as.integer(maxit),
+    epsilon                   = epsilon,
     trim                      = trim,
+    trim_threshold            = trim_threshold,
     n_nps                     = nrow(data),
     n_reference               = nrow(ref_data_for_fit),
     estimated_population_size = if (!is.null(population_size)) population_size

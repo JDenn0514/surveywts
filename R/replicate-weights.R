@@ -215,6 +215,49 @@
 }
 
 # ============================================================================
+# .handle_repweights_overwrite()
+# ============================================================================
+
+# Internal helper: detect and clear existing replicate weights, emitting a
+# typed warning when overwriting is required.
+#
+# Arguments:
+#   data          : survey_nonprob (already validated)
+#   fn_name       : character(1) — name of the calling public function
+#   warning_class : character(1) — warning class to attach to cli_warn()
+#
+# Returns: `data` unchanged when @variables$repweights is NULL; otherwise
+#   returns `data` with old replicate columns removed from @data and
+#   @variables$repweights cleared to NULL.
+.handle_repweights_overwrite <- function(data, fn_name, warning_class) {
+  if (is.null(data@variables$repweights) ||
+        length(data@variables$repweights) == 0L) {
+    return(data)
+  }
+  n_old <- length(data@variables$repweights)
+  cli::cli_warn(
+    c(
+      "!" = paste0(
+        "Overwriting {n_old} existing replicate weight column(s) in ",
+        "{.arg data}."
+      ),
+      "i" = paste0(
+        "A previous call to {.fn {fn_name}} already produced ",
+        "{n_old} replicate column(s). They will be replaced."
+      ),
+      "v" = "Inspect the previous replicates before overwriting if needed."
+    ),
+    class = warning_class
+  )
+  old_cols <- data@variables$repweights
+  # Clear @variables$repweights first so the S7 validator does not require
+  # the replicate columns to still be present in @data when we remove them.
+  data@variables$repweights <- NULL
+  data@data <- data@data[, setdiff(names(data@data), old_cols), drop = FALSE]
+  data
+}
+
+# ============================================================================
 # .quasi_randomization_bootstrap()
 # ============================================================================
 
@@ -300,28 +343,11 @@
   use_level_b <- isTRUE(calib_entry$parameters$targets_from_reference)
 
   # ---- Second-call overwrite check ----------------------------------------
-  if (!is.null(data@variables$repweights) &&
-        length(data@variables$repweights) > 0L) {
-    n_old <- length(data@variables$repweights)
-    cli::cli_warn(
-      c(
-        "!" = paste0(
-          "Overwriting {n_old} existing replicate weight column(s) in ",
-          "{.arg data}."
-        ),
-        "i" = paste0(
-          "A previous call to {.fn create_bootstrap_weights} already produced ",
-          "{n_old} replicate column(s). They will be replaced."
-        ),
-        "v" = "Inspect the previous replicates before overwriting if needed."
-      ),
-      class = "surveywts_warning_repweights_overwritten"
-    )
-    # Remove old repwt_* columns from @data
-    old_cols <- data@variables$repweights
-    data@data <- data@data[, setdiff(names(data@data), old_cols), drop = FALSE]
-    data@variables$repweights <- NULL
-  }
+  data <- .handle_repweights_overwrite(
+    data,
+    fn_name       = "create_bootstrap_weights",
+    warning_class = "surveywts_warning_repweights_overwritten"
+  )
 
   B <- replicates
 

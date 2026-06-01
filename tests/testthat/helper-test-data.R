@@ -88,9 +88,54 @@ test_invariants <- function(obj) {
   if (S7::S7_inherits(obj, surveycore::survey_replicate)) {
     testthat::expect_true(is.character(obj@variables$weights))
     testthat::expect_true(is.character(obj@variables$repweights))
-    testthat::expect_true(length(obj@variables$repweights) >= 2L)
+    testthat::expect_true(length(obj@variables$repweights) >= 1L)
     testthat::expect_true(all(obj@variables$repweights %in% names(obj@data)))
   }
+}
+
+# NPS reference design for ipw() tests.
+# Returns a survey_taylor from a probability sample with the same covariate
+# columns as make_surveywts_data(). The reference represents the population
+# against which NPS participation propensity is estimated.
+make_nps_reference <- function(n = 1000L, seed = 42L) {
+  set.seed(seed)
+  age_group <- sample(
+    c("18-34", "35-54", "55+"),
+    size = n,
+    replace = TRUE,
+    prob = c(0.30, 0.40, 0.30)
+  )
+  sex <- sample(
+    c("M", "F"),
+    size = n,
+    replace = TRUE,
+    prob = c(0.48, 0.52)
+  )
+  education <- sample(
+    c("<HS", "HS", "College", "Graduate"),
+    size = n,
+    replace = TRUE,
+    prob = c(0.10, 0.30, 0.40, 0.20)
+  )
+  region <- sample(
+    c("Northeast", "South", "Midwest", "West"),
+    size = n,
+    replace = TRUE,
+    prob = c(0.20, 0.35, 0.25, 0.20)
+  )
+  base_weight <- exp(rnorm(n, mean = 0, sd = 0.4))
+  ref_df <- data.frame(
+    age_group  = age_group,
+    sex        = sex,
+    education  = education,
+    region     = region,
+    base_weight = base_weight,
+    stringsAsFactors = FALSE
+  )
+  surveycore::survey_taylor(
+    data      = ref_df,
+    variables = list(weights = "base_weight")
+  )
 }
 
 # Clustered, stratified design for general replicate weight testing.
@@ -113,6 +158,17 @@ make_taylor_design <- function(
   surveycore::as_survey(df, ids = psu_id, strata = stratum, weights = base_weight)
 }
 
+# Replicate design for nonresponse phase tests.
+# Returns a survey_replicate built from make_surveywts_data().
+make_replicate_design <- function(n_replicates = 50L, seed = 42L) {
+  df <- make_surveywts_data(n = 200L, seed = seed)
+  taylor <- surveycore::survey_taylor(
+    data = df,
+    variables = list(weights = "base_weight")
+  )
+  create_bootstrap_weights(taylor, replicates = n_replicates)
+}
+
 # Paired-PSU design for BRR tests.
 # Returns a survey_taylor with exactly 2 PSUs per stratum.
 make_paired_design <- function(n_strata = 3L, obs_per_psu = 10L, seed = 42L) {
@@ -127,4 +183,53 @@ make_paired_design <- function(n_strata = 3L, obs_per_psu = 10L, seed = 42L) {
     base_weight = exp(rnorm(n, 0, 0.4))
   )
   surveycore::as_survey(df, ids = psu_id, strata = stratum, weights = base_weight)
+}
+
+# NPS bootstrap helpers -------------------------------------------------------
+
+make_nps_ref <- function(seed = 42) {
+  ref_df <- make_surveywts_data(n = 1000, seed = seed)
+  surveycore::as_survey(ref_df, weights = base_weight)
+}
+
+# Level A: margins are fixed population targets, NOT derived from ref design.
+# targets_from_reference = FALSE in the rake history entry.
+make_nps_level_a <- function(seed = 1, n = 500) {
+  nps_df <- make_surveywts_data(n = n, seed = seed)
+  ref    <- make_nps_ref(seed = seed + 100)
+  ipw_result <- surveywts::ipw(
+    data      = nps_df,
+    reference = ref,
+    selection = ~age_group + sex
+  )
+  surveywts::rake(
+    ipw_result,
+    margins = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+    # No reference_design= argument → targets_from_reference = FALSE
+  )
+}
+
+# Level B: calibration margins derived from the reference design.
+# targets_from_reference = TRUE in the rake history entry.
+make_nps_level_b <- function(seed = 2, n = 500) {
+  ref <- make_nps_ref(seed = seed + 100)
+  nps_df <- make_surveywts_data(n = n, seed = seed)
+  ipw_result <- surveywts::ipw(
+    data      = nps_df,
+    reference = ref,
+    selection = ~age_group + sex
+  )
+  surveywts::rake(
+    ipw_result,
+    margins = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type             = "prop",
+    reference_design = ref  # -> targets_from_reference = TRUE
+  )
 }

@@ -37,18 +37,36 @@ questions:
         description: "This phase is self-contained."
 ```
 
-Wait for the user to provide any referenced documents. Read all provided
-context before writing a single line of the spec.
+Wait for the user to provide any referenced documents. If a `comprehension.md`
+exists from Stage 0, read it before drafting. Read all provided context before
+writing a single line of the spec.
 
 Confirm the `{id}` with the user if not obvious from context. Default patterns:
-"phase 1" → `phase-1`, "calibration" → `calibration`. The output file will be
-`plans/spec-{id}.md` — establish this before writing anything.
+"phase 1" → `phase-1`, "diagnostics" → `diagnostics`. Stage 1 produces TWO
+output files:
+- `plans/spec-{id}.md` — behavioral contract (what builder reads)
+- `plans/test-spec-{id}.md` — validation scenarios (what tester reads)
+
+Establish both file paths before writing anything.
 
 ---
 
-## Spec Structure
+## Two-artifact rule
 
-Model every spec on the Phase 1 structure. Required sections:
+Stage 1 always produces BOTH artifacts. They must be independently sufficient:
+- `spec-{id}.md` contains NO test cases, NO tolerances, NO test datasets
+- `test-spec-{id}.md` contains NO file paths from `R/`, NO internal helper names
+- Neither file says "see the other document"
+
+Think of them as two separate briefs for two different readers who will never
+talk to each other: the builder implements from the spec; the tester validates
+from the test-spec. They should arrive at the same behavior independently.
+
+---
+
+## `spec-{id}.md` structure
+
+Model every spec on this structure. Required sections:
 
 | Section | Content |
 |---|---|
@@ -63,7 +81,7 @@ Model every spec on the Phase 1 structure. Required sections:
 
 ---
 
-## Spec Writing Rules
+## `spec-{id}.md` writing rules
 
 - Every public function gets a full argument table: name, type, default,
   one-sentence description. Argument order must follow `code-style.md`:
@@ -88,11 +106,38 @@ Model every spec on the Phase 1 structure. Required sections:
 
 ---
 
+## `test-spec-{id}.md` structure
+
+Required sections per `artifact-schemas.md §test-spec-{id}.md`:
+
+| Section | Content |
+|---------|---------|
+| Reference oracle | Which package/function provides the ground truth (e.g., `survey::svymean`) |
+| Datasets | Which datasets to use for each test scenario |
+| Per-function test plan | Happy path, error paths, warning paths, edge cases, invariants |
+| Tolerances | Default: point 1e-10, SE 1e-8, CI 1e-6. Deviations require justification. |
+| Profile gates | Full list per `r-package-profile.md §Validation commands` |
+
+### `test-spec-{id}.md` writing rules
+
+- Every error class in the spec gets: `expect_error(class = ...)` AND
+  `expect_snapshot(error = TRUE)` (dual pattern from `testing-standards.md §3`)
+- Every edge case in the spec gets a test row
+- `test_invariants(obj)` is the first assertion for every test that constructs
+  a `weighted_df` or `survey_nonprob`
+- If `comprehension.md` exists: every gotcha listed there gets a test row or
+  an explicit "out of scope" note with justification
+- No file paths from `R/`. No internal function names.
+
+---
+
 ## After the Draft
 
 Tell the user:
 
-> "This is a first draft. I expect there are gaps. Next steps:
+> "spec-{id}.md and test-spec-{id}.md are drafted. I expect there are gaps.
+> Next steps:
 > - Run Stage 2 (methodology review) in a new session — it will self-assess
->   whether the feature needs a statistical pass and skip to Stage 3 if not.
+>   whether the feature needs a statistical pass and will apply the Literature
+>   Lens if a paper was attached.
 > - Do not resolve anything until both reviews are complete."

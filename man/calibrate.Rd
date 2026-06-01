@@ -12,7 +12,8 @@ calibrate(
   wt_name = "wts",
   method = c("linear", "logit"),
   type = c("prop", "count"),
-  control = list(maxit = 50, epsilon = 1e-07)
+  control = list(maxit = 50, epsilon = 1e-07),
+  reference_design = NULL
 )
 }
 \arguments{
@@ -49,6 +50,13 @@ are proportions. \code{"count"}: \code{population} values are counts.}
 
 \item{control}{Named list of convergence parameters. Merged with defaults
 \code{list(maxit = 50, epsilon = 1e-7)}. Omitted keys retain their defaults.}
+
+\item{reference_design}{A \code{survey_taylor} object or \code{NULL} (default). The
+reference probability survey from which \code{population} targets were
+estimated. When non-\code{NULL}, stored in the history entry and
+\code{targets_from_reference} is set to \code{TRUE}. Pass the same \code{survey_taylor}
+object used to compute the population targets. \code{NULL} means targets are
+fixed population benchmarks.}
 }
 \value{
 \itemize{

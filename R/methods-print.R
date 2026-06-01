@@ -65,5 +65,21 @@ S7::method(print, surveycore::survey_nonprob) <- function(x, n = 10, ...) {
     }
   }
 
+  # Bootstrap replicates (if present)
+  repwts <- x@variables$repweights
+  if (!is.null(repwts) && length(repwts) > 0L) {
+    boot_entries <- Filter(
+      function(e) identical(e$operation, "bootstrap_weights"),
+      history
+    )
+    if (length(boot_entries) > 0L) {
+      e <- boot_entries[[length(boot_entries)]]
+      cat(sprintf(
+        "# Bootstrap replicates: %d (%s, level %s)\n",
+        e$draws_used, e$type, e$level
+      ))
+    }
+  }
+
   invisible(x)
 }

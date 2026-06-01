@@ -24,6 +24,7 @@ templates (organized by function in subsections XII.A through XII.G).
 
 | Class | Thrown by | Condition |
 |-------|-----------|-----------|
+| `surveywts_error_reference_design_not_taylor` | `calibrate()` | `reference_design` is non-`NULL` and is not a `survey_taylor` object |
 | `surveywts_error_variable_not_categorical` | `calibrate()` | Calibration variable is numeric or integer |
 | `surveywts_error_variable_has_na` | `calibrate()` | A calibration variable has `NA` values |
 | `surveywts_error_population_variable_not_found` | `calibrate()` | A `population` name not found in `data` |
@@ -36,6 +37,7 @@ templates (organized by function in subsections XII.A through XII.G).
 
 | Class | Thrown by | Condition |
 |-------|-----------|-----------|
+| `surveywts_error_reference_design_not_taylor` | `rake()` | `reference_design` is non-`NULL` and is not a `survey_taylor` object |
 | `surveywts_error_margins_format_invalid` | `rake()` | `margins` is not a named list or valid long data frame |
 | `surveywts_error_margins_variable_not_found` | `rake()` | A margins variable not found in `data` |
 | `surveywts_error_variable_not_categorical` | `rake()` | Raking variable is numeric or integer |
@@ -68,7 +70,81 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_error_response_status_all_zero` | `adjust_nonresponse()` | All rows are nonrespondents |
 | `surveywts_error_class_cell_empty` | `adjust_nonresponse()` | Weighting class cell has no respondents |
 | `surveywts_error_response_status_multiple_columns` | `adjust_nonresponse()` | `response_status` selects > 1 column |
-| `surveywts_error_propensity_not_available` | `adjust_nonresponse()` | `method` is `"propensity"` or `"propensity-cell"` (not yet available) |
+| ~~`surveywts_error_propensity_not_available`~~ | `adjust_nonresponse()` | Retired in Propensity phase — `method = "propensity"` is now fully implemented. |
+
+### `adjust_nonresponse(method = "propensity")`
+
+| Class | Thrown by | Condition |
+|-------|-----------|-----------|
+| `surveywts_error_formula_required_for_propensity` | `adjust_nonresponse()` | `method = "propensity"` and `formula = NULL` |
+| `surveywts_error_formula_variable_has_na` | `adjust_nonresponse()` | A formula variable contains `NA` values (reuse) |
+| _See also:_ `surveywts_error_formula_invalid` | — | Shared with calibration section above |
+| _See also:_ `surveywts_error_formula_variable_not_found` | — | Shared with calibration section above |
+| _See also:_ `surveywts_error_propensity_scores_degenerate` | — | Shared with `ipw()` section above |
+
+### `calibrate_to_survey()` / `calibrate_to_estimate()`
+
+| Class | Thrown by | Condition |
+|-------|-----------|-----------|
+| `surveywts_error_primary_not_replicate` | `calibrate_to_survey()`, `calibrate_to_estimate()` | `primary_design` / `design` is not `survey_replicate` |
+| `surveywts_error_control_not_replicate` | `calibrate_to_survey()` | `control_design` is not `survey_replicate` |
+| `surveywts_error_replicate_count_mismatch` | `calibrate_to_survey()` | Number of replicates differs between `primary_design` and `control_design` |
+| `surveywts_error_formula_variable_not_found` | `calibrate_to_survey()`, `calibrate_to_estimate()`, `adjust_nonresponse(method = "propensity-cell")` | A formula variable not found in the design data |
+| `surveywts_error_formula_invalid` | `calibrate_to_survey()`, `calibrate_to_estimate()`, `adjust_nonresponse(method = "propensity-cell")` | `formula` is not a one-sided formula object |
+| `surveywts_error_estimate_not_named` | `calibrate_to_estimate()` | `estimate` vector is not named |
+| `surveywts_error_estimate_has_na` | `calibrate_to_estimate()` | `estimate` vector has `NA` values |
+| `surveywts_error_estimate_length_mismatch` | `calibrate_to_estimate()` | Length of `estimate` does not match model matrix columns |
+| `surveywts_error_estimate_names_mismatch` | `calibrate_to_estimate()` | Names of `estimate` do not match model matrix column names |
+| `surveywts_error_vcov_dimension_mismatch` | `calibrate_to_estimate()` | `vcov_estimate` dimensions do not match `estimate` length |
+| `surveywts_error_vcov_has_na` | `calibrate_to_estimate()` | `vcov_estimate` has `NA` values |
+| `surveywts_error_vcov_not_symmetric` | `calibrate_to_estimate()` | `vcov_estimate` is not symmetric (within 1e-8 tolerance) |
+| `surveywts_error_vcov_cholesky_failed` | `calibrate_to_estimate()` | `vcov_estimate` is not positive definite (Cholesky fails) |
+| `surveywts_error_calibration_not_converged` | `.calibrate_engine()`, `calibrate_to_survey()`, `calibrate_to_estimate()` | Max iterations reached without convergence — **reuse existing class** |
+
+### `redistribute_weights()`
+
+| Class | Thrown by | Condition |
+|-------|-----------|-----------|
+| `surveywts_error_reduce_if_not_found` | `redistribute_weights()` | `reduce_if` column not found in data |
+| `surveywts_error_increase_if_not_found` | `redistribute_weights()` | `increase_if` column not found in data |
+| `surveywts_error_reduce_if_not_binary` | `redistribute_weights()` | `reduce_if` column is not 0/1 or logical |
+| `surveywts_error_increase_if_not_binary` | `redistribute_weights()` | `increase_if` column is not 0/1 or logical |
+| `surveywts_error_reduce_if_has_na` | `redistribute_weights()` | `reduce_if` column has `NA` values |
+| `surveywts_error_increase_if_has_na` | `redistribute_weights()` | `increase_if` column has `NA` values |
+| `surveywts_error_indicators_overlap` | `redistribute_weights()` | A row has both `reduce_if = 1` and `increase_if = 1` |
+| `surveywts_error_no_recipients_in_group` | `redistribute_weights()` | A group has `reduce_if` rows but no `increase_if` rows |
+| `surveywts_error_wt_name_conflict` | `redistribute_weights()` | `wt_name` matches an existing non-weight column |
+
+### `ipw()`
+
+| Class | Thrown by | Condition |
+|-------|-----------|-----------|
+| `surveywts_error_population_size_invalid` | `ipw()` | `population_size` is non-NULL and is not a positive finite numeric scalar |
+| `surveywts_error_adjust_reference_invalid` | `ipw()` | `adjust_reference` is not `logical(1)` or is `NA` |
+| `surveywts_error_not_data_frame` | `ipw()` | `data` is not a `data.frame` |
+| `surveywts_error_svydesign_not_taylor` | `ipw()` | `reference` is not `survey_taylor` |
+| `surveywts_error_reference_weights_nonpositive` | `ipw()` | Any reference design weight ≤ 0 |
+| `surveywts_error_selection_missing` | `ipw()` | Both `selection` and `predictors` are `NULL` |
+| `surveywts_error_selection_conflict` | `ipw()` | Both `selection` and `predictors` are non-`NULL` |
+| `surveywts_error_formula_variable_not_in_reference` | `ipw()` | A `selection` variable missing from `reference@data` |
+| `surveywts_error_propensity_level_not_in_reference` | `ipw()` | A factor/char level in `data` absent from `reference@data` |
+| `surveywts_error_propensity_invalid_maxit` | `ipw()` | `maxit < 1L` |
+| `surveywts_error_propensity_invalid_epsilon` | `ipw()` | `epsilon <= 0` |
+| `surveywts_error_propensity_scores_degenerate` | `ipw()` | Any estimated score ≤ 0 or ≥ 1 |
+| `surveywts_error_propensity_hessian_singular` | `.fit_participation_propensity()` | Hessian singular during Newton-Raphson |
+| `surveywts_error_separate_numeric_na` | `ipw()` | `missing_method = "separate"` and a numeric selection variable in `data` has NA values |
+| `surveywts_error_mice_not_installed` | `ipw()` | `missing_method = "impute"` but the `mice` package is not installed |
+
+### `adjust_nonresponse()` — propensity-cell
+
+| Class | Thrown by | Condition |
+|-------|-----------|-----------|
+| `surveywts_error_formula_required_for_propensity_cell` | `adjust_nonresponse()` | `method = "propensity-cell"` but `formula = NULL` |
+| `surveywts_error_formula_variable_has_na` | `adjust_nonresponse()` | A formula variable contains `NA` values |
+| `surveywts_error_n_cells_invalid` | `adjust_nonresponse()` | `control$n_cells` is not a whole number ≥ 2 |
+| `surveywts_error_no_respondents_in_propensity_cell` | `adjust_nonresponse()` | A propensity score cell contains no respondents |
+| _See also:_ `surveywts_error_formula_invalid` | — | Shared with calibration section above |
+| _See also:_ `surveywts_error_formula_variable_not_found` | — | Shared with calibration section above |
 
 ### Diagnostics
 
@@ -97,6 +173,35 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_error_taylor_from_nonprob_replicate` | `as_taylor_design()` | Source was `survey_nonprob` |
 | `surveywts_error_unsupported_class` | All `create_*_weights()`, `as_taylor_design()` | Input class is not a supported survey design type |
 
+### NPS Bootstrap — `create_bootstrap_weights()` NPS types
+
+| Class | Thrown by | Condition |
+|-------|-----------|-----------|
+| `surveywts_error_qr_bootstrap_requires_nonprob` | `create_bootstrap_weights()` | `type = "quasi-randomization"` with non-`survey_nonprob` input |
+| `surveywts_error_hybrid_bootstrap_requires_nonprob` | `create_bootstrap_weights()` | `type = "hybrid"` with non-`survey_nonprob` input |
+| `surveywts_error_qr_bootstrap_no_ipw_history` | `.quasi_randomization_bootstrap()` | No `operation = "ipw"` entry in `@metadata@weighting_history` |
+| `surveywts_error_qr_bootstrap_no_reference` | `.quasi_randomization_bootstrap()` | `reference_design = NULL` in ipw history AND `reference_sample` not provided |
+| `surveywts_error_hybrid_bootstrap_not_implemented` | `create_bootstrap_weights()` | `type = "hybrid"` (any input) |
+| `surveywts_error_reference_sample_class` | `create_bootstrap_weights()` | `reference_sample` is non-`NULL` and not `survey_taylor` (includes `survey_replicate`) |
+| `surveywts_error_chrostowski_prob_sample` | `create_bootstrap_weights()` | `mse = "chrostowski"` with a probability-sample type |
+| `surveywts_error_bootstrap_all_draws_failed` | `.quasi_randomization_bootstrap()` | All B draws failed; 0 successful draws |
+| `surveywts_error_mse_not_character` | `create_bootstrap_weights()` | `mse` is `logical` (legacy boolean API) |
+| `surveywts_error_reference_bootstrap_failed` | `.quasi_randomization_bootstrap()` (Level B) | `svrep::as_bootstrap_design()` fails on the reference design |
+
+### `trim_weights()` / `stabilize_weights()`
+
+| Class | Thrown by | Condition |
+|-------|-----------|-----------|
+| `surveywts_error_null_bound_percentile` | `trim_weights()` | `upper = NULL` with `type = "percentile"` |
+| `surveywts_error_k_not_scalar` | `trim_weights()` | `k` is not `numeric(1)` or is `NA` |
+| `surveywts_error_k_nonpositive` | `trim_weights()` | `k <= 0` |
+| `surveywts_error_lower_not_scalar` | `trim_weights()` | `lower` is not `numeric(1)` or is `NA` |
+| `surveywts_error_upper_not_scalar` | `trim_weights()` | `upper` is not `numeric(1)` or is `NA` |
+| `surveywts_error_bounds_invalid` | `trim_weights()` | Resolved `lower_abs >= upper_abs` |
+| `surveywts_error_upper_nonpositive` | `trim_weights()` | `upper <= 0` when `type = "absolute"` |
+| `surveywts_error_percentile_out_of_range` | `trim_weights()` | Bound not in [0, 1] with `type = "percentile"` |
+| `surveywts_error_by_variable_not_found` | `stabilize_weights()` | A `by` variable not in `data` |
+
 ### Internal / Utility
 
 | Class | Thrown by | Condition |
@@ -113,6 +218,27 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_warning_negative_calibrated_weights` | `calibrate()` | Linear calibration produced negative calibrated weights |
 | `surveywts_warning_class_near_empty` | `adjust_nonresponse()` | A weighting class cell has fewer than `control$min_cell` respondents (default 20) OR adjustment factor exceeds `control$max_adjust` (default 2.0) |
 | `surveywts_warning_control_param_ignored` | `rake()` | A `control` parameter is not applicable to the specified `method` (e.g., `control$pval` with `method = "survey"`, or `control$epsilon` with `method = "anesrake"`) |
+| `surveywts_warning_replicate_scheme_mismatch` | `calibrate_to_survey()` | `primary_design` and `control_design` have different replicate weight types (e.g., `"bootstrap"` vs `"JK1"`) |
+| `surveywts_warning_by_ignored_for_propensity_cell` | `adjust_nonresponse()` | `by` is non-`NULL` with `method = "propensity-cell"` — `by` is ignored for this method |
+| `surveywts_warning_by_ignored_for_propensity` | `adjust_nonresponse()` | `by` is non-`NULL` with `method = "propensity"` — `by` is ignored for this method |
+| `surveywts_warning_extreme_propensity_adjustment` | `adjust_nonresponse()` | Maximum weight adjustment ratio (`max(w/score) / mean(w)`) exceeds `control$max_adjust` (default 5.0) |
+| `surveywts_warning_propensity_glm_convergence` | `adjust_nonresponse()` | `stats::glm()` emits an "algorithm did not converge" warning during response propensity fitting |
+| `surveywts_warning_extreme_propensity_scores` | `ipw()`, `adjust_nonresponse()` | Any estimated propensity score < 0.01 |
+| `surveywts_warning_propensity_nr_no_convergence` | `ipw()` | Newton-Raphson exhausted `maxit` without convergence |
+| `surveywts_warning_ipw_data_na_omitted` | `ipw()` | `missing_method = "omit"` dropped NPS rows with NA in selection variables; reports count and variable names |
+| `surveywts_warning_ipw_reference_na_omitted` | `ipw()` | Reference rows with NA in selection variables excluded from model fitting; reports count and variable names |
+| `surveywts_warning_ipw_mice_m_ignored` | `ipw()` | User passed `m` in `mice_args` but `m = 1` is fixed; user value is ignored |
+| `surveywts_warning_ipw_reference_weight_adjusted` | `ipw()` | `adjust_reference = TRUE` and `nps_fraction > 0.05` — reference weights multiplied by `1 - nps_fraction` |
+| `surveywts_warning_ipw_reference_unadjusted_large_nps` | `ipw()` | `adjust_reference = FALSE` and `nps_fraction > 0.05` — no adjustment applied despite large NPS fraction |
+| `surveywts_warning_ipw_covariate_range_extrapolation` | `ipw()` | A selection numeric variable has a wider range in `data` than in `reference` (post-NA-deletion) — common support assumption may be violated |
+| `surveywts_warning_ipw_reference_levels_absent_from_nps` | `ipw()` | A reference factor/character level is absent from the NPS for a selection variable — reference units in these cells have near-zero propensity scores |
+| `surveywts_warning_no_weights_trimmed` | `trim_weights()` | No main weights fell outside the resolved bounds |
+| `surveywts_warning_trimming_failed` | `trim_weights()` | All remaining units already trimmed; no untrimmed units to absorb excess |
+| _See also:_ `surveywts_warning_negative_calibrated_weights` | — | Shared with `calibrate()` section; also thrown by `calibrate_to_survey()` and `calibrate_to_estimate()` |
+| _See also:_ `surveywts_warning_class_near_empty` | — | Shared with `adjust_nonresponse()` section; also thrown by `redistribute_weights()` |
+| `surveywts_warning_reference_sample_ignored` | `create_bootstrap_weights()` | `reference_sample` non-`NULL` and `type` is a probability-sample type |
+| `surveywts_warning_bootstrap_draws_failed` | `.quasi_randomization_bootstrap()` | More than 10% of draws failed |
+| `surveywts_warning_repweights_overwritten` | `create_bootstrap_weights()` | `@variables$repweights` already populated (second call overwrites) |
 
 ## Messages
 

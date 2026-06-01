@@ -75,9 +75,11 @@ Rules for the PR map:
 **Depends on:** PR [n] (or "none")
 
 **Files (in TDD order — tests first):**
+- `plans/error-messages.md` — (if new error/warning classes) add all new classes before writing any R code
+- `tests/testthat/helper-test-data.R` — (if new test helpers needed) extend before writing tests
 - `tests/testthat/test-[file].R` — [one-sentence description]
 - `R/[file].R` — [one-sentence description]
-- `changelog/phase-{X}/feature-[name].md` — created last, before opening PR
+- `changelog/{phase-name}/feature-[name].md` — created last, before opening PR
 
 **Acceptance criteria:**
 - [ ] All new tests confirmed failing (red) before implementation began
@@ -85,6 +87,8 @@ Rules for the PR map:
 - [ ] `devtools::document()` run; NAMESPACE and man/ in sync
 - [ ] [specific test categories that must pass for this PR]
 - [ ] Numerical oracle tolerance: point 1e-10, SE 1e-8 (where applicable)
+- [ ] Test coverage ≥ 98% overall (verify with `covr::package_coverage()`)
+- [ ] `plans/error-messages.md` updated with all new error/warning classes (if applicable)
 - [ ] Changelog entry written and committed on this branch
 
 **Notes:** [Any implementation details the implementor needs to know that aren't

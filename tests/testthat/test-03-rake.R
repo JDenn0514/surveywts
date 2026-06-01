@@ -1420,7 +1420,7 @@ test_that("rake() records wt_name in weighting history", {
 # anesrake::anesrake(), so tests can compare per-unit weights directly.
 .call_anesrake_direct <- function(
   df, margins_prop, starting_weights,
-  cap = 5, pctlim = 0.01, nlim = 0L, maxit = 1000L, choosemethod = "total"
+  cap = Inf, pctlim = 0.01, nlim = 0L, maxit = 1000L, choosemethod = "total"
 ) {
   df_direct <- df
   for (v in names(margins_prop)) {
@@ -1451,6 +1451,7 @@ test_that("rake() records wt_name in weighting history", {
 }
 
 test_that("rake(method='anesrake') weights match direct anesrake::anesrake() call (type='prop')", {
+  skip_if_not_installed("anesrake")
   df      <- make_surveywts_data(n = 200, seed = 50)
   margins <- list(
     age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
@@ -1462,13 +1463,14 @@ test_that("rake(method='anesrake') weights match direct anesrake::anesrake() cal
   )[["wts"]]
 
   # type = "prop": prop → count → prop is identity, so pass margins directly.
-  # cap = NULL in rake() → engine substitutes cap = 5 for anesrake.
+  # cap = NULL → Inf (no cap applied)
   ref_weights <- .call_anesrake_direct(df, margins, df$base_weight)
 
   expect_equal(sw_weights, ref_weights, tolerance = 1e-10)
 })
 
 test_that("rake(method='anesrake', type='count') correctly converts counts to proportions", {
+  skip_if_not_installed("anesrake")
   df             <- make_surveywts_data(n = 200, seed = 51)
   margins_counts <- list(
     age_group = c("18-34" = 150, "35-54" = 200, "55+" = 150),
@@ -1487,23 +1489,36 @@ test_that("rake(method='anesrake', type='count') correctly converts counts to pr
   expect_equal(sw_weights, ref_weights, tolerance = 1e-10)
 })
 
-test_that("rake(method='anesrake', cap=NULL) substitutes anesrake's default cap of 5", {
-  df      <- make_surveywts_data(n = 200, seed = 52)
+test_that("rake(method='anesrake', cap=NULL) applies no cap", {
+  skip_if_not_installed("anesrake")
+  # Highly imbalanced data: sample ~70% "18-34", target 10% — natural max ~8.8
+  set.seed(99)
+  df_imbal <- data.frame(
+    age_group   = sample(c("18-34", "35-54", "55+"), 500, replace = TRUE,
+                         prob = c(0.70, 0.20, 0.10)),
+    sex         = sample(c("M", "F"), 500, replace = TRUE, prob = c(0.70, 0.30)),
+    base_weight = rep(1, 500)
+  )
   margins <- list(
-    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
+    age_group = c("18-34" = 0.10, "35-54" = 0.40, "55+" = 0.50),
     sex       = c("M" = 0.48, "F" = 0.52)
   )
 
-  # cap = NULL (default) → engine passes cap = 5 to anesrake (NULL not accepted)
-  sw_weights  <- rake(
-    df, margins = margins, weights = base_weight, method = "anesrake", cap = NULL
-  )[["wts"]]
-  ref_weights <- .call_anesrake_direct(df, margins, df$base_weight, cap = 5)
+  result  <- rake(df_imbal, margins = margins, weights = base_weight,
+                  method = "anesrake", cap = NULL)
+  wt_col  <- attr(result, "weight_col")
+  capping <- attr(result, "weighting_history")[[1]]$capping
 
-  expect_equal(sw_weights, ref_weights, tolerance = 1e-10)
+  # capping in history is NULL when no cap is set
+  expect_null(capping)
+
+  # max weight should be uncapped (anesrake's hardcoded default of 5 must NOT apply)
+  # With bug (cap=5 applied), max ~5.0001; after fix (cap=Inf), max ~8.8
+  expect_gt(max(result[[wt_col]]), 6)
 })
 
 test_that("rake(method='anesrake') passes explicit cap to anesrake::anesrake()", {
+  skip_if_not_installed("anesrake")
   df      <- make_surveywts_data(n = 200, seed = 53)
   margins <- list(
     age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
@@ -1519,6 +1534,7 @@ test_that("rake(method='anesrake') passes explicit cap to anesrake::anesrake()",
 })
 
 test_that("rake(method='anesrake') passes custom control params to anesrake::anesrake()", {
+  skip_if_not_installed("anesrake")
   df      <- make_surveywts_data(n = 200, seed = 54)
   margins <- list(
     age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
@@ -1536,4 +1552,115 @@ test_that("rake(method='anesrake') passes custom control params to anesrake::ane
   )
 
   expect_equal(sw_weights, ref_weights, tolerance = 1e-10)
+})
+
+# ---------------------------------------------------------------------------
+# Pre-cap weight history — rake(method = "anesrake")
+# ---------------------------------------------------------------------------
+
+test_that("rake() history capping is NULL when cap = NULL", {
+  df      <- make_surveywts_data(n = 200, seed = 1)
+  margins <- list(
+    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
+    sex       = c("M" = 0.48, "F" = 0.52)
+  )
+
+  result  <- rake(df, margins = margins, weights = base_weight, method = "anesrake")
+  capping <- attr(result, "weighting_history")[[1]]$capping
+
+  expect_null(capping)
+})
+
+test_that("rake() history capping$applied is FALSE when no weights exceed cap", {
+  df      <- make_surveywts_data(n = 200, seed = 1)
+  margins <- list(
+    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
+    sex       = c("M" = 0.48, "F" = 0.52)
+  )
+
+  # seed=1 with these margins produces max weight ~3.14; cap=10 will not fire
+  result  <- rake(df, margins = margins, weights = base_weight, method = "anesrake", cap = 10)
+  capping <- attr(result, "weighting_history")[[1]]$capping
+
+  expect_false(capping$applied)
+  expect_identical(capping$n_capped, 0L)
+  expect_true(is.numeric(capping$precap_weights))
+  expect_identical(length(capping$precap_weights), nrow(df))
+})
+
+test_that("rake() history capping records pre-cap weights correctly when cap fires", {
+  df      <- make_surveywts_data(n = 200, seed = 1)
+  margins <- list(
+    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
+    sex       = c("M" = 0.48, "F" = 0.52)
+  )
+
+  # seed=1 + standard margins: max weight ~3.14; 28 of 200 weights exceed 1.5
+  result  <- rake(df, margins = margins, weights = base_weight, method = "anesrake", cap = 1.5)
+  capping <- attr(result, "weighting_history")[[1]]$capping
+  final   <- result[["wts"]]
+
+  expect_true(capping$applied)
+  expect_gt(capping$n_capped, 0L)
+  expect_gt(capping$max_precap, 1.5)
+  expect_gt(capping$mean_excess, 0)
+  expect_identical(length(capping$precap_weights), nrow(df))
+
+  # wherever final weight == cap, the pre-cap weight must have been >= cap
+  capped_idx <- which(abs(final - 1.5) < 1e-8)
+  expect_true(all(capping$precap_weights[capped_idx] >= 1.5))
+})
+
+# ---------------------------------------------------------------------------
+# reference_design — history recording (NPS bootstrap compatibility)
+# ---------------------------------------------------------------------------
+
+test_that("rake() records type in history parameters", {
+  df      <- make_surveywts_data(seed = 1)
+  margins <- .make_margins()
+
+  result <- rake(df, margins = margins)
+  entry  <- attr(result, "weighting_history")[[1L]]
+
+  expect_true("type" %in% names(entry$parameters))
+  expect_identical(entry$parameters$type, "prop")
+})
+
+test_that("rake() records reference_design and targets_from_reference = TRUE in history", {
+  df         <- make_surveywts_data(seed = 1)
+  margins    <- .make_margins()
+  ref_taylor <- .make_test_taylor_rake(df)
+
+  result <- rake(df, margins = margins, reference_design = ref_taylor)
+
+  test_invariants(result)
+  entry <- attr(result, "weighting_history")[[1L]]
+  expect_true(entry$parameters$targets_from_reference)
+  expect_identical(entry$parameters$reference_design, ref_taylor)
+})
+
+test_that("rake() records targets_from_reference = FALSE when reference_design = NULL", {
+  df      <- make_surveywts_data(seed = 1)
+  margins <- .make_margins()
+
+  result <- rake(df, margins = margins)
+
+  test_invariants(result)
+  entry <- attr(result, "weighting_history")[[1L]]
+  expect_false(entry$parameters$targets_from_reference)
+  expect_null(entry$parameters$reference_design)
+})
+
+test_that("rake() rejects non-taylor reference_design", {
+  df      <- make_surveywts_data(seed = 1)
+  margins <- .make_margins()
+
+  expect_error(
+    rake(df, margins = margins, reference_design = list()),
+    class = "surveywts_error_reference_design_not_taylor"
+  )
+  expect_snapshot(
+    error = TRUE,
+    rake(df, margins = margins, reference_design = list())
+  )
 })

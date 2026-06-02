@@ -178,11 +178,14 @@
 # ============================================================================
 
 # Validates that reference_sample is a survey_taylor. Errors with a specific
-# message if it is a survey_replicate (common mistake). Returns invisible(TRUE).
+# message if it is a survey_replicate (common mistake) or a data.frame
+# (also a common mistake — user forgot to wrap in survey_taylor). Returns
+# invisible(TRUE) on success.
 .validate_reference_sample <- function(reference_sample) {
   if (!S7::S7_inherits(reference_sample, surveycore::survey_taylor)) {
     cls <- class(reference_sample)[[1L]]
     is_rep <- S7::S7_inherits(reference_sample, surveycore::survey_replicate)
+    is_df  <- inherits(reference_sample, "data.frame")
     cli::cli_abort(
       c(
         "x" = paste0(
@@ -193,6 +196,11 @@
           paste0(
             "A replicate-weighted reference survey is not supported here. ",
             "Only {.cls survey_taylor} (Taylor-series linearization design) is accepted."
+          )
+        } else if (is_df) {
+          paste0(
+            "Use {.fn survey::svydesign} to convert an SRS data frame to a ",
+            "{.cls survey_taylor} object."
           )
         } else {
           "Only {.cls survey_taylor} (Taylor-series linearization design) is accepted."

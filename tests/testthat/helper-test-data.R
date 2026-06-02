@@ -233,3 +233,158 @@ make_nps_level_b <- function(seed = 2, n = 500) {
     reference_design = ref  # -> targets_from_reference = TRUE
   )
 }
+
+# DAGJK datasets for create_group_jackknife_weights() tests.
+# Returns a named list:
+#   A: survey_nonprob after ipw() only (reference stored in history)
+#   B: survey_nonprob after ipw() + rake() with literal targets
+#   C: survey_nonprob after ipw() — same as A (reference in ipw history)
+#   ref: the survey_taylor reference used for all datasets
+#
+# NPS: 80 units. Reference: 500 units (large enough to avoid degenerate scores).
+# Two categorical covariates: age_group (3 levels), sex (2 levels).
+# Using well-matched distributions to ensure ipw() converges cleanly.
+make_dagjk_datasets <- function() {
+  set.seed(101L)
+
+  # Reference probability sample (500 units — must be >> NPS for propensity stability)
+  ref_df <- data.frame(
+    age_group   = sample(
+      c("18-34", "35-54", "55+"),
+      size = 500L,
+      replace = TRUE,
+      prob = c(0.30, 0.40, 0.30)
+    ),
+    sex         = sample(
+      c("M", "F"),
+      size = 500L,
+      replace = TRUE,
+      prob = c(0.48, 0.52)
+    ),
+    ref_weight  = rep(1, 500L),
+    stringsAsFactors = FALSE
+  )
+  ref <- surveycore::survey_taylor(
+    data      = ref_df,
+    variables = list(weights = "ref_weight")
+  )
+
+  # NPS (80 units, slightly different distribution to induce propensity variation)
+  set.seed(202L)
+  nps_df <- data.frame(
+    age_group = sample(
+      c("18-34", "35-54", "55+"),
+      size = 80L,
+      replace = TRUE,
+      prob = c(0.40, 0.35, 0.25)
+    ),
+    sex = sample(
+      c("M", "F"),
+      size = 80L,
+      replace = TRUE,
+      prob = c(0.55, 0.45)
+    ),
+    stringsAsFactors = FALSE
+  )
+
+  # Dataset A: ipw() only, no post-ipw calibration
+  # reference is stored in ipw history entry
+  A <- suppressWarnings(surveywts::ipw(
+    data             = nps_df,
+    reference        = ref,
+    selection        = ~age_group + sex,
+    adjust_reference = FALSE
+  ))
+
+  # Dataset B: ipw() + rake() with literal fixed margins
+  ipw_b <- suppressWarnings(surveywts::ipw(
+    data             = nps_df,
+    reference        = ref,
+    selection        = ~age_group + sex,
+    adjust_reference = FALSE
+  ))
+  B <- surveywts::rake(
+    ipw_b,
+    margins = list(
+      age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
+      sex       = c("M" = 0.48, "F" = 0.52)
+    ),
+    type = "prop"
+    # No reference_design= → targets_from_reference = FALSE
+  )
+
+  # Dataset C: same as A (reference in ipw history entry)
+  C <- suppressWarnings(surveywts::ipw(
+    data             = nps_df,
+    reference        = ref,
+    selection        = ~age_group + sex,
+    adjust_reference = FALSE
+  ))
+
+  # Dataset D: ipw() + rake() with reference_design= (targets_from_reference = TRUE)
+  # Exercises use_level_b = TRUE path (raking branch) in .dagjk_single_replicate()
+  ipw_d <- suppressWarnings(surveywts::ipw(
+    data             = nps_df,
+    reference        = ref,
+    selection        = ~age_group + sex,
+    adjust_reference = FALSE
+  ))
+  D <- surveywts::rake(
+    ipw_d,
+    margins = list(
+      age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
+      sex       = c("M" = 0.48, "F" = 0.52)
+    ),
+    type             = "prop",
+    reference_design = ref  # -> targets_from_reference = TRUE
+  )
+
+  # Dataset E: ipw() + calibrate() with reference_design= (targets_from_reference = TRUE)
+  # Exercises use_level_b = TRUE calibration (not raking) branch
+  ipw_e <- suppressWarnings(surveywts::ipw(
+    data             = nps_df,
+    reference        = ref,
+    selection        = ~age_group + sex,
+    adjust_reference = FALSE
+  ))
+  # Population as named list (required format for calibrate())
+  pop_list <- list(
+    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
+    sex       = c("M" = 0.48, "F" = 0.52)
+  )
+  E <- tryCatch(
+    surveywts::calibrate(
+      data             = ipw_e,
+      variables        = c(age_group, sex),
+      population       = pop_list,
+      type             = "prop",
+      reference_design = ref   # -> targets_from_reference = TRUE
+    ),
+    error = function(e) NULL
+  )
+
+  # Dataset F: ipw() + calibrate() WITHOUT reference_design (targets_from_reference = FALSE)
+  # Exercises use_level_b = FALSE calibration branch in .dagjk_single_replicate()
+  ipw_f <- suppressWarnings(surveywts::ipw(
+    data             = nps_df,
+    reference        = ref,
+    selection        = ~age_group + sex,
+    adjust_reference = FALSE
+  ))
+  pop_list_f <- list(
+    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
+    sex       = c("M" = 0.48, "F" = 0.52)
+  )
+  F_data <- tryCatch(
+    surveywts::calibrate(
+      data      = ipw_f,
+      variables = c(age_group, sex),
+      population = pop_list_f,
+      type      = "prop"
+      # no reference_design -> targets_from_reference = FALSE
+    ),
+    error = function(e) NULL
+  )
+
+  list(A = A, B = B, C = C, D = D, E = E, F = F_data, ref = ref)
+}

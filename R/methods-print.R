@@ -117,7 +117,7 @@ print.weighted_df <- function(x, n = 10, ...) {
 
   # Header lines
   cat(
-    "# A weighted data frame:", fmt_int(n_rows), "×", n_cols, "\n"
+    "# A weighted data frame:", fmt_int(n_rows), "\u00d7", n_cols, "\n"
   )
   cat(
     "# Weight:", weight_col,
@@ -144,8 +144,8 @@ print.weighted_df <- function(x, n = 10, ...) {
 
   # Data divider
   width <- max(60L, getOption("width", 80L))
-  rule_chars <- paste(rep("─", width - 8L), collapse = "")
-  cat(paste0("# ── Data ", rule_chars, "\n"))
+  rule_chars <- paste(rep("\u2500", width - 8L), collapse = "")
+  cat(paste0("# \u2500\u2500 Data ", rule_chars, "\n"))
 
   # Delegate body to tibble's print
   NextMethod()

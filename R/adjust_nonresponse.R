@@ -395,7 +395,7 @@ adjust_nonresponse <- function(
             "!" = paste0(
               "Propensity cell {k} is sparse ",
               "({n_resp_pc} respondent(s), ",
-              "adjustment factor {adj_factor_fmt}×)."
+              "adjustment factor {adj_factor_fmt}\u00d7)."
             ),
             "i" = "Small or high-adjustment cells may produce extreme weights.",
             "i" = paste0(
@@ -572,7 +572,7 @@ adjust_nonresponse <- function(
         c(
           "x" = paste0(
             "Estimated response propensity scores include values ",
-            "≤0 or ≥1."
+            "\u22640 or \u22651."
           ),
           "i" = paste0(
             "Degenerate scores indicate near-perfect separation in the ",
@@ -627,9 +627,9 @@ adjust_nonresponse <- function(
             c(
               "!" = paste0(
                 "The maximum propensity adjustment factor ",
-                "({round(max_adj_ratio, 2)}×) exceeds ",
+                "({round(max_adj_ratio, 2)}\u00d7) exceeds ",
                 "{.code control$max_adjust} ",
-                "({control$max_adjust}×)."
+                "({control$max_adjust}\u00d7)."
               ),
               "i" = paste0(
                 "Large adjustment factors indicate strong nonresponse bias; ",
@@ -780,7 +780,7 @@ adjust_nonresponse <- function(
           "!" = paste0(
             "Weighting class cell {.val {cell_label}} is sparse ",
             "({n_resp_cell} respondent(s), ",
-            "adjustment factor {adj_factor_fmt}×)."
+            "adjustment factor {adj_factor_fmt}\u00d7)."
           ),
           "i" = "Small or high-adjustment cells may produce extreme weights.",
           "i" = paste0(

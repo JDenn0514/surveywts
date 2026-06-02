@@ -349,7 +349,7 @@ redistribute_weights <- function(
         c(
           "!" = paste0(
             "Redistribution group {.val {cell_label}} has {n_increase} ",
-            "recipient(s), adjustment factor {adj_factor_fmt}×."
+            "recipient(s), adjustment factor {adj_factor_fmt}\u00d7."
           ),
           "i" = "Small or high-adjustment groups may produce extreme weights.",
           "i" = paste0(

@@ -1,4 +1,4 @@
-# R/nonprob-ipw.R
+# R/ipw.R
 #
 # Inverse probability weighting for non-probability samples.
 #

@@ -1,4 +1,4 @@
-# R/nps-group-jackknife.R
+# R/create_group_jackknife_weights.R
 #
 # create_group_jackknife_weights() -- delete-a-group jackknife (DAGJK) replicate
 # weights for non-probability samples (NPS).

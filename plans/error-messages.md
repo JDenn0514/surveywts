@@ -173,6 +173,20 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_error_taylor_from_nonprob_replicate` | `as_taylor_design()` | Source was `survey_nonprob` |
 | `surveywts_error_unsupported_class` | All `create_*_weights()`, `as_taylor_design()` | Input class is not a supported survey design type |
 
+### `create_group_jackknife_weights()`
+
+| Class | Thrown by | Condition |
+|-------|-----------|-----------|
+| `surveywts_error_dagjk_requires_nonprob` | `create_group_jackknife_weights()` | `data` is not a `survey_nonprob` |
+| `surveywts_error_dagjk_no_ipw_history` | `create_group_jackknife_weights()` | No `operation = "ipw"` entry in `@metadata@weighting_history` |
+| `surveywts_error_dagjk_no_reference` | `create_group_jackknife_weights()` | No reference design in ipw history AND `reference_sample` not provided |
+| `surveywts_error_dagjk_groups_invalid` | `create_group_jackknife_weights()` | `groups` is not a single, non-NA numeric value |
+| `surveywts_error_dagjk_groups_not_whole_number` | `create_group_jackknife_weights()` | `groups` has a non-zero fractional part |
+| `surveywts_error_dagjk_groups_too_small` | `create_group_jackknife_weights()` | `groups < 2` |
+| `surveywts_error_dagjk_groups_exceeds_n` | `create_group_jackknife_weights()` | `groups > nrow(data@data) + nrow(reference@data)` (combined N < G) |
+| `surveywts_error_dagjk_all_replicates_failed` | `create_group_jackknife_weights()` | All G replicates failed (0 successful replicates) |
+| `surveywts_error_dagjk_degenerate_replicate` | `create_group_jackknife_weights()` | A single replicate is fully degenerate (no NPS units remain after deletion) — used as inner error, not surfaced to user; degenerate replicates are counted as failures |
+
 ### NPS Bootstrap — `create_bootstrap_weights()` NPS types
 
 | Class | Thrown by | Condition |
@@ -239,6 +253,10 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_warning_reference_sample_ignored` | `create_bootstrap_weights()` | `reference_sample` non-`NULL` and `type` is a probability-sample type |
 | `surveywts_warning_bootstrap_draws_failed` | `.quasi_randomization_bootstrap()` | More than 10% of draws failed |
 | `surveywts_warning_repweights_overwritten` | `create_bootstrap_weights()` | `@variables$repweights` already populated (second call overwrites) |
+| `surveywts_warning_dagjk_replicates_failed` | `create_group_jackknife_weights()` | More than 10% of the G group replicates failed (model non-convergence or degenerate group) |
+| `surveywts_warning_dagjk_negative_replicate_weights` | `create_group_jackknife_weights()` | One or more NPS replicate weights are negative (can occur after downstream calibration) |
+| `surveywts_warning_dagjk_repweights_overwritten` | `create_group_jackknife_weights()` | `@variables$repweights` already populated; second call overwrites existing replicate columns |
+| `surveywts_warning_dagjk_small_groups` | `create_group_jackknife_weights()` | `floor(combined_N / groups) < 5` — average fewer than 5 units per group; signals potential logistic model convergence problems |
 
 ## Messages
 

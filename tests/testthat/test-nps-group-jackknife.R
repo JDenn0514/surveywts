@@ -656,7 +656,7 @@ test_that("create_group_jackknife_weights() warns when average group size < 5", 
 test_that("create_group_jackknife_weights() warns when > 10% of replicates fail", {
   # Construct data where many replicates fail:
   # tiny NPS (6 units) + tiny ref (6 units), groups = 5 -> avg = floor(12/5) = 2
-  # Very small groups are likely to produce degenerate replicates
+  # seed=7L reliably produces 1 of 5 failed replicates (>10%) -> warning fires
   set.seed(77L)
   tiny_ref_df2 <- data.frame(
     age_group  = c("18-34", "18-34", "55+", "55+", "35-54", "35-54"),
@@ -671,43 +671,41 @@ test_that("create_group_jackknife_weights() warns when > 10% of replicates fail"
     age_group = c("18-34", "18-34", "55+", "55+", "35-54", "35-54"),
     stringsAsFactors = FALSE
   )
-  tiny_ipw2 <- tryCatch(
-    suppressWarnings(
-      surveywts::ipw(
-        data             = tiny_nps2,
-        reference        = tiny_ref2,
-        selection        = ~age_group,
-        adjust_reference = FALSE
-      )
-    ),
-    error = function(e) NULL
+  tiny_ipw2 <- suppressWarnings(
+    surveywts::ipw(
+      data             = tiny_nps2,
+      reference        = tiny_ref2,
+      selection        = ~age_group,
+      adjust_reference = FALSE
+    )
   )
-  skip_if(is.null(tiny_ipw2), "ipw() failed on tiny data; skip warning test")
 
-  # With groups=5 and 12 combined units, some replicates will be degenerate
-  # Check that we get either the failed-replicates warning or all-fail error
-  saw_warning <- FALSE
-  result <- tryCatch(
-    withCallingHandlers(
-      create_group_jackknife_weights(tiny_ipw2, groups = 5L, seed = 7L),
-      surveywts_warning_dagjk_replicates_failed = function(w) {
-        saw_warning <<- TRUE
-        invokeRestart("muffleWarning")
-      },
-      warning = function(w) invokeRestart("muffleWarning")
-    ),
-    error = function(e) e
+  # seed=7L: 1 of 5 replicates fails -> replicates_failed warning fires
+  expect_warning(
+    result <- create_group_jackknife_weights(tiny_ipw2, groups = 5L, seed = 7L),
+    class = "surveywts_warning_dagjk_replicates_failed"
   )
-  # Either warning was raised or all replicates failed (both are acceptable outcomes)
-  expect_true(
-    saw_warning || inherits(result, "surveywts_error_dagjk_all_replicates_failed"),
-    label = "Expected replicates_failed warning or all_replicates_failed error"
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  expect_snapshot(
+    create_group_jackknife_weights(tiny_ipw2, groups = 5L, seed = 7L)
   )
 })
 
-test_that("create_group_jackknife_weights() warns about negative replicate weights", {
-  # Build dataset where calibration forces some replicate weights negative:
-  # NPS very skewed toward "young"; rake target is mostly "old" (extreme mismatch)
+test_that("create_group_jackknife_weights() negative-weight warning path is defensive", {
+  # Note: surveywts_warning_dagjk_negative_replicate_weights cannot be triggered
+  # via the public API because:
+  #   1. rake() (IPF) always produces strictly positive weights by construction.
+  #   2. calibrate() with method="linear" would produce negative weights only when
+  #      multiple margins simultaneously push the reference-category units below zero
+  #      (e.g., two margins each targeting >50% of non-reference groups).
+  #      However, when this occurs, the surveycore survey_nonprob S7 validator fires
+  #      during the @data property assignment inside .update_survey_weights(), converting
+  #      the "calibration succeeded with negative weights" case into a
+  #      surveywts_error_dagjk_degenerate_replicate, which marks the replicate as failed.
+  #   3. The rep_mat < 0 check therefore only fires if a future code change allows
+  #      calibration to return negative weights while bypassing the S7 validator.
+  # This test documents the defensive nature of the check and exercises the code
+  # path up to (but not including) the unreachable branch.
   set.seed(33L)
   ref_df3 <- data.frame(
     age_group  = sample(c("young", "old"), 200L, replace = TRUE, prob = c(0.5, 0.5)),
@@ -722,44 +720,34 @@ test_that("create_group_jackknife_weights() warns about negative replicate weigh
     age_group = sample(c("young", "old"), 30L, replace = TRUE, prob = c(0.95, 0.05)),
     stringsAsFactors = FALSE
   )
-  ipw3 <- tryCatch(
-    suppressWarnings(
-      surveywts::ipw(
-        data             = nps_df3,
-        reference        = ref3,
-        selection        = ~age_group,
-        adjust_reference = FALSE
-      )
-    ),
-    error = function(e) NULL
+  ipw3 <- suppressWarnings(
+    surveywts::ipw(
+      data             = nps_df3,
+      reference        = ref3,
+      selection        = ~age_group,
+      adjust_reference = FALSE
+    )
   )
-  skip_if(is.null(ipw3), "ipw() failed on extreme data; skip negative weight test")
-  raked3 <- tryCatch(
-    surveywts::rake(
-      ipw3,
-      margins = list(age_group = c("young" = 0.05, "old" = 0.95)),
-      type = "prop"
-    ),
-    error = function(e) NULL
+  raked3 <- surveywts::rake(
+    ipw3,
+    margins = list(age_group = c("young" = 0.05, "old" = 0.95)),
+    type = "prop"
   )
-  skip_if(is.null(raked3), "rake() failed; skip negative weight test")
-
-  saw_neg_warning <- FALSE
-  tryCatch(
-    withCallingHandlers(
-      suppressWarnings(
-        create_group_jackknife_weights(raked3, groups = 10L, seed = 1L)
-      ),
-      surveywts_warning_dagjk_negative_replicate_weights = function(w) {
-        saw_neg_warning <<- TRUE
-        invokeRestart("muffleWarning")
-      }
-    ),
-    error = function(e) NULL
+  # Verify the extreme raking succeeded and produced valid (non-negative) weights
+  expect_true(S7::S7_inherits(raked3, surveycore::survey_nonprob))
+  wts <- raked3@data[[raked3@variables$weights]]
+  expect_true(all(wts > 0))
+  # Run DAGJK; some replicates may fail due to extreme imbalance, but no negative
+  # replicate weights should appear (they would instead produce failed replicates)
+  result <- suppressWarnings(
+    create_group_jackknife_weights(raked3, groups = 10L, seed = 1L)
   )
-  # Negative weights depend on convergence; skip if not triggered
-  skip_if(!saw_neg_warning, "No negative replicate weights produced by this dataset; skip")
-  expect_true(saw_neg_warning)
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  rep_cols <- result@variables$repweights
+  if (length(rep_cols) > 0L) {
+    rep_mat <- as.matrix(result@data[, rep_cols, drop = FALSE])
+    expect_false(any(rep_mat < 0, na.rm = TRUE))
+  }
 })
 
 test_that("create_group_jackknife_weights() uses_level_b = TRUE (targets_from_reference)", {
@@ -964,11 +952,17 @@ test_that("create_group_jackknife_weights() errors when calibration fails in all
   )
 })
 
-test_that("create_group_jackknife_weights() warns about negative replicate weights (direct assembly)", {
-  # Run DAGJK and then manually inspect whether negative weights can occur
-  # Since negative weights are hard to trigger in practice, test the code path
-  # by constructing a scenario with calibrate() using extreme targets that may
-  # produce negative replicate weights in some seeds
+test_that("create_group_jackknife_weights() negative-weight check verifies assembled rep_mat", {
+  # This test exercises the code path surrounding the rep_mat < 0 check by verifying
+  # that when a calibrate()-post-IPW pipeline with extreme targets completes successfully,
+  # the assembled replicate matrix contains only non-negative values.
+  # Background: surveywts_warning_dagjk_negative_replicate_weights is triggered by
+  # `any(rep_mat < 0, na.rm = TRUE)` after the replicate loop. The warning is
+  # defensive: when calibrate() with method="linear" would produce negative weights,
+  # the surveycore S7 validator fires first (in .update_survey_weights()), converting
+  # the failed calibration into a surveywts_error_dagjk_degenerate_replicate that the
+  # loop catches and counts as a failed replicate. rake() (IPF) never produces negatives.
+  # Both paths make the rep_mat < 0 branch unreachable via the current API.
   set.seed(10L)
   ref_df4 <- data.frame(
     x = sample(c("a", "b", "c"), 300L, replace = TRUE, prob = c(1/3, 1/3, 1/3)),
@@ -976,44 +970,40 @@ test_that("create_group_jackknife_weights() warns about negative replicate weigh
     stringsAsFactors = FALSE
   )
   ref4 <- surveycore::survey_taylor(data = ref_df4, variables = list(weights = "rw"))
-  # NPS almost all "a" -- very imbalanced
   nps_df4 <- data.frame(
     x = c(rep("a", 55), rep("b", 3), rep("c", 2)),
     stringsAsFactors = FALSE
   )
-  ipw4 <- tryCatch(
-    suppressWarnings(surveywts::ipw(data = nps_df4, reference = ref4, selection = ~x,
-                                    adjust_reference = FALSE)),
-    error = function(e) NULL
+  ipw4 <- suppressWarnings(
+    surveywts::ipw(data = nps_df4, reference = ref4, selection = ~x, adjust_reference = FALSE)
   )
-  skip_if(is.null(ipw4), "ipw() failed; skip negative weight test")
-  raked4 <- tryCatch(
+  calib4 <- suppressWarnings(
     surveywts::calibrate(
       data       = ipw4,
       variables  = c(x),
       population = list(x = c(a = 0.01, b = 0.01, c = 0.98)),
       type       = "prop"
-    ),
-    error = function(e) NULL
+    )
   )
-  skip_if(is.null(raked4), "calibrate() failed; skip negative weight test")
-
-  saw_neg <- FALSE
-  tryCatch(
-    withCallingHandlers(
-      suppressWarnings(
-        create_group_jackknife_weights(raked4, groups = 10L, seed = 1L)
-      ),
-      surveywts_warning_dagjk_negative_replicate_weights = function(w) {
-        saw_neg <<- TRUE
-        invokeRestart("muffleWarning")
-      }
+  expect_true(S7::S7_inherits(calib4, surveycore::survey_nonprob))
+  # Run DAGJK: extreme calibration targets cause most replicates to fail (S7 validator
+  # fires when calibrate() produces negative weights in a replicate, converting it to
+  # a failed replicate). The assembled rep_mat should contain only non-negative values.
+  result <- tryCatch(
+    suppressWarnings(
+      create_group_jackknife_weights(calib4, groups = 10L, seed = 1L)
     ),
-    error = function(e) NULL
+    error = function(e) e
   )
-  # Skip if negative weights not produced -- this is dataset-dependent
-  skip_if(!saw_neg, "No negative replicate weights produced; skip")
-  expect_true(saw_neg)
+  if (inherits(result, "error")) {
+    # All replicates failed -- the expected behavior given extreme calibration targets
+    expect_s3_class(result, "surveywts_error_dagjk_all_replicates_failed")
+  } else {
+    # Some replicates succeeded; assembled rep_mat must be non-negative
+    rep_cols <- result@variables$repweights
+    rep_mat <- as.matrix(result@data[, rep_cols, drop = FALSE])
+    expect_false(any(rep_mat < 0, na.rm = TRUE))
+  }
 })
 
 test_that("create_group_jackknife_weights() works when ipw() used trim = TRUE (trim_threshold path)", {

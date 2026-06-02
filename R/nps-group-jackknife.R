@@ -647,11 +647,6 @@ create_group_jackknife_weights <- function(
 
   # Negative weight warning (after assembling all replicate columns)
   rep_mat <- as.matrix(data@data[, repwt_names, drop = FALSE])
-  # nocov start
-  # Defensive: calibration normally keeps weights non-negative; this branch fires
-  # only when downstream calibration forces negative replicate weights -- a rare
-  # degenerate scenario that depends on extreme covariate imbalance and calibration
-  # targets. Not reachable with normal survey data through the public API.
   if (any(rep_mat < 0, na.rm = TRUE)) {
     cli::cli_warn(
       c(
@@ -668,7 +663,6 @@ create_group_jackknife_weights <- function(
       class = "surveywts_warning_dagjk_negative_replicate_weights"
     )
   }
-  # nocov end
 
   data@variables$repweights <- repwt_names
   data@variables$scale      <- (G_success - 1L) / G_success

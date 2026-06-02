@@ -146,6 +146,27 @@
       #   Step 1: ipw [~age_group + sex, logit, n_ref=500, N_hat=501] 
       #   Step 2: group_jackknife_weights 
 
+# create_group_jackknife_weights() warns when > 10% of replicates fail
+
+    Code
+      create_group_jackknife_weights(tiny_ipw2, groups = 5L, seed = 7L)
+    Condition
+      Warning:
+      ! Average group size is 2 unit(s) (12 combined / 5 groups).
+      i Groups with fewer than 5 units may cause the logistic model to fail to converge in some replicates.
+      v Reduce `groups` or ensure the combined NPS + reference dataset is large enough relative to the number of groups.
+      Warning:
+      ! 1 of 5 group replicates failed and were skipped.
+      i A replicate fails when the logistic model does not converge or produces degenerate propensity scores in the reduced dataset.
+      v Reduce `groups` or inspect the data for extreme covariate imbalance.
+    Output
+      # A calibrated survey design: 6 observations, 6 variables
+      # Variance: model-assisted (SRS assumption)
+      # IDs: ~1 | Strata: NULL | Weights: ipw_weight 
+      # Weighting history: 2 steps 
+      #   Step 1: ipw [~age_group, logit, n_ref=6, N_hat=600] 
+      #   Step 2: group_jackknife_weights 
+
 # create_group_jackknife_weights() errors when all replicates fail (corrupted formula)
 
     Code

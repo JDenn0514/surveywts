@@ -55,7 +55,65 @@ Use `@family calibration`, `@family sample-calibration`, `@family nonresponse`, 
 
 ---
 
-## 3. Return Value Visibility
+## 3. File Organization
+
+### Rules
+1. Every exported function lives in a `.R` file named identically to it (matching its `.Rd` filename without the extension).
+2. The exported function appears at the **top** of its file; helpers used only by that function appear **below** it.
+3. Helpers shared by 2+ functions in the same family go to `{family}-utils.R`.
+4. Helpers used across different families stay in `utils.R`.
+5. Structural/role-based files are exempt from rule 1.
+
+### Exempt structural files
+
+| File | Purpose |
+|------|---------|
+| `utils.R` | Cross-family internal helpers |
+| `methods-print.R` | All S7 and S3 print methods |
+| `zzz.R` | `.onLoad()` / `.onAttach()` hooks |
+| `data.R` | `@docType data` documentation stubs |
+| `surveywts-package.R` | Package-level documentation |
+
+### Family utils files
+
+| File | Shared helpers for |
+|------|--------------------|
+| `diagnostics-utils.R` | `effective_sample_size()`, `weight_variability()`, `summarize_weights()` |
+| `nonresponse-utils.R` | `adjust_nonresponse()`, `redistribute_weights()` |
+| `replicate-utils.R` | All `create_*_weights()` functions + `as_taylor_design()` + `create_group_jackknife_weights()` |
+| `weight-utils.R` | `trim_weights()`, `stabilize_weights()` |
+
+### File mapping (R/ → export)
+
+| File | Export |
+|------|--------|
+| `adjust_nonresponse.R` | `adjust_nonresponse()` |
+| `as_taylor_design.R` | `as_taylor_design()` |
+| `calibrate.R` | `calibrate()` |
+| `calibrate_to_estimate.R` | `calibrate_to_estimate()` |
+| `calibrate_to_survey.R` | `calibrate_to_survey()` |
+| `create_bootstrap_weights.R` | `create_bootstrap_weights()` |
+| `create_brr_weights.R` | `create_brr_weights()` |
+| `create_gen_boot_weights.R` | `create_gen_boot_weights()` |
+| `create_gen_rep_weights.R` | `create_gen_rep_weights()` |
+| `create_group_jackknife_weights.R` | `create_group_jackknife_weights()` |
+| `create_jackknife_weights.R` | `create_jackknife_weights()` |
+| `create_replicate_weights.R` | `create_replicate_weights()` |
+| `create_sdr_weights.R` | `create_sdr_weights()` |
+| `effective_sample_size.R` | `effective_sample_size()` |
+| `ipw.R` | `ipw()` |
+| `poststratify.R` | `poststratify()` |
+| `rake.R` | `rake()` |
+| `redistribute_weights.R` | `redistribute_weights()` |
+| `stabilize_weights.R` | `stabilize_weights()` |
+| `summarize_weights.R` | `summarize_weights()` |
+| `trim_weights.R` | `trim_weights()` |
+| `weight_variability.R` | `weight_variability()` |
+| `weighted-df-dplyr.R` | dplyr methods for `weighted_df` |
+
+---
+
+## 4. Return Value Visibility
 
 | Function type | Return |
 |---------------|--------|
@@ -67,7 +125,7 @@ Use `@family calibration`, `@family sample-calibration`, `@family nonresponse`, 
 
 ---
 
-## 4. Export Policy
+## 5. Export Policy
 
 ### What to export
 - All user-facing functions: `calibrate()`, `rake()`, `poststratify()`,
@@ -85,7 +143,7 @@ Use `@family calibration`, `@family sample-calibration`, `@family nonresponse`, 
 
 ---
 
-## 5. S7 Classes
+## 6. S7 Classes
 
 ### `survey_nonprob`
 
@@ -139,7 +197,7 @@ the weight column is removed.
 
 ---
 
-## 6. Argument Order (Calibration Functions)
+## 7. Argument Order (Calibration Functions)
 
 | Function | Argument order |
 |----------|----------------|
@@ -154,7 +212,7 @@ the weight column is removed.
 
 ---
 
-## 7. Documentation Checklist
+## 8. Documentation Checklist
 
 Before committing any roxygen2 changes:
 

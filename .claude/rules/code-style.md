@@ -393,29 +393,11 @@ summary.my_class <- function(object, ...) { ... }    # never dispatched
 ### Internal helper placement
 | Helper used in... | Lives in... |
 |-------------------|-------------|
-| Exactly 1 source file | Defined at the top of that file, before its first call site |
-| 2 or more source files | `R/utils.R` |
+| Exactly 1 source file | Inline in that function's `.R` file, **below** the exported function |
+| 2+ functions in the same family | `{family}-utils.R` |
+| 2+ functions across different families | `utils.R` |
 
-All internal helpers are **not exported** and prefixed with `.`:
-
-```r
-# In R/03-constructors.R — used only by as_survey()
-.check_probs_weights_consistency <- function(probs_var, weights_var, data, tol = 1e-6) {
-  ...
-}
-
-# In R/utils.R — used by constructors AND update_design()
-.get_design_vars_flat <- function(design) {
-  c(
-    design@variables$ids,
-    design@variables$weights,
-    design@variables$strata,
-    design@variables$fpc
-  )
-}
-```
-
-When a single-use inline helper grows a second call site, promote it to `utils.R` in the same PR that adds the second call.
+All internal helpers are **not exported** and prefixed with `.`.
 
 ---
 

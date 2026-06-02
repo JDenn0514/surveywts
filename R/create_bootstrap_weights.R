@@ -1,0 +1,252 @@
+# R/create_bootstrap_weights.R
+#
+# create_bootstrap_weights() — bootstrap replicate weights for
+# survey_taylor and survey_nonprob designs.
+
+# ============================================================================
+# create_bootstrap_weights()
+# ============================================================================
+
+#' Create bootstrap replicate weights
+#'
+#' Generates bootstrap replicate weights for probability-sample designs via
+#' [svrep::as_bootstrap_design()], or quasi-randomization bootstrap replicate
+#' weights for non-probability samples (`survey_nonprob`) via an internal
+#' resample-reweight algorithm.
+#'
+#' @param data A `survey_taylor` or `survey_nonprob` design object.
+#'   `survey_replicate`, `data.frame`, and `weighted_df` → error.
+#' @param replicates `integer(1)` or `NULL`. Number of bootstrap replicates.
+#'   Default `NULL` resolves to `200L` for `type = "quasi-randomization"` and
+#'   `type = "hybrid"`, and `500L` for all probability-sample types. Must be
+#'   at least 2. Whole-number doubles are coerced to integer silently.
+#' @param ... Must be empty. Forces all subsequent arguments to be named.
+#' @param type `character(1)`. Bootstrap variant. For probability-sample
+#'   designs: `"Rao-Wu-Yue-Beaumont"` (default), `"Rao-Wu"`, `"Antal-Tille"`,
+#'   `"Preston"`, or `"Canty-Davison"` — passed to
+#'   [svrep::as_bootstrap_design()]. For non-probability samples:
+#'   `"quasi-randomization"` (resample-reweight bootstrap) or `"hybrid"`
+#'   (error stub; requires `mass_imputation()`, not yet implemented).
+#' @param reference_sample `survey_taylor` or `NULL`. Reference probability
+#'   sample for NPS types. When non-`NULL`, takes precedence over any
+#'   reference design stored in `@metadata@weighting_history`. Ignored (with
+#'   a warning) when `type` is a probability-sample type. `survey_replicate`
+#'   → error.
+#' @param mse `character(1)`. Variance formula for bootstrap variance.
+#'   `"mse"` (default): mean squared deviation from the full-sample estimate,
+#'   \eqn{(1/B) \sum (\hat{\theta}^{(b)} - \hat{\theta})^2}.
+#'   `"chrostowski"`: \eqn{(1/(B-1)) \sum (\hat{\theta}^{(b)} - \hat{\theta})^2}
+#'   (NPS types only; errors for probability-sample types). `"uncentered"`:
+#'   standard Bessel-corrected variance centered on the bootstrap mean.
+#'   For probability-sample types, `"mse"` maps to `TRUE` and `"uncentered"`
+#'   maps to `FALSE` in the `svrep` call.
+#'   **Legacy note:** `mse = TRUE` or `mse = FALSE` (logical) is no longer
+#'   accepted and emits `surveywts_error_mse_not_character`.
+#' @param seed `integer(1)` or `NULL`. RNG seed. For NPS types,
+#'   `set.seed()` is called once immediately before the bootstrap loop (or
+#'   before the `svrep` pre-computation for Level B). The caller's global RNG
+#'   state is **not** restored. For probability-sample types, the seed is
+#'   applied via `withr::local_seed()` and the caller's state is restored.
+#'
+#' @return
+#'   - Probability-sample types → `survey_replicate` with `replicates` new
+#'     `rep_1...rep_N` columns and a `"replicate_creation"` history entry.
+#'   - `type = "quasi-randomization"` → `survey_nonprob` with `replicates`
+#'     new `repwt_1...repwt_B` columns in `@data`, `@variables$repweights`
+#'     populated, and a `"bootstrap_weights"` history entry.
+#'
+#' @details
+#'   **SRSWR understatement:** Bootstrap standard errors from
+#'   `type = "quasi-randomization"` likely understate true sampling
+#'   variability because SRSWR resampling cannot replicate the original NPS
+#'   recruitment mechanism (AAPOR 2022, §4). This understatement is not
+#'   reduced by increasing `replicates`.
+#'
+#' @references
+#'   Elliott, M.R. and Valliant, R. (2017). Inference for nonprobability
+#'   samples. *Statistical Science* **32**(2), 249--264.
+#'
+#'   Wu, C. (2022). Statistical inference with non-probability survey samples.
+#'   *Survey Methodology* **48**(2), 283--311.
+#'
+#'   Chrostowski, M.J., Guzman, C.A. and Malm, L. (2025). Variance estimation
+#'   for non-probability surveys. *Journal of Survey Statistics and
+#'   Methodology* (forthcoming).
+#'
+#'   Kolenikov, S. (2014). Calibrating variance estimation with proxy
+#'   variables. *Survey Methodology* **40**(1), 21--38.
+#'
+#' @family replicate-weights
+#' @export
+create_bootstrap_weights <- function(
+  data,
+  replicates = NULL,
+  ...,
+  type = c(
+    "Rao-Wu-Yue-Beaumont", "Rao-Wu", "Antal-Tille",
+    "Preston", "Canty-Davison",
+    "quasi-randomization", "hybrid"
+  ),
+  reference_sample = NULL,
+  mse = c("mse", "chrostowski", "uncentered"),
+  seed = NULL
+) {
+  # mse must be character, not logical (legacy boolean API rejected)
+  if (is.logical(mse)) {
+    cli::cli_abort(
+      c(
+        "x" = paste0(
+          "{.arg mse} must be a character string, not {.cls logical}."
+        ),
+        "i" = paste0(
+          "{.code mse = TRUE} and {.code mse = FALSE} are no longer accepted."
+        ),
+        "v" = paste0(
+          "Use {.code mse = \"mse\"} (replaces {.code TRUE}) or ",
+          "{.code mse = \"uncentered\"} (replaces {.code FALSE})."
+        )
+      ),
+      class = "surveywts_error_mse_not_character"
+    )
+  }
+
+  type <- rlang::arg_match(type)
+  mse  <- rlang::arg_match(mse)
+
+  # Resolve NULL replicates
+  if (is.null(replicates)) {
+    replicates <- if (type %in% c("quasi-randomization", "hybrid")) 200L else 500L
+  }
+  replicates <- .validate_replicates_arg(replicates)
+
+  # ---- Dispatch: NPS types vs. probability-sample types -------------------
+  # NPS type check runs before .validate_replicate_input() so that weighted_df
+  # and other non-design inputs get a more informative NPS-specific error.
+  if (type %in% c("quasi-randomization", "hybrid")) {
+    if (!S7::S7_inherits(data, surveycore::survey_nonprob)) {
+      cls <- class(data)[[1L]]
+      if (type == "quasi-randomization") {
+        cli::cli_abort(
+          c(
+            "x" = paste0(
+              "{.code type = 'quasi-randomization'} requires a ",
+              "{.cls survey_nonprob}; got {.cls {cls}}."
+            ),
+            "i" = paste0(
+              "The quasi-randomization bootstrap is designed for ",
+              "non-probability samples with IPW history."
+            ),
+            "v" = paste0(
+              "Use {.fn ipw} to create a {.cls survey_nonprob}, then call ",
+              "{.fn create_bootstrap_weights}."
+            )
+          ),
+          class = "surveywts_error_qr_bootstrap_requires_nonprob"
+        )
+      } else {
+        cli::cli_abort(
+          c(
+            "x" = paste0(
+              "{.code type = 'hybrid'} requires a {.cls survey_nonprob}; ",
+              "got {.cls {cls}}."
+            ),
+            "i" = paste0(
+              "The hybrid bootstrap is designed for non-probability samples."
+            ),
+            "v" = paste0(
+              "Use {.fn ipw} to create a {.cls survey_nonprob}, then call ",
+              "{.fn create_bootstrap_weights}."
+            )
+          ),
+          class = "surveywts_error_hybrid_bootstrap_requires_nonprob"
+        )
+      }
+    }
+
+    if (!is.null(reference_sample)) {
+      .validate_reference_sample(reference_sample)
+    }
+
+    if (type == "quasi-randomization") {
+      .quasi_randomization_bootstrap(
+        data             = data,
+        replicates       = replicates,
+        reference_sample = reference_sample,
+        mse              = mse,
+        seed             = seed
+      )
+    } else {
+      # type == "hybrid": error stub until mass_imputation() is implemented
+      cli::cli_abort(
+        c(
+          "x" = "{.code type = \"hybrid\"} is not yet available.",
+          "i" = paste0(
+            "The hybrid bootstrap requires {.fn mass_imputation}, which is ",
+            "not yet implemented."
+          ),
+          "v" = paste0(
+            "Use {.code type = \"quasi-randomization\"} for IPW-weighted ",
+            "non-probability samples."
+          )
+        ),
+        class = "surveywts_error_hybrid_bootstrap_not_implemented"
+      )
+    }
+  } else {
+    # ---- Probability-sample path -------------------------------------------
+    .validate_replicate_input(data)
+
+    if (mse == "chrostowski") {
+      cli::cli_abort(
+        c(
+          "x" = paste0(
+            "{.code mse = \"chrostowski\"} is only available for NPS types ",
+            "({.code type = \"quasi-randomization\"})."
+          ),
+          "i" = paste0(
+            "{.code mse = \"chrostowski\"} is the Chrostowski et al. (2025) ",
+            "formula for NPS variance. It cannot be applied to probability-",
+            "sample designs."
+          ),
+          "v" = paste0(
+            "Use {.code mse = \"mse\"} or {.code mse = \"uncentered\"} for ",
+            "probability-sample types."
+          )
+        ),
+        class = "surveywts_error_chrostowski_prob_sample"
+      )
+    }
+
+    if (!is.null(reference_sample)) {
+      cli::cli_warn(
+        c(
+          "!" = paste0(
+            "{.arg reference_sample} is ignored for {.code type = '{type}'}."
+          ),
+          "i" = paste0(
+            "{.arg reference_sample} is only used for NPS bootstrap types: ",
+            "{.code \"quasi-randomization\"} and {.code \"hybrid\"}."
+          ),
+          "v" = paste0(
+            "Remove {.arg reference_sample} when using probability-sample ",
+            "bootstrap types."
+          )
+        ),
+        class = "surveywts_warning_reference_sample_ignored"
+      )
+    }
+
+    mse_logical <- (mse == "mse")
+    .convert_and_call(
+      data       = data,
+      backend_fn = function(d) {
+        svrep::as_bootstrap_design(
+          d, type = type, replicates = replicates, mse = mse_logical
+        )
+      },
+      method     = "bootstrap",
+      params     = list(type = type, replicates = replicates, mse = mse_logical),
+      seed       = seed
+    )
+  }
+}

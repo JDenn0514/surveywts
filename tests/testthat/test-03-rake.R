@@ -242,7 +242,7 @@ test_that("calibrate_rake(algorithm='survey') matches survey::rake() within 1e-8
   )
   svy_weights <- as.numeric(weights(svy_raked))
 
-  expect_equal(sw_weights, svy_weights, tolerance = 1e-6)
+  expect_equal(sw_weights, svy_weights, tolerance = 1e-8)
 })
 
 # ---------------------------------------------------------------------------

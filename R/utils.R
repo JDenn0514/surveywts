@@ -39,14 +39,17 @@
 
   label <- switch(
     op,
+    "calibrate_rake" = ,
     "raking" = {
       vars <- paste(params$variables, collapse = ", ")
-      paste0("raking (margins: ", vars, ")")
+      paste0("raking (targets: ", vars, ")")
     },
+    "calibrate_greg" = ,
     "calibration" = {
       vars <- paste(params$variables, collapse = ", ")
       paste0("calibration (variables: ", vars, ")")
     },
+    "calibrate_poststrat" = ,
     "poststratify" = {
       vars <- paste(params$variables, collapse = ", ")
       paste0("poststratify (strata: ", vars, ")")
@@ -296,7 +299,7 @@
 
     n_na <- sum(is.na(col))
     if (n_na > 0L) {
-      fn_name <- if (context == "Calibration") "calibrate" else "rake"
+      fn_name <- if (context == "Calibration") "calibrate_greg" else "calibrate_rake"
       cli::cli_abort(
         c(
           "x" = paste0(

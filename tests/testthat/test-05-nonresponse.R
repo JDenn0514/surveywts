@@ -880,7 +880,7 @@ test_that("calibrate() rejects post-nonresponse data with zero weights", {
   pop <- list(group = c("A" = 0.5, "B" = 0.5))
 
   expect_error(
-    calibrate(nr_result, variables = c(group), population = pop),
+    calibrate_greg(nr_result, targets = pop),
     class = "surveywts_error_weights_nonpositive"
   )
 })

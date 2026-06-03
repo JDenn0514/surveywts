@@ -87,7 +87,7 @@ Diagnostic functions (\code{\link[=effective_sample_size]{effective_sample_size(
 computing statistics.
 
 Re-calibrating post-nonresponse data requires filtering to respondents
-first, because \code{\link[=calibrate]{calibrate()}}, \code{\link[=rake]{rake()}}, and \code{\link[=poststratify]{poststratify()}} reject
+first, because \code{\link[survey:calibrate]{survey::calibrate()}}, \code{\link[survey:rake]{survey::rake()}}, and \code{\link[=poststratify]{poststratify()}} reject
 zero weights.
 }
 \examples{

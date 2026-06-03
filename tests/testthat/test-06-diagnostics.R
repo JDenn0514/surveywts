@@ -77,7 +77,9 @@ test_that("weight_variability() returns CV = 0 exactly for equal weights", {
 test_that("effective_sample_size() auto-detects weights from weighted_df", {
   df <- make_surveywts_data(seed = 1)
   pop_age <- c("18-34" = 1 / 3, "35-54" = 1 / 3, "55+" = 1 / 3)
-  wdf <- calibrate(df, variables = c(age_group), population = list(age_group = pop_age))
+  wdf <- calibrate_greg(
+    df, targets = list(age_group = pop_age)
+  )
 
   # Auto-detection (no weights arg)
   result_auto <- effective_sample_size(wdf)
@@ -91,7 +93,9 @@ test_that("effective_sample_size() auto-detects weights from weighted_df", {
 test_that("weight_variability() auto-detects weights from weighted_df", {
   df <- make_surveywts_data(seed = 2)
   pop_age <- c("18-34" = 1 / 3, "35-54" = 1 / 3, "55+" = 1 / 3)
-  wdf <- calibrate(df, variables = c(age_group), population = list(age_group = pop_age))
+  wdf <- calibrate_greg(
+    df, targets = list(age_group = pop_age)
+  )
 
   result_auto <- weight_variability(wdf)
   result_explicit <- weight_variability(wdf, weights = wts)
@@ -107,7 +111,7 @@ test_that("effective_sample_size() auto-detects weights from survey_nonprob", {
   df <- make_surveywts_data(seed = 3)
   svy <- .make_test_taylor_diag(df)
   pop_age <- c("18-34" = 1 / 3, "35-54" = 1 / 3, "55+" = 1 / 3)
-  svc <- calibrate(svy, variables = c(age_group), population = list(age_group = pop_age))
+  svc <- calibrate_greg(svy, targets = list(age_group = pop_age))
 
   result_auto <- effective_sample_size(svc)
   result_explicit <- effective_sample_size(svc, weights = base_weight)

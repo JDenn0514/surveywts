@@ -1118,7 +1118,7 @@ test_that("bootstrap overwrite warning message text is unchanged after refactor"
     variables = list(weights = "base_weight"),
     metadata  = surveycore::survey_metadata()
   )
-  rep <- create_bootstrap_weights(np, replicates = 5L, seed = 1L)
+  rep <- .pin_ts(create_bootstrap_weights(np, replicates = 5L, seed = 1L))
 
   # Snapshot the warning message text to detect accidental changes after refactor.
   expect_warning(

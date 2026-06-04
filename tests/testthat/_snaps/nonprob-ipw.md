@@ -1,13 +1,13 @@
 # ipw() print snapshot matches survey_nonprob format with ipw step
 
     Code
-      print(result)
+      print(.pin_ts(result))
     Output
       # A calibrated survey design: 200 observations, 7 variables
       # Variance: model-assisted (SRS assumption)
       # IDs: ~1 | Strata: NULL | Weights: ipw_weight 
       # Weighting history: 1 step 
-      #   Step 1 [2026-06-03]: ipw [~age_group + sex, logit, n_ref=1000, N_hat=885] 
+      #   Step 1 [2025-01-15]: ipw [~age_group + sex, logit, n_ref=1000, N_hat=885] 
 
 # ipw() errors when data is not a data.frame
 

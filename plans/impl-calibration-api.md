@@ -20,7 +20,7 @@ name. Work is split across two PRs so each can be reviewed atomically.
 
 ## PR Map
 
-- [ ] PR 1: `feature/calibration-api-pr1` — calibrate_greg + calibrate_rake + shared utils
+- [x] PR 1: `feature/calibration-api-pr1` — calibrate_greg + calibrate_rake + shared utils
 - [ ] PR 2: `feature/calibration-api-pr2` — calibrate_poststrat + calibrate dispatcher + cleanup
 
 ---

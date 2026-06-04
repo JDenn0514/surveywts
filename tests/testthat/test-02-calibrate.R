@@ -846,3 +846,122 @@ test_that("old calibrate() with variables + population args no longer exists", {
     calibrate(df, variables = c(age_group), population = pop)
   )
 })
+
+# ===========================================================================
+# calibrate() Thin Dispatcher — Section added in PR 2
+# Per plans/test-spec-calibration-api.md §calibrate() — Thin Dispatcher
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# D1. Happy path — method = "greg" (explicit)
+# ---------------------------------------------------------------------------
+
+test_that("calibrate() with method = 'greg' returns same result as calibrate_greg()", {
+  df      <- make_surveywts_data(seed = 101)
+  targets <- .make_targets()
+
+  direct     <- calibrate_greg(df, targets = targets)
+  dispatcher <- calibrate(df, targets = targets, method = "greg")
+
+  test_invariants(dispatcher)
+  expect_true(inherits(dispatcher, "weighted_df"))
+  # Weights should be identical (same computation path)
+  expect_equal(dispatcher[["wts"]], direct[["wts"]], tolerance = 1e-10)
+})
+
+# ---------------------------------------------------------------------------
+# D2. Happy path — method = "rake"
+# ---------------------------------------------------------------------------
+
+test_that("calibrate() with method = 'rake' returns same result as calibrate_rake()", {
+  df      <- make_surveywts_data(seed = 102)
+  targets <- .make_targets()
+
+  direct     <- calibrate_rake(df, targets = targets)
+  dispatcher <- calibrate(df, targets = targets, method = "rake")
+
+  test_invariants(dispatcher)
+  expect_true(inherits(dispatcher, "weighted_df"))
+  expect_equal(dispatcher[["wts"]], direct[["wts"]], tolerance = 1e-10)
+})
+
+# ---------------------------------------------------------------------------
+# D3. Happy path — method = "poststrat"
+# ---------------------------------------------------------------------------
+
+test_that("calibrate() with method = 'poststrat' returns same as calibrate_poststrat()", {
+  df  <- make_surveywts_data(seed = 103)
+  pop <- data.frame(
+    age_group = c("18-34", "18-34", "35-54", "35-54", "55+", "55+"),
+    sex       = c("M",     "F",     "M",     "F",     "M",   "F"),
+    target    = c(1440L, 1560L, 1920L, 2080L, 1680L, 1320L),
+    stringsAsFactors = FALSE
+  )
+
+  direct     <- calibrate_poststrat(df, targets = pop, type = "count")
+  dispatcher <- calibrate(df, targets = pop, type = "count",
+                          method = "poststrat")
+
+  test_invariants(dispatcher)
+  expect_true(inherits(dispatcher, "weighted_df"))
+  expect_equal(dispatcher[["wts"]], direct[["wts"]], tolerance = 1e-10)
+})
+
+# ---------------------------------------------------------------------------
+# D4. Happy path — default method = "greg"
+# ---------------------------------------------------------------------------
+
+test_that("calibrate() default method dispatches to calibrate_greg()", {
+  df      <- make_surveywts_data(seed = 104)
+  targets <- .make_targets()
+
+  direct     <- calibrate_greg(df, targets = targets)
+  dispatcher <- calibrate(df, targets = targets)  # no method arg
+
+  test_invariants(dispatcher)
+  expect_true(inherits(dispatcher, "weighted_df"))
+  expect_equal(dispatcher[["wts"]], direct[["wts"]], tolerance = 1e-10)
+})
+
+# ---------------------------------------------------------------------------
+# D5. Happy path — NSE weights forwarded correctly
+# ---------------------------------------------------------------------------
+
+test_that("calibrate() forwards NSE weights correctly to dispatched function", {
+  df      <- make_surveywts_data(seed = 105)
+  targets <- .make_targets()
+
+  direct     <- calibrate_greg(df, targets = targets, weights = base_weight)
+  dispatcher <- calibrate(df, targets = targets, weights = base_weight)
+
+  test_invariants(dispatcher)
+  expect_equal(dispatcher[["wts"]], direct[["wts"]], tolerance = 1e-10)
+})
+
+# ---------------------------------------------------------------------------
+# D6. Error — invalid method triggers rlang::arg_match() error
+# ---------------------------------------------------------------------------
+
+test_that("calibrate() with invalid method triggers arg_match error", {
+  df      <- make_surveywts_data(seed = 106)
+  targets <- .make_targets()
+
+  # rlang::arg_match() error — no class= snapshot needed (not a cli_abort())
+  expect_error(
+    calibrate(df, targets = targets, method = "bad_method")
+  )
+})
+
+# ---------------------------------------------------------------------------
+# D7. Error — unknown ... arg for method = "greg" propagates from calibrate_greg()
+# ---------------------------------------------------------------------------
+
+test_that("calibrate() propagates unknown ... arg error from calibrate_greg()", {
+  df      <- make_surveywts_data(seed = 107)
+  targets <- .make_targets()
+
+  # calibrate_greg() does not accept 'unknown_arg'
+  expect_error(
+    calibrate(df, targets = targets, method = "greg", unknown_arg = 42)
+  )
+})

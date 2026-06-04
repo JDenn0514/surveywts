@@ -109,8 +109,8 @@ Diagnostic functions (\code{\link[=effective_sample_size]{effective_sample_size(
 computing statistics.
 
 Re-calibrating post-nonresponse data requires filtering to respondents
-first, because \code{\link[survey:calibrate]{survey::calibrate()}}, \code{\link[survey:rake]{survey::rake()}}, and \code{\link[=poststratify]{poststratify()}} reject
-zero weights.
+first, because \code{\link[=calibrate]{calibrate()}}, \code{\link[=calibrate_rake]{calibrate_rake()}}, and
+\code{\link[=calibrate_poststrat]{calibrate_poststrat()}} reject zero weights.
 
 \strong{Propensity-cell method:} A logistic regression is fitted via
 \code{\link[stats:glm]{stats::glm()}} with \code{family = binomial}. GLM convergence warnings (e.g.,

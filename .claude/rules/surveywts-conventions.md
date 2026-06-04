@@ -43,7 +43,7 @@ with surveywts-specific examples and detailed guidance.
 
 | Family tag | Functions |
 |------------|-----------|
-| `calibration` | `calibrate()`, `rake()`, `poststratify()` |
+| `calibration` | `calibrate()`, `calibrate_greg()`, `calibrate_rake()`, `calibrate_poststrat()` |
 | `sample-calibration` | `calibrate_to_survey()`, `calibrate_to_estimate()` |
 | `nonresponse` | `adjust_nonresponse()`, `redistribute_weights()` |
 | `diagnostics` | `effective_sample_size()`, `weight_variability()`, `summarize_weights()` |
@@ -89,7 +89,11 @@ Use `@family calibration`, `@family sample-calibration`, `@family nonresponse`, 
 |------|--------|
 | `adjust_nonresponse.R` | `adjust_nonresponse()` |
 | `as_taylor_design.R` | `as_taylor_design()` |
-| `calibrate.R` | `calibrate()` |
+| `calibrate.R` | `calibrate()` — thin dispatcher |
+| `calibrate-utils.R` | (internal helpers — not exported) |
+| `calibrate_greg.R` | `calibrate_greg()` |
+| `calibrate_poststrat.R` | `calibrate_poststrat()` |
+| `calibrate_rake.R` | `calibrate_rake()` |
 | `calibrate_to_estimate.R` | `calibrate_to_estimate()` |
 | `calibrate_to_survey.R` | `calibrate_to_survey()` |
 | `create_bootstrap_weights.R` | `create_bootstrap_weights()` |
@@ -102,8 +106,6 @@ Use `@family calibration`, `@family sample-calibration`, `@family nonresponse`, 
 | `create_sdr_weights.R` | `create_sdr_weights()` |
 | `effective_sample_size.R` | `effective_sample_size()` |
 | `ipw.R` | `ipw()` |
-| `poststratify.R` | `poststratify()` |
-| `rake.R` | `rake()` |
 | `redistribute_weights.R` | `redistribute_weights()` |
 | `stabilize_weights.R` | `stabilize_weights()` |
 | `summarize_weights.R` | `summarize_weights()` |

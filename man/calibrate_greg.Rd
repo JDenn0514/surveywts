@@ -116,7 +116,8 @@ doi:10.1080/01621459.1993.10476369
 }
 \seealso{
 Other calibration: 
-\code{\link{calibrate_rake}()},
-\code{\link{poststratify}()}
+\code{\link{calibrate}()},
+\code{\link{calibrate_poststrat}()},
+\code{\link{calibrate_rake}()}
 }
 \concept{calibration}

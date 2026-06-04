@@ -156,10 +156,10 @@ test_that("create_bootstrap_weights() Rao-Wu and Rao-Wu-Yue-Beaumont differ", {
 
 # ---- Spec §XIII 1d: mse = FALSE passes through correctly ---------------------
 
-test_that("create_bootstrap_weights() mse = FALSE is stored in history", {
+test_that("create_bootstrap_weights() mse = uncentered is stored in history", {
   skip_if_not_installed("svrep")
   td     <- make_taylor_design(seed = 1)
-  result <- create_bootstrap_weights(td, replicates = 20L, mse = FALSE, seed = 1L)
+  result <- create_bootstrap_weights(td, replicates = 20L, mse = "uncentered", seed = 1L)
   test_invariants(result)
   history <- result@metadata@weighting_history
   expect_false(history[[1L]]$parameters$mse)
@@ -180,11 +180,13 @@ test_that("create_bootstrap_weights() all-equal base weights succeeds", {
 
 # ---- .validate_replicates_arg() — NULL and non-numeric paths (lines 54–59) --
 
-test_that("create_bootstrap_weights() passes NULL replicates to svrep (which errors)", {
+test_that("create_bootstrap_weights() resolves NULL replicates to 500L for prob-sample types", {
   skip_if_not_installed("svrep")
   td <- make_taylor_design(seed = 1)
-  # NULL passes .validate_replicates_arg() (line 54) but svrep rejects it
-  expect_error(create_bootstrap_weights(td, replicates = NULL))
+  # NULL resolves to 500L for probability-sample types (new default behavior)
+  result <- create_bootstrap_weights(td, replicates = NULL, seed = 1L)
+  expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
+  expect_identical(length(result@variables$repweights), 500L)
 })
 
 test_that("create_bootstrap_weights() rejects character replicates", {
@@ -1069,4 +1071,75 @@ test_that("create_sdr_weights() all-equal base weights succeeds", {
   td <- surveycore::as_survey(df, ids = id, weights = base_weight)
   result <- create_sdr_weights(td, replicates = 20L, sort_var = id)
   test_invariants(result)
+})
+
+# ============================================================================
+# DAGJK-PR1: .handle_repweights_overwrite() internal helper
+# ============================================================================
+
+test_that(".handle_repweights_overwrite() is an internal helper that handles overwrite logic", {
+  skip_if_not_installed("svrep")
+
+  # Build a survey_nonprob with existing repweights (via create_bootstrap_weights)
+  df <- make_surveywts_data(seed = 1L)
+  np <- surveycore::survey_nonprob(
+    data      = df,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  rep <- create_bootstrap_weights(np, replicates = 10L, seed = 1L)
+
+  # Function must exist and be callable via :::
+  expect_true(
+    existsFunction(".handle_repweights_overwrite",
+                   where = asNamespace("surveywts"))
+  )
+
+  # Call the helper directly and check it returns a modified survey_nonprob
+  result <- surveywts:::.handle_repweights_overwrite(
+    rep,
+    fn_name      = "create_bootstrap_weights",
+    warning_class = "surveywts_warning_repweights_overwritten"
+  )
+
+  # The returned object must have cleared repweights
+  expect_null(result@variables$repweights)
+
+  # Old replicate columns must be gone from @data
+  expect_false(any(grepl("^repwt_", names(result@data))))
+})
+
+test_that("bootstrap overwrite warning message text is unchanged after refactor", {
+  skip_if_not_installed("svrep")
+
+  df <- make_surveywts_data(seed = 1L)
+  np <- surveycore::survey_nonprob(
+    data      = df,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  rep <- create_bootstrap_weights(np, replicates = 5L, seed = 1L)
+
+  # Snapshot the warning message text to detect accidental changes after refactor.
+  expect_warning(
+    surveywts:::.handle_repweights_overwrite(
+      rep,
+      fn_name       = "create_bootstrap_weights",
+      warning_class = "surveywts_warning_repweights_overwritten"
+    ),
+    class = "surveywts_warning_repweights_overwritten"
+  )
+  expect_snapshot(
+    withCallingHandlers(
+      surveywts:::.handle_repweights_overwrite(
+        rep,
+        fn_name       = "create_bootstrap_weights",
+        warning_class = "surveywts_warning_repweights_overwritten"
+      ),
+      warning = function(w) {
+        message(conditionMessage(w))
+        invokeRestart("muffleWarning")
+      }
+    )
+  )
 })

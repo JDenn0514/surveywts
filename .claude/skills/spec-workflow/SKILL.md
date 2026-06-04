@@ -5,8 +5,12 @@ description: >
   running an adversarial review, or resolving spec issues interactively. Trigger
   whenever the user says "draft spec", "review the spec", "resolve spec issues",
   "start planning", or references a phase number (e.g. "phase 1", "phase 0.5").
-  Five-stage workflow: draft → methodology review → resolve → spec review → resolve + log.
-  After Stage 4 is complete, move to /implementation-workflow.
+  Six-stage workflow: deep comprehension (optional) → draft → methodology review →
+  resolve → spec review → resolve + log. Stage 1 now produces TWO artifacts:
+  spec-{id}.md (behavioral contract for builder) and test-spec-{id}.md (validation
+  scenarios for tester). Stage 2 includes a Literature Lens if a paper was attached.
+  After Stage 4 is complete, move to /implementation-workflow (or /pipeline-implement
+  if running the full pipeline).
 ---
 
 # Surveyverse Spec Workflow
@@ -14,34 +18,42 @@ description: >
 **Announce at start:** "Running spec-workflow Stage N — [stage name]."
 
 This skill governs spec work for surveywts.
-Five stages, always in order:
+Six stages, always in order:
 
-1. **Stage 1 — Draft:** Write the spec sheet
+0. **Stage 0 — Deep Comprehension:** Extract formulas, gotchas, and reference
+   mappings from an attached paper or PDF *(conditional — only when methods-heavy
+   or paper attached)*
+1. **Stage 1 — Draft:** Write `spec-{id}.md` (behavioral contract) AND
+   `test-spec-{id}.md` (validation scenarios) as two independent artifacts
 2. **Stage 2 — Methodology Review:** Adversarial survey statistics pass; flags every
-   methodological flaw before code is written *(conditional — self-assesses applicability)*
+   methodological flaw before code is written; includes Literature Lens (Lens 6)
+   when a paper was attached *(conditional — self-assesses applicability)*
 3. **Stage 2 Resolve — Lock Methodology:** Resolve all methodology issues; spec is
    methodology-locked after this
 4. **Stage 3 — Spec Review:** Adversarial code-quality pass; flags gaps in contracts,
-   test plans, engineering level, and API coherence (does the function behave
-   as expected for every input type?)
+   test plans, engineering level, and API coherence
 5. **Stage 4 — Resolve:** Interactively work through all issues and log decisions
 
+Stage 0 is conditional — only run when the feature involves statistical methods or
+a paper has been attached.
 Stages 2 and 2 Resolve are conditional — skip them if the spec contains no
 variance estimation, estimators, or statistical inference.
 
 ```dot
 digraph spec_stages {
     rankdir=LR;
-    S1 [label="Stage 1\nDraft", shape=box];
-    S2 [label="Stage 2\nMethodology", shape=box];
+    S0 [label="Stage 0\nDeep Comprehension\n(conditional)", shape=box];
+    S1 [label="Stage 1\nDraft\n(spec + test-spec)", shape=box];
+    S2 [label="Stage 2\nMethodology\n(+Literature Lens)", shape=box];
     S2R [label="Stage 2 Resolve\nLock Methodology", shape=box];
     S3 [label="Stage 3\nSpec Review", shape=box];
     S4 [label="Stage 4\nResolve + Log", shape=box];
-    done [label="→ /implementation-workflow", shape=doublecircle];
+    done [label="→ /implementation-workflow\nor /pipeline-implement", shape=doublecircle];
 
+    S0 -> S1 [label="methods-heavy or paper"];
     S1 -> S2;
     S2 -> S2R [label="issues found"];
-    S2 -> S3 [label="N/A"];
+    S2 -> S3 [label="N/A or PASS"];
     S2R -> S3;
     S3 -> S4 [label="issues found"];
     S3 -> done [label="clean"];
@@ -67,14 +79,16 @@ question: "Which stage of the spec workflow do you want to run?"
 header: "Stage"
 multiSelect: false
 options:
-  - label: "Stage 1 — Draft the spec"
-    description: "Write a new spec sheet from scratch."
+  - label: "Stage 0 — Deep Comprehension (paper/methods-heavy)"
+    description: "Extract formulas, gotchas, and reference mappings from an attached paper or PDF. Produces comprehension.md before drafting begins."
+  - label: "Stage 1 — Draft spec + test-spec"
+    description: "Write spec-{id}.md (behavioral contract) and test-spec-{id}.md (validation scenarios) as two independent artifacts."
   - label: "Stage 2 — Methodology review"
-    description: "Adversarial methodology pass: statistical correctness, algorithm validity, formula integrity. Saves all issues to a file. Self-assesses applicability — declares Stage 2 not applicable and skips to Stage 3 if the feature has no mathematical content."
+    description: "Adversarial methodology pass: statistical correctness, algorithm validity, formula integrity. Includes Literature Lens if a paper was attached. Self-assesses applicability."
   - label: "Stage 2 Resolve — Resolve methodology issues"
     description: "Work through the methodology review file issue by issue. Methodology-locks the spec after completion."
   - label: "Stage 3 — Adversarial spec review"
-    description: "Full batch pass over code quality, contracts, test plans, engineering level, and API coherence. Can run multiple times if new issues are discovered."
+    description: "Full batch pass over code quality, contracts, test plans, engineering level, and API coherence."
   - label: "Stage 4 — Resolve issues"
     description: "Interactively work through all open issues (from Stage 2 and/or Stage 3) and log decisions."
 ```
@@ -82,7 +96,8 @@ options:
 Then read the corresponding reference file before doing anything else:
 
 | Stage | Reference file |
-|---|---|
+|-------|---------------|
+| 0 | `.claude/skills/spec-workflow/references/stage-0-comprehension.md` |
 | 1 | `.claude/skills/spec-workflow/references/stage-1-draft.md` |
 | 2 | `.claude/skills/spec-workflow/references/stage-2-methodology.md` |
 | 2 Resolve | `.claude/skills/spec-workflow/references/stage-2-resolve.md` |

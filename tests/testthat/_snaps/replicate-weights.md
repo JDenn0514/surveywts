@@ -473,3 +473,33 @@
       i <survey_nonprob> has no PSU or stratum structure required by SDR.
       v Use `create_bootstrap_weights()` for non-probability designs.
 
+# bootstrap overwrite warning message text is unchanged after refactor
+
+    Code
+      withCallingHandlers(surveywts:::.handle_repweights_overwrite(rep, fn_name = "create_bootstrap_weights",
+        warning_class = "surveywts_warning_repweights_overwritten"), warning = function(
+        w) {
+        message(conditionMessage(w))
+        invokeRestart("muffleWarning")
+      })
+    Message
+      ! Overwriting 5 existing replicate weight column(s) in `data`.
+      i A previous call to `create_bootstrap_weights()` already produced 5 replicate column(s). They will be replaced.
+      v Inspect the previous replicates before overwriting if needed.
+    Output
+      <survey_replicate: bootstrap>
+      N = 500 observations
+      Scale: 0.2
+      Replicate scales: vector of length 5, range [1, 1]
+      mse = TRUE
+      
+      Weights:
+        min:    0.27
+        median: 0.98
+        mean:   1.08
+        max:    4.29
+        CV:     0.43
+      
+      Weighting history:
+        #   Step 1 [2026-06-03]: replicate_creation (method = "bootstrap", type = "Rao-Wu-Yue-Beaumont", replicates = 5)
+

@@ -1,6 +1,6 @@
 Package: surveywts
 Title: Tools for Survey Weighting and Calibration
-Version: 0.2.0
+Version: 0.2.0.9000
 Authors@R:
     person(
         "Jacob", "Dennen",
@@ -19,20 +19,22 @@ Roxygen: list(markdown = TRUE)
 Depends:
     R (>= 4.3.0)
 Imports:
-    anesrake (>= 0.80),
     cli (>= 3.6.0),
     dplyr (>= 1.1.0),
     rlang (>= 1.1.0),
     S7 (>= 0.2.0),
     survey (>= 4.2-1),
-    surveycore (>= 0.8.0),
+    surveycore (>= 0.9.0),
+    svrep (>= 0.9.1),
     tibble (>= 3.2.0),
     tidyselect (>= 1.2.0)
 Suggests:
+    anesrake,
     covr,
     knitr,
+    mice,
+    nonprobsvy,
     rmarkdown,
-    svrep (>= 0.6.0),
     testthat (>= 3.2.0),
     withr (>= 2.5.0)
 Remotes:
@@ -43,3 +45,4 @@ URL: https://github.com/JDenn0514/surveywts, https://jdenn0514.github.io/surveyw
 BugReports: https://github.com/JDenn0514/surveywts/issues
 X-schema.org-keywords: survey, statistics, weights, calibration, tidyverse
 RoxygenNote: 7.3.3
+LazyData: true

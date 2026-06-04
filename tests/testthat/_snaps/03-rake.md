@@ -91,9 +91,9 @@
       calibrate_rake(df, targets = targets, reference_design = "bad")
     Condition
       Error in `.validate_reference_design()`:
-      x `reference_design` must be a <survey_taylor> object or `NULL`.
-      i Got <character>.
-      v Pass a <survey_taylor> design as `reference_design`, or set `reference_design = NULL` to omit.
+      x `reference_design` must be a <survey_taylor>.
+      i Got class <character>.
+      v Pass the <survey_taylor> object used to compute the targets.
 
 # calibrate_rake() rejects targets = 42
 

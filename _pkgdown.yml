@@ -21,11 +21,32 @@ reference:
       - calibrate
       - rake
       - poststratify
+  - title: Sample-Based Calibration
+    desc: >
+      Functions for calibrating replicate-weight designs to a control survey or
+      to estimated totals with uncertainty.
+    contents:
+      - calibrate_to_survey
+      - calibrate_to_estimate
+  - title: Propensity Weighting
+    desc: >
+      Functions for inverse probability weighting of non-probability samples.
+    contents:
+      - ipw
+  - title: Example Datasets
+    desc: >
+      Bundled datasets for use in IPW examples and tests.
+    contents:
+      - ns_wave1_ipw
+      - gss_ipw_ref
+      - npors_2025_ref
+      - acs_ipw_ref
   - title: Nonresponse Adjustment
     desc: >
       Functions for adjusting survey weights for unit nonresponse.
     contents:
       - adjust_nonresponse
+      - redistribute_weights
   - title: Replicate Weights
     desc: >
       Functions for creating replicate weights for variance estimation.
@@ -36,8 +57,15 @@ reference:
       - create_gen_boot_weights
       - create_gen_rep_weights
       - create_sdr_weights
+      - create_group_jackknife_weights
       - create_replicate_weights
       - as_taylor_design
+  - title: Weight Utilities
+    desc: >
+      Functions for trimming and stabilizing survey weights.
+    contents:
+      - trim_weights
+      - stabilize_weights
   - title: Diagnostics
     desc: >
       Functions for assessing the distribution and quality of survey weights.

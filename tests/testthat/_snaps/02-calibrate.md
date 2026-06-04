@@ -91,9 +91,9 @@
       calibrate_greg(df, targets = targets, reference_design = list())
     Condition
       Error in `.validate_reference_design()`:
-      x `reference_design` must be a <survey_taylor> object or `NULL`.
-      i Got <list>.
-      v Pass a <survey_taylor> design as `reference_design`, or set `reference_design = NULL` to omit.
+      x `reference_design` must be a <survey_taylor>.
+      i Got class <list>.
+      v Pass the <survey_taylor> object used to compute the targets.
 
 # calibrate_greg() rejects targets = 42 (not a list or data frame)
 

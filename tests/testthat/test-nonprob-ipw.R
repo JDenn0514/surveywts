@@ -130,7 +130,7 @@ test_that("ipw() print snapshot matches survey_nonprob format with ipw step", {
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref()
   result <- ipw(nps, ref, selection = ~age_group + sex)
-  expect_snapshot(print(result))
+  expect_snapshot(print(.pin_ts(result)))
 })
 
 test_that("ipw() missing_method='omit' drops rows with NA; nrow < original; test_invariants passes", {

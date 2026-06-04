@@ -599,10 +599,9 @@ test_that("poststratify() step increments correctly in chained calls", {
   df  <- make_surveywts_data(seed = 11)
   pop <- .make_pop_ps()
 
-  result1 <- calibrate(
+  result1 <- calibrate_greg(
     df,
-    variables = c(age_group, sex),
-    population = list(
+    targets = list(
       age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
       sex       = c("M" = 0.48, "F" = 0.52)
     )
@@ -619,7 +618,7 @@ test_that("poststratify() step increments correctly in chained calls", {
   expect_length(history, 2L)
   expect_identical(history[[1L]]$step, 1L)
   expect_identical(history[[2L]]$step, 2L)
-  expect_identical(history[[1L]]$operation, "calibration")
+  expect_identical(history[[1L]]$operation, "calibrate_greg")
   expect_identical(history[[2L]]$operation, "poststratify")
 })
 

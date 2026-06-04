@@ -20,33 +20,33 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_error_wt_name_not_scalar` | `.validate_wt_name()` | `wt_name` is not `character(1)` |
 | `surveywts_error_wt_name_empty` | `.validate_wt_name()` | `wt_name` is `NA` or `""` |
 
-### `calibrate()`
+### `calibrate_greg()`
 
 | Class | Thrown by | Condition |
 |-------|-----------|-----------|
-| `surveywts_error_reference_design_not_taylor` | `calibrate()` | `reference_design` is non-`NULL` and is not a `survey_taylor` object |
-| `surveywts_error_variable_not_categorical` | `calibrate()` | Calibration variable is numeric or integer |
-| `surveywts_error_variable_has_na` | `calibrate()` | A calibration variable has `NA` values |
-| `surveywts_error_population_variable_not_found` | `calibrate()` | A `population` name not found in `data` |
-| `surveywts_error_population_level_missing` | `calibrate()` | A data level absent from `population` |
-| `surveywts_error_population_level_extra` | `calibrate()` | A `population` level absent from `data` |
-| `surveywts_error_population_totals_invalid` | `calibrate()` | `type = "prop"` proportions don't sum to 1, or `type = "count"` target ≤ 0 |
+| `surveywts_error_variable_not_categorical` | `calibrate_greg()` | Calibration variable is numeric or integer |
+| `surveywts_error_variable_has_na` | `calibrate_greg()` | A calibration variable has `NA` values |
+| `surveywts_error_targets_variable_not_found` | `calibrate_greg()` | A `targets` name not found in `data` |
+| `surveywts_error_population_level_missing` | `calibrate_greg()` | A data level absent from `targets` |
+| `surveywts_error_population_level_extra` | `calibrate_greg()` | A `targets` level absent from `data` |
+| `surveywts_error_population_totals_invalid` | `calibrate_greg()` | `type = "prop"` proportions don't sum to 1, or `type = "count"` target ≤ 0 |
 | `surveywts_error_calibration_not_converged` | `.calibrate_engine()` | Max iterations reached without convergence |
+| `surveywts_error_reference_design_not_taylor` | `calibrate_greg()` | `reference_design` is non-`NULL` and not `survey_taylor` |
 
-### `rake()`
+### `calibrate_rake()`
 
 | Class | Thrown by | Condition |
 |-------|-----------|-----------|
-| `surveywts_error_reference_design_not_taylor` | `rake()` | `reference_design` is non-`NULL` and is not a `survey_taylor` object |
-| `surveywts_error_margins_format_invalid` | `rake()` | `margins` is not a named list or valid long data frame |
-| `surveywts_error_margins_variable_not_found` | `rake()` | A margins variable not found in `data` |
-| `surveywts_error_variable_not_categorical` | `rake()` | Raking variable is numeric or integer |
-| `surveywts_error_variable_has_na` | `rake()` | A raking variable has `NA` values |
-| `surveywts_error_population_level_missing` | `rake()` | A data level absent from `margins` |
-| `surveywts_error_population_level_extra` | `rake()` | A margins level absent from `data` |
-| `surveywts_error_population_totals_invalid` | `rake()` | `type = "prop"` proportions don't sum to 1, or `type = "count"` target ≤ 0 |
+| `surveywts_error_margins_format_invalid` | `calibrate_greg()`, `calibrate_rake()` | `targets` is not a named list or valid long data frame |
+| `surveywts_error_targets_variable_not_found` | `calibrate_rake()` | A `targets` variable not found in `data` |
+| `surveywts_error_variable_not_categorical` | `calibrate_rake()` | Raking variable is numeric or integer |
+| `surveywts_error_variable_has_na` | `calibrate_rake()` | A raking variable has `NA` values |
+| `surveywts_error_population_level_missing` | `calibrate_rake()` | A data level absent from `targets` |
+| `surveywts_error_population_level_extra` | `calibrate_rake()` | A `targets` level absent from `data` |
+| `surveywts_error_population_totals_invalid` | `calibrate_rake()` | `type = "prop"` proportions don't sum to 1, or `type = "count"` target ≤ 0 |
 | `surveywts_error_calibration_not_converged` | `.calibrate_engine()` | Max full sweeps reached without convergence |
-| `surveywts_error_cap_not_supported_survey` | `rake()` | `cap` specified with `method = "survey"` |
+| `surveywts_error_cap_not_supported_survey` | `calibrate_rake()` | `cap` specified with `algorithm = "survey"` |
+| `surveywts_error_reference_design_not_taylor` | `calibrate_rake()` | `reference_design` is non-`NULL` and not `survey_taylor` |
 
 ### `poststratify()`
 
@@ -229,9 +229,9 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_warning_already_taylor` | `as_taylor_design()` | Input is already `survey_taylor` |
 | `surveywts_warning_taylor_loses_variance` | `as_taylor_design()` | Converting drops replicate weights |
 | `surveywts_warning_weight_col_dropped` | `dplyr_reconstruct.weighted_df()` | dplyr verb removed the weight column from a `weighted_df` |
-| `surveywts_warning_negative_calibrated_weights` | `calibrate()` | Linear calibration produced negative calibrated weights |
+| `surveywts_warning_negative_calibrated_weights` | `calibrate_greg()` | Linear calibration produced negative calibrated weights |
 | `surveywts_warning_class_near_empty` | `adjust_nonresponse()` | A weighting class cell has fewer than `control$min_cell` respondents (default 20) OR adjustment factor exceeds `control$max_adjust` (default 2.0) |
-| `surveywts_warning_control_param_ignored` | `rake()` | A `control` parameter is not applicable to the specified `method` (e.g., `control$pval` with `method = "survey"`, or `control$epsilon` with `method = "anesrake"`) |
+| `surveywts_warning_control_param_ignored` | `calibrate_greg()`, `calibrate_rake()` | A `control` parameter is not applicable to the specified `model`/`algorithm` (e.g., `control$pval` with `algorithm = "survey"`, or `control$epsilon` with `algorithm = "anesrake"`; or an unrecognized key in `calibrate_greg()`) |
 | `surveywts_warning_replicate_scheme_mismatch` | `calibrate_to_survey()` | `primary_design` and `control_design` have different replicate weight types (e.g., `"bootstrap"` vs `"JK1"`) |
 | `surveywts_warning_by_ignored_for_propensity_cell` | `adjust_nonresponse()` | `by` is non-`NULL` with `method = "propensity-cell"` — `by` is ignored for this method |
 | `surveywts_warning_by_ignored_for_propensity` | `adjust_nonresponse()` | `by` is non-`NULL` with `method = "propensity"` — `by` is ignored for this method |
@@ -248,7 +248,7 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_warning_ipw_reference_levels_absent_from_nps` | `ipw()` | A reference factor/character level is absent from the NPS for a selection variable — reference units in these cells have near-zero propensity scores |
 | `surveywts_warning_no_weights_trimmed` | `trim_weights()` | No main weights fell outside the resolved bounds |
 | `surveywts_warning_trimming_failed` | `trim_weights()` | All remaining units already trimmed; no untrimmed units to absorb excess |
-| _See also:_ `surveywts_warning_negative_calibrated_weights` | — | Shared with `calibrate()` section; also thrown by `calibrate_to_survey()` and `calibrate_to_estimate()` |
+| _See also:_ `surveywts_warning_negative_calibrated_weights` | — | Shared with `calibrate_greg()` section; also thrown by `calibrate_to_survey()` and `calibrate_to_estimate()` |
 | _See also:_ `surveywts_warning_class_near_empty` | — | Shared with `adjust_nonresponse()` section; also thrown by `redistribute_weights()` |
 | `surveywts_warning_reference_sample_ignored` | `create_bootstrap_weights()` | `reference_sample` non-`NULL` and `type` is a probability-sample type |
 | `surveywts_warning_bootstrap_draws_failed` | `.quasi_randomization_bootstrap()` | More than 10% of draws failed |
@@ -264,4 +264,4 @@ templates (organized by function in subsections XII.A through XII.G).
 
 | Class | Thrown by | Condition |
 |-------|-----------|-----------|
-| `surveywts_message_already_calibrated` | `rake()` | `method = "anesrake"` and all raking variables pass the chi-square threshold in sweep 1 — no adjustment needed |
+| `surveywts_message_already_calibrated` | `calibrate_rake()` | `algorithm = "anesrake"` and all raking variables pass the chi-square threshold in sweep 1 — no adjustment needed |

@@ -19,7 +19,7 @@ poststratify(
 
 \item{strata}{<\code{\link[tidyselect:language]{tidy-select}}> Stratification
 variables that jointly define the cells. Specify as a bare name or
-\code{c(var1, var2, ...)}. Unlike \code{\link[=calibrate]{calibrate()}} and \code{\link[=rake]{rake()}}, strata
+\code{c(var1, var2, ...)}. Unlike \code{\link[survey:calibrate]{survey::calibrate()}} and \code{\link[survey:rake]{survey::rake()}}, strata
 variables may be any type (character, factor, integer, numeric).}
 
 \item{population}{A \code{data.frame} with one column per variable selected by
@@ -40,7 +40,7 @@ object (\code{survey_taylor} or \code{survey_nonprob}).}
 
 \item{type}{Character scalar. \code{"prop"} (default): \code{target} values are
 proportions summing to 1.0. \code{"count"}: \code{target} values are population
-counts. Consistent with \code{\link[=calibrate]{calibrate()}} and \code{\link[=rake]{rake()}}.}
+counts. Consistent with \code{\link[survey:calibrate]{survey::calibrate()}} and \code{\link[survey:rake]{survey::rake()}}.}
 }
 \value{
 \itemize{
@@ -56,7 +56,7 @@ history entry with \code{operation = "poststratify"} is appended to
 \description{
 Adjusts survey weights so that the weighted cell counts (or proportions)
 match known population values for every joint combination of stratification
-variables. Unlike \code{\link[=calibrate]{calibrate()}} and \code{\link[=rake]{rake()}}, which match marginal totals,
+variables. Unlike \code{\link[survey:calibrate]{survey::calibrate()}} and \code{\link[survey:rake]{survey::rake()}}, which match marginal totals,
 \code{poststratify()} matches exact cross-tabulation cells in a single pass.
 }
 \examples{
@@ -86,7 +86,7 @@ result2 <- poststratify(df, strata = c(age_group, sex),
 }
 \seealso{
 Other calibration: 
-\code{\link{calibrate}()},
-\code{\link{rake}()}
+\code{\link{calibrate_greg}()},
+\code{\link{calibrate_rake}()}
 }
 \concept{calibration}

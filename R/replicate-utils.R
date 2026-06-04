@@ -341,9 +341,12 @@
     )
   }
 
-  # Find last calibration history entry (rake or calibrate)
+  # Find last calibration history entry (rake or calibrate, old or new API)
   calib_entry <- Filter(
-    function(e) e$operation %in% c("raking", "calibration"),
+    function(e) e$operation %in% c(
+      "raking", "calibration",
+      "calibrate_rake", "calibrate_greg"
+    ),
     data@metadata@weighting_history
   )
   calib_entry <- if (length(calib_entry) > 0L) {
@@ -435,35 +438,41 @@
 
       # Step 4: re-run calibration (if in history)
       if (!is.null(calib_entry)) {
-        if (calib_entry$operation == "raking") {
+        if (calib_entry$operation %in% c("raking", "calibrate_rake")) {
           if (use_level_b) {
-            # Re-estimate margins from the SRSWR-resampled reference data.
+            # Re-estimate targets from the SRSWR-resampled reference data.
             # ref_data_b carries original design weights for selected rows.
-            margins_b <- .reestimate_margins_from_reference(
+            targets_b <- .reestimate_margins_from_reference(
               calib_entry = calib_entry,
               ref_design  = ref_design,
               ref_data_b  = ref_data_b
             )
           } else {
-            margins_b <- calib_entry$parameters$margins
+            # Old "raking" entries stored targets as `margins`; new ones as `targets`.
+            targets_b <- calib_entry$parameters$targets %||%
+              calib_entry$parameters$margins
           }
-          calib_result_b <- surveywts::rake(
-            data    = ipw_result_b,
-            margins = margins_b,
-            type    = calib_entry$parameters$type,
-            method  = calib_entry$parameters$method,
-            cap     = calib_entry$parameters$cap,
-            control = calib_entry$parameters$control
+          calib_result_b <- surveywts::calibrate_rake(
+            data      = ipw_result_b,
+            targets   = targets_b,
+            type      = calib_entry$parameters$type,
+            algorithm = calib_entry$parameters$algorithm %||%
+              calib_entry$parameters$method,
+            cap       = calib_entry$parameters$cap,
+            control   = calib_entry$parameters$control
           )
         } else {
-          # operation == "calibration"
-          calib_result_b <- surveywts::calibrate(
-            data       = ipw_result_b,
-            variables  = calib_entry$parameters$variables,
-            population = calib_entry$parameters$population,
-            method     = calib_entry$parameters$method,
-            type       = calib_entry$parameters$type,
-            control    = calib_entry$parameters$control
+          # operation "calibration" (old) or "calibrate_greg" (new)
+          # Old entries stored population + variables; new entries store targets.
+          greg_targets <- calib_entry$parameters$targets %||%
+            calib_entry$parameters$population
+          calib_result_b <- surveywts::calibrate_greg(
+            data    = ipw_result_b,
+            targets = greg_targets,
+            model   = calib_entry$parameters$model %||%
+              calib_entry$parameters$method,
+            type    = calib_entry$parameters$type,
+            control = calib_entry$parameters$control
           )
         }
         repwt_list[[length(repwt_list) + 1L]] <-
@@ -572,7 +581,9 @@
 #   ref_data_b  : data.frame — SRSWR-resampled reference rows (includes the
 #                 weight column from ref_design@variables$weights)
 .reestimate_margins_from_reference <- function(calib_entry, ref_design, ref_data_b) {
-  margins_orig <- calib_entry$parameters$margins
+  # Old "raking" entries stored targets as `margins`; new ones as `targets`.
+  margins_orig <- calib_entry$parameters$targets %||%
+    calib_entry$parameters$margins
   type         <- calib_entry$parameters$type
   wt_col       <- ref_design@variables$weights
   ref_wts_b    <- ref_data_b[[wt_col]]

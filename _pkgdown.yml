@@ -18,8 +18,8 @@ reference:
     desc: >
       Functions for calibrating survey weights to known population totals.
     contents:
-      - calibrate
-      - rake
+      - calibrate_greg
+      - calibrate_rake
       - poststratify
   - title: Sample-Based Calibration
     desc: >

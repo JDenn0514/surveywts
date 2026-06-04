@@ -243,7 +243,7 @@ test_that("print(survey_nonprob) includes bootstrap replicates line when repweig
     replicates = 10L,
     seed       = 1L
   ))
-  expect_snapshot(print(result))
+  expect_snapshot(print(.pin_ts(result)))
 })
 
 # ============================================================================
@@ -252,7 +252,7 @@ test_that("print(survey_nonprob) includes bootstrap replicates line when repweig
 
 test_that("print(survey_nonprob) unchanged when no repweights", {
   lev_a <- suppressWarnings(make_nps_level_a(seed = 1))
-  expect_snapshot(print(lev_a))
+  expect_snapshot(print(.pin_ts(lev_a)))
 })
 
 # ============================================================================
@@ -306,7 +306,7 @@ test_that("create_bootstrap_weights() rejects survey_taylor with quasi-randomiza
 # E2: weighted_df + quasi-randomization
 test_that("create_bootstrap_weights() rejects weighted_df with quasi-randomization", {
   df <- make_surveywts_data(seed = 1)
-  wd <- rake(df, margins = list(
+  wd <- calibrate_rake(df, targets = list(
     age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
     sex       = c("M" = 0.48, "F" = 0.52)
   ))
@@ -530,9 +530,9 @@ test_that("create_bootstrap_weights() warns when >10% draws fail", {
     reference = ref,
     selection = ~age_group
   ))
-  nps_raked <- suppressWarnings(rake(
+  nps_raked <- suppressWarnings(calibrate_rake(
     nps_ipw,
-    margins = list(
+    targets = list(
       age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25)
     ),
     type = "prop"
@@ -596,9 +596,9 @@ test_that("create_bootstrap_weights() errors when all draws fail", {
     reference = ref,
     selection = ~age_group
   ))
-  nps_raked <- suppressWarnings(rake(
+  nps_raked <- suppressWarnings(calibrate_rake(
     nps_ipw,
-    margins = list(
+    targets = list(
       age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25)
     ),
     type = "prop"
@@ -835,17 +835,16 @@ test_that("create_bootstrap_weights() handles NPS built with calibrate() instead
     selection = ~age_group + sex
   ))
 
-  # Use calibrate() instead of rake() so the history entry has
-  # operation = "calibration", exercising the else branch at lines 418-425
+  # Use calibrate_greg() so the history entry has operation = "calibrate_greg",
+  # exercising the else branch in the draw loop
   pop_targets <- list(
     age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
     sex       = c("M" = 0.49, "F" = 0.51)
   )
-  nps_calibrated <- suppressWarnings(calibrate(
+  nps_calibrated <- suppressWarnings(calibrate_greg(
     nps_ipw,
-    variables  = c(age_group, sex),
-    population = pop_targets,
-    type       = "prop"
+    targets = pop_targets,
+    type    = "prop"
   ))
 
   result <- suppressWarnings(create_bootstrap_weights(
@@ -895,9 +894,9 @@ test_that("create_bootstrap_weights() Level B with type = 'count' margins re-est
     )
   )
 
-  nps_raked_count <- suppressWarnings(rake(
+  nps_raked_count <- suppressWarnings(calibrate_rake(
     nps_ipw,
-    margins          = count_margins,
+    targets          = count_margins,
     type             = "count",
     reference_design = ref
   ))

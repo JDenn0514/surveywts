@@ -202,9 +202,9 @@ make_nps_level_a <- function(seed = 1, n = 500) {
     reference = ref,
     selection = ~age_group + sex
   )
-  surveywts::rake(
+  surveywts::calibrate_rake(
     ipw_result,
-    margins = list(
+    targets = list(
       age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
       sex       = c("M" = 0.49, "F" = 0.51)
     ),
@@ -223,9 +223,9 @@ make_nps_level_b <- function(seed = 2, n = 500) {
     reference = ref,
     selection = ~age_group + sex
   )
-  surveywts::rake(
+  surveywts::calibrate_rake(
     ipw_result,
-    margins = list(
+    targets = list(
       age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
       sex       = c("M" = 0.49, "F" = 0.51)
     ),
@@ -296,16 +296,16 @@ make_dagjk_datasets <- function() {
     adjust_reference = FALSE
   ))
 
-  # Dataset B: ipw() + rake() with literal fixed margins
+  # Dataset B: ipw() + calibrate_rake() with literal fixed targets
   ipw_b <- suppressWarnings(surveywts::ipw(
     data             = nps_df,
     reference        = ref,
     selection        = ~age_group + sex,
     adjust_reference = FALSE
   ))
-  B <- surveywts::rake(
+  B <- surveywts::calibrate_rake(
     ipw_b,
-    margins = list(
+    targets = list(
       age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
       sex       = c("M" = 0.48, "F" = 0.52)
     ),
@@ -321,7 +321,7 @@ make_dagjk_datasets <- function() {
     adjust_reference = FALSE
   ))
 
-  # Dataset D: ipw() + rake() with reference_design= (targets_from_reference = TRUE)
+  # Dataset D: ipw() + calibrate_rake() with reference_design= (targets_from_reference = TRUE)
   # Exercises use_level_b = TRUE path (raking branch) in .dagjk_single_replicate()
   ipw_d <- suppressWarnings(surveywts::ipw(
     data             = nps_df,
@@ -329,9 +329,9 @@ make_dagjk_datasets <- function() {
     selection        = ~age_group + sex,
     adjust_reference = FALSE
   ))
-  D <- surveywts::rake(
+  D <- surveywts::calibrate_rake(
     ipw_d,
-    margins = list(
+    targets = list(
       age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
       sex       = c("M" = 0.48, "F" = 0.52)
     ),
@@ -339,7 +339,7 @@ make_dagjk_datasets <- function() {
     reference_design = ref  # -> targets_from_reference = TRUE
   )
 
-  # Dataset E: ipw() + calibrate() with reference_design= (targets_from_reference = TRUE)
+  # Dataset E: ipw() + calibrate_greg() with reference_design= (targets_from_reference = TRUE)
   # Exercises use_level_b = TRUE calibration (not raking) branch
   ipw_e <- suppressWarnings(surveywts::ipw(
     data             = nps_df,
@@ -347,23 +347,21 @@ make_dagjk_datasets <- function() {
     selection        = ~age_group + sex,
     adjust_reference = FALSE
   ))
-  # Population as named list (required format for calibrate())
-  pop_list <- list(
+  targets_e <- list(
     age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
     sex       = c("M" = 0.48, "F" = 0.52)
   )
   E <- tryCatch(
-    surveywts::calibrate(
+    surveywts::calibrate_greg(
       data             = ipw_e,
-      variables        = c(age_group, sex),
-      population       = pop_list,
+      targets          = targets_e,
       type             = "prop",
       reference_design = ref   # -> targets_from_reference = TRUE
     ),
     error = function(e) NULL
   )
 
-  # Dataset F: ipw() + calibrate() WITHOUT reference_design (targets_from_reference = FALSE)
+  # Dataset F: ipw() + calibrate_greg() WITHOUT reference_design (targets_from_reference = FALSE)
   # Exercises use_level_b = FALSE calibration branch in .dagjk_single_replicate()
   ipw_f <- suppressWarnings(surveywts::ipw(
     data             = nps_df,
@@ -371,20 +369,34 @@ make_dagjk_datasets <- function() {
     selection        = ~age_group + sex,
     adjust_reference = FALSE
   ))
-  pop_list_f <- list(
+  targets_f <- list(
     age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
     sex       = c("M" = 0.48, "F" = 0.52)
   )
   F_data <- tryCatch(
-    surveywts::calibrate(
-      data      = ipw_f,
-      variables = c(age_group, sex),
-      population = pop_list_f,
-      type      = "prop"
+    surveywts::calibrate_greg(
+      data    = ipw_f,
+      targets = targets_f,
+      type    = "prop"
       # no reference_design -> targets_from_reference = FALSE
     ),
     error = function(e) NULL
   )
 
   list(A = A, B = B, C = C, D = D, E = E, F = F_data, ref = ref)
+}
+
+# Pin all weighting history timestamps to a fixed date for stable snapshots.
+# Works for survey_nonprob and survey_replicate (both have @metadata@weighting_history).
+# Usage: result <- .pin_ts(result)
+.pin_ts <- function(obj, ts = as.POSIXct("2025-01-15 10:00:00", tz = "UTC")) {
+  if (S7::S7_inherits(obj, surveycore::survey_nonprob) ||
+        S7::S7_inherits(obj, surveycore::survey_replicate)) {
+    meta <- obj@metadata
+    for (i in seq_along(meta@weighting_history)) {
+      meta@weighting_history[[i]]$timestamp <- ts
+    }
+    obj@metadata <- meta
+  }
+  obj
 }

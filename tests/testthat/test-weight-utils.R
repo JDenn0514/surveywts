@@ -39,8 +39,8 @@
 }
 
 .make_test_wdf <- function(df) {
-  pop <- list(age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30))
-  calibrate(df, variables = c(age_group), population = pop, weights = base_weight)
+  targets <- list(age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30))
+  calibrate_greg(df, targets = targets, weights = base_weight)
 }
 
 # trim_weights() -------------------------------------------------------
@@ -654,10 +654,10 @@ test_that("trim_weights() type='percentile': lower_input != lower_abs", {
   expect_false(isTRUE(hist_entry$parameters$lower_input == hist_entry$parameters$lower_abs))
 })
 
-test_that("trim_weights() step number is correct when chained after calibrate()", {
+test_that("trim_weights() step number is correct when chained after calibrate_greg()", {
   df <- make_surveywts_data(seed = 42)
-  pop <- list(age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30))
-  wdf <- calibrate(df, variables = c(age_group), population = pop, weights = base_weight)
+  targets <- list(age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30))
+  wdf <- calibrate_greg(df, targets = targets, weights = base_weight)
 
   result <- trim_weights(wdf, upper = 0.9, type = "percentile")
   hist <- attr(result, "weighting_history")

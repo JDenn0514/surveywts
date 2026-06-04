@@ -1,28 +1,28 @@
 # print(survey_nonprob) includes bootstrap replicates line when repweights present
 
     Code
-      print(result)
+      print(.pin_ts(result))
     Output
       # A calibrated survey design: 500 observations, 17 variables
       # Variance: model-assisted (SRS assumption)
       # IDs: ~1 | Strata: NULL | Weights: ipw_weight 
       # Weighting history: 3 steps 
-      #   Step 1: ipw [~age_group + sex, logit, n_ref=1000, N_hat=612] 
-      #   Step 2: raking (margins: age_group, sex) 
-      #   Step 3: bootstrap_weights 
+      #   Step 1 [2025-01-15]: ipw [~age_group + sex, logit, n_ref=1000, N_hat=612] 
+      #   Step 2 [2025-01-15]: raking (targets: age_group, sex) 
+      #   Step 3 [2025-01-15]: bootstrap_weights 
       # Bootstrap replicates: 10 (quasi-randomization, level A)
 
 # print(survey_nonprob) unchanged when no repweights
 
     Code
-      print(lev_a)
+      print(.pin_ts(lev_a))
     Output
       # A calibrated survey design: 500 observations, 7 variables
       # Variance: model-assisted (SRS assumption)
       # IDs: ~1 | Strata: NULL | Weights: ipw_weight 
       # Weighting history: 2 steps 
-      #   Step 1: ipw [~age_group + sex, logit, n_ref=1000, N_hat=612] 
-      #   Step 2: raking (margins: age_group, sex) 
+      #   Step 1 [2025-01-15]: ipw [~age_group + sex, logit, n_ref=1000, N_hat=612] 
+      #   Step 2 [2025-01-15]: raking (targets: age_group, sex) 
 
 # create_bootstrap_weights() rejects survey_taylor with quasi-randomization
 

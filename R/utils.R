@@ -38,19 +38,23 @@
 # Used by print.weighted_df() (classes.R) and the S7 print method
 # for survey_nonprob (methods-print.R). Moved from classes.R in PR 4.
 .format_history_step <- function(entry) {
-  op <- entry$operation
+  op     <- entry$operation
   params <- entry$parameters
+  ts     <- entry$timestamp
 
   label <- switch(
     op,
+    "calibrate_rake" = ,
     "raking" = {
       vars <- paste(params$variables, collapse = ", ")
-      paste0("raking (margins: ", vars, ")")
+      paste0("raking (targets: ", vars, ")")
     },
+    "calibrate_greg" = ,
     "calibration" = {
       vars <- paste(params$variables, collapse = ", ")
       paste0("calibration (variables: ", vars, ")")
     },
+    "calibrate_poststrat" = ,
     "poststratify" = {
       vars <- paste(params$variables, collapse = ", ")
       paste0("poststratify (strata: ", vars, ")")
@@ -90,7 +94,8 @@
     op # default: just the operation name
   )
 
-  paste0("#   Step ", entry$step, ": ", label)
+  date_str <- format(ts, "%Y-%m-%d")
+  paste0("#   Step ", entry$step, " [", date_str, "]: ", label)
 }
 
 # ============================================================================
@@ -337,7 +342,7 @@
 
     n_na <- sum(is.na(col))
     if (n_na > 0L) {
-      fn_name <- if (context == "Calibration") "calibrate" else "rake"
+      fn_name <- if (context == "Calibration") "calibrate_greg" else "calibrate_rake"
       cli::cli_abort(
         c(
           "x" = paste0(

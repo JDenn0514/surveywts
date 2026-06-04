@@ -109,7 +109,7 @@
 # create_group_jackknife_weights() warns when repweights already populated
 
     Code
-      create_group_jackknife_weights(r1, groups = 10L, seed = 2L)
+      .pin_ts(create_group_jackknife_weights(r1, groups = 10L, seed = 2L))
     Condition
       Warning:
       ! Overwriting 10 existing replicate weight column(s) in `data`.
@@ -120,19 +120,19 @@
       # Variance: model-assisted (SRS assumption)
       # IDs: ~1 | Strata: NULL | Weights: ipw_weight 
       # Weighting history: 3 steps 
-      #   Step 1: ipw [~age_group + sex, logit, n_ref=500, N_hat=501] 
-      #   Step 2: group_jackknife_weights 
-      #   Step 3: group_jackknife_weights 
+      #   Step 1 [2025-01-15]: ipw [~age_group + sex, logit, n_ref=500, N_hat=501] 
+      #   Step 2 [2025-01-15]: group_jackknife_weights 
+      #   Step 3 [2025-01-15]: group_jackknife_weights 
 
 # create_group_jackknife_weights() warns when average group size < 5
 
     Code
-      withCallingHandlers(create_group_jackknife_weights(datasets$A, groups = 200L,
+      .pin_ts(withCallingHandlers(create_group_jackknife_weights(datasets$A, groups = 200L,
       seed = 1L), warning = function(w) {
         if (!inherits(w, "surveywts_warning_dagjk_small_groups")) {
           invokeRestart("muffleWarning")
         }
-      })
+      }))
     Condition
       Warning:
       ! Average group size is 2 unit(s) (580 combined / 200 groups).
@@ -143,13 +143,13 @@
       # Variance: model-assisted (SRS assumption)
       # IDs: ~1 | Strata: NULL | Weights: ipw_weight 
       # Weighting history: 2 steps 
-      #   Step 1: ipw [~age_group + sex, logit, n_ref=500, N_hat=501] 
-      #   Step 2: group_jackknife_weights 
+      #   Step 1 [2025-01-15]: ipw [~age_group + sex, logit, n_ref=500, N_hat=501] 
+      #   Step 2 [2025-01-15]: group_jackknife_weights 
 
 # create_group_jackknife_weights() warns when > 10% of replicates fail
 
     Code
-      create_group_jackknife_weights(tiny_ipw2, groups = 5L, seed = 7L)
+      .pin_ts(create_group_jackknife_weights(tiny_ipw2, groups = 5L, seed = 7L))
     Condition
       Warning:
       ! Average group size is 2 unit(s) (12 combined / 5 groups).
@@ -164,8 +164,8 @@
       # Variance: model-assisted (SRS assumption)
       # IDs: ~1 | Strata: NULL | Weights: ipw_weight 
       # Weighting history: 2 steps 
-      #   Step 1: ipw [~age_group, logit, n_ref=6, N_hat=600] 
-      #   Step 2: group_jackknife_weights 
+      #   Step 1 [2025-01-15]: ipw [~age_group, logit, n_ref=6, N_hat=600] 
+      #   Step 2 [2025-01-15]: group_jackknife_weights 
 
 # create_group_jackknife_weights() errors when all replicates fail (corrupted formula)
 

@@ -186,9 +186,9 @@ test_that("create_group_jackknife_weights() rejects weighted_df input", {
     x = sample(c("a", "b", "c"), 20L, replace = TRUE),
     w = rep(1, 20L)
   )
-  wdf <- surveywts::rake(
+  wdf <- surveywts::calibrate_rake(
     df,
-    margins  = list(x = c(a = 0.33, b = 0.33, c = 0.34)),
+    targets  = list(x = c(a = 0.33, b = 0.33, c = 0.34)),
     weights  = w,
     type     = "prop"
   )
@@ -624,7 +624,7 @@ test_that("create_group_jackknife_weights() warns when repweights already popula
     class = "surveywts_warning_dagjk_repweights_overwritten"
   )
   expect_snapshot(
-    create_group_jackknife_weights(r1, groups = 10L, seed = 2L)
+    .pin_ts(create_group_jackknife_weights(r1, groups = 10L, seed = 2L))
   )
 })
 
@@ -642,14 +642,14 @@ test_that("create_group_jackknife_weights() warns when average group size < 5", 
   )
   expect_true(saw_small_groups)
   expect_snapshot(
-    withCallingHandlers(
+    .pin_ts(withCallingHandlers(
       create_group_jackknife_weights(datasets$A, groups = 200L, seed = 1L),
       warning = function(w) {
         if (!inherits(w, "surveywts_warning_dagjk_small_groups")) {
           invokeRestart("muffleWarning")
         }
       }
-    )
+    ))
   )
 })
 
@@ -687,7 +687,7 @@ test_that("create_group_jackknife_weights() warns when > 10% of replicates fail"
   )
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
   expect_snapshot(
-    create_group_jackknife_weights(tiny_ipw2, groups = 5L, seed = 7L)
+    .pin_ts(create_group_jackknife_weights(tiny_ipw2, groups = 5L, seed = 7L))
   )
 })
 
@@ -728,9 +728,9 @@ test_that("create_group_jackknife_weights() negative-weight warning path is defe
       adjust_reference = FALSE
     )
   )
-  raked3 <- surveywts::rake(
+  raked3 <- surveywts::calibrate_rake(
     ipw3,
-    margins = list(age_group = c("young" = 0.05, "old" = 0.95)),
+    targets = list(age_group = c("young" = 0.05, "old" = 0.95)),
     type = "prop"
   )
   # Verify the extreme raking succeeded and produced valid (non-negative) weights
@@ -978,11 +978,10 @@ test_that("create_group_jackknife_weights() negative-weight check verifies assem
     surveywts::ipw(data = nps_df4, reference = ref4, selection = ~x, adjust_reference = FALSE)
   )
   calib4 <- suppressWarnings(
-    surveywts::calibrate(
-      data       = ipw4,
-      variables  = c(x),
-      population = list(x = c(a = 0.01, b = 0.01, c = 0.98)),
-      type       = "prop"
+    surveywts::calibrate_greg(
+      data    = ipw4,
+      targets = list(x = c(a = 0.01, b = 0.01, c = 0.98)),
+      type    = "prop"
     )
   )
   expect_true(S7::S7_inherits(calib4, surveycore::survey_nonprob))

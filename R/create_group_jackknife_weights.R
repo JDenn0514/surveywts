@@ -221,45 +221,51 @@
   # Reapply calibration if in history
   if (!is.null(calib_entry)) {
     calib_result_g <- tryCatch({
-      if (calib_entry$operation == "raking") {
+      if (calib_entry$operation %in% c("raking", "calibrate_rake")) {
         if (use_level_b) {
-          margins_g <- .reestimate_margins_from_reference(
+          targets_g <- .reestimate_margins_from_reference(
             calib_entry = calib_entry,
             ref_design  = ref_design,
             ref_data_b  = ref_g
           )
         } else {
-          margins_g <- calib_entry$parameters$margins
+          # Old "raking" entries stored targets as `margins`; new ones as `targets`.
+          targets_g <- calib_entry$parameters$targets %||%
+            calib_entry$parameters$margins
         }
-        rake_result <- surveywts::rake(
-          data    = ipw_result_g,
-          margins = margins_g,
-          type    = calib_entry$parameters$type,
-          method  = calib_entry$parameters$method,
-          cap     = calib_entry$parameters$cap,
-          control = calib_entry$parameters$control
+        rake_result <- surveywts::calibrate_rake(
+          data      = ipw_result_g,
+          targets   = targets_g,
+          type      = calib_entry$parameters$type,
+          algorithm = calib_entry$parameters$algorithm %||%
+            calib_entry$parameters$method,
+          cap       = calib_entry$parameters$cap,
+          control   = calib_entry$parameters$control
         )
         rake_result@data[[wt_col]]
       } else {
-        # operation == "calibration"
+        # operation "calibration" (old) or "calibrate_greg" (new)
+        # Old entries stored population + variables; new entries store targets.
+        greg_targets <- calib_entry$parameters$targets %||%
+          calib_entry$parameters$population
         if (use_level_b) {
-          calib_result <- surveywts::calibrate(
+          calib_result <- surveywts::calibrate_greg(
             data             = ipw_result_g,
-            variables        = calib_entry$parameters$variables,
-            population       = calib_entry$parameters$population,
-            method           = calib_entry$parameters$method,
+            targets          = greg_targets,
+            model            = calib_entry$parameters$model %||%
+              calib_entry$parameters$method,
             type             = calib_entry$parameters$type,
             control          = calib_entry$parameters$control,
             reference_design = ref_g_design
           )
         } else {
-          calib_result <- surveywts::calibrate(
-            data       = ipw_result_g,
-            variables  = calib_entry$parameters$variables,
-            population = calib_entry$parameters$population,
-            method     = calib_entry$parameters$method,
-            type       = calib_entry$parameters$type,
-            control    = calib_entry$parameters$control
+          calib_result <- surveywts::calibrate_greg(
+            data    = ipw_result_g,
+            targets = greg_targets,
+            model   = calib_entry$parameters$model %||%
+              calib_entry$parameters$method,
+            type    = calib_entry$parameters$type,
+            control = calib_entry$parameters$control
           )
         }
         calib_result@data[[wt_col]]
@@ -514,9 +520,12 @@ create_group_jackknife_weights <- function(
   combined_n <- n_nps + n_ref
   .validate_groups_arg(groups, combined_n = combined_n)
 
-  # Find last calibration history entry (rake or calibrate)
+  # Find last calibration history entry (rake or calibrate, old or new API)
   calib_entry <- Filter(
-    function(e) e$operation %in% c("raking", "calibration"),
+    function(e) e$operation %in% c(
+      "raking", "calibration",
+      "calibrate_rake", "calibrate_greg"
+    ),
     data@metadata@weighting_history
   )
   calib_entry <- if (length(calib_entry) > 0L) {

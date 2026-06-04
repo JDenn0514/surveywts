@@ -1,25 +1,17 @@
-# R/rake.R
+# R/calibrate_rake.R
 #
-# rake() — iterative proportional fitting (raking) to marginal population totals.
+# calibrate_rake() — iterative proportional fitting to marginal targets.
 #
-# Supports:
-#   - method = "anesrake"  (default: chi-square variable selection, improvement-based)
-#   - method = "survey"    (fixed-order IPF, epsilon-based convergence)
-#   - type = "prop"        (population proportions; default)
-#   - type = "count"       (population counts)
-#   - cap                  (weight ratio cap, applied per-step)
+# Replaces old rake() (PR 1 of calibration-api redesign).
+# Key changes vs old rake():
+#   - `margins` renamed to `targets`
+#   - `method` renamed to `algorithm`
+#   - operation history field: "calibrate_rake" (was "raking")
+#   - .parse_margins() moved to R/calibrate-utils.R
+#   - reference_design argument added
 #
-# Private helpers:
-#   .parse_margins()       — converts Format B (long data.frame) to Format A
-#                           (named list of named vectors). Co-located here
-#                           because only rake() calls it.
-#
-# All shared helpers (.get_weight_vec, .validate_weights, etc.) live in
-# R/utils.R.
-
-# ---------------------------------------------------------------------------
-# rake() — exported function
-# ---------------------------------------------------------------------------
+# All shared helpers live in R/utils.R.
+# Calibration-family helpers live in R/calibrate-utils.R.
 
 #' Rake survey weights to marginal population totals
 #'
@@ -31,7 +23,7 @@
 #'
 #' @param data A `data.frame`, `weighted_df`, `survey_taylor`, or
 #'   `survey_nonprob`. `survey_replicate` -> error. Any other class -> error.
-#' @param margins Named list or data frame specifying population margin targets.
+#' @param targets Named list or data frame specifying population margin targets.
 #'
 #'   **Format A -- named list:**
 #'   ```r
@@ -51,8 +43,7 @@
 #'     target   = c(0.40, 0.60, 0.49, 0.51)
 #'   )
 #'   ```
-#'   Format B is auto-detected and converted to Format A before use. The
-#'   converted Format A is stored in the weighting history.
+#'   Format B is auto-detected and converted to Format A before use.
 #' @param weights <[`tidy-select`][tidyselect::language]> Weight column name
 #'   (bare name). `NULL` -> auto-detected from `weighted_df` attribute or
 #'   survey object `@variables$weights`. For plain `data.frame` with
@@ -61,25 +52,20 @@
 #' @param wt_name Character scalar. Name of the output weight column in the
 #'   returned `weighted_df`. Default `"wts"`. Ignored when `data` is a survey
 #'   object (`survey_taylor` or `survey_nonprob`).
-#' @param type Character scalar. `"prop"` (default): `margins` values are
-#'   proportions. `"count"`: `margins` values are counts.
-#' @param method Character scalar. `"anesrake"` (default): chi-square
+#' @param type Character scalar. `"prop"` (default): `targets` values are
+#'   proportions. `"count"`: `targets` values are counts.
+#' @param algorithm Character scalar. `"anesrake"` (default): chi-square
 #'   discrepancy variable selection with improvement-based convergence, as in
 #'   the `anesrake` package. `"survey"`: fixed-order IPF cycling through all
-#'   margins, with epsilon-based convergence, as in `survey::rake()`.
+#'   targets, with epsilon-based convergence, as in `survey::rake()`.
 #' @param cap Numeric or `NULL`. Cap on the weight ratio `w / mean(w)`. Any
 #'   weight exceeding `cap * mean(w)` is set to `cap * mean(w)`. Applied
 #'   after each per-margin adjustment step (not post-hoc). `NULL` (default)
-#'   means no cap. Applies to both methods.
-#' @param reference_design A `survey_taylor` object or `NULL` (default). The
-#'   reference probability survey from which `margins` were estimated. When
-#'   non-`NULL`, stored in the history entry and `targets_from_reference` is
-#'   set to `TRUE`. Pass the same `survey_taylor` object used to compute the
-#'   margin targets. `NULL` means targets are fixed population benchmarks.
+#'   means no cap. Not compatible with `algorithm = "survey"` (-> error).
 #' @param control Named list of algorithm parameters. Merged with
-#'   method-specific defaults. Omitted keys retain their defaults.
+#'   algorithm-specific defaults. Omitted keys retain their defaults.
 #'
-#'   **`method = "anesrake"` defaults:**
+#'   **`algorithm = "anesrake"` defaults:**
 #'   - `maxit = 1000`: maximum full sweeps
 #'   - `improvement = 0.01`: percentage improvement convergence threshold
 #'   - `pval = 0.05`: chi-square p-value threshold for variable selection
@@ -87,34 +73,38 @@
 #'   - `variable_select = "total"`: chi-square aggregation for ranking
 #'     (`"total"`, `"max"`, or `"average"`)
 #'
-#'   **`method = "survey"` defaults:**
+#'   **`algorithm = "survey"` defaults:**
 #'   - `maxit = 100`: maximum full sweeps
 #'   - `epsilon = 1e-7`: maximum relative margin error convergence threshold
 #'
-#'   Passing anesrake-specific keys when `method = "survey"` (or vice versa)
-#'   triggers a `surveywts_warning_control_param_ignored` warning per
-#'   ignored parameter.
+#'   Passing `"anesrake"`-specific keys when `algorithm = "survey"` (or vice
+#'   versa) triggers `surveywts_warning_control_param_ignored` per ignored key.
+#'
+#' @param reference_design A `survey_taylor` object or `NULL`. The probability
+#'   survey from which `targets` were estimated. When non-`NULL`, stored in
+#'   the history entry with `targets_from_reference = TRUE`. Any non-`NULL`
+#'   non-`survey_taylor` value triggers an error.
 #'
 #' @return
 #'   - `data.frame` or `weighted_df` input -> `weighted_df`
 #'   - `survey_taylor` or `survey_nonprob` input -> same class as input
-#'     (`survey_taylor` or `survey_nonprob`; class is preserved)
+#'     (class is preserved)
 #'
 #'   The weight column in the output contains raked weights. A history entry
-#'   with `operation = "raking"` is appended to `weighting_history`.
+#'   with `operation = "calibrate_rake"` is appended to `weighting_history`.
 #'
 #' @details
-#'   **`method = "anesrake"`:** At each sweep, variables are sorted by their
-#'   chi-square discrepancy (controlled by `control$variable_select`). Variables
-#'   with any cell below `control$min_cell_n` unweighted observations are
-#'   excluded entirely. Variables where the chi-square p-value exceeds
+#'   **`algorithm = "anesrake"`:** At each sweep, variables are sorted by
+#'   their chi-square discrepancy (controlled by `control$variable_select`).
+#'   Variables with any cell below `control$min_cell_n` unweighted observations
+#'   are excluded entirely. Variables where the chi-square p-value exceeds
 #'   `control$pval` are skipped in that sweep. Convergence is assessed as the
 #'   percentage improvement in total chi-square between consecutive sweeps.
 #'   If all variables pass or are excluded in sweep 1, a
 #'   `surveywts_message_already_calibrated` message is emitted.
 #'
-#'   **`method = "survey"`:** Variables are raked in the fixed order given by
-#'   `margins`. All variables participate in every sweep. Convergence is
+#'   **`algorithm = "survey"`:** Variables are raked in the fixed order given
+#'   by `targets`. All variables participate in every sweep. Convergence is
 #'   assessed as the maximum relative error across all margin cells falling
 #'   below `control$epsilon`.
 #'
@@ -124,52 +114,72 @@
 #'   no. nes012427. Ann Arbor, MI, and Palo Alto, CA: American National
 #'   Election Studies.
 #'
+#'   Deville, J.-C. and Sarndal, C.-E. (1992). Calibration estimators in
+#'   survey sampling. *Journal of the American Statistical Association*,
+#'   87(418), 376–382. doi:10.2307/2290268
+#'
+#'   Deville, J.-C., Sarndal, C.-E. and Sautory, O. (1993). Generalized
+#'   raking procedures in survey sampling. *Journal of the American
+#'   Statistical Association*, 88(423), 1013–1020. doi:10.2307/2290793
+#'
+#'   Chang, T. and Kott, P. S. (2008). Using calibration weighting to adjust
+#'   for nonresponse under a plausible model. *Biometrika*, 95(3), 555–571.
+#'   doi:10.1093/biomet/asn022
+#'
 #' @examples
 #' df <- data.frame(
 #'   age_group = c("18-34", "35-54", "55+", "18-34", "35-54"),
 #'   sex       = c("M", "F", "M", "F", "M"),
 #'   stringsAsFactors = FALSE
 #' )
-#' margins <- list(
-#'   age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
-#'   sex       = c("M" = 0.48, "F" = 0.52)
+#' targets <- list(
+#'   age_group = c("18-34" = 0.40, "35-54" = 0.40, "55+" = 0.20),
+#'   sex       = c("M" = 0.50, "F" = 0.50)
 #' )
-#' result <- rake(df, margins = margins)
+#' result <- calibrate_rake(df, targets = targets)
 #'
 #' @family calibration
 #' @export
-rake <- function(
+calibrate_rake <- function(
   data,
-  margins,
-  weights          = NULL,
-  wt_name          = "wts",
-  type             = c("prop", "count"),
-  method           = c("anesrake", "survey"),
-  cap              = NULL,
-  control          = list(),
+  targets,
+  weights = NULL,
+  wt_name = "wts",
+  type = c("prop", "count"),
+  algorithm = c("anesrake", "survey"),
+  cap = NULL,
+  control = list(),
   reference_design = NULL
 ) {
   # ---- Capture call and arguments before any evaluation --------------------
   call_str <- deparse(match.call())
-  method <- rlang::arg_match(method)
-  type   <- rlang::arg_match(type)
+  algorithm <- rlang::arg_match(algorithm)
+  type <- rlang::arg_match(type)
   weights_quo <- rlang::enquo(weights)
   .validate_wt_name(wt_name)
-  .validate_reference_design(reference_design)
 
-  # ---- Cap + method = "survey" guard (fail fast, before margin parsing) ----
-  if (!is.null(cap) && method == "survey") {
+  # ---- Validate reference_design -------------------------------------------
+  .validate_reference_design(reference_design)
+  targets_from_reference <- !is.null(reference_design)
+
+  # ---- Cap + algorithm = "survey" guard (fail fast, before margin parsing) -
+  if (!is.null(cap) && algorithm == "survey") {
     cli::cli_abort(
       c(
-        "x" = "{.arg cap} is not supported when {.code method = \"survey\"}.",
+        "x" = paste0(
+          "{.arg cap} is not supported when ",
+          "{.code algorithm = \"survey\"}."
+        ),
         "i" = "{.fn survey::rake} does not support per-step weight capping.",
-        "v" = "Use {.code method = \"anesrake\"} for raking with a weight cap."
+        "v" = paste0(
+          "Use {.code algorithm = \"anesrake\"} for raking with a weight cap."
+        )
       ),
       class = "surveywts_error_cap_not_supported_survey"
     )
   }
 
-  # ---- Apply method-specific control defaults (before warning check) -------
+  # ---- Apply algorithm-specific control defaults (before warning check) ----
   anesrake_defaults <- list(
     maxit = 1000L, improvement = 0.01, pval = 0.05,
     min_cell_n = 0L, variable_select = "total"
@@ -181,29 +191,33 @@ rake <- function(
     control$maxit <- as.integer(control$maxit)
   }
 
-  method_defaults <- if (method == "anesrake") anesrake_defaults else survey_defaults
-  control_resolved <- utils::modifyList(method_defaults, control)
+  algorithm_defaults <- if (algorithm == "anesrake") {
+    anesrake_defaults
+  } else {
+    survey_defaults
+  }
+  control_resolved <- utils::modifyList(algorithm_defaults, control)
 
-  # ---- Warn on wrong-method control params --------------------------------
+  # ---- Warn on wrong-algorithm control params ------------------------------
   anesrake_only <- c("improvement", "pval", "min_cell_n", "variable_select")
-  survey_only   <- c("epsilon")
+  survey_only <- c("epsilon")
 
-  if (method == "survey") {
+  if (algorithm == "survey") {
     for (param in intersect(names(control), anesrake_only)) {
       cli::cli_warn(
         c(
           "!" = paste0(
             "{.code control${.field {param}}} is not used when ",
-            "{.code method = {.val {method}}} and will be ignored."
+            "{.code algorithm = {.val {algorithm}}} and will be ignored."
           ),
           "i" = paste0(
-            "For {.code method = \"anesrake\"}, valid {.arg control} keys are: ",
-            "{.code maxit}, {.code improvement}, {.code pval}, ",
+            "For {.code algorithm = \"anesrake\"}, valid {.arg control} ",
+            "keys are: {.code maxit}, {.code improvement}, {.code pval}, ",
             "{.code min_cell_n}, {.code variable_select}."
           ),
           "i" = paste0(
-            "For {.code method = \"survey\"}, valid {.arg control} keys are: ",
-            "{.code maxit}, {.code epsilon}."
+            "For {.code algorithm = \"survey\"}, valid {.arg control} ",
+            "keys are: {.code maxit}, {.code epsilon}."
           )
         ),
         class = "surveywts_warning_control_param_ignored"
@@ -215,16 +229,16 @@ rake <- function(
         c(
           "!" = paste0(
             "{.code control${.field {param}}} is not used when ",
-            "{.code method = {.val {method}}} and will be ignored."
+            "{.code algorithm = {.val {algorithm}}} and will be ignored."
           ),
           "i" = paste0(
-            "For {.code method = \"anesrake\"}, valid {.arg control} keys are: ",
-            "{.code maxit}, {.code improvement}, {.code pval}, ",
+            "For {.code algorithm = \"anesrake\"}, valid {.arg control} ",
+            "keys are: {.code maxit}, {.code improvement}, {.code pval}, ",
             "{.code min_cell_n}, {.code variable_select}."
           ),
           "i" = paste0(
-            "For {.code method = \"survey\"}, valid {.arg control} keys are: ",
-            "{.code maxit}, {.code epsilon}."
+            "For {.code algorithm = \"survey\"}, valid {.arg control} ",
+            "keys are: {.code maxit}, {.code epsilon}."
           )
         ),
         class = "surveywts_warning_control_param_ignored"
@@ -248,10 +262,8 @@ rake <- function(
     )
   }
 
-  # ---- 3. Parse and normalize margins to Format A -------------------------
-  # .parse_margins() converts Format B → Format A and normalizes df elements.
-  # The resulting margins_a is always a named list of named numeric vectors.
-  margins_a <- .parse_margins(margins)
+  # ---- 3. Parse and normalize targets to Format A -------------------------
+  targets_a <- .parse_margins(targets)
 
   # ---- 4. Weight column name and handling ---------------------------------
   weight_col <- .get_weight_col_name(data, weights_quo)
@@ -273,34 +285,39 @@ rake <- function(
 
   .validate_weights(plain_df, weight_col)
 
-  # ---- 5. Validate margins variables exist in data ------------------------
-  margin_var_names <- names(margins_a)
-  for (var in margin_var_names) {
+  # ---- 5. Validate targets variables exist in data ------------------------
+  target_var_names <- names(targets_a)
+  for (var in target_var_names) {
     if (!var %in% names(plain_df)) {
       cli::cli_abort(
         c(
           "x" = "Raking variable {.field {var}} not found in {.arg data}.",
           "i" = paste0(
-            "Check that all variable names in {.arg margins} exist as ",
+            "Check that all variable names in {.arg targets} exist as ",
             "columns in {.arg data}."
           )
         ),
-        class = "surveywts_error_margins_variable_not_found"
+        class = "surveywts_error_targets_variable_not_found"
       )
     }
   }
 
   # ---- 6. Validate margin variables (categorical, no NAs) -----------------
-  .validate_calibration_variables(plain_df, margin_var_names, "Raking")
+  .validate_calibration_variables(plain_df, target_var_names, "Raking")
 
   # ---- 7. Validate population marginals -----------------------------------
   .validate_population_marginals(
-    margins_a,
-    margin_var_names,
+    targets_a,
+    target_var_names,
     plain_df,
     type,
-    target_name = "margins"
+    target_name = "targets"
   )
+
+  # ---- 7b. Validate count marginal consistency ----------------------------
+  if (type == "count") {
+    .validate_count_marginal_consistency(targets_a, target_var_names)
+  }
 
   # ---- 8. Extract starting weights and compute before-stats ---------------
   weights_vec <- .get_weight_vec(data, weights_quo)
@@ -309,46 +326,43 @@ rake <- function(
   # Convert proportions to counts for the engine
   total_w <- sum(weights_vec)
   if (type == "prop") {
-    margins_counts <- lapply(margins_a, function(m) m * total_w)
+    targets_counts <- lapply(targets_a, function(m) m * total_w)
   } else {
-    margins_counts <- margins_a
+    targets_counts <- targets_a
   }
 
   # ---- 9. Build calibration spec and run engine ---------------------------
-  vars_spec <- lapply(margin_var_names, function(v) {
-    list(col = v, targets = margins_counts[[v]])
+  vars_spec <- lapply(target_var_names, function(v) {
+    list(col = v, targets = targets_counts[[v]])
   })
 
-  engine_method <- if (method == "anesrake") "anesrake" else "ipf"
+  engine_method <- if (algorithm == "anesrake") "anesrake" else "ipf"
 
   calibration_spec <- list(
-    type      = engine_method,
+    type = engine_method,
     variables = vars_spec,
-    total_n   = nrow(plain_df),
-    cap       = cap
+    total_n = nrow(plain_df),
+    cap = cap
   )
 
   engine_result <- .calibrate_engine(
-    data_df          = plain_df,
-    weights_vec      = weights_vec,
+    data_df = plain_df,
+    weights_vec = weights_vec,
     calibration_spec = calibration_spec,
-    method           = engine_method,
-    control          = control_resolved
+    method = engine_method,
+    control = control_resolved
   )
 
   new_weights <- engine_result$weights
   convergence <- engine_result$convergence
-  capping     <- engine_result$capping
 
   # ---- 10. Compute after-stats and build history entry --------------------
   after_stats <- .compute_weight_stats(new_weights)
-
-  # Determine current history for step number
   current_history <- .get_history(data)
 
   history_entry <- .make_history_entry(
     step = length(current_history) + 1L,
-    operation = "raking",
+    operation = "calibrate_rake",
     weight_col = if (inherits(data, "data.frame")) {
       wt_name
     } else {
@@ -356,160 +370,48 @@ rake <- function(
     },
     call_str = call_str,
     parameters = list(
-      variables              = margin_var_names,
-      margins                = margins_a,   # always stored as Format A per spec §VII
-      type                   = type,
-      method                 = method,
-      cap                    = cap,
-      control                = control_resolved,
-      targets_from_reference = !is.null(reference_design),
-      reference_design       = reference_design
+      variables = target_var_names,
+      targets = targets_a,   # always stored as Format A per spec §VII
+      type = type,
+      algorithm = algorithm,
+      cap = cap,
+      control = control_resolved,
+      targets_from_reference = targets_from_reference,
+      reference_design = reference_design
     ),
     before_stats = before_stats,
-    after_stats  = after_stats,
-    convergence  = convergence,
-    capping      = capping
+    after_stats = after_stats,
+    convergence = convergence
   )
 
   # ---- 11. Build output ---------------------------------------------------
   if (inherits(data, "data.frame")) {
-    # data.frame or weighted_df → weighted_df
     out_df <- plain_df
     out_df[[wt_name]] <- new_weights
     new_history <- c(current_history, list(history_entry))
     .make_weighted_df(out_df, wt_name, new_history)
   } else {
-    # survey object → same class (class preserved; only weights + history updated)
     .update_survey_weights(data, new_weights, history_entry)
   }
 }
 
-# ---------------------------------------------------------------------------
-# .parse_margins() — private helper (used only by rake())
-# ---------------------------------------------------------------------------
-
-# Converts margins to Format A (named list of named numeric vectors).
-# Accepts:
-#   - Format A: named list (pass-through, with data.frame elements normalized)
-#   - Format B: data.frame with columns 'variable', 'level', 'target'
-#
-# Returns: named list. Each element is a named numeric vector
-#   c(level1 = target1, level2 = target2, ...)
-#
-# Errors with surveywts_error_margins_format_invalid if margins is neither
-# a named list nor a valid Format B data.frame.
-.parse_margins <- function(margins) {
-  # Format B: data.frame with required columns
-  if (is.data.frame(margins)) {
-    required_cols <- c("variable", "level", "target")
-    missing_cols <- setdiff(required_cols, names(margins))
-    if (length(missing_cols) > 0L) {
-      cli::cli_abort(
-        c(
-          "x" = paste0(
-            "{.arg margins} must be a named list or a data frame with ",
-            "columns {.field variable}, {.field level}, and {.field target}."
-          ),
-          "i" = paste0(
-            "Got {.cls data.frame} but missing column(s): ",
-            "{.and {.field {missing_cols}}}."
-          ),
-          "v" = "See {.fn rake} documentation for accepted formats."
-        ),
-        class = "surveywts_error_margins_format_invalid"
-      )
-    }
-
-    # Convert to Format A: split by variable, build named vector per variable
-    var_names <- unique(as.character(margins$variable))
-    result <- lapply(var_names, function(v) {
-      rows <- margins[as.character(margins$variable) == v, , drop = FALSE]
-      # Use stats::setNames() explicitly to guarantee names are preserved
-      stats::setNames(
-        as.double(rows$target),
-        as.character(rows$level)
-      )
-    })
-    names(result) <- var_names
-    return(result)
-  }
-
-  # Format A: named list — normalize data.frame elements to named vectors
-  if (is.list(margins) && !is.data.frame(margins)) {
-    if (length(names(margins)) == 0L || any(names(margins) == "")) {
-      cli::cli_abort(
-        c(
-          "x" = paste0(
-            "{.arg margins} must be a named list or a data frame with ",
-            "columns {.field variable}, {.field level}, and {.field target}."
-          ),
-          "i" = paste0(
-            "Got {.cls {class(margins)[[1]]}} but list elements are not named."
-          ),
-          "v" = "See {.fn rake} documentation for accepted formats."
-        ),
-        class = "surveywts_error_margins_format_invalid"
-      )
-    }
-
-    # Normalize any data.frame elements to named vectors
-    result <- lapply(names(margins), function(v) {
-      elem <- margins[[v]]
-      if (is.data.frame(elem)) {
-        if (!all(c("level", "target") %in% names(elem))) {
-          cli::cli_abort(
-            c(
-              "x" = paste0(
-                "Element {.field {v}} in {.arg margins} is a data frame but ",
-                "is missing required columns {.field level} and/or {.field target}."
-              ),
-              "v" = "See {.fn rake} documentation for accepted formats."
-            ),
-            class = "surveywts_error_margins_format_invalid"
-          )
-        }
-        # Use stats::setNames() to build named vector without stripping names
-        stats::setNames(
-          as.double(elem$target),
-          as.character(elem$level)
-        )
-      } else {
-        # Already a named vector — ensure it is double-typed; use
-        # stats::setNames() to guarantee names are preserved (as.numeric()
-        # strips names on some platforms).
-        stats::setNames(as.double(unname(elem)), names(elem))
-      }
-    })
-    names(result) <- names(margins)
-    return(result)
-  }
-
-  # Neither list nor data.frame
-  cls <- class(margins)[[1L]]
-  cli::cli_abort(
-    c(
-      "x" = paste0(
-        "{.arg margins} must be a named list or a data frame with ",
-        "columns {.field variable}, {.field level}, and {.field target}."
-      ),
-      "i" = "Got {.cls {cls}}.",
-      "v" = "See {.fn rake} documentation for accepted formats."
-    ),
-    class = "surveywts_error_margins_format_invalid"
-  )
-}
-
-# ---------------------------------------------------------------------------
-# Ported from the anesrake R package (CRAN: anesrake), GPL-2
-# Original author: Cole Rauwerda. Logic unchanged from upstream.
-# ---------------------------------------------------------------------------
-
 # ============================================================================
-# .rake_discrep() — factor-only discrepancy (ported from discrep.factor.R)
+# Anesrake engine — internal helpers ported from the anesrake R package
+#
+# Algorithm and logic ported from:
+#   Pasek, Josh (with help from Jon Krosnick and some code from Alex Tahk
+#   and others). anesrake: ANES Raking Implementation.
+#   https://CRAN.R-project.org/package=anesrake
+#
+# Methodology:
+#   DeBell, Matthew, and Jon A. Krosnick. 2009. "Computing Weights for
+#   American National Election Study Survey Data." ANES Technical Report
+#   nes012427. https://electionstudies.org/
+#
+# Changes from original: only code paths reachable via calibrate_rake() are
+# retained; .rake_list() captures precap_weightvec before each capping step.
 # ============================================================================
 
-# rake() always converts variables to factor before calling the engine,
-# so only the factor method is needed.
 .rake_discrep <- function(datavec, targetvec, weightvec) {
   dat <- sapply(names(targetvec), function(x) {
     sum(weightvec[datavec == x & !is.na(datavec)]) /
@@ -518,13 +420,6 @@ rake <- function(
   targetvec - dat
 }
 
-# ============================================================================
-# .rake_on_var() — rake weights on a single variable (ported from rakeonvar.R)
-# ============================================================================
-
-# rake() always converts variables to factor with explicit levels before calling
-# the engine, so weighton is always a clean integer sequence with no NAs and
-# no extra levels. The NA-remapping and missing-category paths are not needed.
 .rake_on_var <- function(weighton, weightto, weightvec) {
   weighton <- as.numeric(weighton)
   lwo <- length(table(weighton))
@@ -537,13 +432,6 @@ rake <- function(
   }
   weightvec
 }
-
-# ============================================================================
-# .rake_find_discrepancies() — (ported from anesrakefinder.R)
-#
-# Supports the three choosemethod values exposed by rake() via
-# control$variable_select: "total", "max", "average".
-# ============================================================================
 
 .rake_find_discrepancies <- function(
   inputter,
@@ -567,15 +455,6 @@ rake <- function(
   out
 }
 
-# ============================================================================
-# .rake_select_by_pct() — (ported from selecthighestpcts.R)
-#
-# tostop = 1: error if no variable exceeds threshold (used for initial
-#   variable selection; triggers the "already calibrated" path upstream).
-# tostop = 0: silent empty result (used in the pctlim iterate loop to
-#   discover newly off-target variables after raking).
-# ============================================================================
-
 .rake_select_by_pct <- function(dif, inputter, pctlim, tostop = 1) {
   found <- inputter[dif >= pctlim]
   if (length(found) == 0 && tostop == 1) {
@@ -587,12 +466,6 @@ rake <- function(
   }
   found
 }
-
-# ============================================================================
-# .rake_list() — inner convergence loop (ported from rakelist.R)
-#
-# Only algorithmic change: captures precap_weightvec before each capping block.
-# ============================================================================
 
 .rake_list <- function(
   inputter,
@@ -610,7 +483,6 @@ rake <- function(
   g <- 0
   pctstill <- 1 - convcrit
   pop <- 0
-  # Defensive init so R static analysis is satisfied; overwritten each iteration.
   precap_weightvec <- weightvec
   while (diferr < pctstill * diferrold) {
     g <- g + 1
@@ -634,9 +506,8 @@ rake <- function(
   }
   # nocov start
   # Partial convergence: loop exited because improvement stalled, not because
-  # full convergence was reached. Reachable in principle (unusual datasets) but
-  # not triggered by current tests; the non-convergence path (g > maxit) is
-  # tested instead.
+  # full convergence was reached. Reachable in principle but not triggered by
+  # current tests; the non-convergence path (g > maxit) is tested instead.
   if (diferr > 0.001) {
     warning(paste(
       "Raking algorithm achieved only partial convergence, please check the results to ensure that sufficient convergence was achieved.  Average change in weight per case is",
@@ -667,12 +538,6 @@ rake <- function(
   )
 }
 
-# ============================================================================
-# .rake_anesrake() — top-level dispatcher (ported from anesrake.R)
-#
-# Only the type = "pctlim" path is retained; rake() always passes that type.
-# ============================================================================
-
 .rake_anesrake <- function(
   inputter,
   dataframe,
@@ -686,7 +551,6 @@ rake <- function(
   convcrit = 0.01
 ) {
   mat <- as.data.frame(dataframe)
-  # Normalize starting weights so they average to 1.
   weightvec <- weightvec / mean(weightvec, na.rm = TRUE)
   prevec <- weightvec
 

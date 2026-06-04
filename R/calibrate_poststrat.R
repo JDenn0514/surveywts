@@ -71,16 +71,17 @@
 #'   `weighting_history`.
 #'
 #' @references
-#'   Holt, D. and Smith, T. M. F. (1979). Post stratification.
-#'   *Journal of the Royal Statistical Society, Series A*, 142(1), 33–46.
-#'   doi:10.2307/2344652
+#'   Valliant, R. (1993). Poststratification and conditional variance
+#'   estimation. *Journal of the American Statistical Association*,
+#'   88(421), 89–96. doi:10.2307/2290701
 #'
-#'   Sarndal, C.-E., Swensson, B. and Wretman, J. (1992).
-#'   *Model Assisted Survey Sampling*. Springer-Verlag, New York.
-#'   Chapter 7.
+#'   Deville, J.-C. and Sarndal, C.-E. (1992). Calibration estimators in
+#'   survey sampling. *Journal of the American Statistical Association*,
+#'   87(418), 376–382. doi:10.2307/2290268
 #'
-#'   Lumley, T. (2010). *Complex Surveys: A Guide to Analysis Using R*.
-#'   Wiley, Hoboken NJ. Chapter 3.
+#'   Rao, J. N. K., Yung, W. and Hidiroglou, M. A. (2002). Estimating
+#'   equations for the analysis of survey data using poststratification
+#'   information. *Sankhya*, 64(2), 364–378.
 #'
 #' @examples
 #' df <- data.frame(

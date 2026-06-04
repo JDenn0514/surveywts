@@ -18,9 +18,10 @@ reference:
     desc: >
       Functions for calibrating survey weights to known population totals.
     contents:
+      - calibrate
       - calibrate_greg
       - calibrate_rake
-      - poststratify
+      - calibrate_poststrat
   - title: Sample-Based Calibration
     desc: >
       Functions for calibrating replicate-weight designs to a control survey or

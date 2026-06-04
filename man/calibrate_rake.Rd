@@ -159,7 +159,8 @@ doi:10.1093/biomet/asn022
 }
 \seealso{
 Other calibration: 
+\code{\link{calibrate}()},
 \code{\link{calibrate_greg}()},
-\code{\link{poststratify}()}
+\code{\link{calibrate_poststrat}()}
 }
 \concept{calibration}

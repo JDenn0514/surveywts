@@ -48,16 +48,20 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_error_cap_not_supported_survey` | `calibrate_rake()` | `cap` specified with `algorithm = "survey"` |
 | `surveywts_error_reference_design_not_taylor` | `calibrate_rake()` | `reference_design` is non-`NULL` and not `survey_taylor` |
 
-### `poststratify()`
+### `calibrate_poststrat()`
 
 | Class | Thrown by | Condition |
 |-------|-----------|-----------|
-| `surveywts_error_variable_has_na` | `poststratify()` | A strata variable has `NA` values |
-| `surveywts_error_population_totals_invalid` | `poststratify()` | `type = "prop"` targets don't sum to 1, or `type = "count"` target ≤ 0 |
-| `surveywts_error_population_cell_duplicate` | `poststratify()` / `.validate_population_cells()` | A cell combination appears more than once in `population` |
-| `surveywts_error_population_cell_missing` | `poststratify()` | A data cell has no row in `population` |
-| `surveywts_error_population_cell_not_in_data` | `poststratify()` | A `population` cell has no observations in `data` |
-| `surveywts_error_empty_stratum` | `poststratify()` | A stratum cell has zero weighted count |
+| `surveywts_error_margins_format_invalid` | `calibrate_poststrat()` | `targets` is not a `data.frame` (e.g., a named list or scalar) |
+| `surveywts_error_no_strata_variables` | `calibrate_poststrat()` | `targets` data frame has zero non-`"target"` columns |
+| `surveywts_error_targets_variable_not_found` | `calibrate_poststrat()` | A non-`"target"` column name in `targets` is absent from `data` |
+| `surveywts_error_reference_design_not_taylor` | `calibrate_poststrat()` | `reference_design` is non-`NULL` and not a `survey_taylor` object |
+| `surveywts_error_variable_has_na` | `calibrate_poststrat()` | A strata variable has `NA` values |
+| `surveywts_error_population_totals_invalid` | `calibrate_poststrat()` | `type = "prop"` targets don't sum to 1, or `type = "count"` target ≤ 0 |
+| `surveywts_error_population_cell_duplicate` | `calibrate_poststrat()` / `.validate_population_cells()` | A cell combination appears more than once in `targets` |
+| `surveywts_error_population_cell_missing` | `calibrate_poststrat()` | A data cell has no row in `targets` |
+| `surveywts_error_population_cell_not_in_data` | `calibrate_poststrat()` | A `targets` cell has no observations in `data` |
+| `surveywts_error_empty_stratum` | `calibrate_poststrat()` | A stratum cell has zero weighted count |
 
 ### `adjust_nonresponse()`
 

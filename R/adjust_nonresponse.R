@@ -86,8 +86,8 @@
 #'   computing statistics.
 #'
 #'   Re-calibrating post-nonresponse data requires filtering to respondents
-#'   first, because [calibrate()], [rake()], and [poststratify()] reject
-#'   zero weights.
+#'   first, because [calibrate()], [calibrate_rake()], and
+#'   [calibrate_poststrat()] reject zero weights.
 #'
 #'   **Propensity-cell method:** A logistic regression is fitted via
 #'   [stats::glm()] with `family = binomial`. GLM convergence warnings (e.g.,

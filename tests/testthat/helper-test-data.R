@@ -385,3 +385,17 @@ make_dagjk_datasets <- function() {
 
   list(A = A, B = B, C = C, D = D, E = E, F = F_data, ref = ref)
 }
+
+# Pin all weighting history timestamps to a fixed date for stable snapshots.
+# Modifies the survey_nonprob object in-place (S7 property assignment).
+# Usage: result <- .pin_ts(result)
+.pin_ts <- function(obj, ts = as.POSIXct("2025-01-15 10:00:00", tz = "UTC")) {
+  if (S7::S7_inherits(obj, surveycore::survey_nonprob)) {
+    meta <- obj@metadata
+    for (i in seq_along(meta@weighting_history)) {
+      meta@weighting_history[[i]]$timestamp <- ts
+    }
+    obj@metadata <- meta
+  }
+  obj
+}

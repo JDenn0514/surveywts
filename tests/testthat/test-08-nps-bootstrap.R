@@ -243,7 +243,7 @@ test_that("print(survey_nonprob) includes bootstrap replicates line when repweig
     replicates = 10L,
     seed       = 1L
   ))
-  expect_snapshot(print(result))
+  expect_snapshot(print(.pin_ts(result)))
 })
 
 # ============================================================================
@@ -252,7 +252,7 @@ test_that("print(survey_nonprob) includes bootstrap replicates line when repweig
 
 test_that("print(survey_nonprob) unchanged when no repweights", {
   lev_a <- suppressWarnings(make_nps_level_a(seed = 1))
-  expect_snapshot(print(lev_a))
+  expect_snapshot(print(.pin_ts(lev_a)))
 })
 
 # ============================================================================

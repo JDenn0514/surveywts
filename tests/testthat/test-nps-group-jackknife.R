@@ -624,7 +624,7 @@ test_that("create_group_jackknife_weights() warns when repweights already popula
     class = "surveywts_warning_dagjk_repweights_overwritten"
   )
   expect_snapshot(
-    create_group_jackknife_weights(r1, groups = 10L, seed = 2L)
+    .pin_ts(create_group_jackknife_weights(r1, groups = 10L, seed = 2L))
   )
 })
 
@@ -642,14 +642,14 @@ test_that("create_group_jackknife_weights() warns when average group size < 5", 
   )
   expect_true(saw_small_groups)
   expect_snapshot(
-    withCallingHandlers(
+    .pin_ts(withCallingHandlers(
       create_group_jackknife_weights(datasets$A, groups = 200L, seed = 1L),
       warning = function(w) {
         if (!inherits(w, "surveywts_warning_dagjk_small_groups")) {
           invokeRestart("muffleWarning")
         }
       }
-    )
+    ))
   )
 })
 
@@ -687,7 +687,7 @@ test_that("create_group_jackknife_weights() warns when > 10% of replicates fail"
   )
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
   expect_snapshot(
-    create_group_jackknife_weights(tiny_ipw2, groups = 5L, seed = 7L)
+    .pin_ts(create_group_jackknife_weights(tiny_ipw2, groups = 5L, seed = 7L))
   )
 })
 

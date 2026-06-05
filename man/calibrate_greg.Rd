@@ -113,6 +113,14 @@ Deville, J.-C., Sarndal, C.-E. and Sautory, O. (1993). Generalized
 raking procedures in survey sampling. \emph{Journal of the American
 Statistical Association}, 88(423), 1013–1020.
 doi:10.1080/01621459.1993.10476369
+
+Valliant, R. (1993). Poststratification and conditional variance
+estimation. \emph{Journal of the American Statistical Association},
+88(421), 89–96. https://doi.org/10.2307/2290701
+
+Rao, J. N. K., Wu, C. F. J. and Yue, K. (1992). Some recent work on
+resampling methods for complex surveys. \emph{Survey Methodology},
+18(2), 209–217.
 }
 \seealso{
 Other calibration: 

@@ -159,6 +159,101 @@
 }
 
 # ---------------------------------------------------------------------------
+# .build_calibration_provenance() — assembles @calibration list from engine
+# ---------------------------------------------------------------------------
+
+# Assembles the @calibration list from ingredients available after
+# .calibrate_engine() returns. Called once per full-sample calibration by
+# calibrate_greg(), calibrate_rake(), and calibrate_poststrat().
+#
+# The @calibration list is the cross-package contract between surveywts
+# (writer) and surveycore (reader). Surveycore reads this list at variance
+# estimation time.
+#
+# Arguments:
+#   engine_result     : named list from .calibrate_engine(); must contain
+#                       $weights (calibrated weight vector) and $convergence
+#                       (list with $converged and $iterations fields)
+#   x_matrix          : n x J numeric matrix — calibration model matrix built
+#                       by the calling function
+#   base_weights      : numeric length-n — pre-calibration design weights (d_k)
+#   q_weights         : numeric length-n — per-unit tuning constants (default
+#                       all ones)
+#   population_totals : numeric length-J — known population totals in count
+#                       scale
+#   method            : character(1) — one of "linear", "logit", "raking",
+#                       "poststrat"
+#   cell_factors      : named numeric or NULL — post-stratification cell
+#                       ratios N_c / N_hat_c. NULL for non-poststrat methods.
+#
+# Returns: named list with 12 fields conforming to the @calibration contract.
+#   replicate_converged is NOT included — callers add it for survey_replicate
+#   inputs. Returned visibly (not invisible()) so callers can assign directly:
+#   caldata <- .build_calibration_provenance(...)
+#
+# No errors thrown: all validation is the caller's or .calibrate_engine()'s
+# responsibility. Singularity in solve() propagates naturally.
+#
+# @keywords internal
+# @noRd
+.build_calibration_provenance <- function(
+  engine_result,
+  x_matrix,
+  base_weights,
+  q_weights,
+  population_totals,
+  method,
+  cell_factors = NULL
+) {
+  # g_weights: a_k = calibrated_weight_k / base_weight_k.
+  # NaN when base_weights[k] == 0 (cannot occur under .validate_weights()
+  # but do not error defensively).
+  g_weights <- engine_result$weights / base_weights
+
+  # discrepancy: HT deficit at base weights (pre-calibration shortfall).
+  # Not the post-calibration residual.
+  discrepancy <- population_totals -
+    drop(t(x_matrix) %*% base_weights)
+
+  # crossproduct_inv: inverse of the weighted cross-product matrix.
+  # If singular, solve() propagates the error naturally (engine would
+  # have already failed in practice).
+  C <- t(x_matrix) %*% (base_weights * q_weights * x_matrix)
+  crossproduct_inv <- solve(C)
+
+  # lambda: Lagrange multiplier vector.
+  # For linear and logit GREG: exact closed-form (logit GREG satisfies the
+  # same linearization at convergence as linear GREG).
+  # For raking and poststrat: NULL.
+  lambda <- if (method %in% c("linear", "logit")) {
+    crossproduct_inv %*% discrepancy
+  } else {
+    NULL
+  }
+
+  converged <- engine_result$convergence$converged
+
+  # n_iterations: as.integer() preserves NA_integer_ for logit (survey::calibrate()
+  # does not expose an iteration count for Newton-Raphson internally).
+  n_iterations <- as.integer(engine_result$convergence$iterations)
+
+  list(
+    x_matrix          = x_matrix,
+    base_weights      = base_weights,
+    g_weights         = g_weights,
+    crossproduct_inv  = crossproduct_inv,
+    population_totals = population_totals,
+    discrepancy       = discrepancy,
+    lambda            = lambda,
+    method            = method,
+    cell_factors      = cell_factors,
+    q_weights         = q_weights,
+    converged         = converged,
+    n_iterations      = n_iterations
+  )
+}
+
+# ---------------------------------------------------------------------------
 # .validate_count_marginal_consistency()
 # ---------------------------------------------------------------------------
 

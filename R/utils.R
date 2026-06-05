@@ -631,16 +631,28 @@
 
 # Updates a survey object's weight column and appends a history entry to
 # @metadata@weighting_history. Returns a new survey object of the SAME class
-# as the input (no class promotion). Used by calibrate(), rake(),
-# poststratify(), and adjust_nonresponse().
+# as the input (no class promotion). Used by calibrate_greg(),
+# calibrate_rake(), calibrate_poststrat(), calibrate(), and
+# adjust_nonresponse(). Supported input classes: survey_taylor, survey_nonprob,
+# and survey_replicate (for calibration functions).
 #
 # Arguments:
-#   design          : survey_taylor or survey_nonprob
-#   new_weights_vec : numeric vector (length = nrow(design@data))
+#   design          : survey_taylor, survey_nonprob, or survey_replicate
+#   new_weights_vec : numeric vector (length = nrow(design@data)); the
+#                     full-sample weight column is updated. Replicate weight
+#                     columns are written directly by the caller before this call.
 #   history_entry   : list from .make_history_entry()
+#   caldata         : named list or NULL. When non-NULL, a fully constructed
+#                     @calibration list. Written to design@calibration before
+#                     returning. NULL (default) leaves @calibration unchanged.
 #
 # Returns: survey object of the same class as input
-.update_survey_weights <- function(design, new_weights_vec, history_entry) {
+.update_survey_weights <- function(
+  design,
+  new_weights_vec,
+  history_entry,
+  caldata = NULL
+) {
   weight_col <- design@variables$weights
 
   # Update data
@@ -654,6 +666,11 @@
   meta@weighting_history <- c(meta@weighting_history, list(history_entry))
   design@metadata <- meta
 
+  # Populate @calibration if provided
+  if (!is.null(caldata)) {
+    design@calibration <- caldata
+  }
+
   design
 }
 
@@ -662,26 +679,17 @@
 # .check_input_class()
 # ============================================================================
 
-# Validates that `data` is a supported input class for calibration/weighting
-# functions. Used by calibrate(), rake(), poststratify(), and
-# adjust_nonresponse().
+# Validates that `data` is a supported input class for the four calibrate
+# functions (calibrate_greg, calibrate_rake, calibrate_poststrat, calibrate).
+# survey_replicate is now a supported class for these functions.
+# adjust_nonresponse() and sample-calibration functions continue to reject
+# survey_replicate via their own validation logic.
 #
 # Arguments:
 #   data : object passed as the `data` argument to a calibration function
 #
 # Returns: invisible(TRUE) on success. Throws on unsupported class.
 .check_input_class <- function(data) {
-  if (S7::S7_inherits(data, surveycore::survey_replicate)) {
-    cli::cli_abort(
-      c(
-        "x" = "{.cls survey_replicate} objects are not yet supported.",
-        "i" = "Replicate-weight support requires the Replicate release.",
-        "v" = "Use a {.cls survey_taylor} design, or wait for the Replicate release."
-      ),
-      class = "surveywts_error_replicate_not_supported"
-    )
-  }
-
   is_supported <- inherits(data, "data.frame") ||
     S7::S7_inherits(data, surveycore::survey_base)
 

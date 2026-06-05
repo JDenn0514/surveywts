@@ -8,16 +8,6 @@
       i Got <list>.
       v See package documentation for supported input types.
 
-# calibrate_poststrat() rejects survey_replicate input (SE-2)
-
-    Code
-      calibrate_poststrat(rep_obj, targets = pop, type = "count")
-    Condition
-      Error in `.check_input_class()`:
-      x <survey_replicate> objects are not yet supported.
-      i Replicate-weight support requires the Replicate release.
-      v Use a <survey_taylor> design, or wait for the Replicate release.
-
 # calibrate_poststrat() rejects 0-row data frame (SE-3)
 
     Code

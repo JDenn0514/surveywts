@@ -263,10 +263,12 @@ test_that("calibrate_rake() rejects unsupported class", {
 })
 
 # ---------------------------------------------------------------------------
-# 12. Error — surveywts_error_replicate_not_supported
+# 12. survey_replicate no longer rejected at class-check gate
+#     (PR 1: survey_replicate branch removed from .check_input_class())
+#     Full survey_replicate support for calibrate_rake() lands in PR 2.
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_rake() rejects survey_replicate input", {
+test_that("calibrate_rake() no longer rejects survey_replicate at class-check gate", {
   df <- make_surveywts_data(seed = 11)
   targets <- .make_targets_rake()
   meta <- surveycore::survey_metadata()
@@ -283,14 +285,9 @@ test_that("calibrate_rake() rejects survey_replicate input", {
     call = NULL
   )
 
-  expect_error(
-    calibrate_rake(rep_design, targets = targets),
-    class = "surveywts_error_replicate_not_supported"
-  )
-  expect_snapshot(
-    error = TRUE,
-    calibrate_rake(rep_design, targets = targets)
-  )
+  # .check_input_class() no longer throws surveywts_error_replicate_not_supported
+  # for survey_replicate objects (PR 1 change).
+  expect_no_error(.check_input_class(rep_design))
 })
 
 # ---------------------------------------------------------------------------

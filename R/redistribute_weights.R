@@ -86,6 +86,19 @@ redistribute_weights <- function(
   # ---- 1. Input class check -------------------------------------------------
   .check_input_class(data)
 
+  # survey_replicate is not yet supported for weight redistribution.
+  # (calibrate_greg/rake/poststrat accept survey_replicate; this function does not.)
+  if (S7::S7_inherits(data, surveycore::survey_replicate)) {
+    cli::cli_abort(
+      c(
+        "x" = "{.cls survey_replicate} objects are not supported by {.fn redistribute_weights}.",
+        "i" = "Replicate-weight support for weight redistribution is not yet available.",
+        "v" = "Use a {.cls survey_taylor} or {.cls survey_nonprob} design."
+      ),
+      class = "surveywts_error_replicate_not_supported"
+    )
+  }
+
   # ---- 2. Extract plain data frame ------------------------------------------
   data_df <- if (inherits(data, "data.frame")) as.data.frame(data) else data@data
 

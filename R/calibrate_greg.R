@@ -375,7 +375,7 @@ calibrate_greg <- function(
           total_n   = nrow(plain_df)
         )
 
-        tryCatch(
+        failed <- tryCatch(
           {
             rep_engine <- .calibrate_engine(
               data_df          = plain_df,
@@ -386,10 +386,10 @@ calibrate_greg <- function(
             )
             # Success: write calibrated replicate weights back
             data@data[[repwt_col]] <- rep_engine$weights
+            FALSE
           },
           error = function(e) {
-            replicate_converged[[repwt_col]] <<- FALSE
-            col_nm <- repwt_col
+            col_nm  <- repwt_col
             err_msg <- conditionMessage(e)
             cli::cli_warn(
               c(
@@ -406,8 +406,12 @@ calibrate_greg <- function(
               ),
               class = "surveywts_warning_replicate_calibration_failed"
             )
+            TRUE
           }
         )
+        if (failed) {
+          replicate_converged[[repwt_col]] <- FALSE
+        }
       }
 
       caldata$replicate_converged <- replicate_converged

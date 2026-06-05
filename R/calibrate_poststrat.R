@@ -420,7 +420,7 @@ calibrate_poststrat <- function(
           rep_target_vals <- target_vals
         }
 
-        tryCatch(
+        failed <- tryCatch(
           {
             rep_new_wts <- rep_wt
             for (i in seq_along(cells)) {
@@ -436,10 +436,10 @@ calibrate_poststrat <- function(
               rep_new_wts[idx] <- rep_wt[idx] * ratio
             }
             data@data[[repwt_col]] <- rep_new_wts
+            FALSE
           },
           error = function(e) {
-            replicate_converged[[repwt_col]] <<- FALSE
-            col_nm <- repwt_col
+            col_nm  <- repwt_col
             err_msg <- conditionMessage(e)
             cli::cli_warn(
               c(
@@ -456,8 +456,12 @@ calibrate_poststrat <- function(
               ),
               class = "surveywts_warning_replicate_calibration_failed"
             )
+            TRUE
           }
         )
+        if (failed) {
+          replicate_converged[[repwt_col]] <- FALSE
+        }
       }
 
       caldata$replicate_converged <- replicate_converged

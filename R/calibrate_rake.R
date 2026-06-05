@@ -460,7 +460,7 @@ calibrate_rake <- function(
           cap       = cap
         )
 
-        tryCatch(
+        failed <- tryCatch(
           {
             rep_engine <- .calibrate_engine(
               data_df          = plain_df,
@@ -470,10 +470,10 @@ calibrate_rake <- function(
               control          = control_resolved
             )
             data@data[[repwt_col]] <- rep_engine$weights
+            FALSE
           },
           error = function(e) {
-            replicate_converged[[repwt_col]] <<- FALSE
-            col_nm <- repwt_col
+            col_nm  <- repwt_col
             err_msg <- conditionMessage(e)
             cli::cli_warn(
               c(
@@ -490,8 +490,12 @@ calibrate_rake <- function(
               ),
               class = "surveywts_warning_replicate_calibration_failed"
             )
+            TRUE
           }
         )
+        if (failed) {
+          replicate_converged[[repwt_col]] <- FALSE
+        }
       }
 
       caldata$replicate_converged <- replicate_converged

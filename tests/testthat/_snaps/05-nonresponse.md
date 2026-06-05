@@ -23,10 +23,10 @@
     Code
       adjust_nonresponse(rep_design, response_status = responded)
     Condition
-      Error in `.check_input_class()`:
-      x <survey_replicate> objects are not yet supported.
-      i Replicate-weight support requires the Replicate release.
-      v Use a <survey_taylor> design, or wait for the Replicate release.
+      Error in `adjust_nonresponse()`:
+      x <survey_replicate> objects are not supported by `adjust_nonresponse()`.
+      i Replicate-weight support for nonresponse adjustment is not yet available.
+      v Use a <survey_taylor> or <survey_nonprob> design.
 
 # adjust_nonresponse() rejects missing weight column (SE-4)
 
@@ -226,10 +226,10 @@
     Code
       redistribute_weights(rsd, reduce_if = x, increase_if = y)
     Condition
-      Error in `.check_input_class()`:
-      x <survey_replicate> objects are not yet supported.
-      i Replicate-weight support requires the Replicate release.
-      v Use a <survey_taylor> design, or wait for the Replicate release.
+      Error in `redistribute_weights()`:
+      x <survey_replicate> objects are not supported by `redistribute_weights()`.
+      i Replicate-weight support for weight redistribution is not yet available.
+      v Use a <survey_taylor> or <survey_nonprob> design.
 
 # redistribute_weights() errors for 0-row data frame
 

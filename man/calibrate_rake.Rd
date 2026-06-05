@@ -156,6 +156,18 @@ Statistical Association}, 88(423), 1013–1020. doi:10.2307/2290793
 Chang, T. and Kott, P. S. (2008). Using calibration weighting to adjust
 for nonresponse under a plausible model. \emph{Biometrika}, 95(3), 555–571.
 doi:10.1093/biomet/asn022
+
+Rao, J. N. K., Yung, W. and Hidiroglou, M. A. (2002). Estimating
+equations for the analysis of survey data using poststratification
+information. \emph{Sankhya}, 64(2), 364–378.
+
+Valliant, R. (1993). Poststratification and conditional variance
+estimation. \emph{Journal of the American Statistical Association},
+88(421), 89–96. https://doi.org/10.2307/2290701
+
+Rao, J. N. K., Wu, C. F. J. and Yue, K. (1992). Some recent work on
+resampling methods for complex surveys. \emph{Survey Methodology},
+18(2), 209–217.
 }
 \seealso{
 Other calibration: 

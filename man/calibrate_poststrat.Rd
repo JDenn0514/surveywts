@@ -108,6 +108,15 @@ survey sampling. \emph{Journal of the American Statistical Association},
 Rao, J. N. K., Yung, W. and Hidiroglou, M. A. (2002). Estimating
 equations for the analysis of survey data using poststratification
 information. \emph{Sankhya}, 64(2), 364–378.
+
+Deville, J.-C., Sarndal, C.-E. and Sautory, O. (1993). Generalized
+raking procedures in survey sampling. \emph{Journal of the American
+Statistical Association}, 88(423), 1013–1020.
+doi:10.1080/01621459.1993.10476369
+
+Rao, J. N. K., Wu, C. F. J. and Yue, K. (1992). Some recent work on
+resampling methods for complex surveys. \emph{Survey Methodology},
+18(2), 209–217.
 }
 \seealso{
 Other calibration: 

@@ -286,22 +286,22 @@ test_that("calibrate_poststrat() rejects unsupported input class (SE-1)", {
 })
 
 # ---------------------------------------------------------------------------
-# 12. Error — surveywts_error_replicate_not_supported (SE-2)
+# 12. survey_replicate no longer rejected at class-check gate
+#     (PR 1: survey_replicate branch removed from .check_input_class())
+#     Full survey_replicate support for calibrate_poststrat() lands in PR 2.
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() rejects survey_replicate input (SE-2)", {
-  df      <- make_surveywts_data(seed = 11)
-  pop     <- .make_targets_ps()
-  rep_obj <- .make_test_replicate_ps(df)
-  expect_error(
-    calibrate_poststrat(rep_obj, targets = pop, type = "count"),
-    class = "surveywts_error_replicate_not_supported"
-  )
-  expect_snapshot(
-    error = TRUE,
-    calibrate_poststrat(rep_obj, targets = pop, type = "count")
-  )
-})
+test_that(
+  "calibrate_poststrat() no longer rejects survey_replicate at class-check gate",
+  {
+    df      <- make_surveywts_data(seed = 11)
+    rep_obj <- .make_test_replicate_ps(df)
+
+    # .check_input_class() no longer throws surveywts_error_replicate_not_supported
+    # for survey_replicate objects (PR 1 change).
+    expect_no_error(.check_input_class(rep_obj))
+  }
+)
 
 # ---------------------------------------------------------------------------
 # 13. Error — surveywts_error_empty_data (SE-3)

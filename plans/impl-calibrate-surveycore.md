@@ -20,7 +20,7 @@ and `survey_nonprob` — this spec populates it).
 
 ## PR map
 
-- [ ] PR 1: `feature/calibrate-surveycore-infra` — Shared infrastructure: remove `survey_replicate` error from `.check_input_class()`, add `caldata` arg to `.update_survey_weights()`, add `.build_calibration_provenance()` helper
+- [x] PR 1: `feature/calibrate-surveycore-infra` — Shared infrastructure: remove `survey_replicate` error from `.check_input_class()`, add `caldata` arg to `.update_survey_weights()`, add `.build_calibration_provenance()` helper
 - [ ] PR 2: `feature/calibrate-surveycore-functions` — Wire `@calibration` and `survey_replicate` loop into `calibrate_greg()`, `calibrate_rake()`, `calibrate_poststrat()`
 
 ---

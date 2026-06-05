@@ -214,3 +214,13 @@
       10    10 35-54     F     Graduate  Northeast       0.775 0.00219
       # i 490 more rows
 
+# calibrate_greg() with survey_taylor rejects NA in calibration var
+
+    Code
+      calibrate_greg(design, targets = targets)
+    Condition
+      Error in `.validate_calibration_variables()`:
+      x Calibration variable age_group contains 1 NA value(s).
+      i NA values in calibration variables are not allowed.
+      v Remove or impute NA values in age_group before calling `calibrate_greg()`.
+

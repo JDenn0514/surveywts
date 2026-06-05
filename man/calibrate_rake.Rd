@@ -17,8 +17,13 @@ calibrate_rake(
 )
 }
 \arguments{
-\item{data}{A \code{data.frame}, \code{weighted_df}, \code{survey_taylor}, or
-\code{survey_nonprob}. \code{survey_replicate} -> error. Any other class -> error.}
+\item{data}{A \code{data.frame}, \code{weighted_df}, \code{survey_taylor},
+\code{survey_nonprob}, or \code{survey_replicate}. Any other class -> error.
+When \code{data} is a \code{survey_replicate}, raking is applied independently
+to every replicate weight column using the same population \code{targets}.
+Replicate columns that fail raking are kept at their original values
+and reported via a \code{surveywts_warning_replicate_calibration_failed}
+warning; the full-sample raking still completes normally.}
 
 \item{targets}{Named list or data frame specifying population margin targets.
 
@@ -98,11 +103,16 @@ non-\code{survey_taylor} value triggers an error.}
 \itemize{
 \item \code{data.frame} or \code{weighted_df} input -> \code{weighted_df}
 \item \code{survey_taylor} or \code{survey_nonprob} input -> same class as input
-(class is preserved)
+(class is preserved); \verb{@calibration} slot is populated
+\item \code{survey_replicate} input -> \code{survey_replicate} (class preserved);
+\verb{@calibration} slot is populated, including \code{replicate_converged}
 }
 
 The weight column in the output contains raked weights. A history entry
 with \code{operation = "calibrate_rake"} is appended to \code{weighting_history}.
+For \code{survey_replicate} inputs, each replicate weight column is also
+raked. Failed replicates retain their original weights and are recorded
+in \code{output@calibration$replicate_converged} as \code{FALSE}.
 }
 \description{
 Iterative proportional fitting (raking) that adjusts survey weights to

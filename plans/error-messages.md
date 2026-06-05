@@ -261,6 +261,7 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_warning_dagjk_negative_replicate_weights` | `create_group_jackknife_weights()` | One or more NPS replicate weights are negative (can occur after downstream calibration) |
 | `surveywts_warning_dagjk_repweights_overwritten` | `create_group_jackknife_weights()` | `@variables$repweights` already populated; second call overwrites existing replicate columns |
 | `surveywts_warning_dagjk_small_groups` | `create_group_jackknife_weights()` | `floor(combined_N / groups) < 5` — average fewer than 5 units per group; signals potential logistic model convergence problems |
+| `surveywts_warning_replicate_calibration_failed` | `calibrate_greg()`, `calibrate_rake()`, `calibrate_poststrat()` | Calibration failed for a specific replicate weight column (e.g., empty cell within the replicate's effective sample); identifies the replicate column name and the failure reason. Calibration continues for remaining replicates. |
 
 ## Messages
 

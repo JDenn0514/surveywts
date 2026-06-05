@@ -126,6 +126,18 @@
 #'   for nonresponse under a plausible model. *Biometrika*, 95(3), 555–571.
 #'   doi:10.1093/biomet/asn022
 #'
+#'   Rao, J. N. K., Yung, W. and Hidiroglou, M. A. (2002). Estimating
+#'   equations for the analysis of survey data using poststratification
+#'   information. *Sankhya*, 64(2), 364–378.
+#'
+#'   Valliant, R. (1993). Poststratification and conditional variance
+#'   estimation. *Journal of the American Statistical Association*,
+#'   88(421), 89–96. https://doi.org/10.2307/2290701
+#'
+#'   Rao, J. N. K., Wu, C. F. J. and Yue, K. (1992). Some recent work on
+#'   resampling methods for complex surveys. *Survey Methodology*,
+#'   18(2), 209–217.
+#'
 #' @examples
 #' df <- data.frame(
 #'   age_group = c("18-34", "35-54", "55+", "18-34", "35-54"),

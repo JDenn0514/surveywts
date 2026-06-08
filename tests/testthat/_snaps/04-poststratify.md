@@ -186,3 +186,13 @@
       i Extra cells in `targets` are not allowed -- they may indicate a misspecified population.
       v Remove rows for "65+//M" from `targets` before calling `calibrate_poststrat()`.
 
+# calibrate_poststrat() zero-weight stratum produces weights_nonpositive (SX-2)
+
+    Code
+      calibrate_poststrat(df, targets = pop, weights = base_weight, type = "count")
+    Condition
+      Error in `.validate_weights()`:
+      x Weight column base_weight contains 55 non-positive value(s).
+      i All starting weights must be strictly positive (> 0).
+      v Remove or replace non-positive weights before proceeding.
+

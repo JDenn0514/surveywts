@@ -473,15 +473,14 @@ calibrate_rake <- function(
             FALSE
           },
           error = function(e) {
-            col_nm  <- repwt_col
-            err_msg <- conditionMessage(e)
+            col_nm <- repwt_col
             cli::cli_warn(
               c(
                 "!" = paste0(
                   "Calibration failed for replicate weight column ",
                   "{.field {col_nm}}."
                 ),
-                "i" = "Error: {err_msg}",
+                "i" = "Reason: {conditionMessage(e)}",
                 "i" = paste0(
                   "This replicate's weights are kept at their ",
                   "pre-calibration values. Variance estimates may be ",

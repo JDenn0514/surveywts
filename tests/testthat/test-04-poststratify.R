@@ -743,6 +743,47 @@ test_that("calibrate_poststrat() weights_nonpositive fires before empty_stratum"
 })
 
 # ---------------------------------------------------------------------------
+# SX-2. Edge — zero-weight rows covering a full stratum cell (SX-2)
+#
+# When all rows in a stratum cell have zero weights, .validate_weights() fires
+# surveywts_error_weights_nonpositive before the empty-stratum guard is reached.
+# This test documents the observable error for the zero-effective-stratum
+# scenario from the spec.
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_poststrat() zero-weight stratum produces weights_nonpositive (SX-2)", {
+  df <- make_surveywts_data(n = 200L, seed = 42)
+  # Zero out all weights for one age_group level — creates empty effective stratum.
+  # .validate_weights() will catch this before the empty-stratum guard.
+  df$base_weight[df$age_group == "55+"] <- 0
+
+  pop <- data.frame(
+    age_group = c("18-34", "35-54", "55+"),
+    target    = c(5000L, 6000L, 2000L),
+    stringsAsFactors = FALSE
+  )
+
+  expect_error(
+    calibrate_poststrat(
+      df,
+      targets = pop,
+      weights = base_weight,
+      type = "count"
+    ),
+    class = "surveywts_error_weights_nonpositive"
+  )
+  expect_snapshot(
+    error = TRUE,
+    calibrate_poststrat(
+      df,
+      targets = pop,
+      weights = base_weight,
+      type = "count"
+    )
+  )
+})
+
+# ---------------------------------------------------------------------------
 # 36. History — correct structure after calibration
 # ---------------------------------------------------------------------------
 

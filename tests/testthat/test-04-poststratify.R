@@ -743,6 +743,47 @@ test_that("calibrate_poststrat() weights_nonpositive fires before empty_stratum"
 })
 
 # ---------------------------------------------------------------------------
+# SX-2. Edge — zero-weight rows covering a full stratum cell (SX-2)
+#
+# When all rows in a stratum cell have zero weights, .validate_weights() fires
+# surveywts_error_weights_nonpositive before the empty-stratum guard is reached.
+# This test documents the observable error for the zero-effective-stratum
+# scenario from the spec.
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_poststrat() zero-weight stratum produces weights_nonpositive (SX-2)", {
+  df <- make_surveywts_data(n = 200L, seed = 42)
+  # Zero out all weights for one age_group level — creates empty effective stratum.
+  # .validate_weights() will catch this before the empty-stratum guard.
+  df$base_weight[df$age_group == "55+"] <- 0
+
+  pop <- data.frame(
+    age_group = c("18-34", "35-54", "55+"),
+    target    = c(5000L, 6000L, 2000L),
+    stringsAsFactors = FALSE
+  )
+
+  expect_error(
+    calibrate_poststrat(
+      df,
+      targets = pop,
+      weights = base_weight,
+      type = "count"
+    ),
+    class = "surveywts_error_weights_nonpositive"
+  )
+  expect_snapshot(
+    error = TRUE,
+    calibrate_poststrat(
+      df,
+      targets = pop,
+      weights = base_weight,
+      type = "count"
+    )
+  )
+})
+
+# ---------------------------------------------------------------------------
 # 36. History — correct structure after calibration
 # ---------------------------------------------------------------------------
 
@@ -877,5 +918,379 @@ test_that("old poststratify() with strata + population args no longer exists", {
   # poststratify() is gone; should produce an error
   expect_error(
     poststratify(df, strata = c(age_group), population = pop)
+  )
+})
+
+# ===========================================================================
+# survey_taylor input — @calibration slot (PT tests, PR 2)
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# PT-1. survey_taylor input -> survey_taylor output
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_poststrat() with survey_taylor returns survey_taylor", {
+  df <- make_surveywts_data(seed = 601)
+  design <- .make_test_taylor_ps(df)
+  targets <- .make_targets_ps()
+
+  result <- calibrate_poststrat(design, targets = targets, type = "count")
+
+  expect_true(S7::S7_inherits(result, surveycore::survey_taylor))
+})
+
+# ---------------------------------------------------------------------------
+# PT-2. @calibration populated for survey_taylor
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_poststrat() with survey_taylor populates @calibration", {
+  df <- make_surveywts_data(seed = 602)
+  design <- .make_test_taylor_ps(df)
+  targets <- .make_targets_ps()
+
+  result <- calibrate_poststrat(design, targets = targets, type = "count")
+
+  expect_false(is.null(result@calibration))
+  expect_true(is.list(result@calibration))
+})
+
+# ---------------------------------------------------------------------------
+# PT-3. All 12 @calibration fields present
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_poststrat() @calibration has all 12 required fields", {
+  df <- make_surveywts_data(seed = 603)
+  design <- .make_test_taylor_ps(df)
+  targets <- .make_targets_ps()
+
+  result <- calibrate_poststrat(design, targets = targets, type = "count")
+
+  required_fields <- c(
+    "x_matrix", "base_weights", "g_weights", "crossproduct_inv",
+    "population_totals", "discrepancy", "lambda", "method",
+    "cell_factors", "q_weights", "converged", "n_iterations"
+  )
+  expect_true(all(required_fields %in% names(result@calibration)))
+})
+
+# ---------------------------------------------------------------------------
+# PT-4. method == "poststrat"
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_poststrat() @calibration$method == 'poststrat'", {
+  df <- make_surveywts_data(seed = 604)
+  design <- .make_test_taylor_ps(df)
+  targets <- .make_targets_ps()
+
+  result <- calibrate_poststrat(design, targets = targets, type = "count")
+
+  expect_identical(result@calibration$method, "poststrat")
+})
+
+# ---------------------------------------------------------------------------
+# PT-5. lambda is NULL for poststrat
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_poststrat() @calibration$lambda is NULL", {
+  df <- make_surveywts_data(seed = 605)
+  design <- .make_test_taylor_ps(df)
+  targets <- .make_targets_ps()
+
+  result <- calibrate_poststrat(design, targets = targets, type = "count")
+
+  expect_null(result@calibration$lambda)
+})
+
+# ---------------------------------------------------------------------------
+# PT-6. cell_factors is non-NULL named numeric vector
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_poststrat() @calibration$cell_factors is non-NULL named numeric", {
+  df <- make_surveywts_data(seed = 606)
+  design <- .make_test_taylor_ps(df)
+  targets <- .make_targets_ps()
+
+  result <- calibrate_poststrat(design, targets = targets, type = "count")
+
+  cf <- result@calibration$cell_factors
+  expect_false(is.null(cf))
+  expect_true(is.numeric(cf))
+  expect_false(is.null(names(cf)))
+  # Number of factors == number of cells in targets
+  expect_identical(length(cf), nrow(targets))
+})
+
+# ---------------------------------------------------------------------------
+# PT-7. x_matrix has C columns (one per cell)
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_poststrat() @calibration$x_matrix has C columns", {
+  df <- make_surveywts_data(seed = 607)
+  design <- .make_test_taylor_ps(df)
+  targets <- .make_targets_ps()
+  C <- nrow(targets)  # 6 cells
+
+  result <- calibrate_poststrat(design, targets = targets, type = "count")
+
+  expect_identical(ncol(result@calibration$x_matrix), C)
+  expect_identical(nrow(result@calibration$x_matrix), nrow(df))
+})
+
+# ---------------------------------------------------------------------------
+# PT-8. x_matrix is binary (0/1) indicator matrix
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_poststrat() @calibration$x_matrix is binary indicator", {
+  df <- make_surveywts_data(seed = 608)
+  design <- .make_test_taylor_ps(df)
+  targets <- .make_targets_ps()
+
+  result <- calibrate_poststrat(design, targets = targets, type = "count")
+
+  xm <- result@calibration$x_matrix
+  expect_true(all(xm %in% c(0, 1)))
+  # Each row sums to 1 (each unit belongs to exactly one cell)
+  expect_equal(rowSums(xm), rep(1, nrow(df)), tolerance = 1e-10)
+})
+
+# ---------------------------------------------------------------------------
+# PT-9. base_weights matches pre-calibration weights (1e-10)
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_poststrat() @calibration$base_weights matches pre-calibration (1e-10)", {
+  df <- make_surveywts_data(seed = 609)
+  design <- .make_test_taylor_ps(df)
+  targets <- .make_targets_ps()
+  pre_weights <- design@data[[design@variables$weights]]
+
+  result <- calibrate_poststrat(design, targets = targets, type = "count")
+
+  expect_equal(result@calibration$base_weights, pre_weights, tolerance = 1e-10)
+})
+
+# ---------------------------------------------------------------------------
+# PT-10. g_weights * base_weights == output_weights (1e-10)
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_poststrat() g_weights * base_weights == calibrated weights (1e-10)", {
+  df <- make_surveywts_data(seed = 610)
+  design <- .make_test_taylor_ps(df)
+  targets <- .make_targets_ps()
+
+  result <- calibrate_poststrat(design, targets = targets, type = "count")
+  cal <- result@calibration
+  out_weights <- result@data[[result@variables$weights]]
+
+  expect_equal(cal$g_weights * cal$base_weights, out_weights, tolerance = 1e-10)
+})
+
+# ---------------------------------------------------------------------------
+# PT-11. converged == TRUE (post-stratification is exact)
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_poststrat() @calibration$converged is TRUE", {
+  df <- make_surveywts_data(seed = 611)
+  design <- .make_test_taylor_ps(df)
+  targets <- .make_targets_ps()
+
+  result <- calibrate_poststrat(design, targets = targets, type = "count")
+
+  expect_identical(result@calibration$converged, TRUE)
+})
+
+# ---------------------------------------------------------------------------
+# PT-12. n_iterations == 1L (post-stratification is one-step)
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_poststrat() @calibration$n_iterations == 1L", {
+  df <- make_surveywts_data(seed = 612)
+  design <- .make_test_taylor_ps(df)
+  targets <- .make_targets_ps()
+
+  result <- calibrate_poststrat(design, targets = targets, type = "count")
+
+  expect_identical(result@calibration$n_iterations, 1L)
+})
+
+# ---------------------------------------------------------------------------
+# PT-13. replicate_converged is NULL for survey_taylor
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_poststrat() @calibration$replicate_converged is NULL for survey_taylor", {
+  df <- make_surveywts_data(seed = 613)
+  design <- .make_test_taylor_ps(df)
+  targets <- .make_targets_ps()
+
+  result <- calibrate_poststrat(design, targets = targets, type = "count")
+
+  expect_null(result@calibration$replicate_converged)
+})
+
+# ---------------------------------------------------------------------------
+# PT-14. History entry appended
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_poststrat() appends history entry to survey_taylor", {
+  df <- make_surveywts_data(seed = 614)
+  design <- .make_test_taylor_ps(df)
+  targets <- .make_targets_ps()
+
+  result <- calibrate_poststrat(design, targets = targets, type = "count")
+
+  expect_identical(length(result@metadata@weighting_history), 1L)
+  expect_identical(
+    result@metadata@weighting_history[[1L]]$operation,
+    "calibrate_poststrat"
+  )
+})
+
+# ===========================================================================
+# survey_replicate input — @calibration + replicate_converged (PR tests, PR 2)
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# PR-1. survey_replicate output class
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_poststrat() with survey_replicate returns survey_replicate", {
+  df <- make_surveywts_data(seed = 621)
+  targets <- .make_targets_ps()
+  rep_design <- .make_replicate_design(df, seed = 621)
+
+  result <- calibrate_poststrat(rep_design, targets = targets, type = "count")
+
+  expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
+})
+
+# ---------------------------------------------------------------------------
+# PR-2. @calibration populated for survey_replicate
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_poststrat() survey_replicate @calibration is non-NULL", {
+  df <- make_surveywts_data(seed = 622)
+  targets <- .make_targets_ps()
+  rep_design <- .make_replicate_design(df, seed = 622)
+
+  result <- calibrate_poststrat(rep_design, targets = targets, type = "count")
+
+  expect_false(is.null(result@calibration))
+})
+
+# ---------------------------------------------------------------------------
+# PR-3. replicate_converged is named logical of length R
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_poststrat() replicate_converged is named logical length R", {
+  df <- make_surveywts_data(seed = 623)
+  targets <- .make_targets_ps()
+  rep_design <- .make_replicate_design(df, seed = 623)
+  R <- length(rep_design@variables$repweights)
+
+  result <- calibrate_poststrat(rep_design, targets = targets, type = "count")
+
+  rc <- result@calibration$replicate_converged
+  expect_true(is.logical(rc))
+  expect_identical(length(rc), R)
+  expect_identical(names(rc), rep_design@variables$repweights)
+})
+
+# ---------------------------------------------------------------------------
+# PR-4. All entries TRUE when all replicates converge
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_poststrat() replicate_converged all TRUE when all converge", {
+  df <- make_surveywts_data(seed = 624)
+  targets <- .make_targets_ps()
+  rep_design <- .make_replicate_design(df, seed = 624)
+
+  result <- calibrate_poststrat(rep_design, targets = targets, type = "count")
+
+  expect_true(all(result@calibration$replicate_converged))
+})
+
+# ---------------------------------------------------------------------------
+# PR-5. Full-sample weights calibrated
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_poststrat() full-sample weights calibrated in survey_replicate", {
+  df <- make_surveywts_data(seed = 625)
+  targets <- .make_targets_ps()
+  rep_design <- .make_replicate_design(df, seed = 625)
+  pre_weights <- rep_design@data[[rep_design@variables$weights]]
+
+  result <- calibrate_poststrat(rep_design, targets = targets, type = "count")
+
+  out_weights <- result@data[[result@variables$weights]]
+  expect_false(identical(out_weights, pre_weights))
+})
+
+# ---------------------------------------------------------------------------
+# PR-6. method == "poststrat" for survey_replicate
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_poststrat() @calibration$method == 'poststrat' for replicate", {
+  df <- make_surveywts_data(seed = 626)
+  targets <- .make_targets_ps()
+  rep_design <- .make_replicate_design(df, seed = 626)
+
+  result <- calibrate_poststrat(rep_design, targets = targets, type = "count")
+
+  expect_identical(result@calibration$method, "poststrat")
+})
+
+# ---------------------------------------------------------------------------
+# PR-7. 0 replicate columns -> replicate_converged length 0
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_poststrat() with 0 repweights gives replicate_converged length 0", {
+  df <- make_surveywts_data(n = 50, seed = 627)
+  targets <- .make_targets_ps()
+  meta <- surveycore::survey_metadata()
+  rep_empty <- surveycore::survey_replicate(
+    data = df,
+    variables = list(
+      ids = NULL, strata = NULL, fpc = NULL,
+      weights = "base_weight", nest = FALSE,
+      repweights = character(0), scale = 1, rscales = numeric(0),
+      type = "bootstrap", mse = TRUE
+    ),
+    metadata = meta,
+    groups = character(0),
+    call = NULL
+  )
+
+  result <- calibrate_poststrat(rep_empty, targets = targets, type = "count")
+
+  rc <- result@calibration$replicate_converged
+  expect_true(is.logical(rc))
+  expect_identical(length(rc), 0L)
+})
+
+# ---------------------------------------------------------------------------
+# PR-8. cell_factors non-NULL for survey_replicate
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_poststrat() @calibration$cell_factors non-NULL for survey_replicate", {
+  df <- make_surveywts_data(seed = 628)
+  targets <- .make_targets_ps()
+  rep_design <- .make_replicate_design(df, seed = 628)
+
+  result <- calibrate_poststrat(rep_design, targets = targets, type = "count")
+
+  expect_false(is.null(result@calibration$cell_factors))
+  expect_true(is.numeric(result@calibration$cell_factors))
+})
+
+# ---------------------------------------------------------------------------
+# PR-9. REG: survey_replicate does NOT throw replicate_not_supported
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_poststrat() with survey_replicate does NOT throw replicate_not_supported", {
+  df <- make_surveywts_data(seed = 629)
+  targets <- .make_targets_ps()
+  rep_design <- .make_replicate_design(df, seed = 629)
+
+  expect_no_error(
+    calibrate_poststrat(rep_design, targets = targets, type = "count")
   )
 })

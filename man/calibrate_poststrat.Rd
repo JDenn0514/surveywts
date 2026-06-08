@@ -14,8 +14,13 @@ calibrate_poststrat(
 )
 }
 \arguments{
-\item{data}{A \code{data.frame}, \code{weighted_df}, \code{survey_taylor}, or
-\code{survey_nonprob}. \code{survey_replicate} -> error. Any other class -> error.}
+\item{data}{A \code{data.frame}, \code{weighted_df}, \code{survey_taylor},
+\code{survey_nonprob}, or \code{survey_replicate}. Any other class -> error.
+When \code{data} is a \code{survey_replicate}, post-stratification is applied
+independently to every replicate weight column using the same population
+\code{targets}. Replicate columns where any cell has zero or negative total
+weight fail calibration; a \code{surveywts_warning_replicate_calibration_failed}
+warning is emitted and the original replicate weights are kept.}
 
 \item{targets}{A \code{data.frame} with one column per stratification variable
 (column names must match column names in \code{data}), plus a column named
@@ -54,12 +59,18 @@ non-\code{survey_taylor} value triggers
 \itemize{
 \item \code{data.frame} or \code{weighted_df} input -> \code{weighted_df}
 \item \code{survey_taylor} or \code{survey_nonprob} input -> same class as input
-(\code{survey_taylor} or \code{survey_nonprob}; class is preserved)
+(\code{survey_taylor} or \code{survey_nonprob}; class is preserved);
+\verb{@calibration} slot is populated
+\item \code{survey_replicate} input -> \code{survey_replicate} (class preserved);
+\verb{@calibration} slot is populated, including \code{replicate_converged}
 }
 
 The weight column in the output contains post-stratified weights. A
 history entry with \code{operation = "calibrate_poststrat"} is appended to
 \code{weighting_history}.
+For \code{survey_replicate} inputs, each replicate weight column is also
+post-stratified. Failed replicates retain their original weights and are
+recorded in \code{output@calibration$replicate_converged} as \code{FALSE}.
 }
 \description{
 Adjusts survey weights so that the weighted cell counts (or proportions)

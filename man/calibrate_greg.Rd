@@ -16,8 +16,13 @@ calibrate_greg(
 )
 }
 \arguments{
-\item{data}{A \code{data.frame}, \code{weighted_df}, \code{survey_taylor}, or
-\code{survey_nonprob}. \code{survey_replicate} -> error. Any other class -> error.}
+\item{data}{A \code{data.frame}, \code{weighted_df}, \code{survey_taylor},
+\code{survey_nonprob}, or \code{survey_replicate}. Any other class -> error.
+When \code{data} is a \code{survey_replicate}, calibration is applied independently
+to every replicate weight column using the same population \code{targets}.
+Replicate columns that fail calibration are kept at their original values
+and reported via a \code{surveywts_warning_replicate_calibration_failed}
+warning; the full-sample calibration still completes normally.}
 
 \item{targets}{Named list of population marginal targets (Format A) or a
 long data frame with columns \code{variable}, \code{level}, \code{target} (Format B).
@@ -74,12 +79,17 @@ non-\code{survey_taylor} value triggers an error.}
 \itemize{
 \item \code{data.frame} or \code{weighted_df} input -> \code{weighted_df}
 \item \code{survey_taylor} or \code{survey_nonprob} input -> same class as input
-(class is preserved)
+(class is preserved); \verb{@calibration} slot is populated
+\item \code{survey_replicate} input -> \code{survey_replicate} (class preserved);
+\verb{@calibration} slot is populated, including \code{replicate_converged}
 }
 
 The weight column in the output contains calibrated weights. A history
 entry with \code{operation = "calibrate_greg"} is appended to
 \code{weighting_history}.
+For \code{survey_replicate} inputs, each replicate weight column is also
+calibrated. Failed replicates retain their original weights and are
+recorded in \code{output@calibration$replicate_converged} as \code{FALSE}.
 }
 \description{
 Adjusts survey weights so that the weighted marginal totals match known

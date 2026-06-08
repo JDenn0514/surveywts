@@ -30,8 +30,13 @@
 #' marginal totals, `calibrate_poststrat()` matches exact cross-tabulation
 #' cells in a single pass.
 #'
-#' @param data A `data.frame`, `weighted_df`, `survey_taylor`, or
-#'   `survey_nonprob`. `survey_replicate` -> error. Any other class -> error.
+#' @param data A `data.frame`, `weighted_df`, `survey_taylor`,
+#'   `survey_nonprob`, or `survey_replicate`. Any other class -> error.
+#'   When `data` is a `survey_replicate`, post-stratification is applied
+#'   independently to every replicate weight column using the same population
+#'   `targets`. Replicate columns where any cell has zero or negative total
+#'   weight fail calibration; a `surveywts_warning_replicate_calibration_failed`
+#'   warning is emitted and the original replicate weights are kept.
 #' @param targets A `data.frame` with one column per stratification variable
 #'   (column names must match column names in `data`), plus a column named
 #'   `"target"`, and one row per unique cell combination. The stratification
@@ -64,11 +69,17 @@
 #' @return
 #'   - `data.frame` or `weighted_df` input -> `weighted_df`
 #'   - `survey_taylor` or `survey_nonprob` input -> same class as input
-#'     (`survey_taylor` or `survey_nonprob`; class is preserved)
+#'     (`survey_taylor` or `survey_nonprob`; class is preserved);
+#'     `@calibration` slot is populated
+#'   - `survey_replicate` input -> `survey_replicate` (class preserved);
+#'     `@calibration` slot is populated, including `replicate_converged`
 #'
 #'   The weight column in the output contains post-stratified weights. A
 #'   history entry with `operation = "calibrate_poststrat"` is appended to
 #'   `weighting_history`.
+#'   For `survey_replicate` inputs, each replicate weight column is also
+#'   post-stratified. Failed replicates retain their original weights and are
+#'   recorded in `output@calibration$replicate_converged` as `FALSE`.
 #'
 #' @references
 #'   Valliant, R. (1993). Poststratification and conditional variance
@@ -335,7 +346,128 @@ calibrate_poststrat <- function(
     new_weights[idx] <- weights_vec[idx] * ratio
   }
 
-  # ---- 15. Build history entry --------------------------------------------
+  # ---- 15. Build x_matrix, cell_factors, and calibration provenance -------
+  # For survey objects only. x_matrix is full cross-cell indicator: n × C
+  # matrix where C = number of unique cells in targets.
+  is_survey_obj <- S7::S7_inherits(data, surveycore::survey_base)
+  caldata <- NULL
+
+  if (is_survey_obj) {
+    # Build cell indicator matrix (n × C)
+    C <- length(cells)
+    x_matrix_ps <- matrix(0, nrow = nrow(plain_df), ncol = C,
+                          dimnames = list(NULL, pop_keys))
+    for (i in seq_along(cells)) {
+      x_matrix_ps[cells[[i]]$indices, i] <- 1
+    }
+
+    # Population totals in count scale per cell (length C)
+    population_totals_ps <- stats::setNames(target_vals, pop_keys)
+
+    # cell_factors: N_c / N_hat_c
+    # N_hat_c = sum(weights_vec[cell indices])  (already computed above)
+    cell_factors_ps <- stats::setNames(
+      vapply(
+        seq_along(cells),
+        function(i) {
+          n_hat_c <- sum(weights_vec[cells[[i]]$indices])
+          target_vals[[i]] / n_hat_c
+        },
+        numeric(1L)
+      ),
+      pop_keys
+    )
+
+    q_weights_ps <- rep(1, nrow(plain_df))
+
+    # Build a minimal engine_result for .build_calibration_provenance().
+    # Post-stratification is exact (non-iterative): always converged, 1 step.
+    engine_result_ps <- list(
+      weights     = new_weights,
+      convergence = list(
+        converged  = TRUE,
+        iterations = 1L
+      )
+    )
+
+    caldata <- .build_calibration_provenance(
+      engine_result     = engine_result_ps,
+      x_matrix          = x_matrix_ps,
+      base_weights      = weights_vec,
+      q_weights         = q_weights_ps,
+      population_totals = population_totals_ps,
+      method            = "poststrat",
+      cell_factors      = cell_factors_ps
+    )
+
+    # ---- Replicate loop (survey_replicate only) ----------------------------
+    if (S7::S7_inherits(data, surveycore::survey_replicate)) {
+      repwt_cols <- data@variables$repweights
+      replicate_converged <- stats::setNames(
+        rep(TRUE, length(repwt_cols)),
+        repwt_cols
+      )
+
+      for (repwt_col in repwt_cols) {
+        rep_wt <- data@data[[repwt_col]]
+
+        # Apply post-stratification to this replicate using the same cells.
+        # Scale target_vals proportionally to the replicate's own weight total.
+        rep_total_w <- sum(rep_wt)
+        if (type == "prop") {
+          rep_target_vals <- targets[["target"]] * rep_total_w
+        } else {
+          rep_target_vals <- target_vals
+        }
+
+        failed <- tryCatch(
+          {
+            rep_new_wts <- rep_wt
+            for (i in seq_along(cells)) {
+              idx        <- cells[[i]]$indices
+              n_hat_c    <- sum(rep_wt[idx])
+              if (n_hat_c <= 0) {
+                stop(paste0(
+                  "Cell '", pop_keys[[i]], "' has zero or negative weighted ",
+                  "count in this replicate."
+                ))
+              }
+              ratio <- rep_target_vals[[i]] / n_hat_c
+              rep_new_wts[idx] <- rep_wt[idx] * ratio
+            }
+            data@data[[repwt_col]] <- rep_new_wts
+            FALSE
+          },
+          error = function(e) {
+            col_nm <- repwt_col
+            cli::cli_warn(
+              c(
+                "!" = paste0(
+                  "Calibration failed for replicate weight column ",
+                  "{.field {col_nm}}."
+                ),
+                "i" = "Reason: {conditionMessage(e)}",
+                "i" = paste0(
+                  "This replicate's weights are kept at their ",
+                  "pre-calibration values. Variance estimates may be ",
+                  "affected. Inspect {.code output@calibration$replicate_converged}."
+                )
+              ),
+              class = "surveywts_warning_replicate_calibration_failed"
+            )
+            TRUE
+          }
+        )
+        if (failed) {
+          replicate_converged[[repwt_col]] <- FALSE
+        }
+      }
+
+      caldata$replicate_converged <- replicate_converged
+    }
+  }
+
+  # ---- 16. Build history entry --------------------------------------------
   after_stats     <- .compute_weight_stats(new_weights)
   current_history <- .get_history(data)
 
@@ -356,15 +488,15 @@ calibrate_poststrat <- function(
     convergence  = NULL  # non-iterative
   )
 
-  # ---- 16. Build output ---------------------------------------------------
+  # ---- 17. Build output ---------------------------------------------------
   if (inherits(data, "data.frame")) {
     out_df            <- plain_df
     out_df[[wt_name]] <- new_weights
     new_history       <- c(current_history, list(history_entry))
     .make_weighted_df(out_df, wt_name, new_history)
   } else {
-    # survey object -> same class (class preserved; only weights + history updated)
-    .update_survey_weights(data, new_weights, history_entry)
+    # survey object -> same class (class preserved; weights + history + caldata)
+    .update_survey_weights(data, new_weights, history_entry, caldata = caldata)
   }
 }
 

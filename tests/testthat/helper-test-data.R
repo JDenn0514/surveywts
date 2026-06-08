@@ -386,6 +386,54 @@ make_dagjk_datasets <- function() {
   list(A = A, B = B, C = C, D = D, E = E, F = F_data, ref = ref)
 }
 
+# ============================================================================
+# Replicate design helpers for calibrate-surveycore PR 2 tests
+# ============================================================================
+
+# .make_replicate_design() — wraps df in survey_taylor then bootstrap
+# replicates. Default seed = 42.
+.make_replicate_design <- function(df, weight_col = "base_weight", seed = 42) {
+  set.seed(seed)
+  taylor <- surveycore::survey_taylor(
+    data = df,
+    variables = list(weights = weight_col)
+  )
+  create_bootstrap_weights(taylor, replicates = 10L)
+}
+
+# .make_brr_design() — constructs a survey_replicate via survey_taylor with
+# bootstrap replicates, then sets some replicate columns to negative values
+# (e.g., wt * -0.1) to simulate BRR-style negative replicate weights.
+.make_brr_design <- function(df, weight_col = "base_weight") {
+  base_rep <- .make_replicate_design(df, weight_col = weight_col)
+  # Negate first replicate column to simulate BRR negative weights
+  repwt_cols <- base_rep@variables$repweights
+  updated_data <- base_rep@data
+  updated_data[[repwt_cols[[1L]]]] <- updated_data[[repwt_cols[[1L]]]] * (-0.1)
+  base_rep@data <- updated_data
+  base_rep
+}
+
+# .make_empty_cell_replicate_design() — constructs a survey_replicate where
+# at least one replicate column has zero weight for all units in one level of
+# calibration_var. Achieved by zeroing out that level's entries in one column.
+.make_empty_cell_replicate_design <- function(
+  df,
+  calibration_var,
+  weight_col = "base_weight"
+) {
+  base_rep <- .make_replicate_design(df, weight_col = weight_col)
+  repwt_cols <- base_rep@variables$repweights
+  first_level <- unique(df[[calibration_var]])[[1L]]
+  idx <- which(base_rep@data[[calibration_var]] == first_level)
+  updated_data <- base_rep@data
+  # Zero out the last replicate column for the first level, forcing empty cell
+  last_col <- repwt_cols[[length(repwt_cols)]]
+  updated_data[[last_col]][idx] <- 0
+  base_rep@data <- updated_data
+  base_rep
+}
+
 # Pin all weighting history timestamps to a fixed date for stable snapshots.
 # Works for survey_nonprob and survey_replicate (both have @metadata@weighting_history).
 # Usage: result <- .pin_ts(result)

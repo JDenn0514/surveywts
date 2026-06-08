@@ -21,8 +21,13 @@
 #' linear (one-step exact) and logit (bounded iterative) calibration models for
 #' categorical auxiliary variables.
 #'
-#' @param data A `data.frame`, `weighted_df`, `survey_taylor`, or
-#'   `survey_nonprob`. `survey_replicate` -> error. Any other class -> error.
+#' @param data A `data.frame`, `weighted_df`, `survey_taylor`,
+#'   `survey_nonprob`, or `survey_replicate`. Any other class -> error.
+#'   When `data` is a `survey_replicate`, calibration is applied independently
+#'   to every replicate weight column using the same population `targets`.
+#'   Replicate columns that fail calibration are kept at their original values
+#'   and reported via a `surveywts_warning_replicate_calibration_failed`
+#'   warning; the full-sample calibration still completes normally.
 #' @param targets Named list of population marginal targets (Format A) or a
 #'   long data frame with columns `variable`, `level`, `target` (Format B).
 #'
@@ -71,11 +76,16 @@
 #' @return
 #'   - `data.frame` or `weighted_df` input -> `weighted_df`
 #'   - `survey_taylor` or `survey_nonprob` input -> same class as input
-#'     (class is preserved)
+#'     (class is preserved); `@calibration` slot is populated
+#'   - `survey_replicate` input -> `survey_replicate` (class preserved);
+#'     `@calibration` slot is populated, including `replicate_converged`
 #'
 #'   The weight column in the output contains calibrated weights. A history
 #'   entry with `operation = "calibrate_greg"` is appended to
 #'   `weighting_history`.
+#'   For `survey_replicate` inputs, each replicate weight column is also
+#'   calibrated. Failed replicates retain their original weights and are
+#'   recorded in `output@calibration$replicate_converged` as `FALSE`.
 #'
 #' @references
 #'   Deville, J.-C. and Sarndal, C.-E. (1992). Calibration estimators in
@@ -278,7 +288,136 @@ calibrate_greg <- function(
     )
   }
 
-  # ---- 11. Compute after-stats and build history entry --------------------
+  # ---- 11. Build x_matrix and calibration provenance (survey objects only) -
+  # x_matrix: treatment-contrast model matrix (intercept + k-1 dummies per
+  # factor). Rebuilt here using the same formula/factor structure the engine
+  # used internally. Only built for survey objects; data.frame/weighted_df
+  # outputs do not carry a @calibration slot.
+  is_survey_obj <- S7::S7_inherits(data, surveycore::survey_base)
+  caldata <- NULL
+
+  if (is_survey_obj) {
+    # Rebuild the factor-encoded plain_df and formula as in the engine
+    x_df <- plain_df
+    for (v in vars_spec) {
+      col_name <- v$col
+      lvls <- names(v$targets)
+      x_df[[col_name]] <- factor(x_df[[col_name]], levels = lvls)
+    }
+    fml_vars <- variable_names[vapply(
+      vars_spec, function(v) length(v$targets) >= 2L, logical(1L)
+    )]
+    if (length(fml_vars) == 0L) {
+      # All-single-level: x_matrix is just the intercept column
+      x_matrix <- matrix(1, nrow = nrow(plain_df), ncol = 1L,
+                         dimnames = list(NULL, "(Intercept)"))
+    } else {
+      fml <- stats::as.formula(paste("~", paste(fml_vars, collapse = " + ")))
+      x_matrix <- stats::model.matrix(fml, data = x_df)
+    }
+
+    # Population totals in count scale (J-vector matching x_matrix columns)
+    n_cols <- ncol(x_matrix)
+    population_totals_vec <- stats::setNames(numeric(n_cols), colnames(x_matrix))
+    population_totals_vec["(Intercept)"] <- total_w
+    for (v in vars_spec) {
+      if (length(v$targets) < 2L) next
+      col_name <- v$col
+      lvls <- names(v$targets)
+      for (lev in lvls[-1L]) {
+        col_nm <- paste0(col_name, lev)
+        if (col_nm %in% names(population_totals_vec)) {
+          population_totals_vec[col_nm] <- v$targets[[lev]]
+        }
+      }
+    }
+
+    q_weights <- rep(1, nrow(plain_df))
+
+    caldata <- .build_calibration_provenance(
+      engine_result     = engine_result,
+      x_matrix          = x_matrix,
+      base_weights      = weights_vec,
+      q_weights         = q_weights,
+      population_totals = population_totals_vec,
+      method            = model,
+      cell_factors      = NULL
+    )
+
+    # ---- Replicate loop (survey_replicate only) ----------------------------
+    if (S7::S7_inherits(data, surveycore::survey_replicate)) {
+      repwt_cols <- data@variables$repweights
+      replicate_converged <- stats::setNames(
+        rep(TRUE, length(repwt_cols)),
+        repwt_cols
+      )
+
+      for (repwt_col in repwt_cols) {
+        rep_wt <- data@data[[repwt_col]]
+
+        # Scale population counts to this replicate's own weight total.
+        # This ensures the intercept constraint is correct for each replicate:
+        # calibrate to targets * sum(rep_wt), not targets * total_w.
+        # (For type = "prop": rep_population_counts = targets_a * sum(rep_wt);
+        #  for type = "count": rep_population_counts = targets_a as-is.)
+        rep_total_w <- sum(rep_wt)
+        if (type == "prop") {
+          rep_pop_counts <- lapply(targets_a, function(p) p * rep_total_w)
+        } else {
+          rep_pop_counts <- targets_a
+        }
+        rep_vars_spec <- lapply(variable_names, function(v) {
+          list(col = v, targets = rep_pop_counts[[v]])
+        })
+        rep_calibration_spec <- list(
+          type      = model,
+          variables = rep_vars_spec,
+          total_n   = nrow(plain_df)
+        )
+
+        failed <- tryCatch(
+          {
+            rep_engine <- .calibrate_engine(
+              data_df          = plain_df,
+              weights_vec      = rep_wt,
+              calibration_spec = rep_calibration_spec,
+              method           = model,
+              control          = control
+            )
+            # Success: write calibrated replicate weights back
+            data@data[[repwt_col]] <- rep_engine$weights
+            FALSE
+          },
+          error = function(e) {
+            col_nm <- repwt_col
+            cli::cli_warn(
+              c(
+                "!" = paste0(
+                  "Calibration failed for replicate weight column ",
+                  "{.field {col_nm}}."
+                ),
+                "i" = "Reason: {conditionMessage(e)}",
+                "i" = paste0(
+                  "This replicate's weights are kept at their ",
+                  "pre-calibration values. Variance estimates may be ",
+                  "affected. Inspect {.code output@calibration$replicate_converged}."
+                )
+              ),
+              class = "surveywts_warning_replicate_calibration_failed"
+            )
+            TRUE
+          }
+        )
+        if (failed) {
+          replicate_converged[[repwt_col]] <- FALSE
+        }
+      }
+
+      caldata$replicate_converged <- replicate_converged
+    }
+  }
+
+  # ---- 12. Compute after-stats and build history entry --------------------
   after_stats <- .compute_weight_stats(new_weights)
   current_history <- .get_history(data)
 
@@ -305,13 +444,13 @@ calibrate_greg <- function(
     convergence = convergence
   )
 
-  # ---- 12. Build output ---------------------------------------------------
+  # ---- 13. Build output ---------------------------------------------------
   if (inherits(data, "data.frame")) {
     out_df <- plain_df
     out_df[[wt_name]] <- new_weights
     new_history <- c(current_history, list(history_entry))
     .make_weighted_df(out_df, wt_name, new_history)
   } else {
-    .update_survey_weights(data, new_weights, history_entry)
+    .update_survey_weights(data, new_weights, history_entry, caldata = caldata)
   }
 }

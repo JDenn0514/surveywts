@@ -870,3 +870,344 @@ test_that("old rake() with margins arg no longer exists", {
     rake(df, margins = margins)
   )
 })
+
+# ===========================================================================
+# survey_taylor input — @calibration slot (RT tests, PR 2)
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# RT-1. survey_taylor input -> survey_taylor output
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() with survey_taylor returns survey_taylor", {
+  df <- make_surveywts_data(seed = 501)
+  design <- .make_test_taylor_rake(df)
+  targets <- .make_targets_rake()
+
+  result <- calibrate_rake(design, targets = targets)
+
+  expect_true(S7::S7_inherits(result, surveycore::survey_taylor))
+})
+
+# ---------------------------------------------------------------------------
+# RT-2. @calibration populated for survey_taylor
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() with survey_taylor populates @calibration", {
+  df <- make_surveywts_data(seed = 502)
+  design <- .make_test_taylor_rake(df)
+  targets <- .make_targets_rake()
+
+  result <- calibrate_rake(design, targets = targets)
+
+  expect_false(is.null(result@calibration))
+  expect_true(is.list(result@calibration))
+})
+
+# ---------------------------------------------------------------------------
+# RT-3. All 12 @calibration fields present
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() @calibration has all 12 required fields", {
+  df <- make_surveywts_data(seed = 503)
+  design <- .make_test_taylor_rake(df)
+  targets <- .make_targets_rake()
+
+  result <- calibrate_rake(design, targets = targets)
+
+  required_fields <- c(
+    "x_matrix", "base_weights", "g_weights", "crossproduct_inv",
+    "population_totals", "discrepancy", "lambda", "method",
+    "cell_factors", "q_weights", "converged", "n_iterations"
+  )
+  expect_true(all(required_fields %in% names(result@calibration)))
+})
+
+# ---------------------------------------------------------------------------
+# RT-4. method == "raking"
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() @calibration$method == 'raking'", {
+  df <- make_surveywts_data(seed = 504)
+  design <- .make_test_taylor_rake(df)
+  targets <- .make_targets_rake()
+
+  result <- calibrate_rake(design, targets = targets)
+
+  expect_identical(result@calibration$method, "raking")
+})
+
+# ---------------------------------------------------------------------------
+# RT-5. lambda is NULL (multiplicative form, not stored)
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() @calibration$lambda is NULL", {
+  df <- make_surveywts_data(seed = 505)
+  design <- .make_test_taylor_rake(df)
+  targets <- .make_targets_rake()
+
+  result <- calibrate_rake(design, targets = targets)
+
+  expect_null(result@calibration$lambda)
+})
+
+# ---------------------------------------------------------------------------
+# RT-6. cell_factors is NULL
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() @calibration$cell_factors is NULL", {
+  df <- make_surveywts_data(seed = 506)
+  design <- .make_test_taylor_rake(df)
+  targets <- .make_targets_rake()
+
+  result <- calibrate_rake(design, targets = targets)
+
+  expect_null(result@calibration$cell_factors)
+})
+
+# ---------------------------------------------------------------------------
+# RT-7. base_weights equals pre-calibration weight vector (1e-10)
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() @calibration$base_weights matches pre-calibration", {
+  df <- make_surveywts_data(seed = 507)
+  design <- .make_test_taylor_rake(df)
+  targets <- .make_targets_rake()
+  pre_weights <- design@data[[design@variables$weights]]
+
+  result <- calibrate_rake(design, targets = targets)
+
+  expect_equal(result@calibration$base_weights, pre_weights, tolerance = 1e-10)
+})
+
+# ---------------------------------------------------------------------------
+# RT-8. g_weights * base_weights == output_weights (1e-10)
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() g_weights * base_weights == calibrated weights (1e-10)", {
+  df <- make_surveywts_data(seed = 508)
+  design <- .make_test_taylor_rake(df)
+  targets <- .make_targets_rake()
+
+  result <- calibrate_rake(design, targets = targets)
+  cal <- result@calibration
+  out_weights <- result@data[[result@variables$weights]]
+
+  expect_equal(cal$g_weights * cal$base_weights, out_weights, tolerance = 1e-10)
+})
+
+# ---------------------------------------------------------------------------
+# RT-9. q_weights all 1
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() @calibration$q_weights are all 1", {
+  df <- make_surveywts_data(seed = 509)
+  design <- .make_test_taylor_rake(df)
+  targets <- .make_targets_rake()
+
+  result <- calibrate_rake(design, targets = targets)
+
+  expect_equal(result@calibration$q_weights, rep(1, nrow(df)), tolerance = 1e-10)
+})
+
+# ---------------------------------------------------------------------------
+# RT-10. replicate_converged is NULL for survey_taylor
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() @calibration$replicate_converged is NULL for survey_taylor", {
+  df <- make_surveywts_data(seed = 510)
+  design <- .make_test_taylor_rake(df)
+  targets <- .make_targets_rake()
+
+  result <- calibrate_rake(design, targets = targets)
+
+  expect_null(result@calibration$replicate_converged)
+})
+
+# ---------------------------------------------------------------------------
+# RT-11. History entry appended
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() appends history entry to survey_taylor", {
+  df <- make_surveywts_data(seed = 511)
+  design <- .make_test_taylor_rake(df)
+  targets <- .make_targets_rake()
+
+  result <- calibrate_rake(design, targets = targets)
+
+  expect_identical(length(result@metadata@weighting_history), 1L)
+  expect_identical(
+    result@metadata@weighting_history[[1L]]$operation,
+    "calibrate_rake"
+  )
+})
+
+# ===========================================================================
+# survey_replicate input — @calibration + replicate_converged (RR tests, PR 2)
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# RR-1. survey_replicate output class
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() with survey_replicate returns survey_replicate", {
+  df <- make_surveywts_data(seed = 521)
+  targets <- .make_targets_rake()
+  rep_design <- .make_replicate_design(df, seed = 521)
+
+  result <- calibrate_rake(rep_design, targets = targets)
+
+  expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
+})
+
+# ---------------------------------------------------------------------------
+# RR-2. @calibration populated for survey_replicate
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() survey_replicate @calibration is non-NULL", {
+  df <- make_surveywts_data(seed = 522)
+  targets <- .make_targets_rake()
+  rep_design <- .make_replicate_design(df, seed = 522)
+
+  result <- calibrate_rake(rep_design, targets = targets)
+
+  expect_false(is.null(result@calibration))
+})
+
+# ---------------------------------------------------------------------------
+# RR-3. replicate_converged is named logical of length R
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() replicate_converged is named logical length R", {
+  df <- make_surveywts_data(seed = 523)
+  targets <- .make_targets_rake()
+  rep_design <- .make_replicate_design(df, seed = 523)
+  R <- length(rep_design@variables$repweights)
+
+  result <- calibrate_rake(rep_design, targets = targets)
+
+  rc <- result@calibration$replicate_converged
+  expect_true(is.logical(rc))
+  expect_identical(length(rc), R)
+  expect_identical(names(rc), rep_design@variables$repweights)
+})
+
+# ---------------------------------------------------------------------------
+# RR-4. All entries TRUE when all replicates converge
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() replicate_converged all TRUE when all converge", {
+  df <- make_surveywts_data(seed = 524)
+  targets <- .make_targets_rake()
+  rep_design <- .make_replicate_design(df, seed = 524)
+
+  result <- calibrate_rake(rep_design, targets = targets)
+
+  expect_true(all(result@calibration$replicate_converged))
+})
+
+# ---------------------------------------------------------------------------
+# RR-5. Full-sample weight column calibrated
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() full-sample weights calibrated in survey_replicate", {
+  df <- make_surveywts_data(seed = 525)
+  targets <- .make_targets_rake()
+  rep_design <- .make_replicate_design(df, seed = 525)
+  pre_weights <- rep_design@data[[rep_design@variables$weights]]
+
+  result <- calibrate_rake(rep_design, targets = targets)
+
+  out_weights <- result@data[[result@variables$weights]]
+  expect_false(identical(out_weights, pre_weights))
+})
+
+# ---------------------------------------------------------------------------
+# RR-6. All 12 @calibration fields present for survey_replicate
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() survey_replicate @calibration has 12 required fields", {
+  df <- make_surveywts_data(seed = 526)
+  targets <- .make_targets_rake()
+  rep_design <- .make_replicate_design(df, seed = 526)
+
+  result <- calibrate_rake(rep_design, targets = targets)
+
+  required_fields <- c(
+    "x_matrix", "base_weights", "g_weights", "crossproduct_inv",
+    "population_totals", "discrepancy", "lambda", "method",
+    "cell_factors", "q_weights", "converged", "n_iterations"
+  )
+  expect_true(all(required_fields %in% names(result@calibration)))
+})
+
+# ---------------------------------------------------------------------------
+# RR-7. Warning emitted when a replicate fails
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() warns when a replicate fails calibration", {
+  df <- make_surveywts_data(seed = 527)
+  rep_design <- .make_empty_cell_replicate_design(df, "age_group")
+  targets <- .make_targets_rake()
+
+  expect_warning(
+    calibrate_rake(rep_design, targets = targets),
+    class = "surveywts_warning_replicate_calibration_failed"
+  )
+})
+
+# ---------------------------------------------------------------------------
+# RR-8. 0 replicate columns -> replicate_converged length 0
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() with 0 repweights gives replicate_converged length 0", {
+  df <- make_surveywts_data(n = 50, seed = 528)
+  targets <- .make_targets_rake()
+  meta <- surveycore::survey_metadata()
+  rep_empty <- surveycore::survey_replicate(
+    data = df,
+    variables = list(
+      ids = NULL, strata = NULL, fpc = NULL,
+      weights = "base_weight", nest = FALSE,
+      repweights = character(0), scale = 1, rscales = numeric(0),
+      type = "bootstrap", mse = TRUE
+    ),
+    metadata = meta,
+    groups = character(0),
+    call = NULL
+  )
+
+  result <- calibrate_rake(rep_empty, targets = targets)
+
+  rc <- result@calibration$replicate_converged
+  expect_true(is.logical(rc))
+  expect_identical(length(rc), 0L)
+})
+
+# ---------------------------------------------------------------------------
+# RR-9. method == "raking" for survey_replicate
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() @calibration$method == 'raking' for survey_replicate", {
+  df <- make_surveywts_data(seed = 529)
+  targets <- .make_targets_rake()
+  rep_design <- .make_replicate_design(df, seed = 529)
+
+  result <- calibrate_rake(rep_design, targets = targets)
+
+  expect_identical(result@calibration$method, "raking")
+})
+
+# ---------------------------------------------------------------------------
+# REG: survey_replicate does NOT throw surveywts_error_replicate_not_supported
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() with survey_replicate does NOT throw replicate_not_supported", {
+  df <- make_surveywts_data(seed = 531)
+  targets <- .make_targets_rake()
+  rep_design <- .make_replicate_design(df, seed = 531)
+
+  expect_no_error(
+    calibrate_rake(rep_design, targets = targets)
+  )
+})

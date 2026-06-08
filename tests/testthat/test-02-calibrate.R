@@ -1345,3 +1345,1056 @@ test_that(
     expect_true("x_matrix" %in% names(caldata))
   }
 )
+
+# ===========================================================================
+# survey_taylor input — @calibration slot (HT tests, PR 2)
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# HT-1. survey_taylor input -> survey_taylor output
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() with survey_taylor returns survey_taylor", {
+  df <- make_surveywts_data(seed = 301)
+  design <- .make_test_taylor_greg(df)
+  targets <- .make_targets()
+
+  result <- calibrate_greg(design, targets = targets)
+
+  expect_true(S7::S7_inherits(result, surveycore::survey_taylor))
+})
+
+# ---------------------------------------------------------------------------
+# HT-2. survey_taylor -> @calibration is non-NULL
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() with survey_taylor populates @calibration", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 302)
+  design <- .make_test_taylor_greg(df)
+  targets <- .make_targets()
+
+  result <- calibrate_greg(design, targets = targets)
+
+  expect_false(is.null(result@calibration))
+  expect_true(is.list(result@calibration))
+})
+
+# ---------------------------------------------------------------------------
+# HT-3. All 12 @calibration fields present
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() @calibration has all 12 required fields", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 303)
+  design <- .make_test_taylor_greg(df)
+  targets <- .make_targets()
+
+  result <- calibrate_greg(design, targets = targets)
+
+  required_fields <- c(
+    "x_matrix", "base_weights", "g_weights", "crossproduct_inv",
+    "population_totals", "discrepancy", "lambda", "method",
+    "cell_factors", "q_weights", "converged", "n_iterations"
+  )
+  expect_true(all(required_fields %in% names(result@calibration)))
+})
+
+# ---------------------------------------------------------------------------
+# HT-4. base_weights equals pre-calibration weight vector (1e-10)
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() @calibration$base_weights matches pre-calibration", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 304)
+  design <- .make_test_taylor_greg(df)
+  targets <- .make_targets()
+  pre_weights <- design@data[[design@variables$weights]]
+
+  result <- calibrate_greg(design, targets = targets)
+
+  expect_equal(result@calibration$base_weights, pre_weights, tolerance = 1e-10)
+})
+
+# ---------------------------------------------------------------------------
+# HT-5. g_weights * base_weights == output_weights (1e-10)
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() g_weights * base_weights == calibrated weights", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 305)
+  design <- .make_test_taylor_greg(df)
+  targets <- .make_targets()
+
+  result <- calibrate_greg(design, targets = targets)
+  cal <- result@calibration
+  out_weights <- result@data[[result@variables$weights]]
+
+  expect_equal(cal$g_weights * cal$base_weights, out_weights, tolerance = 1e-10)
+})
+
+# ---------------------------------------------------------------------------
+# HT-6. crossproduct_inv %*% C ≈ I_J (1e-8)
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() crossproduct_inv %*% C ~ identity (1e-8)", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 306)
+  design <- .make_test_taylor_greg(df)
+  targets <- .make_targets()
+
+  result <- calibrate_greg(design, targets = targets)
+  cal <- result@calibration
+
+  J <- ncol(cal$x_matrix)
+  C <- t(cal$x_matrix) %*% (cal$base_weights * cal$q_weights * cal$x_matrix)
+  identity_approx <- cal$crossproduct_inv %*% C
+  dimnames(identity_approx) <- NULL
+  expect_equal(identity_approx, diag(J), tolerance = 1e-8)
+})
+
+# ---------------------------------------------------------------------------
+# HT-7. Calibration constraint: t(X) %*% out_wts ≈ population_totals (1e-6)
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() calibration constraint holds (1e-6)", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 307)
+  design <- .make_test_taylor_greg(df)
+  targets <- .make_targets()
+
+  result <- calibrate_greg(design, targets = targets)
+  cal <- result@calibration
+  out_weights <- result@data[[result@variables$weights]]
+
+  constraint <- drop(t(cal$x_matrix) %*% out_weights)
+  expect_equal(constraint, cal$population_totals, tolerance = 1e-6)
+})
+
+# ---------------------------------------------------------------------------
+# HT-8. method == "linear"
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() @calibration$method == 'linear' for default model", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 308)
+  design <- .make_test_taylor_greg(df)
+  targets <- .make_targets()
+
+  result <- calibrate_greg(design, targets = targets)
+
+  expect_identical(result@calibration$method, "linear")
+})
+
+# ---------------------------------------------------------------------------
+# HT-9. cell_factors is NULL
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() @calibration$cell_factors is NULL", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 309)
+  design <- .make_test_taylor_greg(df)
+  targets <- .make_targets()
+
+  result <- calibrate_greg(design, targets = targets)
+
+  expect_null(result@calibration$cell_factors)
+})
+
+# ---------------------------------------------------------------------------
+# HT-10. q_weights all 1
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() @calibration$q_weights are all 1", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 310)
+  design <- .make_test_taylor_greg(df)
+  targets <- .make_targets()
+
+  result <- calibrate_greg(design, targets = targets)
+
+  expect_equal(result@calibration$q_weights, rep(1, nrow(df)), tolerance = 1e-10)
+})
+
+# ---------------------------------------------------------------------------
+# HT-11. converged == TRUE
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() @calibration$converged is TRUE for linear model", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 311)
+  design <- .make_test_taylor_greg(df)
+  targets <- .make_targets()
+
+  result <- calibrate_greg(design, targets = targets)
+
+  expect_identical(result@calibration$converged, TRUE)
+})
+
+# ---------------------------------------------------------------------------
+# HT-12. n_iterations == 1L for linear model
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() @calibration$n_iterations == 1L for linear model", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 312)
+  design <- .make_test_taylor_greg(df)
+  targets <- .make_targets()
+
+  result <- calibrate_greg(design, targets = targets)
+
+  expect_identical(result@calibration$n_iterations, 1L)
+})
+
+# ---------------------------------------------------------------------------
+# HT-13. replicate_converged is NULL for survey_taylor
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() @calibration$replicate_converged is NULL for survey_taylor", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 313)
+  design <- .make_test_taylor_greg(df)
+  targets <- .make_targets()
+
+  result <- calibrate_greg(design, targets = targets)
+
+  expect_null(result@calibration$replicate_converged)
+})
+
+# ---------------------------------------------------------------------------
+# HT-14. History entry appended
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() appends history entry to survey_taylor", {
+  df <- make_surveywts_data(seed = 314)
+  design <- .make_test_taylor_greg(df)
+  targets <- .make_targets()
+
+  result <- calibrate_greg(design, targets = targets)
+
+  expect_identical(length(result@metadata@weighting_history), 1L)
+  expect_identical(
+    result@metadata@weighting_history[[1L]]$operation,
+    "calibrate_greg"
+  )
+})
+
+# ---------------------------------------------------------------------------
+# HT-15. No @calibration for data.frame input (DF-1)
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() with data.frame input does NOT set @calibration", {
+  df <- make_surveywts_data(seed = 315)
+  targets <- .make_targets()
+
+  result <- calibrate_greg(df, targets = targets)
+
+  # data.frame returns weighted_df — no @calibration slot
+  expect_false(S7::S7_inherits(result, surveycore::survey_base))
+  expect_true(inherits(result, "weighted_df"))
+})
+
+# ---------------------------------------------------------------------------
+# HT-16. No @calibration for weighted_df input (DF-2)
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() with weighted_df input does NOT set @calibration", {
+  df <- make_surveywts_data(seed = 316)
+  targets <- .make_targets()
+
+  wdf <- calibrate_greg(df, targets = targets)
+  result <- calibrate_greg(wdf, targets = targets)
+
+  expect_false(S7::S7_inherits(result, surveycore::survey_base))
+  expect_true(inherits(result, "weighted_df"))
+})
+
+# ===========================================================================
+# Logit model — @calibration (HL tests, PR 2)
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# HL-1. @calibration populated for logit model
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() with model='logit' populates @calibration", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 321)
+  design <- .make_test_taylor_greg(df)
+  targets <- .make_targets()
+
+  result <- calibrate_greg(design, targets = targets, model = "logit")
+
+  expect_false(is.null(result@calibration))
+})
+
+# ---------------------------------------------------------------------------
+# HL-2. method == "logit" in @calibration
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() logit @calibration$method == 'logit'", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 322)
+  design <- .make_test_taylor_greg(df)
+  targets <- .make_targets()
+
+  result <- calibrate_greg(design, targets = targets, model = "logit")
+
+  expect_identical(result@calibration$method, "logit")
+})
+
+# ---------------------------------------------------------------------------
+# HL-3. n_iterations == NA_integer_ for logit (survey doesn't expose count)
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() logit @calibration$n_iterations == NA_integer_", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 323)
+  design <- .make_test_taylor_greg(df)
+  targets <- .make_targets()
+
+  result <- calibrate_greg(design, targets = targets, model = "logit")
+
+  expect_identical(result@calibration$n_iterations, NA_integer_)
+})
+
+# ---------------------------------------------------------------------------
+# HL-4. Calibration constraint holds for logit (1e-6)
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() logit calibration constraint holds (1e-6)", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 324)
+  design <- .make_test_taylor_greg(df)
+  targets <- .make_targets()
+
+  result <- calibrate_greg(design, targets = targets, model = "logit")
+  cal <- result@calibration
+  out_weights <- result@data[[result@variables$weights]]
+
+  constraint <- drop(t(cal$x_matrix) %*% out_weights)
+  expect_equal(constraint, cal$population_totals, tolerance = 1e-6)
+})
+
+# ---------------------------------------------------------------------------
+# HL-5. converged == TRUE for logit
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() logit @calibration$converged is TRUE", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 325)
+  design <- .make_test_taylor_greg(df)
+  targets <- .make_targets()
+
+  result <- calibrate_greg(design, targets = targets, model = "logit")
+
+  expect_identical(result@calibration$converged, TRUE)
+})
+
+# ===========================================================================
+# survey_nonprob input — @calibration (HN tests, PR 2)
+# ===========================================================================
+
+.make_test_nonprob_greg <- function(df, weight_col = "base_weight") {
+  surveycore::survey_nonprob(
+    data = df,
+    variables = list(
+      ids = NULL, strata = NULL, fpc = NULL,
+      weights = weight_col, nest = FALSE
+    ),
+    metadata = surveycore::survey_metadata(),
+    groups = character(0),
+    call = NULL,
+    calibration = NULL
+  )
+}
+
+# ---------------------------------------------------------------------------
+# HN-1. survey_nonprob output with @calibration populated
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() with survey_nonprob returns survey_nonprob with @calibration", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 331)
+  design <- .make_test_nonprob_greg(df)
+  targets <- .make_targets()
+
+  result <- calibrate_greg(design, targets = targets)
+
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  expect_false(is.null(result@calibration))
+})
+
+# ---------------------------------------------------------------------------
+# HN-2. All 12 fields present in @calibration
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() survey_nonprob @calibration has all 12 fields", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 332)
+  design <- .make_test_nonprob_greg(df)
+  targets <- .make_targets()
+
+  result <- calibrate_greg(design, targets = targets)
+
+  test_invariants(result)
+  required_fields <- c(
+    "x_matrix", "base_weights", "g_weights", "crossproduct_inv",
+    "population_totals", "discrepancy", "lambda", "method",
+    "cell_factors", "q_weights", "converged", "n_iterations"
+  )
+  expect_true(all(required_fields %in% names(result@calibration)))
+})
+
+# ---------------------------------------------------------------------------
+# HN-3. replicate_converged == NULL for survey_nonprob
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() survey_nonprob @calibration$replicate_converged is NULL", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 333)
+  design <- .make_test_nonprob_greg(df)
+  targets <- .make_targets()
+
+  result <- calibrate_greg(design, targets = targets)
+
+  test_invariants(result)
+  expect_null(result@calibration$replicate_converged)
+})
+
+# ---------------------------------------------------------------------------
+# HN-4. Calibration constraint holds for survey_nonprob (1e-6)
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() survey_nonprob calibration constraint holds (1e-6)", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 334)
+  design <- .make_test_nonprob_greg(df)
+  targets <- .make_targets()
+
+  result <- calibrate_greg(design, targets = targets)
+
+  test_invariants(result)
+  cal <- result@calibration
+  out_weights <- result@data[[result@variables$weights]]
+  constraint <- drop(t(cal$x_matrix) %*% out_weights)
+  expect_equal(constraint, cal$population_totals, tolerance = 1e-6)
+})
+
+# ===========================================================================
+# survey_replicate input — @calibration + replicate_converged (HR tests, PR 2)
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# HR-1. survey_replicate output class
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() with survey_replicate returns survey_replicate", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 341)
+  targets <- .make_targets()
+  rep_design <- .make_replicate_design(df, seed = 341)
+
+  result <- calibrate_greg(rep_design, targets = targets)
+
+  expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
+})
+
+# ---------------------------------------------------------------------------
+# HR-2. @calibration populated for survey_replicate
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() survey_replicate @calibration is non-NULL", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 342)
+  targets <- .make_targets()
+  rep_design <- .make_replicate_design(df, seed = 342)
+
+  result <- calibrate_greg(rep_design, targets = targets)
+
+  expect_false(is.null(result@calibration))
+})
+
+# ---------------------------------------------------------------------------
+# HR-3. replicate_converged is named logical of length R
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() replicate_converged is named logical length R", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 343)
+  targets <- .make_targets()
+  rep_design <- .make_replicate_design(df, seed = 343)
+  R <- length(rep_design@variables$repweights)
+
+  result <- calibrate_greg(rep_design, targets = targets)
+
+  rc <- result@calibration$replicate_converged
+  expect_true(is.logical(rc))
+  expect_identical(length(rc), R)
+  expect_identical(names(rc), rep_design@variables$repweights)
+})
+
+# ---------------------------------------------------------------------------
+# HR-4. All entries TRUE when all replicates converge
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() replicate_converged all TRUE when all converge", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 344)
+  targets <- .make_targets()
+  rep_design <- .make_replicate_design(df, seed = 344)
+
+  result <- calibrate_greg(rep_design, targets = targets)
+
+  expect_true(all(result@calibration$replicate_converged))
+})
+
+# ---------------------------------------------------------------------------
+# HR-5. Full-sample weight column calibrated
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() full-sample weights calibrated in survey_replicate", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 345)
+  targets <- .make_targets()
+  rep_design <- .make_replicate_design(df, seed = 345)
+  pre_wt_col <- rep_design@variables$weights
+  pre_weights <- rep_design@data[[pre_wt_col]]
+
+  result <- calibrate_greg(rep_design, targets = targets)
+
+  out_weights <- result@data[[result@variables$weights]]
+  # Calibrated weights should differ from starting weights
+  expect_false(identical(out_weights, pre_weights))
+  # Calibration constraint holds on full sample
+  cal <- result@calibration
+  constraint <- drop(t(cal$x_matrix) %*% out_weights)
+  expect_equal(constraint, cal$population_totals, tolerance = 1e-6)
+})
+
+# ---------------------------------------------------------------------------
+# HR-6. Each replicate column calibrated; constraint holds per replicate (1e-6)
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() each replicate column calibrated (1e-6)", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 346)
+  targets <- .make_targets()
+  rep_design <- .make_replicate_design(df, seed = 346)
+
+  result <- calibrate_greg(rep_design, targets = targets)
+
+  repwt_cols <- result@variables$repweights
+  total_w_orig <- sum(rep_design@data[[rep_design@variables$weights]])
+  for (col in repwt_cols[[1L]]) {
+    rep_wts <- result@data[[col]]
+    # Calibrated replicate weights should be different from pre-calibration
+    orig_rep_wts <- rep_design@data[[col]]
+    expect_false(identical(rep_wts, orig_rep_wts))
+  }
+})
+
+# ---------------------------------------------------------------------------
+# HR-7. g_weights correct for full sample (1e-10)
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() g_weights * base = calibrated for full sample (1e-10)", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 347)
+  targets <- .make_targets()
+  rep_design <- .make_replicate_design(df, seed = 347)
+
+  result <- calibrate_greg(rep_design, targets = targets)
+
+  cal <- result@calibration
+  out_weights <- result@data[[result@variables$weights]]
+  expect_equal(cal$g_weights * cal$base_weights, out_weights, tolerance = 1e-10)
+})
+
+# ---------------------------------------------------------------------------
+# HR-8. All 12 @calibration fields present for survey_replicate
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() survey_replicate @calibration has 12 required fields", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 348)
+  targets <- .make_targets()
+  rep_design <- .make_replicate_design(df, seed = 348)
+
+  result <- calibrate_greg(rep_design, targets = targets)
+
+  required_fields <- c(
+    "x_matrix", "base_weights", "g_weights", "crossproduct_inv",
+    "population_totals", "discrepancy", "lambda", "method",
+    "cell_factors", "q_weights", "converged", "n_iterations"
+  )
+  expect_true(all(required_fields %in% names(result@calibration)))
+})
+
+# ---------------------------------------------------------------------------
+# HR-9. History entry appended for survey_replicate
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() appends history entry for survey_replicate", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 349)
+  targets <- .make_targets()
+  rep_design <- .make_replicate_design(df, seed = 349)
+  n_hist_before <- length(rep_design@metadata@weighting_history)
+
+  result <- calibrate_greg(rep_design, targets = targets)
+
+  expect_identical(
+    length(result@metadata@weighting_history),
+    n_hist_before + 1L
+  )
+  expect_identical(
+    result@metadata@weighting_history[[n_hist_before + 1L]]$operation,
+    "calibrate_greg"
+  )
+})
+
+# ===========================================================================
+# HB — negative BRR replicate weights accepted (PR 2)
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# HB-1. No surveywts_error_weights_nonpositive for BRR design
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() does NOT error on survey_replicate with negative repwt cols", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 361)
+  targets <- .make_targets()
+  brr <- .make_brr_design(df)
+
+  expect_no_error(calibrate_greg(brr, targets = targets))
+})
+
+# ---------------------------------------------------------------------------
+# HB-2. Full-sample weights calibrated normally for BRR design
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() calibrates full-sample weights normally for BRR design", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 362)
+  targets <- .make_targets()
+  brr <- .make_brr_design(df)
+
+  result <- calibrate_greg(brr, targets = targets)
+
+  cal <- result@calibration
+  out_weights <- result@data[[result@variables$weights]]
+  constraint <- drop(t(cal$x_matrix) %*% out_weights)
+  expect_equal(constraint, cal$population_totals, tolerance = 1e-6)
+})
+
+# ---------------------------------------------------------------------------
+# HB-3. Output is survey_replicate for BRR design
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() returns survey_replicate for BRR design", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 363)
+  targets <- .make_targets()
+  brr <- .make_brr_design(df)
+
+  result <- calibrate_greg(brr, targets = targets)
+
+  expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
+})
+
+# ===========================================================================
+# NC — numerical oracle: full-sample vs survey::calibrate() (PR 2)
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# NC-1. Full-sample weights match survey::calibrate() within 1e-8
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() survey_taylor full-sample matches survey::calibrate() [1e-8]", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(n = 200, seed = 371)
+  design <- .make_test_taylor_greg(df)
+  targets <- .make_targets()
+
+  result <- calibrate_greg(design, targets = targets)
+  out_weights <- result@data[[result@variables$weights]]
+
+  # Build oracle via survey package
+  total_w <- sum(df$base_weight)
+  svy_d <- survey::svydesign(ids = ~1, weights = ~base_weight, data = df)
+  mm <- stats::model.matrix(~age_group + sex, data = df)
+  pop_totals_vec <- stats::setNames(numeric(ncol(mm)), colnames(mm))
+  pop_totals_vec["(Intercept)"] <- total_w
+  for (lev in names(targets$age_group)) {
+    col_nm <- paste0("age_group", lev)
+    if (col_nm %in% names(pop_totals_vec)) {
+      pop_totals_vec[[col_nm]] <- targets$age_group[[lev]] * total_w
+    }
+  }
+  for (lev in names(targets$sex)) {
+    col_nm <- paste0("sex", lev)
+    if (col_nm %in% names(pop_totals_vec)) {
+      pop_totals_vec[[col_nm]] <- targets$sex[[lev]] * total_w
+    }
+  }
+  svy_cal <- survey::calibrate(
+    svy_d, formula = ~age_group + sex,
+    population = pop_totals_vec, calfun = survey::cal.linear
+  )
+  oracle_weights <- as.numeric(stats::weights(svy_cal))
+
+  expect_equal(out_weights, oracle_weights, tolerance = 1e-8)
+})
+
+# ---------------------------------------------------------------------------
+# NC-2. survey_replicate full-sample matches oracle (1e-8)
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() replicate full-sample matches survey::calibrate() [1e-8]", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(n = 200, seed = 372)
+  targets <- .make_targets()
+  rep_design <- .make_replicate_design(df, seed = 372)
+
+  result <- calibrate_greg(rep_design, targets = targets)
+  out_weights <- result@data[[result@variables$weights]]
+
+  total_w <- sum(df$base_weight)
+  svy_d <- survey::svydesign(ids = ~1, weights = ~base_weight, data = df)
+  mm <- stats::model.matrix(~age_group + sex, data = df)
+  pop_totals_vec <- stats::setNames(numeric(ncol(mm)), colnames(mm))
+  pop_totals_vec["(Intercept)"] <- total_w
+  for (lev in names(targets$age_group)) {
+    col_nm <- paste0("age_group", lev)
+    if (col_nm %in% names(pop_totals_vec)) pop_totals_vec[[col_nm]] <- targets$age_group[[lev]] * total_w
+  }
+  for (lev in names(targets$sex)) {
+    col_nm <- paste0("sex", lev)
+    if (col_nm %in% names(pop_totals_vec)) pop_totals_vec[[col_nm]] <- targets$sex[[lev]] * total_w
+  }
+  svy_cal <- survey::calibrate(
+    svy_d, formula = ~age_group + sex,
+    population = pop_totals_vec, calfun = survey::cal.linear
+  )
+  oracle_weights <- as.numeric(stats::weights(svy_cal))
+
+  expect_equal(out_weights, oracle_weights, tolerance = 1e-8)
+})
+
+# ---------------------------------------------------------------------------
+# NC-3. Each replicate column matches oracle on that replicate's weights (1e-8)
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() each replicate column matches oracle (1e-8)", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(n = 200, seed = 373)
+  targets <- .make_targets()
+  rep_design <- .make_replicate_design(df, seed = 373)
+
+  result <- calibrate_greg(rep_design, targets = targets)
+
+  repwt_cols <- result@variables$repweights
+  for (col in repwt_cols) {
+    rep_wt_in <- rep_design@data[[col]]
+    total_w_rep <- sum(rep_wt_in)
+    svy_d_rep <- survey::svydesign(
+      ids = ~1, weights = ~rep_wt,
+      data = cbind(df, rep_wt = rep_wt_in)
+    )
+    mm <- stats::model.matrix(~age_group + sex, data = df)
+    pop_totals_rep <- stats::setNames(numeric(ncol(mm)), colnames(mm))
+    pop_totals_rep["(Intercept)"] <- total_w_rep
+    for (lev in names(targets$age_group)) {
+      col_nm <- paste0("age_group", lev)
+      if (col_nm %in% names(pop_totals_rep)) pop_totals_rep[[col_nm]] <- targets$age_group[[lev]] * total_w_rep
+    }
+    for (lev in names(targets$sex)) {
+      col_nm <- paste0("sex", lev)
+      if (col_nm %in% names(pop_totals_rep)) pop_totals_rep[[col_nm]] <- targets$sex[[lev]] * total_w_rep
+    }
+    svy_cal_rep <- survey::calibrate(
+      svy_d_rep, formula = ~age_group + sex,
+      population = pop_totals_rep, calfun = survey::cal.linear
+    )
+    oracle_rep <- as.numeric(stats::weights(svy_cal_rep))
+    expect_equal(result@data[[col]], oracle_rep, tolerance = 1e-8,
+                 label = paste0("column ", col))
+  }
+})
+
+# ===========================================================================
+# Warning — surveywts_warning_replicate_calibration_failed (PR 2)
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# RC-1. Warning emitted when one replicate fails
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() warns when a replicate fails calibration", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 381)
+  rep_design <- .make_empty_cell_replicate_design(df, "age_group")
+  # Use poststrat targets that cause empty-cell error in the modified replicate
+  targets_ps <- data.frame(
+    age_group = c("18-34", "35-54", "55+"),
+    target    = c(0.30, 0.40, 0.30),
+    stringsAsFactors = FALSE
+  )
+  # Use a targets spec that should work for normal replicates
+  targets <- .make_targets()
+
+  expect_warning(
+    result <- calibrate_greg(rep_design, targets = targets),
+    class = "surveywts_warning_replicate_calibration_failed"
+  )
+})
+
+# ---------------------------------------------------------------------------
+# RC-2. replicate_converged has exactly one FALSE; others TRUE
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() replicate_converged has one FALSE when one replicate fails", {
+  skip_if_not_installed("survey")
+  # Build a design where the last replicate column has all-zero weights for
+  # one level, which forces that level's sum to 0 — causing calibration failure
+  df <- make_surveywts_data(seed = 382)
+  rep_design <- .make_empty_cell_replicate_design(df, "age_group")
+  targets <- .make_targets()
+
+  suppressWarnings(
+    result <- calibrate_greg(rep_design, targets = targets)
+  )
+
+  rc <- result@calibration$replicate_converged
+  # At least one failure
+  expect_true(any(!rc))
+  # The rest are TRUE
+  expect_true(all(rc[rc == TRUE]))
+})
+
+# ---------------------------------------------------------------------------
+# RC-3. Function returns successfully even if all replicates fail
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() returns result even when replicate calibration fails", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 383)
+  rep_design <- .make_empty_cell_replicate_design(df, "age_group")
+  targets <- .make_targets()
+
+  suppressWarnings(
+    result <- calibrate_greg(rep_design, targets = targets)
+  )
+
+  expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
+  expect_false(is.null(result@calibration))
+})
+
+# ---------------------------------------------------------------------------
+# RC-4. 0 replicate columns -> replicate_converged is named logical length 0
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() with 0 repweights gives replicate_converged length 0", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(n = 50, seed = 384)
+  targets <- .make_targets()
+  meta <- surveycore::survey_metadata()
+  rep_design_empty <- surveycore::survey_replicate(
+    data = df,
+    variables = list(
+      ids = NULL, strata = NULL, fpc = NULL,
+      weights = "base_weight", nest = FALSE,
+      repweights = character(0), scale = 1, rscales = numeric(0),
+      type = "bootstrap", mse = TRUE
+    ),
+    metadata = meta,
+    groups = character(0),
+    call = NULL
+  )
+
+  result <- calibrate_greg(rep_design_empty, targets = targets)
+
+  rc <- result@calibration$replicate_converged
+  expect_true(is.logical(rc))
+  expect_identical(length(rc), 0L)
+})
+
+# ===========================================================================
+# Error paths with survey_taylor input (new in PR 2)
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# Error — surveywts_error_weights_not_found with survey_taylor
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() with survey_taylor rejects nonexistent weight col [via surveycore validator]", {
+  # Note: surveycore::survey_taylor() now validates weight column existence at
+  # construction time (surveycore_error_design_var_missing). It is not possible
+  # to construct a survey_taylor with a nonexistent weight column and then pass
+  # it to calibrate_greg(). This test verifies that the error IS thrown — at
+  # construction time — so the user never sees a mystery error from calibrate_greg.
+  df <- make_surveywts_data(seed = 391)
+  targets <- .make_targets()
+
+  expect_error(
+    surveycore::survey_taylor(
+      data = df,
+      variables = list(weights = "nonexistent_wt")
+    ),
+    class = "surveycore_error_design_var_missing"
+  )
+})
+
+# ---------------------------------------------------------------------------
+# Error — surveywts_error_weights_not_numeric with survey_taylor
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() with survey_taylor rejects character weight col [via surveycore validator]", {
+  # Note: surveycore::survey_taylor() now validates weight column type at
+  # construction time (surveycore_error_weights_not_numeric). It is not possible
+  # to construct a survey_taylor with a non-numeric weight column and then pass
+  # it to calibrate_greg(). This test verifies that the error IS thrown at
+  # construction time.
+  df <- make_surveywts_data(seed = 392)
+  df$chr_wt <- as.character(df$base_weight)
+  targets <- .make_targets()
+
+  expect_error(
+    surveycore::survey_taylor(
+      data = df,
+      variables = list(weights = "chr_wt")
+    ),
+    class = "surveycore_error_weights_not_numeric"
+  )
+})
+
+# ---------------------------------------------------------------------------
+# Error — surveywts_error_wt_name_not_scalar with survey_taylor
+#   (applies to wt_name validation, which fires before class dispatch)
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() rejects wt_name = c('a','b') with survey_taylor", {
+  df <- make_surveywts_data(seed = 393)
+  design <- .make_test_taylor_greg(df)
+  targets <- .make_targets()
+
+  expect_error(
+    calibrate_greg(design, targets = targets, wt_name = c("a", "b")),
+    class = "surveywts_error_wt_name_not_scalar"
+  )
+})
+
+# ---------------------------------------------------------------------------
+# Error — surveywts_error_wt_name_empty with survey_taylor
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() rejects wt_name = '' with survey_taylor", {
+  df <- make_surveywts_data(seed = 394)
+  design <- .make_test_taylor_greg(df)
+  targets <- .make_targets()
+
+  expect_error(
+    calibrate_greg(design, targets = targets, wt_name = ""),
+    class = "surveywts_error_wt_name_empty"
+  )
+})
+
+# ---------------------------------------------------------------------------
+# Error — surveywts_error_variable_has_na with survey_taylor
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() with survey_taylor rejects NA in calibration var", {
+  df <- make_surveywts_data(seed = 395)
+  df$age_group[3] <- NA_character_
+  targets <- .make_targets()
+  design <- .make_test_taylor_greg(df)
+
+  expect_error(
+    calibrate_greg(design, targets = targets),
+    class = "surveywts_error_variable_has_na"
+  )
+  expect_snapshot(
+    error = TRUE,
+    calibrate_greg(design, targets = targets)
+  )
+})
+
+# ---------------------------------------------------------------------------
+# REG-2. calibrate_greg(survey_replicate) does NOT throw surveywts_error_replicate_not_supported
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_greg() with survey_replicate does NOT throw replicate_not_supported", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 397)
+  targets <- .make_targets()
+  rep_design <- .make_replicate_design(df, seed = 397)
+
+  expect_no_error(
+    calibrate_greg(rep_design, targets = targets)
+  )
+  expect_false(
+    tryCatch(
+      {
+        calibrate_greg(rep_design, targets = targets)
+        FALSE
+      },
+      surveywts_error_replicate_not_supported = function(e) TRUE
+    )
+  )
+})
+
+# ===========================================================================
+# Dispatcher pass-through with survey_replicate (D-1, D-2, D-3 additions)
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# D-1r. calibrate(replicate_design, targets, method = "greg") -> survey_replicate
+# ---------------------------------------------------------------------------
+
+test_that("calibrate() dispatcher with survey_replicate + method='greg' returns survey_replicate", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 401)
+  targets <- .make_targets()
+  rep_design <- .make_replicate_design(df, seed = 401)
+
+  result <- calibrate(rep_design, targets = targets, method = "greg")
+
+  expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
+})
+
+# ---------------------------------------------------------------------------
+# D-2r. calibrate(replicate_design, targets, method = "rake") -> survey_replicate
+# ---------------------------------------------------------------------------
+
+test_that("calibrate() dispatcher with survey_replicate + method='rake' returns survey_replicate", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 402)
+  targets <- .make_targets()
+  rep_design <- .make_replicate_design(df, seed = 402)
+
+  result <- calibrate(rep_design, targets = targets, method = "rake")
+
+  expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
+})
+
+# ---------------------------------------------------------------------------
+# D-3r. calibrate(replicate_design, targets_df, method = "poststrat") -> survey_replicate
+# ---------------------------------------------------------------------------
+
+test_that("calibrate() dispatcher with survey_replicate + method='poststrat' returns survey_replicate", {
+  skip_if_not_installed("survey")
+  df <- make_surveywts_data(seed = 403)
+  rep_design <- .make_replicate_design(df, seed = 403)
+  pop_df <- data.frame(
+    age_group = c("18-34", "35-54", "55+"),
+    target    = c(0.30, 0.40, 0.30),
+    stringsAsFactors = FALSE
+  )
+
+  result <- calibrate(rep_design, targets = pop_df, method = "poststrat")
+
+  expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
+})

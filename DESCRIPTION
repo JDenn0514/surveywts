@@ -24,7 +24,7 @@ Imports:
     rlang (>= 1.1.0),
     S7 (>= 0.2.0),
     survey (>= 4.2-1),
-    surveycore (>= 0.9.0),
+    surveycore (>= 1.0.0),
     svrep (>= 0.9.1),
     tibble (>= 3.2.0),
     tidyselect (>= 1.2.0)

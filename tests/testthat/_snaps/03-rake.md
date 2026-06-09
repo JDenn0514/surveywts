@@ -108,7 +108,7 @@
 # calibrate_rake() rejects targets naming absent column
 
     Code
-      calibrate_rake(df, targets = targets)
+      calibrate_rake(df, targets = targets, weights = base_weight)
     Condition
       Error in `calibrate_rake()`:
       x Raking variable not_a_column not found in `data`.
@@ -117,7 +117,7 @@
 # calibrate_rake() rejects numeric raking variable
 
     Code
-      calibrate_rake(df, targets = targets)
+      calibrate_rake(df, targets = targets, weights = base_weight)
     Condition
       Error in `.validate_calibration_variables()`:
       x Raking variable income is <numeric>.
@@ -127,7 +127,7 @@
 # calibrate_rake() rejects raking variable with NA
 
     Code
-      calibrate_rake(df, targets = targets)
+      calibrate_rake(df, targets = targets, weights = base_weight)
     Condition
       Error in `.validate_calibration_variables()`:
       x Raking variable age_group contains 1 NA value(s).
@@ -137,7 +137,7 @@
 # calibrate_rake() rejects targets missing a data level
 
     Code
-      calibrate_rake(df, targets = targets)
+      calibrate_rake(df, targets = targets, weights = base_weight)
     Condition
       Error in `.validate_population_marginals()`:
       x Level "55+" of variable age_group is present in `data` but not in `targets`.
@@ -147,7 +147,7 @@
 # calibrate_rake() rejects targets with level not in data
 
     Code
-      calibrate_rake(df, targets = targets)
+      calibrate_rake(df, targets = targets, weights = base_weight)
     Condition
       Error in `.validate_population_marginals()`:
       x Level "65+" of variable age_group is present in `targets` but not in `data`.
@@ -157,7 +157,7 @@
 # calibrate_rake() rejects proportions summing to 1.1
 
     Code
-      calibrate_rake(df, targets = targets)
+      calibrate_rake(df, targets = targets, weights = base_weight)
     Condition
       Error in `.validate_population_marginals()`:
       x Population totals for age_group sum to 1.1, not 1.0.
@@ -167,7 +167,7 @@
 # calibrate_rake() rejects type='count' with inconsistent marginal sums
 
     Code
-      calibrate_rake(df, targets = targets, type = "count")
+      calibrate_rake(df, targets = targets, weights = base_weight, type = "count")
     Condition
       Error in `.validate_count_marginal_consistency()`:
       x When `type = "count"`, all marginal vectors must sum to the same population total N (within 1e-3 tolerance).
@@ -177,18 +177,19 @@
 # calibrate_rake() throws calibration_not_converged hitting maxit (nr)
 
     Code
-      calibrate_rake(df, targets = targets, algorithm = "nr", control = list(maxit = 1L,
-        epsilon = 1e-20))
+      calibrate_rake(df, targets = targets, weights = base_weight, algorithm = "nr",
+        control = list(maxit = 1L, epsilon = 1e-20))
     Condition
       Error in `.calibrate_nr_engine()`:
       x Calibration did not converge after 1 iteration.
-      i The maximum relative misfit at termination was 0.002289.
+      i The maximum relative misfit at termination was 0.004117.
       v Try increasing `maxit`, relaxing `epsilon`, or widening the `bounds`.
 
 # calibrate_rake() rejects cap with algorithm = 'nr'
 
     Code
-      calibrate_rake(df, targets = targets, algorithm = "nr", cap = 3)
+      calibrate_rake(df, targets = targets, weights = base_weight, algorithm = "nr",
+        cap = 3)
     Condition
       Error in `calibrate_rake()`:
       x `cap` is not supported when `algorithm = "nr"`.
@@ -198,7 +199,8 @@
 # calibrate_rake() warns for classic_ipf-specific control param with algorithm='nr'
 
     Code
-      calibrate_rake(df, targets = targets, algorithm = "nr", control = list(pval = 0.01))
+      calibrate_rake(df, targets = targets, weights = base_weight, algorithm = "nr",
+        control = list(pval = 0.01))
     Condition
       Warning:
       ! `control$pval` is not used when `algorithm = "nr"` and will be ignored.
@@ -206,25 +208,25 @@
       i For `algorithm = "nr"`, valid `control` keys are: `maxit`, `epsilon`.
     Output
       # A tibble: 500 x 7
-            id age_group sex   education region    base_weight     wts
-       * <int> <chr>     <chr> <chr>     <chr>           <dbl>   <dbl>
-       1     1 35-54     F     Graduate  South           0.677 0.00182
-       2     2 55+       F     HS        South           1.24  0.00226
-       3     3 35-54     M     Graduate  Northeast       1.09  0.00173
-       4     4 55+       F     College   Northeast       0.950 0.00226
-       5     5 35-54     F     College   Northeast       1.06  0.00182
-       6     6 35-54     M     College   South           1.01  0.00173
-       7     7 18-34     M     Graduate  Northeast       0.757 0.00211
-       8     8 35-54     F     College   Midwest         0.832 0.00182
-       9     9 18-34     M     College   West            1.05  0.00211
-      10    10 35-54     F     Graduate  West            1.06  0.00182
+            id age_group sex   education region    base_weight   wts
+       * <int> <chr>     <chr> <chr>     <chr>           <dbl> <dbl>
+       1     1 35-54     F     Graduate  South           0.677 0.601
+       2     2 55+       F     HS        South           1.24  1.35 
+       3     3 35-54     M     Graduate  Northeast       1.09  0.947
+       4     4 55+       F     College   Northeast       0.950 1.03 
+       5     5 35-54     F     College   Northeast       1.06  0.944
+       6     6 35-54     M     College   South           1.01  0.873
+       7     7 18-34     M     Graduate  Northeast       0.757 0.846
+       8     8 35-54     F     College   Midwest         0.832 0.738
+       9     9 18-34     M     College   West            1.05  1.17 
+      10    10 35-54     F     Graduate  West            1.06  0.939
       # i 490 more rows
 
 # calibrate_rake() warns for nr-specific control param with algorithm='classic_ipf'
 
     Code
-      calibrate_rake(df, targets = targets, algorithm = "classic_ipf", control = list(
-        epsilon = 1e-09))
+      calibrate_rake(df, targets = targets, weights = base_weight, algorithm = "classic_ipf",
+        control = list(epsilon = 1e-09))
     Condition
       Warning:
       ! `control$epsilon` is not used when `algorithm = "classic_ipf"` and will be ignored.
@@ -234,15 +236,15 @@
       # A tibble: 500 x 7
             id age_group sex   education region    base_weight   wts
        * <int> <chr>     <chr> <chr>     <chr>           <dbl> <dbl>
-       1     1 55+       F     College   South           0.730 0.976
-       2     2 18-34     M     College   Midwest         0.852 0.947
-       3     3 55+       F     Graduate  West            0.904 0.976
-       4     4 55+       M     <HS       Midwest         0.803 0.910
-       5     5 18-34     M     Graduate  Midwest         0.861 0.947
-       6     6 55+       M     College   Northeast       1.01  0.910
-       7     7 18-34     M     <HS       West            0.648 0.947
-       8     8 35-54     F     <HS       Midwest         1.22  1.10 
-       9     9 18-34     F     HS        Northeast       0.739 1.02 
-      10    10 35-54     F     Graduate  Northeast       0.775 1.10 
+       1     1 55+       F     College   South           0.730 0.650
+       2     2 18-34     M     College   Midwest         0.852 0.781
+       3     3 55+       F     Graduate  West            0.904 0.805
+       4     4 55+       M     <HS       Midwest         0.803 0.694
+       5     5 18-34     M     Graduate  Midwest         0.861 0.790
+       6     6 55+       M     College   Northeast       1.01  0.876
+       7     7 18-34     M     <HS       West            0.648 0.594
+       8     8 35-54     F     <HS       Midwest         1.22  1.18 
+       9     9 18-34     F     HS        Northeast       0.739 0.699
+      10    10 35-54     F     Graduate  Northeast       0.775 0.751
       # i 490 more rows
 

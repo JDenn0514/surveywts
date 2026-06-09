@@ -289,10 +289,23 @@ calibrate_rake <- function(
   # ---- 4. Weight column name and handling ---------------------------------
   weight_col <- .get_weight_col_name(data, weights_quo)
 
-  # For plain data.frame with weights = NULL: create uniform weight column
+  # For plain data.frame with weights = NULL: warn SRS assumption, uniform weights
   if (inherits(data, "data.frame") && rlang::quo_is_null(weights_quo) &&
       !inherits(data, "weighted_df")) {
-    data_df[[wt_name]] <- rep(1 / nrow(data_df), nrow(data_df))
+    cli::cli_warn(
+      c(
+        "!" = paste0(
+          "No {.arg weights} supplied for a plain {.cls data.frame}. ",
+          "Using uniform starting weights (all 1)."
+        ),
+        "i" = paste0(
+          "This assumes a simple random sample (SRS). Supply design ",
+          "weights for unequal-probability designs."
+        )
+      ),
+      class = "surveywts_warning_srs_no_weights"
+    )
+    data_df[[wt_name]] <- rep(1, nrow(data_df))
     weight_col <- wt_name
   }
 

@@ -508,12 +508,12 @@ test_that("calibrate_rake() rejects targets naming absent column", {
   )
 
   expect_error(
-    calibrate_rake(df, targets = targets),
+    calibrate_rake(df, targets = targets, weights = base_weight),
     class = "surveywts_error_targets_variable_not_found"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_rake(df, targets = targets)
+    calibrate_rake(df, targets = targets, weights = base_weight)
   )
 })
 
@@ -530,12 +530,12 @@ test_that("calibrate_rake() rejects numeric raking variable", {
   )
 
   expect_error(
-    calibrate_rake(df, targets = targets),
+    calibrate_rake(df, targets = targets, weights = base_weight),
     class = "surveywts_error_variable_not_categorical"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_rake(df, targets = targets)
+    calibrate_rake(df, targets = targets, weights = base_weight)
   )
 })
 
@@ -549,12 +549,12 @@ test_that("calibrate_rake() rejects raking variable with NA", {
   targets <- .make_targets_rake()
 
   expect_error(
-    calibrate_rake(df, targets = targets),
+    calibrate_rake(df, targets = targets, weights = base_weight),
     class = "surveywts_error_variable_has_na"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_rake(df, targets = targets)
+    calibrate_rake(df, targets = targets, weights = base_weight)
   )
 })
 
@@ -570,12 +570,12 @@ test_that("calibrate_rake() rejects targets missing a data level", {
   )
 
   expect_error(
-    calibrate_rake(df, targets = targets),
+    calibrate_rake(df, targets = targets, weights = base_weight),
     class = "surveywts_error_population_level_missing"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_rake(df, targets = targets)
+    calibrate_rake(df, targets = targets, weights = base_weight)
   )
 })
 
@@ -591,12 +591,12 @@ test_that("calibrate_rake() rejects targets with level not in data", {
   )
 
   expect_error(
-    calibrate_rake(df, targets = targets),
+    calibrate_rake(df, targets = targets, weights = base_weight),
     class = "surveywts_error_population_level_extra"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_rake(df, targets = targets)
+    calibrate_rake(df, targets = targets, weights = base_weight)
   )
 })
 
@@ -612,12 +612,12 @@ test_that("calibrate_rake() rejects proportions summing to 1.1", {
   )
 
   expect_error(
-    calibrate_rake(df, targets = targets),
+    calibrate_rake(df, targets = targets, weights = base_weight),
     class = "surveywts_error_population_totals_invalid"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_rake(df, targets = targets)
+    calibrate_rake(df, targets = targets, weights = base_weight)
   )
 })
 
@@ -634,12 +634,12 @@ test_that("calibrate_rake() rejects type='count' with inconsistent marginal sums
   )
 
   expect_error(
-    calibrate_rake(df, targets = targets, type = "count"),
+    calibrate_rake(df, targets = targets, weights = base_weight, type = "count"),
     class = "surveywts_error_population_totals_invalid"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_rake(df, targets = targets, type = "count")
+    calibrate_rake(df, targets = targets, weights = base_weight, type = "count")
   )
 })
 
@@ -653,7 +653,7 @@ test_that("calibrate_rake() throws calibration_not_converged hitting maxit (nr)"
 
   expect_error(
     calibrate_rake(
-      df, targets = targets, algorithm = "nr",
+      df, targets = targets, weights = base_weight, algorithm = "nr",
       control = list(maxit = 1L, epsilon = 1e-20)
     ),
     class = "surveywts_error_calibration_not_converged"
@@ -661,7 +661,7 @@ test_that("calibrate_rake() throws calibration_not_converged hitting maxit (nr)"
   expect_snapshot(
     error = TRUE,
     calibrate_rake(
-      df, targets = targets, algorithm = "nr",
+      df, targets = targets, weights = base_weight, algorithm = "nr",
       control = list(maxit = 1L, epsilon = 1e-20)
     )
   )
@@ -676,12 +676,12 @@ test_that("calibrate_rake() rejects cap with algorithm = 'nr'", {
   targets <- .make_targets_rake()
 
   expect_error(
-    calibrate_rake(df, targets = targets, algorithm = "nr", cap = 3.0),
+    calibrate_rake(df, targets = targets, weights = base_weight, algorithm = "nr", cap = 3.0),
     class = "surveywts_error_cap_not_supported_nr"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_rake(df, targets = targets, algorithm = "nr", cap = 3.0)
+    calibrate_rake(df, targets = targets, weights = base_weight, algorithm = "nr", cap = 3.0)
   )
 })
 
@@ -695,14 +695,14 @@ test_that("calibrate_rake() warns for classic_ipf-specific control param with al
 
   expect_warning(
     result <- calibrate_rake(
-      df, targets = targets, algorithm = "nr",
+      df, targets = targets, weights = base_weight, algorithm = "nr",
       control = list(pval = 0.01)
     ),
     class = "surveywts_warning_control_param_ignored"
   )
   expect_snapshot(
     calibrate_rake(
-      df, targets = targets, algorithm = "nr",
+      df, targets = targets, weights = base_weight, algorithm = "nr",
       control = list(pval = 0.01)
     )
   )
@@ -718,14 +718,14 @@ test_that("calibrate_rake() warns for nr-specific control param with algorithm='
 
   expect_warning(
     result <- calibrate_rake(
-      df, targets = targets, algorithm = "classic_ipf",
+      df, targets = targets, weights = base_weight, algorithm = "classic_ipf",
       control = list(epsilon = 1e-9)
     ),
     class = "surveywts_warning_control_param_ignored"
   )
   expect_snapshot(
     calibrate_rake(
-      df, targets = targets, algorithm = "classic_ipf",
+      df, targets = targets, weights = base_weight, algorithm = "classic_ipf",
       control = list(epsilon = 1e-9)
     )
   )
@@ -1426,7 +1426,7 @@ test_that("calibrate_rake() nr conserves weight sum for type='prop' (1e-10)", {
 #      sum(new_weights) == sum of any marginal total (since all equal)
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_rake() nr with type='count' conserves weight sum to target total (1e-6)", {
+test_that("calibrate_rake() nr with type='count' conserves weight sum to target total (1e-10)", {
   df <- make_surveywts_data(n = 300, seed = 624)
   targets <- list(
     age_group = c("18-34" = 90, "35-54" = 120, "55+" = 90),  # sum = 300
@@ -1439,7 +1439,7 @@ test_that("calibrate_rake() nr with type='count' conserves weight sum to target 
   )
 
   w <- result[["wts"]]
-  expect_equal(sum(w), 300, tolerance = 1e-6)
+  expect_equal(sum(w), 300, tolerance = 1e-10)
 })
 
 # ---------------------------------------------------------------------------
@@ -1537,5 +1537,86 @@ test_that("calibrate_rake() throws surveywts_error_calibration_not_converged for
     calibrate_rake(df, targets = targets, weights = base_weight,
                    control = list(maxit = 0L)),
     class = "surveywts_error_calibration_not_converged"
+  )
+})
+
+# ---------------------------------------------------------------------------
+# H14: SRS assumption — plain data.frame + weights = NULL emits warning
+# ---------------------------------------------------------------------------
+
+test_that("H14: calibrate_rake() warns surveywts_warning_srs_no_weights for plain df + NULL weights", {
+  df <- make_surveywts_data(n = 200, seed = 800)
+  targets <- .make_targets_rake()
+
+  expect_warning(
+    result <- calibrate_rake(df, targets = targets),
+    class = "surveywts_warning_srs_no_weights"
+  )
+
+  test_invariants(result)
+  expect_true(inherits(result, "weighted_df"))
+})
+
+# ---------------------------------------------------------------------------
+# W1: Warning path — surveywts_warning_srs_no_weights (alias for H14)
+# ---------------------------------------------------------------------------
+
+test_that("W1: calibrate_rake() warns surveywts_warning_srs_no_weights for plain df", {
+  df <- make_surveywts_data(n = 100, seed = 801)
+  targets <- .make_targets_rake()
+
+  expect_warning(
+    calibrate_rake(df, targets = targets),
+    class = "surveywts_warning_srs_no_weights"
+  )
+})
+
+# ---------------------------------------------------------------------------
+# N2: Oracle — classic_ipf matches survey::rake() within 1e-6
+# ---------------------------------------------------------------------------
+
+test_that("N2: calibrate_rake(algorithm='classic_ipf') matches survey::rake() within 1e-6", {
+  skip_if_not_installed("survey")
+
+  n <- 300L
+  df <- make_surveywts_data(n = n, seed = 333)
+  targets <- .make_targets_rake()
+  base_wt <- df$base_weight
+
+  # surveywts result
+  sw_result <- calibrate_rake(
+    df, targets = targets, weights = base_weight,
+    algorithm = "classic_ipf"
+  )
+  sw_weights <- sw_result[["wts"]]
+
+  # survey::rake() oracle.
+  # Note: calibrate_rake() normalizes final weights to sum to n (sample size),
+  # while survey::rake() preserves sum(base_weight). Compare normalised weights
+  # (each scaled to sum to 1) so both algorithms are on the same scale.
+  pop_age <- data.frame(
+    age_group = c("18-34", "35-54", "55+"),
+    Freq      = c(0.30, 0.40, 0.30) * sum(base_wt),
+    stringsAsFactors = FALSE
+  )
+  pop_sex <- data.frame(
+    sex  = c("M", "F"),
+    Freq = c(0.48, 0.52) * sum(base_wt),
+    stringsAsFactors = FALSE
+  )
+  svy_design <- survey::svydesign(ids = ~1, weights = ~base_weight, data = df)
+  svy_raked <- survey::rake(
+    svy_design,
+    sample.margins = list(~age_group, ~sex),
+    population.margins = list(pop_age, pop_sex),
+    control = list(maxit = 100, epsilon = 1e-12)
+  )
+  svy_weights <- as.numeric(weights(svy_raked))
+
+  # Normalise to unit sum before comparing — removes the scale difference
+  expect_equal(
+    sw_weights / sum(sw_weights),
+    svy_weights / sum(svy_weights),
+    tolerance = 1e-6
   )
 })

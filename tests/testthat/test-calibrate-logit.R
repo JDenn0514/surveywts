@@ -236,6 +236,28 @@ test_that("H8: unit_scale = NULL gives is.null(@calibration$q_weights) = TRUE", 
 })
 
 # ---------------------------------------------------------------------------
+# H7b: Happy path — reference_design sets targets_from_reference = TRUE in history
+# ---------------------------------------------------------------------------
+
+test_that("H7b: reference_design sets targets_from_reference = TRUE in weighting history", {
+  df <- make_surveywts_data(n = 100, seed = 71)
+  taylor <- .make_test_taylor_logit(df)
+  ref <- surveycore::survey_taylor(
+    data = df,
+    variables = list(weights = "base_weight")
+  )
+  targets <- .make_logit_targets()
+
+  result <- calibrate_logit(taylor, targets = targets,
+                            reference_design = ref)
+
+  test_invariants(result)
+  hist <- result@metadata@weighting_history
+  entry <- hist[[length(hist)]]
+  expect_true(entry$parameters$targets_from_reference)
+})
+
+# ---------------------------------------------------------------------------
 # H9: Happy path — Format B (long data frame) targets accepted
 # ---------------------------------------------------------------------------
 

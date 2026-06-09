@@ -520,13 +520,15 @@
       dF = function(u) rep(1, length(u))
     )
   } else {
-    # Truncated linear: F(u) clamped to [L, U]
-    # Fm1(u) = F(u) - 1 clamped to [L-1, U-1]
+    # Truncated linear: F(u) clamped to [L, U].
+    # dF = 1 everywhere (matches survey::calfun.truncated) — the NR Jacobian
+    # uses the unclamped derivative so the step direction is always defined.
+    # Clamping in Fm1 creates residuals that drive subsequent iterations.
     lo <- L - 1
     hi <- U - 1
     list(
       Fm1 = function(u) pmax(lo, pmin(hi, u)),
-      dF = function(u) ifelse(u >= lo & u <= hi, 1, 0)
+      dF = function(u) rep(1, length(u))
     )
   }
 }

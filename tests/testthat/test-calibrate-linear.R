@@ -882,6 +882,69 @@ test_that("E23: calibrate_linear() throws surveywts_error_population_totals_inva
 })
 
 # ---------------------------------------------------------------------------
+# Spec E19: Error — bounds length != 2
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_linear() throws surveywts_error_bounds_invalid_calibration for bounds length != 2", {
+  df <- make_surveywts_data(n = 50, seed = 191)
+  targets <- .make_linear_targets()
+
+  expect_error(
+    calibrate_linear(df, targets = targets, weights = base_weight, bounds = c(0.5, 2, 3)),
+    class = "surveywts_error_bounds_invalid_calibration"
+  )
+  expect_snapshot(
+    error = TRUE,
+    calibrate_linear(df, targets = targets, weights = base_weight, bounds = c(0.5, 2, 3))
+  )
+})
+
+# ---------------------------------------------------------------------------
+# Spec E20: Error — bounds with NA value
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_linear() throws surveywts_error_bounds_invalid_calibration for bounds with NA", {
+  df <- make_surveywts_data(n = 50, seed = 201)
+  targets <- .make_linear_targets()
+
+  expect_error(
+    calibrate_linear(df, targets = targets, weights = base_weight, bounds = c(NA, 2)),
+    class = "surveywts_error_bounds_invalid_calibration"
+  )
+  expect_snapshot(
+    error = TRUE,
+    calibrate_linear(df, targets = targets, weights = base_weight, bounds = c(NA, 2))
+  )
+})
+
+# ---------------------------------------------------------------------------
+# Spec E21: Error — calibration_not_converged for tight bounds
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_linear() throws surveywts_error_calibration_not_converged for infeasible tight bounds", {
+  df <- make_surveywts_data(n = 200, seed = 211)
+  # Targets impossible to reach within the tiny window bounds = c(0.999, 1.001)
+  targets <- list(
+    age_group = c("18-34" = 0.01, "35-54" = 0.01, "55+" = 0.98)
+  )
+
+  expect_error(
+    calibrate_linear(
+      df, targets = targets, weights = base_weight,
+      bounds = c(0.999, 1.001), control = list(maxit = 25L)
+    ),
+    class = "surveywts_error_calibration_not_converged"
+  )
+  expect_snapshot(
+    error = TRUE,
+    calibrate_linear(
+      df, targets = targets, weights = base_weight,
+      bounds = c(0.999, 1.001), control = list(maxit = 25L)
+    )
+  )
+})
+
+# ---------------------------------------------------------------------------
 # W1: Warning — SRS assumption for plain data.frame + weights = NULL
 # ---------------------------------------------------------------------------
 
@@ -1141,20 +1204,24 @@ test_that("EC10: @calibration$n_iterations == 1L for plain linear (bounds = NULL
 })
 
 # ---------------------------------------------------------------------------
-# EC11: Edge case — n_iterations >= 1L for truncated linear (bounds != NULL)
+# EC11: Edge case — n_iterations > 1L for truncated linear (bounds != NULL)
 # ---------------------------------------------------------------------------
 
-test_that("EC11: @calibration$n_iterations >= 1L for truncated linear (bounds != NULL)", {
-  df <- make_surveywts_data(n = 200, seed = 43)
+test_that("EC11: @calibration$n_iterations > 1L for truncated linear when bounds bind", {
+  # seed=200, n=500 gives unconstrained g-weights in [0.86, 1.19].
+  # bounds=(0.85, 1.15) clip the upper end, forcing multiple NR iterations.
+  df <- make_surveywts_data(n = 500, seed = 200)
   taylor <- .make_test_taylor_linear(df)
-  targets <- .make_linear_targets()
+  targets <- list(
+    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
+    sex = c("M" = 0.48, "F" = 0.52)
+  )
 
-  result <- calibrate_linear(taylor, targets = targets, bounds = c(0.3, 3))
+  result <- calibrate_linear(taylor, targets = targets, bounds = c(0.85, 1.15))
 
   test_invariants(result)
-  # Truncated linear requires NR iteration
-  expect_true(result@calibration$n_iterations >= 1L)
-  # With non-trivial targets, convergence should happen
+  # With bounds binding, multiple NR iterations are required
+  expect_true(result@calibration$n_iterations > 1L)
   expect_true(result@calibration$converged)
 })
 

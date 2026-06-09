@@ -199,6 +199,38 @@
       i Got <character>.
       v Supply a positive numeric vector of length 50.
 
+# calibrate_linear() throws surveywts_error_bounds_invalid_calibration for bounds length != 2
+
+    Code
+      calibrate_linear(df, targets = targets, weights = base_weight, bounds = c(0.5,
+        2, 3))
+    Condition
+      Error in `.validate_bounds()`:
+      x `bounds` must be a numeric vector of length 2.
+      i Got length 3.
+      v Supply `bounds = c(L, U)` where `L < 1 < U`.
+
+# calibrate_linear() throws surveywts_error_bounds_invalid_calibration for bounds with NA
+
+    Code
+      calibrate_linear(df, targets = targets, weights = base_weight, bounds = c(NA, 2))
+    Condition
+      Error in `.validate_bounds()`:
+      x `bounds` must not contain `NA` values.
+      i Found `NA` in `bounds`.
+      v Supply finite numeric values for `L` and `U`.
+
+# calibrate_linear() throws surveywts_error_calibration_not_converged for infeasible tight bounds
+
+    Code
+      calibrate_linear(df, targets = targets, weights = base_weight, bounds = c(0.999,
+        1.001), control = list(maxit = 25L))
+    Condition
+      Error in `.calibrate_nr_engine()`:
+      x Calibration did not converge after 25 iterations.
+      i The maximum relative misfit at termination was 28.384392.
+      v Try increasing `maxit`, relaxing `epsilon`, or widening the `bounds`.
+
 # E_abs: bounds = c(-1, 2) with bounds_scale='absolute' throws surveywts_error_bounds_invalid_calibration
 
     Code

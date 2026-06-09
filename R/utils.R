@@ -49,12 +49,11 @@
       vars <- paste(params$variables, collapse = ", ")
       paste0("raking (targets: ", vars, ")")
     },
-    "calibrate_greg" = ,
-    "calibration" = {
+    "calibrate_linear" = ,
+    "calibrate_logit" = {
       vars <- paste(params$variables, collapse = ", ")
-      paste0("calibration (variables: ", vars, ")")
+      paste0(op, " (variables: ", vars, ")")
     },
-    "calibrate_poststrat" = ,
     "poststratify" = {
       vars <- paste(params$variables, collapse = ", ")
       paste0("poststratify (strata: ", vars, ")")

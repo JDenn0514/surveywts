@@ -85,5 +85,5 @@
       
       Weighting history:
         #   Step 1 [2025-01-15]: replicate_creation (method = "bootstrap", type = "Rao-Wu-Yue-Beaumont", replicates = 20)
-        #   Step 2 [2026-01-15]: calibration (variables: age_group, sex)
+        #   Step 2 [2026-01-15]: calibration
 

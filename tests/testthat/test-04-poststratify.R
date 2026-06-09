@@ -825,7 +825,7 @@ test_that("calibrate_poststrat() step increments correctly in chained calls", {
     sex       = c("M" = 0.48, "F" = 0.52)
   )
 
-  result1 <- calibrate_greg(df, targets = targets_greg)
+  result1 <- calibrate_linear(df, targets = targets_greg)
   result2 <- calibrate_poststrat(
     result1,
     targets = pop,
@@ -837,7 +837,7 @@ test_that("calibrate_poststrat() step increments correctly in chained calls", {
   expect_length(history, 2L)
   expect_identical(history[[1L]]$step, 1L)
   expect_identical(history[[2L]]$step, 2L)
-  expect_identical(history[[1L]]$operation, "calibrate_greg")
+  expect_identical(history[[1L]]$operation, "calibrate_linear")
   expect_identical(history[[2L]]$operation, "calibrate_poststrat")
 })
 

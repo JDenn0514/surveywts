@@ -26,7 +26,7 @@
 #'
 #' Adjusts survey weights so that the weighted cell counts (or proportions)
 #' match known population values for every joint combination of stratification
-#' variables. Unlike [calibrate_greg()] and [calibrate_rake()], which match
+#' variables. Unlike [calibrate_linear()] and [calibrate_rake()], which match
 #' marginal totals, `calibrate_poststrat()` matches exact cross-tabulation
 #' cells in a single pass.
 #'
@@ -42,7 +42,7 @@
 #'   `"target"`, and one row per unique cell combination. The stratification
 #'   variables are automatically identified as `setdiff(names(targets), "target")`.
 #'
-#'   Unlike [calibrate_greg()] and [calibrate_rake()], `targets` must be a
+#'   Unlike [calibrate_linear()] and [calibrate_rake()], `targets` must be a
 #'   `data.frame` — named lists are not accepted
 #'   (`surveywts_error_margins_format_invalid`). The `targets` data frame must
 #'   have at least one non-`"target"` column
@@ -59,7 +59,7 @@
 #'   object (`survey_taylor` or `survey_nonprob`).
 #' @param type Character scalar. `"prop"` (default): `target` values are
 #'   proportions summing to 1.0. `"count"`: `target` values are population
-#'   counts. Consistent with [calibrate_greg()] and [calibrate_rake()].
+#'   counts. Consistent with [calibrate_linear()] and [calibrate_rake()].
 #' @param reference_design A `survey_taylor` object or `NULL`. The probability
 #'   survey from which `targets` were estimated. When non-`NULL`, stored in
 #'   the history entry with `targets_from_reference = TRUE`. Any non-`NULL`

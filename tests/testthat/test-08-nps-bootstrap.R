@@ -835,13 +835,13 @@ test_that("create_bootstrap_weights() handles NPS built with calibrate() instead
     selection = ~age_group + sex
   ))
 
-  # Use calibrate_greg() so the history entry has operation = "calibrate_greg",
+  # Use calibrate_linear() so the history entry has operation = "calibrate_linear",
   # exercising the else branch in the draw loop
   pop_targets <- list(
     age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
     sex       = c("M" = 0.49, "F" = 0.51)
   )
-  nps_calibrated <- suppressWarnings(calibrate_greg(
+  nps_calibrated <- suppressWarnings(calibrate_linear(
     nps_ipw,
     targets = pop_targets,
     type    = "prop"

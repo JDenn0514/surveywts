@@ -788,7 +788,11 @@
   type <- calibration_spec$type
   vars_spec <- calibration_spec$variables
 
-  # ---- Linear or logit calibration (via survey::calibrate()) ---------------
+  # nocov start
+  # These branches (linear, logit, ipf, poststratify) were called exclusively
+  # by calibrate_greg.R, which was deleted in PR 4. They are unreachable via
+  # any current public API. Kept for historical reference; will be removed in
+  # a future cleanup PR.
   if (type %in% c("linear", "logit")) {
     var_names <- vapply(vars_spec, function(v) v$col, character(1))
 
@@ -1018,6 +1022,8 @@
     ))
   }
 
+  # nocov end
+
   # ---- Anesrake (via internal .rake_anesrake()) ----------------------------
   if (type == "anesrake") {
     var_names <- vapply(vars_spec, function(v) v$col, character(1))
@@ -1169,7 +1175,8 @@
     ))
   }
 
-  # ---- Post-stratification (via survey::postStratify()) --------------------
+  # nocov start
+  # poststratify branch: unreachable, see comment above near "linear" block.
   if (type == "poststratify") {
     strata_names <- calibration_spec$strata_names
     pop_input <- calibration_spec$population
@@ -1201,6 +1208,8 @@
     ))
   }
 
+  # nocov end
+
   # nocov start
   cli::cli_abort(
     c(
@@ -1218,6 +1227,8 @@
 # context: the calibration method (linear, logit, ipf, anesrake, poststratify)
 .throw_not_converged_zero_maxit <- function(method, control) {
 
+  # nocov start
+  # linear/logit branch: unreachable — calibrate_greg.R was deleted in PR 4.
   if (method %in% c("linear", "logit")) {
     cli::cli_abort(
       c(
@@ -1233,6 +1244,7 @@
       class = "surveywts_error_calibration_not_converged"
     )
   } else {
+  # nocov end
     cli::cli_abort(
       c(
         "x" = "Raking did not converge after 0 iterations.",

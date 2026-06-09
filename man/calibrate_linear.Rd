@@ -152,7 +152,7 @@ Association}, 88(423), 1013--1020. \url{https://www.jstor.org/stable/2290793}
 \seealso{
 Other calibration: 
 \code{\link{calibrate}()},
-\code{\link{calibrate_greg}()},
+\code{\link{calibrate_logit}()},
 \code{\link{calibrate_poststrat}()},
 \code{\link{calibrate_rake}()}
 }

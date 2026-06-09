@@ -10,7 +10,7 @@ calibrate_rake(
   weights = NULL,
   wt_name = "wts",
   type = c("prop", "count"),
-  algorithm = c("anesrake", "survey"),
+  algorithm = c("classic_ipf", "nr"),
   cap = NULL,
   control = list(),
   reference_design = NULL
@@ -62,20 +62,21 @@ object (\code{survey_taylor} or \code{survey_nonprob}).}
 \item{type}{Character scalar. \code{"prop"} (default): \code{targets} values are
 proportions. \code{"count"}: \code{targets} values are counts.}
 
-\item{algorithm}{Character scalar. \code{"anesrake"} (default): chi-square
+\item{algorithm}{Character scalar. \code{"classic_ipf"} (default): chi-square
 discrepancy variable selection with improvement-based convergence, as in
-the \code{anesrake} package. \code{"survey"}: fixed-order IPF cycling through all
-targets, with epsilon-based convergence, as in \code{survey::rake()}.}
+the \code{anesrake} package. \code{"nr"}: Newton-Raphson solver using the
+multiplicative F-function \code{F(u) = exp(u)}, corresponding to
+Deville, Sarndal & Sautory (1993) generalized raking.}
 
 \item{cap}{Numeric or \code{NULL}. Cap on the weight ratio \code{w / mean(w)}. Any
 weight exceeding \code{cap * mean(w)} is set to \code{cap * mean(w)}. Applied
 after each per-margin adjustment step (not post-hoc). \code{NULL} (default)
-means no cap. Not compatible with \code{algorithm = "survey"} (-> error).}
+means no cap. Not compatible with \code{algorithm = "nr"} (-> error).}
 
 \item{control}{Named list of algorithm parameters. Merged with
 algorithm-specific defaults. Omitted keys retain their defaults.
 
-\strong{\code{algorithm = "anesrake"} defaults:}
+\strong{\code{algorithm = "classic_ipf"} defaults:}
 \itemize{
 \item \code{maxit = 1000}: maximum full sweeps
 \item \code{improvement = 0.01}: percentage improvement convergence threshold
@@ -85,13 +86,13 @@ algorithm-specific defaults. Omitted keys retain their defaults.
 (\code{"total"}, \code{"max"}, or \code{"average"})
 }
 
-\strong{\code{algorithm = "survey"} defaults:}
+\strong{\code{algorithm = "nr"} defaults:}
 \itemize{
-\item \code{maxit = 100}: maximum full sweeps
+\item \code{maxit = 50L}: maximum Newton-Raphson iterations
 \item \code{epsilon = 1e-7}: maximum relative margin error convergence threshold
 }
 
-Passing \code{"anesrake"}-specific keys when \code{algorithm = "survey"} (or vice
+Passing \code{"classic_ipf"}-specific keys when \code{algorithm = "nr"} (or vice
 versa) triggers \code{surveywts_warning_control_param_ignored} per ignored key.}
 
 \item{reference_design}{A \code{survey_taylor} object or \code{NULL}. The probability
@@ -113,16 +114,21 @@ with \code{operation = "calibrate_rake"} is appended to \code{weighting_history}
 For \code{survey_replicate} inputs, each replicate weight column is also
 raked. Failed replicates retain their original weights and are recorded
 in \code{output@calibration$replicate_converged} as \code{FALSE}.
+
+For \code{algorithm = "nr"}, \verb{@calibration$lambda} contains the converged
+Lagrange multiplier vector. For \code{algorithm = "classic_ipf"},
+\verb{@calibration$lambda} is \code{NULL}.
 }
 \description{
 Iterative proportional fitting (raking) that adjusts survey weights to
 match multiple marginal population totals simultaneously. Supports two
-algorithms: the \code{"anesrake"} method (chi-square variable selection,
-improvement-based convergence) and the \code{"survey"} method (fixed-order
-IPF, epsilon-based convergence).
+algorithms: the \code{"classic_ipf"} method (chi-square variable selection,
+improvement-based convergence, ported from the anesrake package) and the
+\code{"nr"} method (Newton-Raphson solver from Deville, Sarndal & Sautory 1993,
+using the multiplicative \code{F(u) = exp(u)} function).
 }
 \details{
-\strong{\code{algorithm = "anesrake"}:} At each sweep, variables are sorted by
+\strong{\code{algorithm = "classic_ipf"}:} At each sweep, variables are sorted by
 their chi-square discrepancy (controlled by \code{control$variable_select}).
 Variables with any cell below \code{control$min_cell_n} unweighted observations
 are excluded entirely. Variables where the chi-square p-value exceeds
@@ -131,10 +137,12 @@ percentage improvement in total chi-square between consecutive sweeps.
 If all variables pass or are excluded in sweep 1, a
 \code{surveywts_message_already_calibrated} message is emitted.
 
-\strong{\code{algorithm = "survey"}:} Variables are raked in the fixed order given
-by \code{targets}. All variables participate in every sweep. Convergence is
-assessed as the maximum relative error across all margin cells falling
-below \code{control$epsilon}.
+\strong{\code{algorithm = "nr"}:} Newton-Raphson solver using the multiplicative
+distance function (Deville, Sarndal & Sautory 1993). Calibrated weights
+satisfy: \verb{w_k = d_k * exp(x_k' * lambda)}. Convergence is assessed as
+\verb{max(|misfit| / (1 + |population|)) < epsilon}. Step-halving guards
+against non-finite g-weights. Errors with
+\code{surveywts_error_calibration_not_converged} if \code{maxit} is reached.
 }
 \examples{
 df <- data.frame(
@@ -157,33 +165,21 @@ Election Studies.
 
 Deville, J.-C. and Sarndal, C.-E. (1992). Calibration estimators in
 survey sampling. \emph{Journal of the American Statistical Association},
-87(418), 376–382. doi:10.2307/2290268
+87(418), 376-382. doi:10.2307/2290268
 
 Deville, J.-C., Sarndal, C.-E. and Sautory, O. (1993). Generalized
 raking procedures in survey sampling. \emph{Journal of the American
-Statistical Association}, 88(423), 1013–1020. doi:10.2307/2290793
+Statistical Association}, 88(423), 1013-1020. doi:10.2307/2290793
 
 Chang, T. and Kott, P. S. (2008). Using calibration weighting to adjust
-for nonresponse under a plausible model. \emph{Biometrika}, 95(3), 555–571.
+for nonresponse under a plausible model. \emph{Biometrika}, 95(3), 555-571.
 doi:10.1093/biomet/asn022
-
-Rao, J. N. K., Yung, W. and Hidiroglou, M. A. (2002). Estimating
-equations for the analysis of survey data using poststratification
-information. \emph{Sankhya}, 64(2), 364–378.
-
-Valliant, R. (1993). Poststratification and conditional variance
-estimation. \emph{Journal of the American Statistical Association},
-88(421), 89–96. https://doi.org/10.2307/2290701
-
-Rao, J. N. K., Wu, C. F. J. and Yue, K. (1992). Some recent work on
-resampling methods for complex surveys. \emph{Survey Methodology},
-18(2), 209–217.
 }
 \seealso{
 Other calibration: 
 \code{\link{calibrate}()},
-\code{\link{calibrate_greg}()},
 \code{\link{calibrate_linear}()},
+\code{\link{calibrate_logit}()},
 \code{\link{calibrate_poststrat}()}
 }
 \concept{calibration}

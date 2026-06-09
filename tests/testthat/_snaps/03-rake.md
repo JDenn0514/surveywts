@@ -196,6 +196,17 @@
       i The Newton-Raphson raking engine does not support per-step weight capping.
       v Use `algorithm = "classic_ipf"` for raking with a weight cap.
 
+# calibrate_rake() rejects cap = 0
+
+    Code
+      calibrate_rake(df, targets = targets, weights = base_weight, cap = 0,
+        algorithm = "classic_ipf")
+    Condition
+      Error in `calibrate_rake()`:
+      x `cap` must be a positive finite numeric scalar.
+      i Got 0.
+      v Use a value > 0 (e.g., `cap = 5`) or `cap = NULL` to disable capping.
+
 # calibrate_rake() warns for classic_ipf-specific control param with algorithm='nr'
 
     Code

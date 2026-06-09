@@ -19,7 +19,8 @@ reference:
       Functions for calibrating survey weights to known population totals.
     contents:
       - calibrate
-      - calibrate_greg
+      - calibrate_linear
+      - calibrate_logit
       - calibrate_rake
       - calibrate_poststrat
   - title: Sample-Based Calibration

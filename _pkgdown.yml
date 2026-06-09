@@ -22,7 +22,7 @@ reference:
       - calibrate_linear
       - calibrate_logit
       - calibrate_rake
-      - calibrate_poststrat
+      - poststratify
   - title: Sample-Based Calibration
     desc: >
       Functions for calibrating replicate-weight designs to a control survey or

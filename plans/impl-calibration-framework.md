@@ -38,7 +38,7 @@ tests in every PR verify the output matches `survey::calibrate()` within 1e-8.
 - [x] PR 2: `feature/calibrate-linear` — `calibrate_linear()` + delete `calibrate_greg.R`
 - [x] PR 3: `feature/calibrate-logit` — `calibrate_logit()`
 - [x] PR 4: `feature/calibrate-rake-nr` — `calibrate_rake()` algorithm update + `calibrate()` dispatcher retarget
-- [ ] PR 5: `feature/poststratify` — `poststratify()` rename + delete `calibrate_poststrat.R` + error-messages.md Thrown-by cleanup
+- [x] PR 5: `feature/poststratify` — `poststratify()` rename + delete `calibrate_poststrat.R` + error-messages.md Thrown-by cleanup
 
 ---
 

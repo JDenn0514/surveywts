@@ -1579,7 +1579,8 @@ test_that("HL-8: absolute-bounds linear matches survey::calibrate(bounds.const=T
     df_200, targets = targets,
     weights = base_weight,
     bounds = c(abs_L, abs_U),
-    bounds_scale = "absolute"
+    bounds_scale = "absolute",
+    control = list(epsilon = 1e-10)
   )
 
   svy_design <- survey::svydesign(
@@ -1601,12 +1602,10 @@ test_that("HL-8: absolute-bounds linear matches survey::calibrate(bounds.const=T
   survey_weights <- as.numeric(stats::weights(svy_cal))
 
   test_invariants(result)
-  # Tolerance is 1e-6: per-unit-bounds parameterization and survey's bounds.const
-  # converge to the same solution but from slightly different NR paths at epsilon=1e-7.
   expect_equal(
     result[["wts"]],
     survey_weights,
-    tolerance = 1e-6,
+    tolerance = 1e-8,
     label = "HL-8: absolute-bounds linear oracle"
   )
 })
@@ -1723,7 +1722,8 @@ test_that("HL-11: absolute-bounds + unit_scale=q_unequal[1:200] matches survey::
     weights = base_weight,
     bounds = c(abs_L, abs_U),
     bounds_scale = "absolute",
-    unit_scale = q_200
+    unit_scale = q_200,
+    control = list(epsilon = 1e-10)
   )
 
   svy_design <- survey::svydesign(
@@ -1746,13 +1746,10 @@ test_that("HL-11: absolute-bounds + unit_scale=q_unequal[1:200] matches survey::
   survey_weights <- as.numeric(stats::weights(svy_cal))
 
   test_invariants(result)
-  # Tolerance is 1e-6: per-unit-bounds + q_weights parameterization and survey's
-  # bounds.const + variance converge to the same solution from slightly different
-  # NR paths at epsilon=1e-7.
   expect_equal(
     result[["wts"]],
     survey_weights,
-    tolerance = 1e-6,
+    tolerance = 1e-8,
     label = "HL-11: absolute-bounds + unit_scale oracle"
   )
 })

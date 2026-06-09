@@ -1424,7 +1424,7 @@ test_that("HG-6: weighting_history entry records unit_scale vector", {
 # HG-7: Absolute-bounds oracle — bounds.const = TRUE in survey::calibrate
 # ---------------------------------------------------------------------------
 
-test_that("HG-7: absolute-bounds logit matches survey::calibrate(calfun='logit', bounds.const=TRUE) within 1e-6", {
+test_that("HG-7: absolute-bounds logit matches survey::calibrate(calfun='logit', bounds.const=TRUE) within 1e-8", {
   skip_if_not_installed("survey")
   skip_if(
     utils::packageVersion("survey") < "4.1",
@@ -1466,12 +1466,10 @@ test_that("HG-7: absolute-bounds logit matches survey::calibrate(calfun='logit',
   survey_weights <- as.numeric(stats::weights(svy_cal))
 
   test_invariants(result)
-  # Tolerance is 1e-6: per-unit-bounds and survey's bounds.const use slightly
-  # different NR paths at epsilon=1e-7, so exact agreement to 1e-8 is not expected.
   expect_equal(
     result[["wts"]],
     survey_weights,
-    tolerance = 1e-6,
+    tolerance = 1e-8,
     label = "HG-7: absolute-bounds logit oracle"
   )
 })
@@ -1563,7 +1561,7 @@ test_that("HG-9: absolute-bounds logit with unequal d_k differs from old mean-ba
 # HG-10: Combined oracle — absolute-bounds + unit_scale = q_unequal
 # ---------------------------------------------------------------------------
 
-test_that("HG-10: absolute-bounds logit + unit_scale=q_unequal[1:200] matches survey::calibrate within 1e-6", {
+test_that("HG-10: absolute-bounds logit + unit_scale=q_unequal[1:200] matches survey::calibrate within 1e-8", {
   skip_if_not_installed("survey")
   skip_if(
     utils::packageVersion("survey") < "4.1",
@@ -1607,12 +1605,10 @@ test_that("HG-10: absolute-bounds logit + unit_scale=q_unequal[1:200] matches su
   survey_weights <- as.numeric(stats::weights(svy_cal))
 
   test_invariants(result)
-  # Tolerance is 1e-6: per-unit-bounds + q_weights and survey's bounds.const + variance
-  # converge to the same solution from slightly different NR paths at epsilon=1e-7.
   expect_equal(
     result[["wts"]],
     survey_weights,
-    tolerance = 1e-6,
+    tolerance = 1e-8,
     label = "HG-10: absolute-bounds logit + unit_scale oracle"
   )
 })

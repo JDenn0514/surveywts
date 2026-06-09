@@ -31,6 +31,7 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_error_population_level_extra` | `calibrate_greg()` | A `targets` level absent from `data` |
 | `surveywts_error_population_totals_invalid` | `calibrate_greg()` | `type = "prop"` proportions don't sum to 1, or `type = "count"` target ≤ 0 |
 | `surveywts_error_calibration_not_converged` | `.calibrate_engine()` | Max iterations reached without convergence |
+| `surveywts_error_calibration_singular_system` | `.calibrate_engine()`, `calibrate_linear()`, `calibrate_logit()` | `solve()` fails because the calibration Jacobian / crossproduct matrix $T_x$ is singular (collinear calibration variables or rank-deficient model matrix). Distinct from `surveywts_error_calibration_not_converged` (NR iteration exhaustion). |
 | `surveywts_error_reference_design_not_taylor` | `calibrate_greg()` | `reference_design` is non-`NULL` and not `survey_taylor` |
 
 ### `calibrate_rake()`
@@ -66,7 +67,7 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_error_population_cell_duplicate` | `calibrate_poststrat()` / `.validate_population_cells()` | A cell combination appears more than once in `targets` |
 | `surveywts_error_population_cell_missing` | `calibrate_poststrat()` | A data cell has no row in `targets` |
 | `surveywts_error_population_cell_not_in_data` | `calibrate_poststrat()` | A `targets` cell has no observations in `data` |
-| `surveywts_error_empty_stratum` | `calibrate_poststrat()` | A stratum cell has zero weighted count |
+| `surveywts_error_empty_stratum` | `poststratify()` (replicate path only) | `sum(replicate_weight_column[cell]) == 0` for any cell in a replicate weight column. Cannot fire on full-sample path because design weights are validated strictly positive. |
 
 ### `adjust_nonresponse()`
 
@@ -239,9 +240,9 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_warning_already_taylor` | `as_taylor_design()` | Input is already `survey_taylor` |
 | `surveywts_warning_taylor_loses_variance` | `as_taylor_design()` | Converting drops replicate weights |
 | `surveywts_warning_weight_col_dropped` | `dplyr_reconstruct.weighted_df()` | dplyr verb removed the weight column from a `weighted_df` |
-| `surveywts_warning_negative_calibrated_weights` | `calibrate_greg()` | Linear calibration produced negative calibrated weights |
+| `surveywts_warning_negative_calibrated_weights` | `calibrate_linear()` | Linear calibration produced negative calibrated weights |
 | `surveywts_warning_class_near_empty` | `adjust_nonresponse()` | A weighting class cell has fewer than `control$min_cell` respondents (default 20) OR adjustment factor exceeds `control$max_adjust` (default 2.0) |
-| `surveywts_warning_control_param_ignored` | `calibrate_greg()`, `calibrate_rake()` | A `control` parameter is not applicable to the specified `model`/`algorithm` (e.g., `control$pval` with `algorithm = "survey"`, or `control$epsilon` with `algorithm = "anesrake"`; or an unrecognized key in `calibrate_greg()`) |
+| `surveywts_warning_control_param_ignored` | `calibrate_linear()`, `calibrate_logit()`, `calibrate_rake()` | A `control` parameter is not applicable to the specified algorithm (e.g., `control$pval` with `algorithm = "nr"`, or `control$epsilon` with `algorithm = "classic_ipf"`; or an unrecognized key in any calibration function) |
 | `surveywts_warning_replicate_scheme_mismatch` | `calibrate_to_survey()` | `primary_design` and `control_design` have different replicate weight types (e.g., `"bootstrap"` vs `"JK1"`) |
 | `surveywts_warning_by_ignored_for_propensity_cell` | `adjust_nonresponse()` | `by` is non-`NULL` with `method = "propensity-cell"` — `by` is ignored for this method |
 | `surveywts_warning_by_ignored_for_propensity` | `adjust_nonresponse()` | `by` is non-`NULL` with `method = "propensity"` — `by` is ignored for this method |
@@ -267,7 +268,7 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_warning_dagjk_negative_replicate_weights` | `create_group_jackknife_weights()` | One or more NPS replicate weights are negative (can occur after downstream calibration) |
 | `surveywts_warning_dagjk_repweights_overwritten` | `create_group_jackknife_weights()` | `@variables$repweights` already populated; second call overwrites existing replicate columns |
 | `surveywts_warning_dagjk_small_groups` | `create_group_jackknife_weights()` | `floor(combined_N / groups) < 5` — average fewer than 5 units per group; signals potential logistic model convergence problems |
-| `surveywts_warning_replicate_calibration_failed` | `calibrate_greg()`, `calibrate_rake()`, `calibrate_poststrat()` | Calibration failed for a specific replicate weight column (e.g., empty cell within the replicate's effective sample); identifies the replicate column name and the failure reason. Calibration continues for remaining replicates. |
+| `surveywts_warning_replicate_calibration_failed` | `calibrate_linear()`, `calibrate_logit()`, `calibrate_rake()`, `poststratify()` | Calibration failed for a specific replicate weight column (e.g., empty cell within the replicate's effective sample); identifies the replicate column name and the failure reason. Calibration continues for remaining replicates. |
 
 ## Messages
 
@@ -275,4 +276,4 @@ templates (organized by function in subsections XII.A through XII.G).
 
 | Class | Thrown by | Condition |
 |-------|-----------|-----------|
-| `surveywts_message_already_calibrated` | `calibrate_rake()` | `algorithm = "anesrake"` and all raking variables pass the chi-square threshold in sweep 1 — no adjustment needed |
+| `surveywts_message_already_calibrated` | `calibrate_rake()` | `algorithm = "classic_ipf"` and all raking variables pass the chi-square threshold in sweep 1 — no adjustment needed |

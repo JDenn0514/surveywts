@@ -46,6 +46,11 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_error_population_totals_invalid` | `calibrate_rake()` | `type = "prop"` proportions don't sum to 1, or `type = "count"` target ≤ 0 |
 | `surveywts_error_calibration_not_converged` | `.calibrate_engine()` | Max full sweeps reached without convergence |
 | `surveywts_error_cap_not_supported_survey` | `calibrate_rake()` | `cap` specified with `algorithm = "survey"` |
+| `surveywts_error_cap_not_positive` | `calibrate_rake()` | `cap` is non-`NULL` and is non-positive, non-finite, or non-numeric |
+| `surveywts_error_cap_not_supported_nr` | `calibrate_rake()` | `cap` non-`NULL` with `algorithm = "nr"` |
+| `surveywts_error_bounds_invalid_calibration` | `.validate_bounds()`, `calibrate_linear()`, `calibrate_logit()` | `bounds` is non-`NULL` but invalid: not length-2 numeric; for `bounds_scale = "multiplicative"`, `L >= 1` or `U <= 1`; for `bounds_scale = "absolute"`, `L <= 0` or `L >= U`; or either value is `NA` or non-finite |
+| `surveywts_error_unit_scale_invalid` | `.validate_unit_scale()`, `calibrate_linear()`, `calibrate_logit()` | `unit_scale` is not `NULL` and is: not numeric, length ≠ `nrow(data)`, contains `NA`, or contains non-positive values |
+| `surveywts_error_calibration_singular_system` | `.calibrate_nr_engine()`, `calibrate_linear()`, `calibrate_logit()` | `solve()` failed — the calibration Jacobian / crossproduct matrix is singular (collinear calibration variables or rank-deficient model matrix). Distinct from `surveywts_error_calibration_not_converged` (NR iteration exhaustion). |
 | `surveywts_error_reference_design_not_taylor` | `calibrate_rake()` | `reference_design` is non-`NULL` and not `survey_taylor` |
 
 ### `calibrate_poststrat()`
@@ -230,6 +235,7 @@ templates (organized by function in subsections XII.A through XII.G).
 
 | Class | Thrown by | Condition |
 |-------|-----------|-----------|
+| `surveywts_warning_srs_no_weights` | `calibrate_linear()`, `calibrate_logit()`, `calibrate_rake()`, `poststratify()` | Plain `data.frame` input with `weights = NULL` — all design weights set to 1 (SRS assumption) |
 | `surveywts_warning_already_taylor` | `as_taylor_design()` | Input is already `survey_taylor` |
 | `surveywts_warning_taylor_loses_variance` | `as_taylor_design()` | Converting drops replicate weights |
 | `surveywts_warning_weight_col_dropped` | `dplyr_reconstruct.weighted_df()` | dplyr verb removed the weight column from a `weighted_df` |

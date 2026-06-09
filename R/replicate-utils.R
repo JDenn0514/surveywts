@@ -462,15 +462,22 @@
             control   = calib_entry$parameters$control
           )
         } else {
-          # operation "calibration" (old) or "calibrate_greg" (new)
+          # operation "calibration" (old), "calibrate_greg" (legacy), or
+          # "calibrate_linear" / "calibrate_logit" (current)
           # Old entries stored population + variables; new entries store targets.
           greg_targets <- calib_entry$parameters$targets %||%
             calib_entry$parameters$population
-          calib_result_b <- surveywts::calibrate_greg(
+          greg_model <- calib_entry$parameters$model %||%
+            calib_entry$parameters$method
+          calib_fn <- if (identical(calib_entry$operation, "calibrate_logit") ||
+            identical(greg_model, "logit")) {
+            surveywts::calibrate_logit
+          } else {
+            surveywts::calibrate_linear
+          }
+          calib_result_b <- calib_fn(
             data    = ipw_result_b,
             targets = greg_targets,
-            model   = calib_entry$parameters$model %||%
-              calib_entry$parameters$method,
             type    = calib_entry$parameters$type,
             control = calib_entry$parameters$control
           )

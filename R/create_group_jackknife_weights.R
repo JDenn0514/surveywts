@@ -244,26 +244,31 @@
         )
         rake_result@data[[wt_col]]
       } else {
-        # operation "calibration" (old) or "calibrate_greg" (new)
+        # operation "calibration" (old), "calibrate_greg" (legacy), or
+        # "calibrate_linear" / "calibrate_logit" (current)
         # Old entries stored population + variables; new entries store targets.
         greg_targets <- calib_entry$parameters$targets %||%
           calib_entry$parameters$population
+        greg_model <- calib_entry$parameters$model %||%
+          calib_entry$parameters$method
+        calib_fn <- if (identical(calib_entry$operation, "calibrate_logit") ||
+          identical(greg_model, "logit")) {
+          surveywts::calibrate_logit
+        } else {
+          surveywts::calibrate_linear
+        }
         if (use_level_b) {
-          calib_result <- surveywts::calibrate_greg(
+          calib_result <- calib_fn(
             data             = ipw_result_g,
             targets          = greg_targets,
-            model            = calib_entry$parameters$model %||%
-              calib_entry$parameters$method,
             type             = calib_entry$parameters$type,
             control          = calib_entry$parameters$control,
             reference_design = ref_g_design
           )
         } else {
-          calib_result <- surveywts::calibrate_greg(
+          calib_result <- calib_fn(
             data    = ipw_result_g,
             targets = greg_targets,
-            model   = calib_entry$parameters$model %||%
-              calib_entry$parameters$method,
             type    = calib_entry$parameters$type,
             control = calib_entry$parameters$control
           )

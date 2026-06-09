@@ -226,13 +226,12 @@ test_that(".make_calfun_linear() Fm1 clamps g-weights to [L, U] when bounds give
   expect_equal(as.vector(cf$Fm1(0)), 0, tolerance = 1e-12)
 })
 
-test_that(".make_calfun_linear() dF = 0 outside [L-1, U-1] with bounds", {
+test_that(".make_calfun_linear() dF = 1 everywhere for truncated linear (matches survey::calfun.truncated)", {
   cf <- .make_calfun_linear(L = 0.3, U = 3)
-  # u = -0.9 is outside [L-1, U-1] = [-0.7, 2]: dF = 0
-  expect_equal(as.vector(cf$dF(-0.9)), 0, tolerance = 1e-12)
-  # u = 2.5 is outside [-0.7, 2]: dF = 0
-  expect_equal(as.vector(cf$dF(2.5)), 0, tolerance = 1e-12)
-  # u = 0 is inside: dF = 1
+  # dF = 1 everywhere — the NR Jacobian uses unclamped derivative so the
+  # step direction is always defined; clamping in Fm1 drives further iterations
+  expect_equal(as.vector(cf$dF(-0.9)), 1, tolerance = 1e-12)
+  expect_equal(as.vector(cf$dF(2.5)), 1, tolerance = 1e-12)
   expect_equal(as.vector(cf$dF(0)), 1, tolerance = 1e-12)
 })
 

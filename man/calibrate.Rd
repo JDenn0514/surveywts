@@ -73,6 +73,7 @@ result_rake <- calibrate(df, targets = targets, method = "rake")
 \seealso{
 Other calibration: 
 \code{\link{calibrate_greg}()},
+\code{\link{calibrate_linear}()},
 \code{\link{calibrate_poststrat}()},
 \code{\link{calibrate_rake}()}
 }

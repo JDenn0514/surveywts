@@ -180,6 +180,6 @@ Other calibration:
 \code{\link{calibrate}()},
 \code{\link{calibrate_linear}()},
 \code{\link{calibrate_logit}()},
-\code{\link{calibrate_poststrat}()}
+\code{\link{poststratify}()}
 }
 \concept{calibration}

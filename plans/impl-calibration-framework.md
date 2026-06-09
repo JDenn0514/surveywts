@@ -35,9 +35,9 @@ tests in every PR verify the output matches `survey::calibrate()` within 1e-8.
 ## PR Map
 
 - [x] PR 1: `feature/calibration-nr-engine` — Shared NR engine, calfun objects, `.validate_bounds()`, `.validate_unit_scale()`, migrate `.calibrate_engine()`, update `.build_calibration_provenance()`
-- [ ] PR 2: `feature/calibrate-linear` — `calibrate_linear()` + delete `calibrate_greg.R`
-- [ ] PR 3: `feature/calibrate-logit` — `calibrate_logit()`
-- [ ] PR 4: `feature/calibrate-rake-nr` — `calibrate_rake()` algorithm update + `calibrate()` dispatcher retarget
+- [x] PR 2: `feature/calibrate-linear` — `calibrate_linear()` + delete `calibrate_greg.R`
+- [x] PR 3: `feature/calibrate-logit` — `calibrate_logit()`
+- [x] PR 4: `feature/calibrate-rake-nr` — `calibrate_rake()` algorithm update + `calibrate()` dispatcher retarget
 - [ ] PR 5: `feature/poststratify` — `poststratify()` rename + delete `calibrate_poststrat.R` + error-messages.md Thrown-by cleanup
 
 ---

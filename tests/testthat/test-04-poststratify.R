@@ -1,7 +1,7 @@
 # tests/testthat/test-04-poststratify.R
 #
-# Tests for calibrate_poststrat()
-# Per plans/test-spec-calibration-api.md §calibrate_poststrat()
+# Tests for poststratify()
+# Per plans/test-spec-calibration-api.md §poststratify()
 #
 # All error path tests use the dual pattern:
 #   expect_error(class = ...) + expect_snapshot(error = TRUE, ...)
@@ -65,7 +65,7 @@
 # 1. Happy path — data.frame, prop, single strata var
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() returns weighted_df for data.frame, prop, single strata", {
+test_that("poststratify() returns weighted_df for data.frame, prop, single strata", {
   df <- data.frame(
     age_group = c("18-34", "18-34", "35-54", "35-54", "55+", "55+"),
     stringsAsFactors = FALSE
@@ -76,7 +76,7 @@ test_that("calibrate_poststrat() returns weighted_df for data.frame, prop, singl
     stringsAsFactors = FALSE
   )
 
-  result <- calibrate_poststrat(df, targets = targets, type = "prop")
+  result <- poststratify(df, targets = targets, type = "prop")
 
   test_invariants(result)
   expect_true(inherits(result, "weighted_df"))
@@ -96,11 +96,11 @@ test_that("calibrate_poststrat() returns weighted_df for data.frame, prop, singl
 # 2. Happy path — data.frame, prop, joint strata
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() returns weighted_df, prop, joint strata", {
+test_that("poststratify() returns weighted_df, prop, joint strata", {
   df  <- make_surveywts_data(seed = 1)
   pop <- .make_targets_ps("prop")
 
-  result <- calibrate_poststrat(df, targets = pop, type = "prop")
+  result <- poststratify(df, targets = pop, type = "prop")
 
   test_invariants(result)
   expect_true(inherits(result, "weighted_df"))
@@ -111,11 +111,11 @@ test_that("calibrate_poststrat() returns weighted_df, prop, joint strata", {
 # 3. Happy path — data.frame, type = "count"
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() returns weighted_df for data.frame input, type = 'count'", {
+test_that("poststratify() returns weighted_df for data.frame input, type = 'count'", {
   df  <- make_surveywts_data(seed = 1)
   pop <- .make_targets_ps("count")
 
-  result <- calibrate_poststrat(df, targets = pop, type = "count")
+  result <- poststratify(df, targets = pop, type = "count")
 
   test_invariants(result)
   expect_true(inherits(result, "weighted_df"))
@@ -127,7 +127,7 @@ test_that("calibrate_poststrat() returns weighted_df for data.frame input, type 
 # 4. Happy path — weighted_df input (history accumulates)
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() returns weighted_df for weighted_df input", {
+test_that("poststratify() returns weighted_df for weighted_df input", {
   df  <- make_surveywts_data(seed = 3)
   pop <- .make_targets_ps("count")
 
@@ -138,7 +138,7 @@ test_that("calibrate_poststrat() returns weighted_df for weighted_df input", {
     weighting_history = list()
   )
 
-  result <- calibrate_poststrat(wdf, targets = pop, weights = base_weight,
+  result <- poststratify(wdf, targets = pop, weights = base_weight,
                                 type = "count")
 
   test_invariants(result)
@@ -150,7 +150,7 @@ test_that("calibrate_poststrat() returns weighted_df for weighted_df input", {
 # 5. Happy path — survey_nonprob -> survey_nonprob
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() accepts and returns survey_nonprob", {
+test_that("poststratify() accepts and returns survey_nonprob", {
   df  <- make_surveywts_data(seed = 5)
   pop <- .make_targets_ps("count")
 
@@ -166,7 +166,7 @@ test_that("calibrate_poststrat() accepts and returns survey_nonprob", {
     calibration = NULL
   )
 
-  result <- calibrate_poststrat(sc_input, targets = pop, type = "count")
+  result <- poststratify(sc_input, targets = pop, type = "count")
 
   test_invariants(result)
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
@@ -177,12 +177,12 @@ test_that("calibrate_poststrat() accepts and returns survey_nonprob", {
 # 6. Happy path — survey_taylor -> survey_taylor (class preserved)
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() preserves survey_taylor class for survey_taylor input", {
+test_that("poststratify() preserves survey_taylor class for survey_taylor input", {
   df     <- make_surveywts_data(seed = 4)
   design <- .make_test_taylor_ps(df)
   pop    <- .make_targets_ps("count")
 
-  result <- calibrate_poststrat(design, targets = pop, type = "count")
+  result <- poststratify(design, targets = pop, type = "count")
 
   test_invariants(result)
   expect_true(S7::S7_inherits(result, surveycore::survey_taylor))
@@ -200,12 +200,12 @@ test_that("calibrate_poststrat() preserves survey_taylor class for survey_taylor
 # 7. Happy path — reference_design non-NULL -> history has targets_from_reference
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() sets targets_from_reference when reference_design given", {
+test_that("poststratify() sets targets_from_reference when reference_design given", {
   df  <- make_surveywts_data(seed = 6)
   pop <- .make_targets_ps("count")
   ref <- .make_test_taylor_ps(df)
 
-  result  <- calibrate_poststrat(df, targets = pop, type = "count",
+  result  <- poststratify(df, targets = pop, type = "count",
                                  reference_design = ref)
   history <- attr(result, "weighting_history")
 
@@ -213,28 +213,28 @@ test_that("calibrate_poststrat() sets targets_from_reference when reference_desi
 })
 
 # ---------------------------------------------------------------------------
-# 8. Happy path — history operation = "calibrate_poststrat"
+# 8. Happy path — history operation = "poststratify"
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() history operation is 'calibrate_poststrat'", {
+test_that("poststratify() history operation is 'poststratify'", {
   df  <- make_surveywts_data(seed = 42)
   pop <- .make_targets_ps("count")
 
-  result  <- calibrate_poststrat(df, targets = pop, type = "count")
+  result  <- poststratify(df, targets = pop, type = "count")
   history <- attr(result, "weighting_history")
 
-  expect_identical(history[[1L]]$operation, "calibrate_poststrat")
+  expect_identical(history[[1L]]$operation, "poststratify")
 })
 
 # ---------------------------------------------------------------------------
 # 9. Happy path — strata_names derived from targets column names (not "target")
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() derives strata_names from targets columns", {
+test_that("poststratify() derives strata_names from targets columns", {
   df  <- make_surveywts_data(seed = 7)
   pop <- .make_targets_ps("count")
 
-  result  <- calibrate_poststrat(df, targets = pop, type = "count")
+  result  <- poststratify(df, targets = pop, type = "count")
   history <- attr(result, "weighting_history")
 
   expect_identical(sort(history[[1L]]$parameters$variables),
@@ -245,13 +245,13 @@ test_that("calibrate_poststrat() derives strata_names from targets columns", {
 # 10. Numerical oracle — matches survey::postStratify() within 1e-8
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() matches survey::postStratify() within 1e-8", {
+test_that("poststratify() matches survey::postStratify() within 1e-8", {
   skip_if_not_installed("survey")
 
   df  <- make_surveywts_data(n = 300L, seed = 10)
   pop <- .make_targets_ps("count")
 
-  result     <- calibrate_poststrat(df, targets = pop, weights = base_weight,
+  result     <- poststratify(df, targets = pop, weights = base_weight,
                                     type = "count")
   sw_weights <- result[["wts"]]
 
@@ -273,26 +273,26 @@ test_that("calibrate_poststrat() matches survey::postStratify() within 1e-8", {
 # 11. Error — surveywts_error_unsupported_class (SE-1)
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() rejects unsupported input class (SE-1)", {
+test_that("poststratify() rejects unsupported input class (SE-1)", {
   pop <- .make_targets_ps()
   expect_error(
-    calibrate_poststrat(list(x = 1), targets = pop, type = "count"),
+    poststratify(list(x = 1), targets = pop, type = "count"),
     class = "surveywts_error_unsupported_class"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_poststrat(list(x = 1), targets = pop, type = "count")
+    poststratify(list(x = 1), targets = pop, type = "count")
   )
 })
 
 # ---------------------------------------------------------------------------
 # 12. survey_replicate no longer rejected at class-check gate
 #     (PR 1: survey_replicate branch removed from .check_input_class())
-#     Full survey_replicate support for calibrate_poststrat() lands in PR 2.
+#     Full survey_replicate support for poststratify() lands in PR 2.
 # ---------------------------------------------------------------------------
 
 test_that(
-  "calibrate_poststrat() no longer rejects survey_replicate at class-check gate",
+  "poststratify() no longer rejects survey_replicate at class-check gate",
   {
     df      <- make_surveywts_data(seed = 11)
     rep_obj <- .make_test_replicate_ps(df)
@@ -307,16 +307,16 @@ test_that(
 # 13. Error — surveywts_error_empty_data (SE-3)
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() rejects 0-row data frame (SE-3)", {
+test_that("poststratify() rejects 0-row data frame (SE-3)", {
   df0 <- make_surveywts_data(seed = 1)[0, ]
   pop <- .make_targets_ps()
   expect_error(
-    calibrate_poststrat(df0, targets = pop, type = "count"),
+    poststratify(df0, targets = pop, type = "count"),
     class = "surveywts_error_empty_data"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_poststrat(df0, targets = pop, type = "count")
+    poststratify(df0, targets = pop, type = "count")
   )
 })
 
@@ -324,17 +324,17 @@ test_that("calibrate_poststrat() rejects 0-row data frame (SE-3)", {
 # 14. Error — surveywts_error_weights_not_found (SE-4)
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() rejects missing named weight column (SE-4)", {
+test_that("poststratify() rejects missing named weight column (SE-4)", {
   df  <- make_surveywts_data(seed = 1)
   pop <- .make_targets_ps()
   expect_error(
-    calibrate_poststrat(df, targets = pop, weights = no_such_col,
+    poststratify(df, targets = pop, weights = no_such_col,
                         type = "count"),
     class = "surveywts_error_weights_not_found"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_poststrat(df, targets = pop, weights = no_such_col,
+    poststratify(df, targets = pop, weights = no_such_col,
                         type = "count")
   )
 })
@@ -343,17 +343,17 @@ test_that("calibrate_poststrat() rejects missing named weight column (SE-4)", {
 # 15. Error — surveywts_error_weights_not_numeric (SE-5)
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() rejects non-numeric weight column (SE-5)", {
+test_that("poststratify() rejects non-numeric weight column (SE-5)", {
   df        <- make_surveywts_data(seed = 1)
   df$bad_wt <- as.character(df$base_weight)
   pop       <- .make_targets_ps()
   expect_error(
-    calibrate_poststrat(df, targets = pop, weights = bad_wt, type = "count"),
+    poststratify(df, targets = pop, weights = bad_wt, type = "count"),
     class = "surveywts_error_weights_not_numeric"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_poststrat(df, targets = pop, weights = bad_wt, type = "count")
+    poststratify(df, targets = pop, weights = bad_wt, type = "count")
   )
 })
 
@@ -361,18 +361,18 @@ test_that("calibrate_poststrat() rejects non-numeric weight column (SE-5)", {
 # 16. Error — surveywts_error_weights_nonpositive (SE-6)
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() rejects non-positive weight column (SE-6)", {
+test_that("poststratify() rejects non-positive weight column (SE-6)", {
   df                <- make_surveywts_data(seed = 1)
   df$base_weight[1] <- 0
   pop               <- .make_targets_ps()
   expect_error(
-    calibrate_poststrat(df, targets = pop, weights = base_weight,
+    poststratify(df, targets = pop, weights = base_weight,
                         type = "count"),
     class = "surveywts_error_weights_nonpositive"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_poststrat(df, targets = pop, weights = base_weight,
+    poststratify(df, targets = pop, weights = base_weight,
                         type = "count")
   )
 })
@@ -381,18 +381,18 @@ test_that("calibrate_poststrat() rejects non-positive weight column (SE-6)", {
 # 17. Error — surveywts_error_weights_na (SE-7)
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() rejects NA weight column (SE-7)", {
+test_that("poststratify() rejects NA weight column (SE-7)", {
   df                <- make_surveywts_data(seed = 1)
   df$base_weight[1] <- NA_real_
   pop               <- .make_targets_ps()
   expect_error(
-    calibrate_poststrat(df, targets = pop, weights = base_weight,
+    poststratify(df, targets = pop, weights = base_weight,
                         type = "count"),
     class = "surveywts_error_weights_na"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_poststrat(df, targets = pop, weights = base_weight,
+    poststratify(df, targets = pop, weights = base_weight,
                         type = "count")
   )
 })
@@ -401,16 +401,16 @@ test_that("calibrate_poststrat() rejects NA weight column (SE-7)", {
 # 18. Error — surveywts_error_wt_name_not_scalar
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() rejects non-character wt_name", {
+test_that("poststratify() rejects non-character wt_name", {
   df  <- make_surveywts_data(seed = 1)
   pop <- .make_targets_ps()
   expect_error(
-    calibrate_poststrat(df, targets = pop, type = "count", wt_name = 42),
+    poststratify(df, targets = pop, type = "count", wt_name = 42),
     class = "surveywts_error_wt_name_not_scalar"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_poststrat(df, targets = pop, type = "count", wt_name = 42)
+    poststratify(df, targets = pop, type = "count", wt_name = 42)
   )
 })
 
@@ -418,16 +418,16 @@ test_that("calibrate_poststrat() rejects non-character wt_name", {
 # 19. Error — surveywts_error_wt_name_empty
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() rejects empty wt_name", {
+test_that("poststratify() rejects empty wt_name", {
   df  <- make_surveywts_data(seed = 1)
   pop <- .make_targets_ps()
   expect_error(
-    calibrate_poststrat(df, targets = pop, type = "count", wt_name = ""),
+    poststratify(df, targets = pop, type = "count", wt_name = ""),
     class = "surveywts_error_wt_name_empty"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_poststrat(df, targets = pop, type = "count", wt_name = "")
+    poststratify(df, targets = pop, type = "count", wt_name = "")
   )
 })
 
@@ -435,17 +435,17 @@ test_that("calibrate_poststrat() rejects empty wt_name", {
 # 20. Error — surveywts_error_reference_design_not_taylor
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() rejects non-taylor reference_design", {
+test_that("poststratify() rejects non-taylor reference_design", {
   df  <- make_surveywts_data(seed = 1)
   pop <- .make_targets_ps()
   expect_error(
-    calibrate_poststrat(df, targets = pop, type = "count",
+    poststratify(df, targets = pop, type = "count",
                         reference_design = list(x = 1)),
     class = "surveywts_error_reference_design_not_taylor"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_poststrat(df, targets = pop, type = "count",
+    poststratify(df, targets = pop, type = "count",
                         reference_design = list(x = 1))
   )
 })
@@ -454,19 +454,19 @@ test_that("calibrate_poststrat() rejects non-taylor reference_design", {
 # 21. Error — surveywts_error_margins_format_invalid (targets not data.frame)
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() rejects targets that is not a data.frame", {
+test_that("poststratify() rejects targets that is not a data.frame", {
   df <- make_surveywts_data(seed = 1)
   # Named list is not accepted; only data.frame
   bad_targets <- list(
     age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30)
   )
   expect_error(
-    calibrate_poststrat(df, targets = bad_targets, type = "prop"),
+    poststratify(df, targets = bad_targets, type = "prop"),
     class = "surveywts_error_margins_format_invalid"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_poststrat(df, targets = bad_targets, type = "prop")
+    poststratify(df, targets = bad_targets, type = "prop")
   )
 })
 
@@ -474,16 +474,16 @@ test_that("calibrate_poststrat() rejects targets that is not a data.frame", {
 # 22. Error — surveywts_error_no_strata_variables
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() rejects targets with zero strata columns", {
+test_that("poststratify() rejects targets with zero strata columns", {
   df          <- make_surveywts_data(seed = 1)
   targets_bad <- data.frame(target = 1.0, stringsAsFactors = FALSE)
   expect_error(
-    calibrate_poststrat(df, targets = targets_bad, type = "prop"),
+    poststratify(df, targets = targets_bad, type = "prop"),
     class = "surveywts_error_no_strata_variables"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_poststrat(df, targets = targets_bad, type = "prop")
+    poststratify(df, targets = targets_bad, type = "prop")
   )
 })
 
@@ -491,7 +491,7 @@ test_that("calibrate_poststrat() rejects targets with zero strata columns", {
 # 23. Error — surveywts_error_targets_variable_not_found
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() rejects targets with column absent from data", {
+test_that("poststratify() rejects targets with column absent from data", {
   df <- make_surveywts_data(seed = 1)
   targets_bad <- data.frame(
     no_such_col = c("A", "B"),
@@ -499,12 +499,12 @@ test_that("calibrate_poststrat() rejects targets with column absent from data", 
     stringsAsFactors = FALSE
   )
   expect_error(
-    calibrate_poststrat(df, targets = targets_bad, type = "prop"),
+    poststratify(df, targets = targets_bad, type = "prop"),
     class = "surveywts_error_targets_variable_not_found"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_poststrat(df, targets = targets_bad, type = "prop")
+    poststratify(df, targets = targets_bad, type = "prop")
   )
 })
 
@@ -512,17 +512,17 @@ test_that("calibrate_poststrat() rejects targets with column absent from data", 
 # 24. Error — surveywts_error_variable_has_na
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() rejects NA in strata variable", {
+test_that("poststratify() rejects NA in strata variable", {
   df               <- make_surveywts_data(seed = 1)
   df$age_group[1L] <- NA_character_
   pop              <- .make_targets_ps("count")
   expect_error(
-    calibrate_poststrat(df, targets = pop, type = "count"),
+    poststratify(df, targets = pop, type = "count", weights = base_weight),
     class = "surveywts_error_variable_has_na"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_poststrat(df, targets = pop, type = "count")
+    poststratify(df, targets = pop, type = "count", weights = base_weight)
   )
 })
 
@@ -530,7 +530,7 @@ test_that("calibrate_poststrat() rejects NA in strata variable", {
 # 25. Error — surveywts_error_population_totals_invalid (type = "prop")
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() rejects prop targets that don't sum to 1", {
+test_that("poststratify() rejects prop targets that don't sum to 1", {
   df      <- make_surveywts_data(seed = 1)
   pop_bad <- data.frame(
     age_group = c("18-34", "18-34", "35-54", "35-54", "55+", "55+"),
@@ -539,12 +539,12 @@ test_that("calibrate_poststrat() rejects prop targets that don't sum to 1", {
     stringsAsFactors = FALSE
   )
   expect_error(
-    calibrate_poststrat(df, targets = pop_bad, type = "prop"),
+    poststratify(df, targets = pop_bad, type = "prop", weights = base_weight),
     class = "surveywts_error_population_totals_invalid"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_poststrat(df, targets = pop_bad, type = "prop")
+    poststratify(df, targets = pop_bad, type = "prop", weights = base_weight)
   )
 })
 
@@ -552,7 +552,7 @@ test_that("calibrate_poststrat() rejects prop targets that don't sum to 1", {
 # 26. Error — surveywts_error_population_totals_invalid (type = "count", target <= 0)
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() rejects count targets that are non-positive", {
+test_that("poststratify() rejects count targets that are non-positive", {
   df      <- make_surveywts_data(seed = 1)
   pop_bad <- data.frame(
     age_group = c("18-34", "18-34", "35-54", "35-54", "55+", "55+"),
@@ -561,12 +561,12 @@ test_that("calibrate_poststrat() rejects count targets that are non-positive", {
     stringsAsFactors = FALSE
   )
   expect_error(
-    calibrate_poststrat(df, targets = pop_bad, type = "count"),
+    poststratify(df, targets = pop_bad, type = "count", weights = base_weight),
     class = "surveywts_error_population_totals_invalid"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_poststrat(df, targets = pop_bad, type = "count")
+    poststratify(df, targets = pop_bad, type = "count", weights = base_weight)
   )
 })
 
@@ -574,7 +574,7 @@ test_that("calibrate_poststrat() rejects count targets that are non-positive", {
 # 27. Error — surveywts_error_population_cell_duplicate
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() rejects duplicate rows in targets", {
+test_that("poststratify() rejects duplicate rows in targets", {
   df      <- make_surveywts_data(seed = 1)
   pop_dup <- data.frame(
     age_group = c("18-34", "18-34", "18-34", "35-54", "35-54", "55+", "55+"),
@@ -583,12 +583,12 @@ test_that("calibrate_poststrat() rejects duplicate rows in targets", {
     stringsAsFactors = FALSE
   )
   expect_error(
-    calibrate_poststrat(df, targets = pop_dup, type = "count"),
+    poststratify(df, targets = pop_dup, type = "count", weights = base_weight),
     class = "surveywts_error_population_cell_duplicate"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_poststrat(df, targets = pop_dup, type = "count")
+    poststratify(df, targets = pop_dup, type = "count", weights = base_weight)
   )
 })
 
@@ -596,7 +596,7 @@ test_that("calibrate_poststrat() rejects duplicate rows in targets", {
 # 28. Error — surveywts_error_population_cell_missing (data cell absent from targets)
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() rejects targets missing a data cell", {
+test_that("poststratify() rejects targets missing a data cell", {
   df          <- make_surveywts_data(seed = 1)
   pop_missing <- data.frame(
     age_group = c("18-34", "18-34", "35-54", "35-54", "55+"),
@@ -605,12 +605,12 @@ test_that("calibrate_poststrat() rejects targets missing a data cell", {
     stringsAsFactors = FALSE
   )
   expect_error(
-    calibrate_poststrat(df, targets = pop_missing, type = "count"),
+    poststratify(df, targets = pop_missing, type = "count", weights = base_weight),
     class = "surveywts_error_population_cell_missing"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_poststrat(df, targets = pop_missing, type = "count")
+    poststratify(df, targets = pop_missing, type = "count", weights = base_weight)
   )
 })
 
@@ -618,7 +618,7 @@ test_that("calibrate_poststrat() rejects targets missing a data cell", {
 # 29. Error — surveywts_error_population_cell_missing (targets missing "target" col)
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() rejects targets missing the 'target' column", {
+test_that("poststratify() rejects targets missing the 'target' column", {
   df <- make_surveywts_data(seed = 12)
 
   pop_no_target <- data.frame(
@@ -627,12 +627,12 @@ test_that("calibrate_poststrat() rejects targets missing the 'target' column", {
   )
 
   expect_error(
-    calibrate_poststrat(df, targets = pop_no_target, type = "count"),
+    poststratify(df, targets = pop_no_target, type = "count", weights = base_weight),
     class = "surveywts_error_population_cell_missing"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_poststrat(df, targets = pop_no_target, type = "count")
+    poststratify(df, targets = pop_no_target, type = "count", weights = base_weight)
   )
 })
 
@@ -640,7 +640,7 @@ test_that("calibrate_poststrat() rejects targets missing the 'target' column", {
 # 30. Error — surveywts_error_population_cell_not_in_data
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() rejects targets cells absent from data", {
+test_that("poststratify() rejects targets cells absent from data", {
   df        <- make_surveywts_data(seed = 1)
   pop_extra <- data.frame(
     age_group = c("18-34", "18-34", "35-54", "35-54", "55+", "55+", "65+"),
@@ -649,12 +649,12 @@ test_that("calibrate_poststrat() rejects targets cells absent from data", {
     stringsAsFactors = FALSE
   )
   expect_error(
-    calibrate_poststrat(df, targets = pop_extra, type = "count"),
+    poststratify(df, targets = pop_extra, type = "count", weights = base_weight),
     class = "surveywts_error_population_cell_not_in_data"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_poststrat(df, targets = pop_extra, type = "count")
+    poststratify(df, targets = pop_extra, type = "count", weights = base_weight)
   )
 })
 
@@ -662,11 +662,11 @@ test_that("calibrate_poststrat() rejects targets cells absent from data", {
 # 31. Edge — 0-row data fires empty_data before weights_not_found
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() empty_data fires before weights_not_found", {
+test_that("poststratify() empty_data fires before weights_not_found", {
   df0 <- make_surveywts_data(seed = 1)[0, ]
   pop <- .make_targets_ps()
   expect_error(
-    calibrate_poststrat(df0, targets = pop, weights = no_such_col,
+    poststratify(df0, targets = pop, weights = no_such_col,
                         type = "count"),
     class = "surveywts_error_empty_data"
   )
@@ -676,7 +676,7 @@ test_that("calibrate_poststrat() empty_data fires before weights_not_found", {
 # 32. Edge — 1-row data, 1-cell targets
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() works with 1-row data and 1-cell targets", {
+test_that("poststratify() works with 1-row data and 1-cell targets", {
   df_1 <- data.frame(
     age_group = "18-34",
     stringsAsFactors = FALSE
@@ -687,7 +687,7 @@ test_that("calibrate_poststrat() works with 1-row data and 1-cell targets", {
     stringsAsFactors = FALSE
   )
 
-  result <- calibrate_poststrat(df_1, targets = targets_1, type = "count")
+  result <- poststratify(df_1, targets = targets_1, type = "count")
 
   test_invariants(result)
   expect_true(inherits(result, "weighted_df"))
@@ -697,14 +697,14 @@ test_that("calibrate_poststrat() works with 1-row data and 1-cell targets", {
 # 33. Edge — single stratification variable
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() works with a single strata variable", {
+test_that("poststratify() works with a single strata variable", {
   df         <- make_surveywts_data(seed = 7)
   pop_single <- data.frame(
     age_group = c("18-34", "35-54", "55+"),
     target    = c(3000, 4000, 3000),
     stringsAsFactors = FALSE
   )
-  result <- calibrate_poststrat(df, targets = pop_single, type = "count")
+  result <- poststratify(df, targets = pop_single, type = "count")
 
   test_invariants(result)
   expect_true(inherits(result, "weighted_df"))
@@ -714,11 +714,11 @@ test_that("calibrate_poststrat() works with a single strata variable", {
 # 34. Edge — targets with only "target" column triggers no_strata_variables
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() rejects targets = data.frame(target = 1)", {
+test_that("poststratify() rejects targets = data.frame(target = 1)", {
   df          <- make_surveywts_data(seed = 1)
   targets_bad <- data.frame(target = 1.0, stringsAsFactors = FALSE)
   expect_error(
-    calibrate_poststrat(df, targets = targets_bad, type = "prop"),
+    poststratify(df, targets = targets_bad, type = "prop"),
     class = "surveywts_error_no_strata_variables"
   )
 })
@@ -727,7 +727,7 @@ test_that("calibrate_poststrat() rejects targets = data.frame(target = 1)", {
 # 35. Edge — weights_nonpositive fires before empty_stratum
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() weights_nonpositive fires before empty_stratum", {
+test_that("poststratify() weights_nonpositive fires before empty_stratum", {
   df <- make_surveywts_data(n = 50L, seed = 20)
   df$base_weight[df$age_group == "55+"] <- 0
   pop <- data.frame(
@@ -736,7 +736,7 @@ test_that("calibrate_poststrat() weights_nonpositive fires before empty_stratum"
     stringsAsFactors = FALSE
   )
   expect_error(
-    calibrate_poststrat(df, targets = pop, weights = base_weight,
+    poststratify(df, targets = pop, weights = base_weight,
                         type = "count"),
     class = "surveywts_error_weights_nonpositive"
   )
@@ -751,7 +751,7 @@ test_that("calibrate_poststrat() weights_nonpositive fires before empty_stratum"
 # scenario from the spec.
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() zero-weight stratum produces weights_nonpositive (SX-2)", {
+test_that("poststratify() zero-weight stratum produces weights_nonpositive (SX-2)", {
   df <- make_surveywts_data(n = 200L, seed = 42)
   # Zero out all weights for one age_group level — creates empty effective stratum.
   # .validate_weights() will catch this before the empty-stratum guard.
@@ -764,7 +764,7 @@ test_that("calibrate_poststrat() zero-weight stratum produces weights_nonpositiv
   )
 
   expect_error(
-    calibrate_poststrat(
+    poststratify(
       df,
       targets = pop,
       weights = base_weight,
@@ -774,7 +774,7 @@ test_that("calibrate_poststrat() zero-weight stratum produces weights_nonpositiv
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_poststrat(
+    poststratify(
       df,
       targets = pop,
       weights = base_weight,
@@ -787,18 +787,18 @@ test_that("calibrate_poststrat() zero-weight stratum produces weights_nonpositiv
 # 36. History — correct structure after calibration
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() history entry has correct structure", {
+test_that("poststratify() history entry has correct structure", {
   df  <- make_surveywts_data(seed = 9)
   pop <- .make_targets_ps("count")
 
-  result  <- calibrate_poststrat(df, targets = pop, type = "count")
+  result  <- poststratify(df, targets = pop, type = "count")
   history <- attr(result, "weighting_history")
 
   expect_length(history, 1L)
   entry <- history[[1L]]
 
   expect_identical(entry$step, 1L)
-  expect_identical(entry$operation, "calibrate_poststrat")
+  expect_identical(entry$operation, "poststratify")
   expect_true(inherits(entry$timestamp, "POSIXct"))
   expect_true(all(nchar(entry$call) > 0L))
   expect_type(entry$parameters, "list")
@@ -816,7 +816,7 @@ test_that("calibrate_poststrat() history entry has correct structure", {
 # 37. History — step increments correctly in chained calls
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() step increments correctly in chained calls", {
+test_that("poststratify() step increments correctly in chained calls", {
   df  <- make_surveywts_data(seed = 11)
   pop <- .make_targets_ps("count")
 
@@ -826,7 +826,7 @@ test_that("calibrate_poststrat() step increments correctly in chained calls", {
   )
 
   result1 <- calibrate_linear(df, targets = targets_greg)
-  result2 <- calibrate_poststrat(
+  result2 <- poststratify(
     result1,
     targets = pop,
     weights = wts,
@@ -838,17 +838,17 @@ test_that("calibrate_poststrat() step increments correctly in chained calls", {
   expect_identical(history[[1L]]$step, 1L)
   expect_identical(history[[2L]]$step, 2L)
   expect_identical(history[[1L]]$operation, "calibrate_linear")
-  expect_identical(history[[2L]]$operation, "calibrate_poststrat")
+  expect_identical(history[[2L]]$operation, "poststratify")
 })
 
 # ---------------------------------------------------------------------------
 # 38. wt_name — default is "wts"
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() names output weight column 'wts' by default", {
+test_that("poststratify() names output weight column 'wts' by default", {
   df  <- make_surveywts_data(seed = 1)
   pop <- .make_targets_ps("count")
-  result <- calibrate_poststrat(df, targets = pop, type = "count")
+  result <- poststratify(df, targets = pop, type = "count")
   test_invariants(result)
   expect_identical(attr(result, "weight_col"), "wts")
   expect_true("wts" %in% names(result))
@@ -858,10 +858,10 @@ test_that("calibrate_poststrat() names output weight column 'wts' by default", {
 # 39. wt_name — custom wt_name is used
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() uses custom wt_name for output column", {
+test_that("poststratify() uses custom wt_name for output column", {
   df  <- make_surveywts_data(seed = 1)
   pop <- .make_targets_ps("count")
-  result <- calibrate_poststrat(df, targets = pop, type = "count",
+  result <- poststratify(df, targets = pop, type = "count",
                                 wt_name = "ps_wt")
   test_invariants(result)
   expect_identical(attr(result, "weight_col"), "ps_wt")
@@ -872,7 +872,7 @@ test_that("calibrate_poststrat() uses custom wt_name for output column", {
 # 40. wt_name — survey object ignores wt_name
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() ignores wt_name for survey_nonprob input", {
+test_that("poststratify() ignores wt_name for survey_nonprob input", {
   df <- make_surveywts_data(seed = 1)
   snp <- surveycore::survey_nonprob(
     data = df,
@@ -886,7 +886,7 @@ test_that("calibrate_poststrat() ignores wt_name for survey_nonprob input", {
     calibration = NULL
   )
   pop <- .make_targets_ps("count")
-  result <- calibrate_poststrat(snp, targets = pop, type = "count",
+  result <- poststratify(snp, targets = pop, type = "count",
                                 wt_name = "ignored_name")
   expect_identical(result@variables$weights, snp@variables$weights)
 })
@@ -895,30 +895,13 @@ test_that("calibrate_poststrat() ignores wt_name for survey_nonprob input", {
 # 41. wt_name — records wt_name in weighting history
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() records wt_name in weighting history", {
+test_that("poststratify() records wt_name in weighting history", {
   df  <- make_surveywts_data(seed = 1)
   pop <- .make_targets_ps("count")
-  result <- calibrate_poststrat(df, targets = pop, type = "count",
+  result <- poststratify(df, targets = pop, type = "count",
                                 wt_name = "ps_wt")
   history <- attr(result, "weighting_history")
   expect_identical(history[[length(history)]]$weight_col, "ps_wt")
-})
-
-# ---------------------------------------------------------------------------
-# 42. Deleted-function regression guard: old poststratify() no longer exists
-# ---------------------------------------------------------------------------
-
-test_that("old poststratify() with strata + population args no longer exists", {
-  df <- make_surveywts_data(seed = 1)
-  pop <- data.frame(
-    age_group = c("18-34", "35-54", "55+"),
-    target    = c(0.30, 0.40, 0.30),
-    stringsAsFactors = FALSE
-  )
-  # poststratify() is gone; should produce an error
-  expect_error(
-    poststratify(df, strata = c(age_group), population = pop)
-  )
 })
 
 # ===========================================================================
@@ -929,12 +912,12 @@ test_that("old poststratify() with strata + population args no longer exists", {
 # PT-1. survey_taylor input -> survey_taylor output
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() with survey_taylor returns survey_taylor", {
+test_that("poststratify() with survey_taylor returns survey_taylor", {
   df <- make_surveywts_data(seed = 601)
   design <- .make_test_taylor_ps(df)
   targets <- .make_targets_ps()
 
-  result <- calibrate_poststrat(design, targets = targets, type = "count")
+  result <- poststratify(design, targets = targets, type = "count")
 
   expect_true(S7::S7_inherits(result, surveycore::survey_taylor))
 })
@@ -943,12 +926,12 @@ test_that("calibrate_poststrat() with survey_taylor returns survey_taylor", {
 # PT-2. @calibration populated for survey_taylor
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() with survey_taylor populates @calibration", {
+test_that("poststratify() with survey_taylor populates @calibration", {
   df <- make_surveywts_data(seed = 602)
   design <- .make_test_taylor_ps(df)
   targets <- .make_targets_ps()
 
-  result <- calibrate_poststrat(design, targets = targets, type = "count")
+  result <- poststratify(design, targets = targets, type = "count")
 
   expect_false(is.null(result@calibration))
   expect_true(is.list(result@calibration))
@@ -958,12 +941,12 @@ test_that("calibrate_poststrat() with survey_taylor populates @calibration", {
 # PT-3. All 12 @calibration fields present
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() @calibration has all 12 required fields", {
+test_that("poststratify() @calibration has all 12 required fields", {
   df <- make_surveywts_data(seed = 603)
   design <- .make_test_taylor_ps(df)
   targets <- .make_targets_ps()
 
-  result <- calibrate_poststrat(design, targets = targets, type = "count")
+  result <- poststratify(design, targets = targets, type = "count")
 
   required_fields <- c(
     "x_matrix", "base_weights", "g_weights", "crossproduct_inv",
@@ -977,12 +960,12 @@ test_that("calibrate_poststrat() @calibration has all 12 required fields", {
 # PT-4. method == "poststrat"
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() @calibration$method == 'poststrat'", {
+test_that("poststratify() @calibration$method == 'poststrat'", {
   df <- make_surveywts_data(seed = 604)
   design <- .make_test_taylor_ps(df)
   targets <- .make_targets_ps()
 
-  result <- calibrate_poststrat(design, targets = targets, type = "count")
+  result <- poststratify(design, targets = targets, type = "count")
 
   expect_identical(result@calibration$method, "poststrat")
 })
@@ -991,12 +974,12 @@ test_that("calibrate_poststrat() @calibration$method == 'poststrat'", {
 # PT-5. lambda is NULL for poststrat
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() @calibration$lambda is NULL", {
+test_that("poststratify() @calibration$lambda is NULL", {
   df <- make_surveywts_data(seed = 605)
   design <- .make_test_taylor_ps(df)
   targets <- .make_targets_ps()
 
-  result <- calibrate_poststrat(design, targets = targets, type = "count")
+  result <- poststratify(design, targets = targets, type = "count")
 
   expect_null(result@calibration$lambda)
 })
@@ -1005,12 +988,12 @@ test_that("calibrate_poststrat() @calibration$lambda is NULL", {
 # PT-6. cell_factors is non-NULL named numeric vector
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() @calibration$cell_factors is non-NULL named numeric", {
+test_that("poststratify() @calibration$cell_factors is non-NULL named numeric", {
   df <- make_surveywts_data(seed = 606)
   design <- .make_test_taylor_ps(df)
   targets <- .make_targets_ps()
 
-  result <- calibrate_poststrat(design, targets = targets, type = "count")
+  result <- poststratify(design, targets = targets, type = "count")
 
   cf <- result@calibration$cell_factors
   expect_false(is.null(cf))
@@ -1024,13 +1007,13 @@ test_that("calibrate_poststrat() @calibration$cell_factors is non-NULL named num
 # PT-7. x_matrix has C columns (one per cell)
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() @calibration$x_matrix has C columns", {
+test_that("poststratify() @calibration$x_matrix has C columns", {
   df <- make_surveywts_data(seed = 607)
   design <- .make_test_taylor_ps(df)
   targets <- .make_targets_ps()
   C <- nrow(targets)  # 6 cells
 
-  result <- calibrate_poststrat(design, targets = targets, type = "count")
+  result <- poststratify(design, targets = targets, type = "count")
 
   expect_identical(ncol(result@calibration$x_matrix), C)
   expect_identical(nrow(result@calibration$x_matrix), nrow(df))
@@ -1040,12 +1023,12 @@ test_that("calibrate_poststrat() @calibration$x_matrix has C columns", {
 # PT-8. x_matrix is binary (0/1) indicator matrix
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() @calibration$x_matrix is binary indicator", {
+test_that("poststratify() @calibration$x_matrix is binary indicator", {
   df <- make_surveywts_data(seed = 608)
   design <- .make_test_taylor_ps(df)
   targets <- .make_targets_ps()
 
-  result <- calibrate_poststrat(design, targets = targets, type = "count")
+  result <- poststratify(design, targets = targets, type = "count")
 
   xm <- result@calibration$x_matrix
   expect_true(all(xm %in% c(0, 1)))
@@ -1057,13 +1040,13 @@ test_that("calibrate_poststrat() @calibration$x_matrix is binary indicator", {
 # PT-9. base_weights matches pre-calibration weights (1e-10)
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() @calibration$base_weights matches pre-calibration (1e-10)", {
+test_that("poststratify() @calibration$base_weights matches pre-calibration (1e-10)", {
   df <- make_surveywts_data(seed = 609)
   design <- .make_test_taylor_ps(df)
   targets <- .make_targets_ps()
   pre_weights <- design@data[[design@variables$weights]]
 
-  result <- calibrate_poststrat(design, targets = targets, type = "count")
+  result <- poststratify(design, targets = targets, type = "count")
 
   expect_equal(result@calibration$base_weights, pre_weights, tolerance = 1e-10)
 })
@@ -1072,12 +1055,12 @@ test_that("calibrate_poststrat() @calibration$base_weights matches pre-calibrati
 # PT-10. g_weights * base_weights == output_weights (1e-10)
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() g_weights * base_weights == calibrated weights (1e-10)", {
+test_that("poststratify() g_weights * base_weights == calibrated weights (1e-10)", {
   df <- make_surveywts_data(seed = 610)
   design <- .make_test_taylor_ps(df)
   targets <- .make_targets_ps()
 
-  result <- calibrate_poststrat(design, targets = targets, type = "count")
+  result <- poststratify(design, targets = targets, type = "count")
   cal <- result@calibration
   out_weights <- result@data[[result@variables$weights]]
 
@@ -1088,12 +1071,12 @@ test_that("calibrate_poststrat() g_weights * base_weights == calibrated weights 
 # PT-11. converged == TRUE (post-stratification is exact)
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() @calibration$converged is TRUE", {
+test_that("poststratify() @calibration$converged is TRUE", {
   df <- make_surveywts_data(seed = 611)
   design <- .make_test_taylor_ps(df)
   targets <- .make_targets_ps()
 
-  result <- calibrate_poststrat(design, targets = targets, type = "count")
+  result <- poststratify(design, targets = targets, type = "count")
 
   expect_identical(result@calibration$converged, TRUE)
 })
@@ -1102,12 +1085,12 @@ test_that("calibrate_poststrat() @calibration$converged is TRUE", {
 # PT-12. n_iterations == 1L (post-stratification is one-step)
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() @calibration$n_iterations == 1L", {
+test_that("poststratify() @calibration$n_iterations == 1L", {
   df <- make_surveywts_data(seed = 612)
   design <- .make_test_taylor_ps(df)
   targets <- .make_targets_ps()
 
-  result <- calibrate_poststrat(design, targets = targets, type = "count")
+  result <- poststratify(design, targets = targets, type = "count")
 
   expect_identical(result@calibration$n_iterations, 1L)
 })
@@ -1116,12 +1099,12 @@ test_that("calibrate_poststrat() @calibration$n_iterations == 1L", {
 # PT-13. replicate_converged is NULL for survey_taylor
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() @calibration$replicate_converged is NULL for survey_taylor", {
+test_that("poststratify() @calibration$replicate_converged is NULL for survey_taylor", {
   df <- make_surveywts_data(seed = 613)
   design <- .make_test_taylor_ps(df)
   targets <- .make_targets_ps()
 
-  result <- calibrate_poststrat(design, targets = targets, type = "count")
+  result <- poststratify(design, targets = targets, type = "count")
 
   expect_null(result@calibration$replicate_converged)
 })
@@ -1130,17 +1113,17 @@ test_that("calibrate_poststrat() @calibration$replicate_converged is NULL for su
 # PT-14. History entry appended
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() appends history entry to survey_taylor", {
+test_that("poststratify() appends history entry to survey_taylor", {
   df <- make_surveywts_data(seed = 614)
   design <- .make_test_taylor_ps(df)
   targets <- .make_targets_ps()
 
-  result <- calibrate_poststrat(design, targets = targets, type = "count")
+  result <- poststratify(design, targets = targets, type = "count")
 
   expect_identical(length(result@metadata@weighting_history), 1L)
   expect_identical(
     result@metadata@weighting_history[[1L]]$operation,
-    "calibrate_poststrat"
+    "poststratify"
   )
 })
 
@@ -1152,12 +1135,12 @@ test_that("calibrate_poststrat() appends history entry to survey_taylor", {
 # PR-1. survey_replicate output class
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() with survey_replicate returns survey_replicate", {
+test_that("poststratify() with survey_replicate returns survey_replicate", {
   df <- make_surveywts_data(seed = 621)
   targets <- .make_targets_ps()
   rep_design <- .make_replicate_design(df, seed = 621)
 
-  result <- calibrate_poststrat(rep_design, targets = targets, type = "count")
+  result <- poststratify(rep_design, targets = targets, type = "count")
 
   expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
 })
@@ -1166,12 +1149,12 @@ test_that("calibrate_poststrat() with survey_replicate returns survey_replicate"
 # PR-2. @calibration populated for survey_replicate
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() survey_replicate @calibration is non-NULL", {
+test_that("poststratify() survey_replicate @calibration is non-NULL", {
   df <- make_surveywts_data(seed = 622)
   targets <- .make_targets_ps()
   rep_design <- .make_replicate_design(df, seed = 622)
 
-  result <- calibrate_poststrat(rep_design, targets = targets, type = "count")
+  result <- poststratify(rep_design, targets = targets, type = "count")
 
   expect_false(is.null(result@calibration))
 })
@@ -1180,13 +1163,13 @@ test_that("calibrate_poststrat() survey_replicate @calibration is non-NULL", {
 # PR-3. replicate_converged is named logical of length R
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() replicate_converged is named logical length R", {
+test_that("poststratify() replicate_converged is named logical length R", {
   df <- make_surveywts_data(seed = 623)
   targets <- .make_targets_ps()
   rep_design <- .make_replicate_design(df, seed = 623)
   R <- length(rep_design@variables$repweights)
 
-  result <- calibrate_poststrat(rep_design, targets = targets, type = "count")
+  result <- poststratify(rep_design, targets = targets, type = "count")
 
   rc <- result@calibration$replicate_converged
   expect_true(is.logical(rc))
@@ -1198,12 +1181,12 @@ test_that("calibrate_poststrat() replicate_converged is named logical length R",
 # PR-4. All entries TRUE when all replicates converge
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() replicate_converged all TRUE when all converge", {
+test_that("poststratify() replicate_converged all TRUE when all converge", {
   df <- make_surveywts_data(seed = 624)
   targets <- .make_targets_ps()
   rep_design <- .make_replicate_design(df, seed = 624)
 
-  result <- calibrate_poststrat(rep_design, targets = targets, type = "count")
+  result <- poststratify(rep_design, targets = targets, type = "count")
 
   expect_true(all(result@calibration$replicate_converged))
 })
@@ -1212,13 +1195,13 @@ test_that("calibrate_poststrat() replicate_converged all TRUE when all converge"
 # PR-5. Full-sample weights calibrated
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() full-sample weights calibrated in survey_replicate", {
+test_that("poststratify() full-sample weights calibrated in survey_replicate", {
   df <- make_surveywts_data(seed = 625)
   targets <- .make_targets_ps()
   rep_design <- .make_replicate_design(df, seed = 625)
   pre_weights <- rep_design@data[[rep_design@variables$weights]]
 
-  result <- calibrate_poststrat(rep_design, targets = targets, type = "count")
+  result <- poststratify(rep_design, targets = targets, type = "count")
 
   out_weights <- result@data[[result@variables$weights]]
   expect_false(identical(out_weights, pre_weights))
@@ -1228,12 +1211,12 @@ test_that("calibrate_poststrat() full-sample weights calibrated in survey_replic
 # PR-6. method == "poststrat" for survey_replicate
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() @calibration$method == 'poststrat' for replicate", {
+test_that("poststratify() @calibration$method == 'poststrat' for replicate", {
   df <- make_surveywts_data(seed = 626)
   targets <- .make_targets_ps()
   rep_design <- .make_replicate_design(df, seed = 626)
 
-  result <- calibrate_poststrat(rep_design, targets = targets, type = "count")
+  result <- poststratify(rep_design, targets = targets, type = "count")
 
   expect_identical(result@calibration$method, "poststrat")
 })
@@ -1242,7 +1225,7 @@ test_that("calibrate_poststrat() @calibration$method == 'poststrat' for replicat
 # PR-7. 0 replicate columns -> replicate_converged length 0
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() with 0 repweights gives replicate_converged length 0", {
+test_that("poststratify() with 0 repweights gives replicate_converged length 0", {
   df <- make_surveywts_data(n = 50, seed = 627)
   targets <- .make_targets_ps()
   meta <- surveycore::survey_metadata()
@@ -1259,7 +1242,7 @@ test_that("calibrate_poststrat() with 0 repweights gives replicate_converged len
     call = NULL
   )
 
-  result <- calibrate_poststrat(rep_empty, targets = targets, type = "count")
+  result <- poststratify(rep_empty, targets = targets, type = "count")
 
   rc <- result@calibration$replicate_converged
   expect_true(is.logical(rc))
@@ -1270,12 +1253,12 @@ test_that("calibrate_poststrat() with 0 repweights gives replicate_converged len
 # PR-8. cell_factors non-NULL for survey_replicate
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() @calibration$cell_factors non-NULL for survey_replicate", {
+test_that("poststratify() @calibration$cell_factors non-NULL for survey_replicate", {
   df <- make_surveywts_data(seed = 628)
   targets <- .make_targets_ps()
   rep_design <- .make_replicate_design(df, seed = 628)
 
-  result <- calibrate_poststrat(rep_design, targets = targets, type = "count")
+  result <- poststratify(rep_design, targets = targets, type = "count")
 
   expect_false(is.null(result@calibration$cell_factors))
   expect_true(is.numeric(result@calibration$cell_factors))
@@ -1285,12 +1268,131 @@ test_that("calibrate_poststrat() @calibration$cell_factors non-NULL for survey_r
 # PR-9. REG: survey_replicate does NOT throw replicate_not_supported
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_poststrat() with survey_replicate does NOT throw replicate_not_supported", {
+test_that("poststratify() with survey_replicate does NOT throw replicate_not_supported", {
   df <- make_surveywts_data(seed = 629)
   targets <- .make_targets_ps()
   rep_design <- .make_replicate_design(df, seed = 629)
 
   expect_no_error(
-    calibrate_poststrat(rep_design, targets = targets, type = "count")
+    poststratify(rep_design, targets = targets, type = "count")
   )
+})
+
+# ---------------------------------------------------------------------------
+# EC6. cell_factors == target_count / ht_estimate per cell (value assertion)
+# ---------------------------------------------------------------------------
+
+test_that("poststratify() @calibration$cell_factors equal target/ht_estimate per cell (1e-10)", {
+  df <- make_surveywts_data(seed = 700)
+  design <- .make_test_taylor_ps(df)
+  targets <- .make_targets_ps("count")  # count type for unambiguous ht estimate
+
+  result <- poststratify(design, targets = targets, type = "count")
+
+  cf <- result@calibration$cell_factors
+  pre_wts <- design@data[[design@variables$weights]]
+
+  for (i in seq_along(cf)) {
+    cell_name <- names(cf)[[i]]
+    # Reconstruct cell key: paste all non-target column values
+    var_cols <- setdiff(names(targets), "target")
+    cell_row <- targets[i, var_cols, drop = FALSE]
+    cell_mask <- rep(TRUE, nrow(df))
+    for (v in var_cols) {
+      cell_mask <- cell_mask & (df[[v]] == cell_row[[v]])
+    }
+    ht_est <- sum(pre_wts[cell_mask])
+    expected_cf <- targets$target[[i]] / ht_est
+    expect_equal(cf[[i]], expected_cf, tolerance = 1e-10)
+  }
+})
+
+# ---------------------------------------------------------------------------
+# CX4. Four distinct operation strings across all calibration functions
+# ---------------------------------------------------------------------------
+
+test_that("CX4: calibrate_linear/logit/rake/poststratify produce four distinct operations", {
+  df <- make_surveywts_data(seed = 710)
+  targets_marg <- list(
+    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
+    sex       = c("M" = 0.48, "F" = 0.52)
+  )
+  pop <- .make_targets_ps("count")
+
+  suppressWarnings({
+    r1 <- calibrate_linear(df, targets = targets_marg)
+    r2 <- calibrate_logit(df, targets = targets_marg)
+    r3 <- calibrate_rake(df, targets = targets_marg)
+    r4 <- poststratify(df, targets = pop, type = "count")
+  })
+
+  ops <- c(
+    attr(r1, "weighting_history")[[length(attr(r1, "weighting_history"))]]$operation,
+    attr(r2, "weighting_history")[[length(attr(r2, "weighting_history"))]]$operation,
+    attr(r3, "weighting_history")[[length(attr(r3, "weighting_history"))]]$operation,
+    attr(r4, "weighting_history")[[length(attr(r4, "weighting_history"))]]$operation
+  )
+  expect_length(unique(ops), 4L)
+  expect_true(all(c("calibrate_linear", "calibrate_logit", "calibrate_rake", "poststratify") %in% ops))
+})
+
+# ---------------------------------------------------------------------------
+# W1. SRS warning — plain data.frame + weights = NULL
+# ---------------------------------------------------------------------------
+
+test_that("W1: poststratify() emits srs_no_weights for plain data.frame + weights = NULL", {
+  df <- make_surveywts_data(seed = 720)
+  pop <- .make_targets_ps("count")
+
+  expect_warning(
+    result <- poststratify(df, targets = pop, type = "count"),
+    class = "surveywts_warning_srs_no_weights"
+  )
+
+  test_invariants(result)
+  expect_true(inherits(result, "weighted_df"))
+})
+
+# ---------------------------------------------------------------------------
+# W2. Replicate calibration failure — surveywts_warning_replicate_calibration_failed
+# ---------------------------------------------------------------------------
+
+test_that("W2: poststratify() warns replicate_calibration_failed when replicate cell has zero weights", {
+  df <- make_surveywts_data(seed = 730)
+  targets <- .make_targets_ps("count")
+  rep_design <- .make_replicate_design(df, seed = 730)
+
+  # Zero out all "55+" weights in the first replicate column
+  first_rep_col <- rep_design@variables$repweights[[1L]]
+  rep_design@data[[first_rep_col]][df$age_group == "55+"] <- 0
+
+  expect_warning(
+    result <- poststratify(rep_design, targets = targets, type = "count"),
+    class = "surveywts_warning_replicate_calibration_failed"
+  )
+
+  # Full-sample weights still positive
+  out_wts <- result@data[[result@variables$weights]]
+  expect_true(all(out_wts > 0))
+
+  # First replicate marked as not converged
+  expect_false(result@calibration$replicate_converged[[first_rep_col]])
+})
+
+# ---------------------------------------------------------------------------
+# PR-type = "prop" in replicate loop (coverage for line 418)
+# ---------------------------------------------------------------------------
+
+test_that("poststratify() type='prop' works for survey_replicate", {
+  df <- make_surveywts_data(seed = 740)
+  pop_prop <- .make_targets_ps("prop")
+  rep_design <- .make_replicate_design(df, seed = 740)
+
+  result <- poststratify(rep_design, targets = pop_prop, type = "prop")
+
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
+  # Full-sample weights hit the proportional targets
+  out_wts <- result@data[[result@variables$weights]]
+  expect_true(all(out_wts > 0))
 })

@@ -74,7 +74,7 @@ result_linear <- calibrate(df, targets = targets, method = "linear")
 Other calibration: 
 \code{\link{calibrate_linear}()},
 \code{\link{calibrate_logit}()},
-\code{\link{calibrate_poststrat}()},
-\code{\link{calibrate_rake}()}
+\code{\link{calibrate_rake}()},
+\code{\link{poststratify}()}
 }
 \concept{calibration}

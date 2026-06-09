@@ -20,25 +20,25 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_error_wt_name_not_scalar` | `.validate_wt_name()` | `wt_name` is not `character(1)` |
 | `surveywts_error_wt_name_empty` | `.validate_wt_name()` | `wt_name` is `NA` or `""` |
 
-### `calibrate_greg()`
+### `calibrate_linear()` / `calibrate_logit()`
 
 | Class | Thrown by | Condition |
 |-------|-----------|-----------|
-| `surveywts_error_variable_not_categorical` | `calibrate_greg()` | Calibration variable is numeric or integer |
-| `surveywts_error_variable_has_na` | `calibrate_greg()` | A calibration variable has `NA` values |
-| `surveywts_error_targets_variable_not_found` | `calibrate_greg()` | A `targets` name not found in `data` |
-| `surveywts_error_population_level_missing` | `calibrate_greg()` | A data level absent from `targets` |
-| `surveywts_error_population_level_extra` | `calibrate_greg()` | A `targets` level absent from `data` |
-| `surveywts_error_population_totals_invalid` | `calibrate_greg()` | `type = "prop"` proportions don't sum to 1, or `type = "count"` target ≤ 0 |
+| `surveywts_error_variable_not_categorical` | `calibrate_linear()`, `calibrate_logit()` | Calibration variable is numeric or integer |
+| `surveywts_error_variable_has_na` | `calibrate_linear()`, `calibrate_logit()` | A calibration variable has `NA` values |
+| `surveywts_error_targets_variable_not_found` | `calibrate_linear()`, `calibrate_logit()` | A `targets` name not found in `data` |
+| `surveywts_error_population_level_missing` | `calibrate_linear()`, `calibrate_logit()` | A data level absent from `targets` |
+| `surveywts_error_population_level_extra` | `calibrate_linear()`, `calibrate_logit()` | A `targets` level absent from `data` |
+| `surveywts_error_population_totals_invalid` | `calibrate_linear()`, `calibrate_logit()` | `type = "prop"` proportions don't sum to 1, or `type = "count"` target ≤ 0 |
 | `surveywts_error_calibration_not_converged` | `.calibrate_engine()` | Max iterations reached without convergence |
 | `surveywts_error_calibration_singular_system` | `.calibrate_engine()`, `calibrate_linear()`, `calibrate_logit()` | `solve()` fails because the calibration Jacobian / crossproduct matrix $T_x$ is singular (collinear calibration variables or rank-deficient model matrix). Distinct from `surveywts_error_calibration_not_converged` (NR iteration exhaustion). |
-| `surveywts_error_reference_design_not_taylor` | `calibrate_greg()` | `reference_design` is non-`NULL` and not `survey_taylor` |
+| `surveywts_error_reference_design_not_taylor` | `calibrate_linear()`, `calibrate_logit()` | `reference_design` is non-`NULL` and not `survey_taylor` |
 
 ### `calibrate_rake()`
 
 | Class | Thrown by | Condition |
 |-------|-----------|-----------|
-| `surveywts_error_margins_format_invalid` | `calibrate_greg()`, `calibrate_rake()` | `targets` is not a named list or valid long data frame |
+| `surveywts_error_margins_format_invalid` | `calibrate_linear()`, `calibrate_logit()`, `calibrate_rake()` | `targets` is not a named list or valid long data frame |
 | `surveywts_error_targets_variable_not_found` | `calibrate_rake()` | A `targets` variable not found in `data` |
 | `surveywts_error_variable_not_categorical` | `calibrate_rake()` | Raking variable is numeric or integer |
 | `surveywts_error_variable_has_na` | `calibrate_rake()` | A raking variable has `NA` values |
@@ -54,19 +54,19 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_error_calibration_singular_system` | `.calibrate_nr_engine()`, `calibrate_linear()`, `calibrate_logit()` | `solve()` failed — the calibration Jacobian / crossproduct matrix is singular (collinear calibration variables or rank-deficient model matrix). Distinct from `surveywts_error_calibration_not_converged` (NR iteration exhaustion). |
 | `surveywts_error_reference_design_not_taylor` | `calibrate_rake()` | `reference_design` is non-`NULL` and not `survey_taylor` |
 
-### `calibrate_poststrat()`
+### `poststratify()`
 
 | Class | Thrown by | Condition |
 |-------|-----------|-----------|
-| `surveywts_error_margins_format_invalid` | `calibrate_poststrat()` | `targets` is not a `data.frame` (e.g., a named list or scalar) |
-| `surveywts_error_no_strata_variables` | `calibrate_poststrat()` | `targets` data frame has zero non-`"target"` columns |
-| `surveywts_error_targets_variable_not_found` | `calibrate_poststrat()` | A non-`"target"` column name in `targets` is absent from `data` |
-| `surveywts_error_reference_design_not_taylor` | `calibrate_poststrat()` | `reference_design` is non-`NULL` and not a `survey_taylor` object |
-| `surveywts_error_variable_has_na` | `calibrate_poststrat()` | A strata variable has `NA` values |
-| `surveywts_error_population_totals_invalid` | `calibrate_poststrat()` | `type = "prop"` targets don't sum to 1, or `type = "count"` target ≤ 0 |
-| `surveywts_error_population_cell_duplicate` | `calibrate_poststrat()` / `.validate_population_cells()` | A cell combination appears more than once in `targets` |
-| `surveywts_error_population_cell_missing` | `calibrate_poststrat()` | A data cell has no row in `targets` |
-| `surveywts_error_population_cell_not_in_data` | `calibrate_poststrat()` | A `targets` cell has no observations in `data` |
+| `surveywts_error_margins_format_invalid` | `poststratify()` | `targets` is not a `data.frame` (e.g., a named list or scalar) |
+| `surveywts_error_no_strata_variables` | `poststratify()` | `targets` data frame has zero non-`"target"` columns |
+| `surveywts_error_targets_variable_not_found` | `poststratify()` | A non-`"target"` column name in `targets` is absent from `data` |
+| `surveywts_error_reference_design_not_taylor` | `poststratify()` | `reference_design` is non-`NULL` and not a `survey_taylor` object |
+| `surveywts_error_variable_has_na` | `poststratify()` | A strata variable has `NA` values |
+| `surveywts_error_population_totals_invalid` | `poststratify()` | `type = "prop"` targets don't sum to 1, or `type = "count"` target ≤ 0 |
+| `surveywts_error_population_cell_duplicate` | `poststratify()` / `.validate_population_cells()` | A cell combination appears more than once in `targets` |
+| `surveywts_error_population_cell_missing` | `poststratify()` | A data cell has no row in `targets` |
+| `surveywts_error_population_cell_not_in_data` | `poststratify()` | A `targets` cell has no observations in `data` |
 | `surveywts_error_empty_stratum` | `poststratify()` (replicate path only) | `sum(replicate_weight_column[cell]) == 0` for any cell in a replicate weight column. Cannot fire on full-sample path because design weights are validated strictly positive. |
 
 ### `adjust_nonresponse()`
@@ -259,7 +259,7 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_warning_ipw_reference_levels_absent_from_nps` | `ipw()` | A reference factor/character level is absent from the NPS for a selection variable — reference units in these cells have near-zero propensity scores |
 | `surveywts_warning_no_weights_trimmed` | `trim_weights()` | No main weights fell outside the resolved bounds |
 | `surveywts_warning_trimming_failed` | `trim_weights()` | All remaining units already trimmed; no untrimmed units to absorb excess |
-| _See also:_ `surveywts_warning_negative_calibrated_weights` | — | Shared with `calibrate_greg()` section; also thrown by `calibrate_to_survey()` and `calibrate_to_estimate()` |
+| _See also:_ `surveywts_warning_negative_calibrated_weights` | — | Shared with `calibrate_linear()` section; also thrown by `calibrate_to_survey()` and `calibrate_to_estimate()` |
 | _See also:_ `surveywts_warning_class_near_empty` | — | Shared with `adjust_nonresponse()` section; also thrown by `redistribute_weights()` |
 | `surveywts_warning_reference_sample_ignored` | `create_bootstrap_weights()` | `reference_sample` non-`NULL` and `type` is a probability-sample type |
 | `surveywts_warning_bootstrap_draws_failed` | `.quasi_randomization_bootstrap()` | More than 10% of draws failed |

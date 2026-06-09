@@ -1,195 +1,194 @@
-# calibrate_poststrat() rejects unsupported input class (SE-1)
+# poststratify() rejects unsupported input class (SE-1)
 
     Code
-      calibrate_poststrat(list(x = 1), targets = pop, type = "count")
+      poststratify(list(x = 1), targets = pop, type = "count")
     Condition
       Error in `.check_input_class()`:
       x `data` must be a data frame or a supported survey design object.
       i Got <list>.
       v See package documentation for supported input types.
 
-# calibrate_poststrat() rejects 0-row data frame (SE-3)
+# poststratify() rejects 0-row data frame (SE-3)
 
     Code
-      calibrate_poststrat(df0, targets = pop, type = "count")
+      poststratify(df0, targets = pop, type = "count")
     Condition
-      Error in `calibrate_poststrat()`:
+      Error in `poststratify()`:
       x `data` has 0 rows.
       i This operation is undefined on empty data.
       v Ensure `data` has at least one row.
 
-# calibrate_poststrat() rejects missing named weight column (SE-4)
+# poststratify() rejects missing named weight column (SE-4)
 
     Code
-      calibrate_poststrat(df, targets = pop, weights = no_such_col, type = "count")
+      poststratify(df, targets = pop, weights = no_such_col, type = "count")
     Condition
       Error in `.validate_weights()`:
       x Weight column no_such_col not found in `data`.
       i Available columns: id, age_group, sex, education, region, and base_weight.
       v Pass the column name as a bare name, e.g., `weights = wt_col`.
 
-# calibrate_poststrat() rejects non-numeric weight column (SE-5)
+# poststratify() rejects non-numeric weight column (SE-5)
 
     Code
-      calibrate_poststrat(df, targets = pop, weights = bad_wt, type = "count")
+      poststratify(df, targets = pop, weights = bad_wt, type = "count")
     Condition
       Error in `.validate_weights()`:
       x Weight column bad_wt must be numeric.
       i Got <character>.
       v Use `as.numeric(bad_wt)` to convert.
 
-# calibrate_poststrat() rejects non-positive weight column (SE-6)
+# poststratify() rejects non-positive weight column (SE-6)
 
     Code
-      calibrate_poststrat(df, targets = pop, weights = base_weight, type = "count")
+      poststratify(df, targets = pop, weights = base_weight, type = "count")
     Condition
       Error in `.validate_weights()`:
       x Weight column base_weight contains 1 non-positive value(s).
       i All starting weights must be strictly positive (> 0).
       v Remove or replace non-positive weights before proceeding.
 
-# calibrate_poststrat() rejects NA weight column (SE-7)
+# poststratify() rejects NA weight column (SE-7)
 
     Code
-      calibrate_poststrat(df, targets = pop, weights = base_weight, type = "count")
+      poststratify(df, targets = pop, weights = base_weight, type = "count")
     Condition
       Error in `.validate_weights()`:
       x Weight column base_weight contains 1 NA value(s).
       i Weights must be fully observed.
       v Remove rows with missing weights before proceeding.
 
-# calibrate_poststrat() rejects non-character wt_name
+# poststratify() rejects non-character wt_name
 
     Code
-      calibrate_poststrat(df, targets = pop, type = "count", wt_name = 42)
+      poststratify(df, targets = pop, type = "count", wt_name = 42)
     Condition
       Error in `.validate_wt_name()`:
       x `wt_name` must be a single character string.
       i Got <numeric> of length 1.
 
-# calibrate_poststrat() rejects empty wt_name
+# poststratify() rejects empty wt_name
 
     Code
-      calibrate_poststrat(df, targets = pop, type = "count", wt_name = "")
+      poststratify(df, targets = pop, type = "count", wt_name = "")
     Condition
       Error in `.validate_wt_name()`:
       x `wt_name` must be a non-empty, non-NA string.
 
-# calibrate_poststrat() rejects non-taylor reference_design
+# poststratify() rejects non-taylor reference_design
 
     Code
-      calibrate_poststrat(df, targets = pop, type = "count", reference_design = list(
-        x = 1))
+      poststratify(df, targets = pop, type = "count", reference_design = list(x = 1))
     Condition
       Error in `.validate_reference_design()`:
       x `reference_design` must be a <survey_taylor>.
       i Got class <list>.
       v Pass the <survey_taylor> object used to compute the targets.
 
-# calibrate_poststrat() rejects targets that is not a data.frame
+# poststratify() rejects targets that is not a data.frame
 
     Code
-      calibrate_poststrat(df, targets = bad_targets, type = "prop")
+      poststratify(df, targets = bad_targets, type = "prop")
     Condition
-      Error in `calibrate_poststrat()`:
+      Error in `poststratify()`:
       x `targets` must be a <data.frame> with one column per stratification variable and one column named target.
       i Got <list>.
       v Pass a <data.frame> where non-target columns define the strata cells.
 
-# calibrate_poststrat() rejects targets with zero strata columns
+# poststratify() rejects targets with zero strata columns
 
     Code
-      calibrate_poststrat(df, targets = targets_bad, type = "prop")
+      poststratify(df, targets = targets_bad, type = "prop")
     Condition
-      Error in `calibrate_poststrat()`:
+      Error in `poststratify()`:
       x `targets` has no stratification variable columns (only a target column was found).
       i Stratification variables are identified as all columns in `targets` except target.
       v Add at least one column to `targets` that matches a column in `data`.
 
-# calibrate_poststrat() rejects targets with column absent from data
+# poststratify() rejects targets with column absent from data
 
     Code
-      calibrate_poststrat(df, targets = targets_bad, type = "prop")
+      poststratify(df, targets = targets_bad, type = "prop")
     Condition
-      Error in `calibrate_poststrat()`:
+      Error in `poststratify()`:
       x Stratification variable no_such_col from `targets` not found in `data`.
       i Non-target column names in `targets` must match column names in `data`.
       v Check spelling: available columns are id, age_group, sex, education, region, and base_weight.
 
-# calibrate_poststrat() rejects NA in strata variable
+# poststratify() rejects NA in strata variable
 
     Code
-      calibrate_poststrat(df, targets = pop, type = "count")
+      poststratify(df, targets = pop, type = "count", weights = base_weight)
     Condition
-      Error in `calibrate_poststrat()`:
+      Error in `poststratify()`:
       x Strata variable age_group contains 1 NA value(s).
       i NA values in strata variables are not allowed.
-      v Remove or impute NA values in age_group before calling `calibrate_poststrat()`.
+      v Remove or impute NA values in age_group before calling `poststratify()`.
 
-# calibrate_poststrat() rejects prop targets that don't sum to 1
+# poststratify() rejects prop targets that don't sum to 1
 
     Code
-      calibrate_poststrat(df, targets = pop_bad, type = "prop")
+      poststratify(df, targets = pop_bad, type = "prop", weights = base_weight)
     Condition
       Error in `.validate_population_cells()`:
       x Population targets sum to 0.98, not 1.0.
       i When `type = "prop"`, targets in `targets` must sum to 1.0 (within 1e-6 tolerance).
       v Adjust the values in the target column of `targets`.
 
-# calibrate_poststrat() rejects count targets that are non-positive
+# poststratify() rejects count targets that are non-positive
 
     Code
-      calibrate_poststrat(df, targets = pop_bad, type = "count")
+      poststratify(df, targets = pop_bad, type = "count", weights = base_weight)
     Condition
       Error in `.validate_population_cells()`:
       x Population targets contain 1 non-positive value(s).
       i When `type = "count"`, all targets must be strictly positive (> 0).
       v Remove or correct non-positive entries in the target column of `targets`.
 
-# calibrate_poststrat() rejects duplicate rows in targets
+# poststratify() rejects duplicate rows in targets
 
     Code
-      calibrate_poststrat(df, targets = pop_dup, type = "count")
+      poststratify(df, targets = pop_dup, type = "count", weights = base_weight)
     Condition
       Error in `.validate_population_cells()`:
       x Population cell "18-34//M" appears 2 times in `targets`.
       i Each cell combination must appear exactly once in `targets`.
-      v Remove duplicate rows for "18-34//M" from `targets` before calling `calibrate_poststrat()`.
+      v Remove duplicate rows for "18-34//M" from `targets` before calling `poststratify()`.
 
-# calibrate_poststrat() rejects targets missing a data cell
+# poststratify() rejects targets missing a data cell
 
     Code
-      calibrate_poststrat(df, targets = pop_missing, type = "count")
+      poststratify(df, targets = pop_missing, type = "count", weights = base_weight)
     Condition
       Error in `.validate_population_cells()`:
       x Cell "55+//F" is present in `data` but has no matching row in `targets`.
       i Every cell combination in the data must appear in `targets`.
       v Add a row for "55+//F" to `targets`.
 
-# calibrate_poststrat() rejects targets missing the 'target' column
+# poststratify() rejects targets missing the 'target' column
 
     Code
-      calibrate_poststrat(df, targets = pop_no_target, type = "count")
+      poststratify(df, targets = pop_no_target, type = "count", weights = base_weight)
     Condition
       Error in `.validate_population_cells()`:
       x `targets` is missing required column target.
       i `targets` must have columns for each strata variable (age_group) plus target.
       v Add the target column to `targets`.
 
-# calibrate_poststrat() rejects targets cells absent from data
+# poststratify() rejects targets cells absent from data
 
     Code
-      calibrate_poststrat(df, targets = pop_extra, type = "count")
+      poststratify(df, targets = pop_extra, type = "count", weights = base_weight)
     Condition
       Error in `.validate_population_cells()`:
       x Population cell "65+//M" has no observations in `data`.
       i Extra cells in `targets` are not allowed -- they may indicate a misspecified population.
-      v Remove rows for "65+//M" from `targets` before calling `calibrate_poststrat()`.
+      v Remove rows for "65+//M" from `targets` before calling `poststratify()`.
 
-# calibrate_poststrat() zero-weight stratum produces weights_nonpositive (SX-2)
+# poststratify() zero-weight stratum produces weights_nonpositive (SX-2)
 
     Code
-      calibrate_poststrat(df, targets = pop, weights = base_weight, type = "count")
+      poststratify(df, targets = pop, weights = base_weight, type = "count")
     Condition
       Error in `.validate_weights()`:
       x Weight column base_weight contains 55 non-positive value(s).

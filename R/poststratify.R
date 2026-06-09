@@ -1,19 +1,19 @@
-# R/calibrate_poststrat.R
+# R/poststratify.R
 #
-# calibrate_poststrat() — exact post-stratification to joint population cell
-# counts.
+# poststratify() — exact post-stratification to joint population cell counts.
 #
-# Replaces old poststratify() (PR 2 of calibration-api redesign).
-# Key changes vs old poststratify():
-#   - `strata` (tidy-select) + `population` data frame replaced by single
-#     `targets` data frame; strata variables identified from
+# Renamed from calibrate_poststrat() in PR 5 of the calibration-framework.
+# Algorithm is identical to calibrate_poststrat(). Only the function name,
+# history operation string, and error-message function references changed.
+#
+# Key features vs old poststratify():
+#   - `targets` data frame replaces separate `strata` (tidy-select) +
+#     `population` arguments; strata variables identified from
 #     setdiff(names(targets), "target")
-#   - operation history field: "calibrate_poststrat" (was "poststratify")
-#   - `reference_design` argument added
-#   - targets must be a data.frame (not a named list)
-#   - New error classes: surveywts_error_margins_format_invalid,
-#     surveywts_error_no_strata_variables,
-#     surveywts_error_targets_variable_not_found
+#   - `reference_design` argument
+#   - `survey_replicate` support (replicate loop)
+#   - `@calibration` slot populated for survey objects
+#   - `cell_factors` stored in `@calibration`
 #
 # Private helper (only used here):
 #   .validate_population_cells()  -- validates targets data frame structure
@@ -27,8 +27,8 @@
 #' Adjusts survey weights so that the weighted cell counts (or proportions)
 #' match known population values for every joint combination of stratification
 #' variables. Unlike [calibrate_linear()] and [calibrate_rake()], which match
-#' marginal totals, `calibrate_poststrat()` matches exact cross-tabulation
-#' cells in a single pass.
+#' marginal totals, `poststratify()` matches exact cross-tabulation cells in
+#' a single pass.
 #'
 #' @param data A `data.frame`, `weighted_df`, `survey_taylor`,
 #'   `survey_nonprob`, or `survey_replicate`. Any other class -> error.
@@ -75,7 +75,7 @@
 #'     `@calibration` slot is populated, including `replicate_converged`
 #'
 #'   The weight column in the output contains post-stratified weights. A
-#'   history entry with `operation = "calibrate_poststrat"` is appended to
+#'   history entry with `operation = "poststratify"` is appended to
 #'   `weighting_history`.
 #'   For `survey_replicate` inputs, each replicate weight column is also
 #'   post-stratified. Failed replicates retain their original weights and are
@@ -84,24 +84,24 @@
 #' @references
 #'   Valliant, R. (1993). Poststratification and conditional variance
 #'   estimation. *Journal of the American Statistical Association*,
-#'   88(421), 89–96. doi:10.2307/2290701
+#'   88(421), 89--96. doi:10.2307/2290701
 #'
 #'   Deville, J.-C. and Sarndal, C.-E. (1992). Calibration estimators in
 #'   survey sampling. *Journal of the American Statistical Association*,
-#'   87(418), 376–382. doi:10.2307/2290268
+#'   87(418), 376--382. doi:10.2307/2290268
 #'
 #'   Rao, J. N. K., Yung, W. and Hidiroglou, M. A. (2002). Estimating
 #'   equations for the analysis of survey data using poststratification
-#'   information. *Sankhya*, 64(2), 364–378.
+#'   information. *Sankhya*, 64(2), 364--378.
 #'
 #'   Deville, J.-C., Sarndal, C.-E. and Sautory, O. (1993). Generalized
 #'   raking procedures in survey sampling. *Journal of the American
-#'   Statistical Association*, 88(423), 1013–1020.
+#'   Statistical Association*, 88(423), 1013--1020.
 #'   doi:10.1080/01621459.1993.10476369
 #'
 #'   Rao, J. N. K., Wu, C. F. J. and Yue, K. (1992). Some recent work on
 #'   resampling methods for complex surveys. *Survey Methodology*,
-#'   18(2), 209–217.
+#'   18(2), 209--217.
 #'
 #' @examples
 #' df <- data.frame(
@@ -116,7 +116,7 @@
 #'   sex = c("M", "M", "M", "F", "F", "F"),
 #'   target = c(0.14, 0.18, 0.17, 0.15, 0.19, 0.17)
 #' )
-#' result <- calibrate_poststrat(df, targets = pop_prop)
+#' result <- poststratify(df, targets = pop_prop)
 #'
 #' # Count targets (explicit type = "count")
 #' pop_count <- data.frame(
@@ -124,7 +124,7 @@
 #'   sex = c("M", "M", "M", "F", "F", "F"),
 #'   target = c(14000, 18000, 17000, 15000, 19000, 17000)
 #' )
-#' result2 <- calibrate_poststrat(
+#' result2 <- poststratify(
 #'   df,
 #'   targets = pop_count,
 #'   type = "count"
@@ -132,7 +132,7 @@
 #'
 #' @family calibration
 #' @export
-calibrate_poststrat <- function(
+poststratify <- function(
   data,
   targets,
   weights = NULL,
@@ -239,6 +239,19 @@ calibrate_poststrat <- function(
   # For plain data.frame with weights = NULL: create uniform starting weights
   if (inherits(data, "data.frame") && rlang::quo_is_null(weights_quo) &&
       !inherits(data, "weighted_df")) {
+    cli::cli_warn(
+      c(
+        "!" = paste0(
+          "No {.arg weights} supplied for a plain {.cls data.frame}. ",
+          "Using uniform starting weights (all 1/n)."
+        ),
+        "i" = paste0(
+          "This assumes a simple random sample (SRS). Supply design ",
+          "weights for unequal-probability designs."
+        )
+      ),
+      class = "surveywts_warning_srs_no_weights"
+    )
     data_df[[wt_name]] <- rep(1 / nrow(data_df), nrow(data_df))
     weight_col <- wt_name
   }
@@ -266,7 +279,7 @@ calibrate_poststrat <- function(
           "i" = "NA values in strata variables are not allowed.",
           "v" = paste0(
             "Remove or impute NA values in {.field {var}} before ",
-            "calling {.fn calibrate_poststrat}."
+            "calling {.fn poststratify}."
           )
         ),
         class = "surveywts_error_variable_has_na"
@@ -347,13 +360,13 @@ calibrate_poststrat <- function(
   }
 
   # ---- 15. Build x_matrix, cell_factors, and calibration provenance -------
-  # For survey objects only. x_matrix is full cross-cell indicator: n × C
+  # For survey objects only. x_matrix is full cross-cell indicator: n x C
   # matrix where C = number of unique cells in targets.
   is_survey_obj <- S7::S7_inherits(data, surveycore::survey_base)
   caldata <- NULL
 
   if (is_survey_obj) {
-    # Build cell indicator matrix (n × C)
+    # Build cell indicator matrix (n x C)
     C <- length(cells)
     x_matrix_ps <- matrix(0, nrow = nrow(plain_df), ncol = C,
                           dimnames = list(NULL, pop_keys))
@@ -450,7 +463,8 @@ calibrate_poststrat <- function(
                 "i" = paste0(
                   "This replicate's weights are kept at their ",
                   "pre-calibration values. Variance estimates may be ",
-                  "affected. Inspect {.code output@calibration$replicate_converged}."
+                  "affected. Inspect ",
+                  "{.code output@calibration$replicate_converged}."
                 )
               ),
               class = "surveywts_warning_replicate_calibration_failed"
@@ -473,7 +487,7 @@ calibrate_poststrat <- function(
 
   history_entry <- .make_history_entry(
     step        = length(current_history) + 1L,
-    operation   = "calibrate_poststrat",
+    operation   = "poststratify",
     weight_col  = if (inherits(data, "data.frame")) wt_name else data@variables$weights,
     call_str    = call_str,
     parameters  = list(
@@ -504,7 +518,7 @@ calibrate_poststrat <- function(
 # .validate_population_cells() -- private helper
 # ---------------------------------------------------------------------------
 
-# Validates the targets data frame for calibrate_poststrat().
+# Validates the targets data frame for poststratify().
 #
 # Checks (in order):
 #   1. Required columns present (strata_names + "target")
@@ -572,7 +586,7 @@ calibrate_poststrat <- function(
         "i" = "Each cell combination must appear exactly once in {.arg targets}.",
         "v" = paste0(
           "Remove duplicate rows for {.val {cell_label}} from ",
-          "{.arg targets} before calling {.fn calibrate_poststrat}."
+          "{.arg targets} before calling {.fn poststratify}."
         )
       ),
       class = "surveywts_error_population_cell_duplicate"
@@ -616,7 +630,7 @@ calibrate_poststrat <- function(
         ),
         "v" = paste0(
           "Remove rows for {.val {cell_label}} from {.arg targets} ",
-          "before calling {.fn calibrate_poststrat}."
+          "before calling {.fn poststratify}."
         )
       ),
       class = "surveywts_error_population_cell_not_in_data"

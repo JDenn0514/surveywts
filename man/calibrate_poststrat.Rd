@@ -27,7 +27,7 @@ warning is emitted and the original replicate weights are kept.}
 \code{"target"}, and one row per unique cell combination. The stratification
 variables are automatically identified as \code{setdiff(names(targets), "target")}.
 
-Unlike \code{\link[=calibrate_greg]{calibrate_greg()}} and \code{\link[=calibrate_rake]{calibrate_rake()}}, \code{targets} must be a
+Unlike \code{\link[=calibrate_linear]{calibrate_linear()}} and \code{\link[=calibrate_rake]{calibrate_rake()}}, \code{targets} must be a
 \code{data.frame} — named lists are not accepted
 (\code{surveywts_error_margins_format_invalid}). The \code{targets} data frame must
 have at least one non-\code{"target"} column
@@ -47,7 +47,7 @@ object (\code{survey_taylor} or \code{survey_nonprob}).}
 
 \item{type}{Character scalar. \code{"prop"} (default): \code{target} values are
 proportions summing to 1.0. \code{"count"}: \code{target} values are population
-counts. Consistent with \code{\link[=calibrate_greg]{calibrate_greg()}} and \code{\link[=calibrate_rake]{calibrate_rake()}}.}
+counts. Consistent with \code{\link[=calibrate_linear]{calibrate_linear()}} and \code{\link[=calibrate_rake]{calibrate_rake()}}.}
 
 \item{reference_design}{A \code{survey_taylor} object or \code{NULL}. The probability
 survey from which \code{targets} were estimated. When non-\code{NULL}, stored in
@@ -75,7 +75,7 @@ recorded in \code{output@calibration$replicate_converged} as \code{FALSE}.
 \description{
 Adjusts survey weights so that the weighted cell counts (or proportions)
 match known population values for every joint combination of stratification
-variables. Unlike \code{\link[=calibrate_greg]{calibrate_greg()}} and \code{\link[=calibrate_rake]{calibrate_rake()}}, which match
+variables. Unlike \code{\link[=calibrate_linear]{calibrate_linear()}} and \code{\link[=calibrate_rake]{calibrate_rake()}}, which match
 marginal totals, \code{calibrate_poststrat()} matches exact cross-tabulation
 cells in a single pass.
 }
@@ -132,8 +132,8 @@ resampling methods for complex surveys. \emph{Survey Methodology},
 \seealso{
 Other calibration: 
 \code{\link{calibrate}()},
-\code{\link{calibrate_greg}()},
 \code{\link{calibrate_linear}()},
+\code{\link{calibrate_logit}()},
 \code{\link{calibrate_rake}()}
 }
 \concept{calibration}

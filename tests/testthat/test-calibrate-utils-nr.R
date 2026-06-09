@@ -636,3 +636,40 @@ test_that("calibrate_rake() with algorithm = 'anesrake' still works after PR 1",
     tolerance = 0.01
   )
 })
+
+# ---------------------------------------------------------------------------
+# .parse_margins() edge cases (coverage for previously-dead paths in
+# calibrate-utils.R now uncovered after calibrate_greg.R was deleted)
+# ---------------------------------------------------------------------------
+
+test_that(".parse_margins() rejects unnamed list element", {
+  expect_error(
+    .parse_margins(list(c("A" = 0.5, "B" = 0.5))),
+    class = "surveywts_error_margins_format_invalid"
+  )
+})
+
+test_that(".parse_margins() rejects named list with data.frame element missing required columns", {
+  bad_df_target <- list(age_group = data.frame(x = 1, y = 2))
+  expect_error(
+    .parse_margins(bad_df_target),
+    class = "surveywts_error_margins_format_invalid"
+  )
+})
+
+test_that(".parse_margins() accepts named list with well-formed data.frame element", {
+  good <- list(
+    age_group = data.frame(
+      level  = c("18-34", "35-54", "55+"),
+      target = c(0.30, 0.40, 0.30),
+      stringsAsFactors = FALSE
+    )
+  )
+  result <- .parse_margins(good)
+  expect_named(result, "age_group")
+  expect_equal(
+    result$age_group,
+    c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
+    tolerance = 1e-12
+  )
+})

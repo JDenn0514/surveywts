@@ -1507,3 +1507,35 @@ test_that("calibrate_rake() @calibration$lambda is NULL for classic_ipf (RT-5b)"
 
   expect_null(result@calibration$lambda)
 })
+
+# ---------------------------------------------------------------------------
+# Coverage: .validate_count_marginal_consistency() single-variable early return
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() with type='count' and single variable skips multi-var consistency check", {
+  df <- make_surveywts_data(n = 200, seed = 701)
+  targets <- list(
+    age_group = c("18-34" = 67, "35-54" = 67, "55+" = 66)
+  )
+
+  result <- calibrate_rake(df, targets = targets, weights = base_weight,
+                           type = "count")
+
+  test_invariants(result)
+  expect_true(inherits(result, "weighted_df"))
+})
+
+# ---------------------------------------------------------------------------
+# Coverage: .throw_not_converged_zero_maxit() — anesrake else branch
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() throws surveywts_error_calibration_not_converged for maxit = 0", {
+  df <- make_surveywts_data(n = 100, seed = 702)
+  targets <- .make_targets_rake()
+
+  expect_error(
+    calibrate_rake(df, targets = targets, weights = base_weight,
+                   control = list(maxit = 0L)),
+    class = "surveywts_error_calibration_not_converged"
+  )
+})

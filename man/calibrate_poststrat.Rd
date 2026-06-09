@@ -133,6 +133,7 @@ resampling methods for complex surveys. \emph{Survey Methodology},
 Other calibration: 
 \code{\link{calibrate}()},
 \code{\link{calibrate_greg}()},
+\code{\link{calibrate_linear}()},
 \code{\link{calibrate_rake}()}
 }
 \concept{calibration}

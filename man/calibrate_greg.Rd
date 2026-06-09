@@ -135,6 +135,7 @@ resampling methods for complex surveys. \emph{Survey Methodology},
 \seealso{
 Other calibration: 
 \code{\link{calibrate}()},
+\code{\link{calibrate_linear}()},
 \code{\link{calibrate_poststrat}()},
 \code{\link{calibrate_rake}()}
 }

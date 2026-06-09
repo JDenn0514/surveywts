@@ -174,37 +174,36 @@
       i Variable age_group sums to 500; variable sex sums to 550 (difference: 50).
       v Ensure all entries in `targets` refer to the same population total.
 
-# calibrate_rake() throws calibration_not_converged hitting maxit
+# calibrate_rake() throws calibration_not_converged hitting maxit (nr)
 
     Code
-      calibrate_rake(df, targets = targets, algorithm = "survey", control = list(
-        maxit = 1, epsilon = 1e-20))
+      calibrate_rake(df, targets = targets, algorithm = "nr", control = list(maxit = 1L,
+        epsilon = 1e-20))
     Condition
-      Error:
-      x Raking did not converge after 1 full sweeps.
-      i survey::rake() reported: Raking did not converge after 1 iterations.
-      v Increase `control$maxit`, relax `control$epsilon`, or verify margin totals are consistent with the sample.
+      Error in `.calibrate_nr_engine()`:
+      x Calibration did not converge after 1 iteration.
+      i The maximum relative misfit at termination was 0.002289.
+      v Try increasing `maxit`, relaxing `epsilon`, or widening the `bounds`.
 
-# calibrate_rake() rejects cap with algorithm = 'survey'
+# calibrate_rake() rejects cap with algorithm = 'nr'
 
     Code
-      calibrate_rake(df, targets = targets, algorithm = "survey", cap = 3)
+      calibrate_rake(df, targets = targets, algorithm = "nr", cap = 3)
     Condition
       Error in `calibrate_rake()`:
-      x `cap` is not supported when `algorithm = "survey"`.
-      i `survey::rake()` does not support per-step weight capping.
-      v Use `algorithm = "anesrake"` for raking with a weight cap.
+      x `cap` is not supported when `algorithm = "nr"`.
+      i The Newton-Raphson raking engine does not support per-step weight capping.
+      v Use `algorithm = "classic_ipf"` for raking with a weight cap.
 
-# calibrate_rake() warns for anesrake-specific control param with algorithm='survey'
+# calibrate_rake() warns for classic_ipf-specific control param with algorithm='nr'
 
     Code
-      calibrate_rake(df, targets = targets, algorithm = "survey", control = list(
-        pval = 0.01))
+      calibrate_rake(df, targets = targets, algorithm = "nr", control = list(pval = 0.01))
     Condition
       Warning:
-      ! `control$pval` is not used when `algorithm = "survey"` and will be ignored.
-      i For `algorithm = "anesrake"`, valid `control` keys are: `maxit`, `improvement`, `pval`, `min_cell_n`, `variable_select`.
-      i For `algorithm = "survey"`, valid `control` keys are: `maxit`, `epsilon`.
+      ! `control$pval` is not used when `algorithm = "nr"` and will be ignored.
+      i For `algorithm = "classic_ipf"`, valid `control` keys are: `maxit`, `improvement`, `pval`, `min_cell_n`, `variable_select`.
+      i For `algorithm = "nr"`, valid `control` keys are: `maxit`, `epsilon`.
     Output
       # A tibble: 500 x 7
             id age_group sex   education region    base_weight     wts
@@ -221,16 +220,16 @@
       10    10 35-54     F     Graduate  West            1.06  0.00182
       # i 490 more rows
 
-# calibrate_rake() warns for survey-specific control param with algorithm='anesrake'
+# calibrate_rake() warns for nr-specific control param with algorithm='classic_ipf'
 
     Code
-      calibrate_rake(df, targets = targets, algorithm = "anesrake", control = list(
+      calibrate_rake(df, targets = targets, algorithm = "classic_ipf", control = list(
         epsilon = 1e-09))
     Condition
       Warning:
-      ! `control$epsilon` is not used when `algorithm = "anesrake"` and will be ignored.
-      i For `algorithm = "anesrake"`, valid `control` keys are: `maxit`, `improvement`, `pval`, `min_cell_n`, `variable_select`.
-      i For `algorithm = "survey"`, valid `control` keys are: `maxit`, `epsilon`.
+      ! `control$epsilon` is not used when `algorithm = "classic_ipf"` and will be ignored.
+      i For `algorithm = "classic_ipf"`, valid `control` keys are: `maxit`, `improvement`, `pval`, `min_cell_n`, `variable_select`.
+      i For `algorithm = "nr"`, valid `control` keys are: `maxit`, `epsilon`.
     Output
       # A tibble: 500 x 7
             id age_group sex   education region    base_weight   wts

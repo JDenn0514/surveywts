@@ -2,13 +2,12 @@
 #
 # calibrate_rake() — iterative proportional fitting to marginal targets.
 #
-# Replaces old rake() (PR 1 of calibration-api redesign).
-# Key changes vs old rake():
-#   - `margins` renamed to `targets`
-#   - `method` renamed to `algorithm`
-#   - operation history field: "calibrate_rake" (was "raking")
-#   - .parse_margins() moved to R/calibrate-utils.R
-#   - reference_design argument added
+# PR 4 changes vs PR 2:
+#   - algorithm = "anesrake" renamed to "classic_ipf"
+#   - algorithm = "survey" removed
+#   - algorithm = "nr" added: Newton-Raphson via .calibrate_nr_engine()
+#   - cap guard updated: surveywts_error_cap_not_supported_nr for "nr"
+#   - control key sets updated for both algorithms
 #
 # All shared helpers live in R/utils.R.
 # Calibration-family helpers live in R/calibrate-utils.R.
@@ -17,9 +16,10 @@
 #'
 #' Iterative proportional fitting (raking) that adjusts survey weights to
 #' match multiple marginal population totals simultaneously. Supports two
-#' algorithms: the `"anesrake"` method (chi-square variable selection,
-#' improvement-based convergence) and the `"survey"` method (fixed-order
-#' IPF, epsilon-based convergence).
+#' algorithms: the `"classic_ipf"` method (chi-square variable selection,
+#' improvement-based convergence, ported from the anesrake package) and the
+#' `"nr"` method (Newton-Raphson solver from Deville, Sarndal & Sautory 1993,
+#' using the multiplicative `F(u) = exp(u)` function).
 #'
 #' @param data A `data.frame`, `weighted_df`, `survey_taylor`,
 #'   `survey_nonprob`, or `survey_replicate`. Any other class -> error.
@@ -59,18 +59,19 @@
 #'   object (`survey_taylor` or `survey_nonprob`).
 #' @param type Character scalar. `"prop"` (default): `targets` values are
 #'   proportions. `"count"`: `targets` values are counts.
-#' @param algorithm Character scalar. `"anesrake"` (default): chi-square
+#' @param algorithm Character scalar. `"classic_ipf"` (default): chi-square
 #'   discrepancy variable selection with improvement-based convergence, as in
-#'   the `anesrake` package. `"survey"`: fixed-order IPF cycling through all
-#'   targets, with epsilon-based convergence, as in `survey::rake()`.
+#'   the `anesrake` package. `"nr"`: Newton-Raphson solver using the
+#'   multiplicative F-function `F(u) = exp(u)`, corresponding to
+#'   Deville, Sarndal & Sautory (1993) generalized raking.
 #' @param cap Numeric or `NULL`. Cap on the weight ratio `w / mean(w)`. Any
 #'   weight exceeding `cap * mean(w)` is set to `cap * mean(w)`. Applied
 #'   after each per-margin adjustment step (not post-hoc). `NULL` (default)
-#'   means no cap. Not compatible with `algorithm = "survey"` (-> error).
+#'   means no cap. Not compatible with `algorithm = "nr"` (-> error).
 #' @param control Named list of algorithm parameters. Merged with
 #'   algorithm-specific defaults. Omitted keys retain their defaults.
 #'
-#'   **`algorithm = "anesrake"` defaults:**
+#'   **`algorithm = "classic_ipf"` defaults:**
 #'   - `maxit = 1000`: maximum full sweeps
 #'   - `improvement = 0.01`: percentage improvement convergence threshold
 #'   - `pval = 0.05`: chi-square p-value threshold for variable selection
@@ -78,11 +79,11 @@
 #'   - `variable_select = "total"`: chi-square aggregation for ranking
 #'     (`"total"`, `"max"`, or `"average"`)
 #'
-#'   **`algorithm = "survey"` defaults:**
-#'   - `maxit = 100`: maximum full sweeps
+#'   **`algorithm = "nr"` defaults:**
+#'   - `maxit = 50L`: maximum Newton-Raphson iterations
 #'   - `epsilon = 1e-7`: maximum relative margin error convergence threshold
 #'
-#'   Passing `"anesrake"`-specific keys when `algorithm = "survey"` (or vice
+#'   Passing `"classic_ipf"`-specific keys when `algorithm = "nr"` (or vice
 #'   versa) triggers `surveywts_warning_control_param_ignored` per ignored key.
 #'
 #' @param reference_design A `survey_taylor` object or `NULL`. The probability
@@ -103,8 +104,12 @@
 #'   raked. Failed replicates retain their original weights and are recorded
 #'   in `output@calibration$replicate_converged` as `FALSE`.
 #'
+#'   For `algorithm = "nr"`, `@calibration$lambda` contains the converged
+#'   Lagrange multiplier vector. For `algorithm = "classic_ipf"`,
+#'   `@calibration$lambda` is `NULL`.
+#'
 #' @details
-#'   **`algorithm = "anesrake"`:** At each sweep, variables are sorted by
+#'   **`algorithm = "classic_ipf"`:** At each sweep, variables are sorted by
 #'   their chi-square discrepancy (controlled by `control$variable_select`).
 #'   Variables with any cell below `control$min_cell_n` unweighted observations
 #'   are excluded entirely. Variables where the chi-square p-value exceeds
@@ -113,10 +118,12 @@
 #'   If all variables pass or are excluded in sweep 1, a
 #'   `surveywts_message_already_calibrated` message is emitted.
 #'
-#'   **`algorithm = "survey"`:** Variables are raked in the fixed order given
-#'   by `targets`. All variables participate in every sweep. Convergence is
-#'   assessed as the maximum relative error across all margin cells falling
-#'   below `control$epsilon`.
+#'   **`algorithm = "nr"`:** Newton-Raphson solver using the multiplicative
+#'   distance function (Deville, Sarndal & Sautory 1993). Calibrated weights
+#'   satisfy: `w_k = d_k * exp(x_k' * lambda)`. Convergence is assessed as
+#'   `max(|misfit| / (1 + |population|)) < epsilon`. Step-halving guards
+#'   against non-finite g-weights. Errors with
+#'   `surveywts_error_calibration_not_converged` if `maxit` is reached.
 #'
 #' @references
 #'   DeBell, M. and Krosnick, J. A. (2009). *Computing Weights for American
@@ -126,27 +133,15 @@
 #'
 #'   Deville, J.-C. and Sarndal, C.-E. (1992). Calibration estimators in
 #'   survey sampling. *Journal of the American Statistical Association*,
-#'   87(418), 376–382. doi:10.2307/2290268
+#'   87(418), 376-382. doi:10.2307/2290268
 #'
 #'   Deville, J.-C., Sarndal, C.-E. and Sautory, O. (1993). Generalized
 #'   raking procedures in survey sampling. *Journal of the American
-#'   Statistical Association*, 88(423), 1013–1020. doi:10.2307/2290793
+#'   Statistical Association*, 88(423), 1013-1020. doi:10.2307/2290793
 #'
 #'   Chang, T. and Kott, P. S. (2008). Using calibration weighting to adjust
-#'   for nonresponse under a plausible model. *Biometrika*, 95(3), 555–571.
+#'   for nonresponse under a plausible model. *Biometrika*, 95(3), 555-571.
 #'   doi:10.1093/biomet/asn022
-#'
-#'   Rao, J. N. K., Yung, W. and Hidiroglou, M. A. (2002). Estimating
-#'   equations for the analysis of survey data using poststratification
-#'   information. *Sankhya*, 64(2), 364–378.
-#'
-#'   Valliant, R. (1993). Poststratification and conditional variance
-#'   estimation. *Journal of the American Statistical Association*,
-#'   88(421), 89–96. https://doi.org/10.2307/2290701
-#'
-#'   Rao, J. N. K., Wu, C. F. J. and Yue, K. (1992). Some recent work on
-#'   resampling methods for complex surveys. *Survey Methodology*,
-#'   18(2), 209–217.
 #'
 #' @examples
 #' df <- data.frame(
@@ -168,7 +163,7 @@ calibrate_rake <- function(
   weights = NULL,
   wt_name = "wts",
   type = c("prop", "count"),
-  algorithm = c("anesrake", "survey"),
+  algorithm = c("classic_ipf", "nr"),
   cap = NULL,
   control = list(),
   reference_design = NULL
@@ -184,48 +179,52 @@ calibrate_rake <- function(
   .validate_reference_design(reference_design)
   targets_from_reference <- !is.null(reference_design)
 
-  # ---- Cap + algorithm = "survey" guard (fail fast, before margin parsing) -
-  if (!is.null(cap) && algorithm == "survey") {
+  # ---- Cap + algorithm = "nr" guard (fail fast, before margin parsing) ----
+  if (!is.null(cap) && algorithm == "nr") {
     cli::cli_abort(
       c(
         "x" = paste0(
           "{.arg cap} is not supported when ",
-          "{.code algorithm = \"survey\"}."
+          "{.code algorithm = \"nr\"}."
         ),
-        "i" = "{.fn survey::rake} does not support per-step weight capping.",
+        "i" = paste0(
+          "The Newton-Raphson raking engine does not support ",
+          "per-step weight capping."
+        ),
         "v" = paste0(
-          "Use {.code algorithm = \"anesrake\"} for raking with a weight cap."
+          "Use {.code algorithm = \"classic_ipf\"} for raking with ",
+          "a weight cap."
         )
       ),
-      class = "surveywts_error_cap_not_supported_survey"
+      class = "surveywts_error_cap_not_supported_nr"
     )
   }
 
   # ---- Apply algorithm-specific control defaults (before warning check) ----
-  anesrake_defaults <- list(
+  classic_ipf_defaults <- list(
     maxit = 1000L, improvement = 0.01, pval = 0.05,
     min_cell_n = 0L, variable_select = "total"
   )
-  survey_defaults <- list(maxit = 100L, epsilon = 1e-7)
+  nr_defaults <- list(maxit = 50L, epsilon = 1e-7)
 
   # Coerce user-supplied maxit to integer (consistent with defaults)
   if (!is.null(control$maxit)) {
     control$maxit <- as.integer(control$maxit)
   }
 
-  algorithm_defaults <- if (algorithm == "anesrake") {
-    anesrake_defaults
+  algorithm_defaults <- if (algorithm == "classic_ipf") {
+    classic_ipf_defaults
   } else {
-    survey_defaults
+    nr_defaults
   }
   control_resolved <- utils::modifyList(algorithm_defaults, control)
 
   # ---- Warn on wrong-algorithm control params ------------------------------
-  anesrake_only <- c("improvement", "pval", "min_cell_n", "variable_select")
-  survey_only <- c("epsilon")
+  classic_ipf_only <- c("improvement", "pval", "min_cell_n", "variable_select")
+  nr_only <- c("epsilon")
 
-  if (algorithm == "survey") {
-    for (param in intersect(names(control), anesrake_only)) {
+  if (algorithm == "nr") {
+    for (param in intersect(names(control), classic_ipf_only)) {
       cli::cli_warn(
         c(
           "!" = paste0(
@@ -233,12 +232,12 @@ calibrate_rake <- function(
             "{.code algorithm = {.val {algorithm}}} and will be ignored."
           ),
           "i" = paste0(
-            "For {.code algorithm = \"anesrake\"}, valid {.arg control} ",
+            "For {.code algorithm = \"classic_ipf\"}, valid {.arg control} ",
             "keys are: {.code maxit}, {.code improvement}, {.code pval}, ",
             "{.code min_cell_n}, {.code variable_select}."
           ),
           "i" = paste0(
-            "For {.code algorithm = \"survey\"}, valid {.arg control} ",
+            "For {.code algorithm = \"nr\"}, valid {.arg control} ",
             "keys are: {.code maxit}, {.code epsilon}."
           )
         ),
@@ -246,7 +245,7 @@ calibrate_rake <- function(
       )
     }
   } else {
-    for (param in intersect(names(control), survey_only)) {
+    for (param in intersect(names(control), nr_only)) {
       cli::cli_warn(
         c(
           "!" = paste0(
@@ -254,12 +253,12 @@ calibrate_rake <- function(
             "{.code algorithm = {.val {algorithm}}} and will be ignored."
           ),
           "i" = paste0(
-            "For {.code algorithm = \"anesrake\"}, valid {.arg control} ",
+            "For {.code algorithm = \"classic_ipf\"}, valid {.arg control} ",
             "keys are: {.code maxit}, {.code improvement}, {.code pval}, ",
             "{.code min_cell_n}, {.code variable_select}."
           ),
           "i" = paste0(
-            "For {.code algorithm = \"survey\"}, valid {.arg control} ",
+            "For {.code algorithm = \"nr\"}, valid {.arg control} ",
             "keys are: {.code maxit}, {.code epsilon}."
           )
         ),
@@ -358,29 +357,106 @@ calibrate_rake <- function(
     list(col = v, targets = targets_counts[[v]])
   })
 
-  engine_method <- if (algorithm == "anesrake") "anesrake" else "ipf"
+  if (algorithm == "classic_ipf") {
+    # --- classic_ipf path: anesrake engine via .calibrate_engine() ----------
+    engine_method <- "anesrake"
 
-  calibration_spec <- list(
-    type = engine_method,
-    variables = vars_spec,
-    total_n = nrow(plain_df),
-    cap = cap
-  )
+    calibration_spec <- list(
+      type = engine_method,
+      variables = vars_spec,
+      total_n = nrow(plain_df),
+      cap = cap
+    )
 
-  engine_result <- .calibrate_engine(
-    data_df = plain_df,
-    weights_vec = weights_vec,
-    calibration_spec = calibration_spec,
-    method = engine_method,
-    control = control_resolved
-  )
+    engine_result <- .calibrate_engine(
+      data_df = plain_df,
+      weights_vec = weights_vec,
+      calibration_spec = calibration_spec,
+      method = engine_method,
+      control = control_resolved
+    )
 
-  new_weights <- engine_result$weights
-  convergence <- engine_result$convergence
+    new_weights <- engine_result$weights
+    convergence <- engine_result$convergence
+    nr_lambda <- NULL
+
+  } else {
+    # --- nr path: Newton-Raphson engine via .calibrate_nr_engine() ----------
+    # Build treatment-contrast model matrix (same as calibrate_linear)
+    x_df_nr <- plain_df
+    for (v in vars_spec) {
+      col_name <- v$col
+      lvls <- names(v$targets)
+      x_df_nr[[col_name]] <- factor(x_df_nr[[col_name]], levels = lvls)
+    }
+    fml_vars_nr <- target_var_names[vapply(
+      vars_spec, function(v) length(v$targets) >= 2L, logical(1L)
+    )]
+    if (length(fml_vars_nr) == 0L) {
+      x_matrix_nr <- matrix(
+        1, nrow = nrow(plain_df), ncol = 1L,
+        dimnames = list(NULL, "(Intercept)")
+      )
+    } else {
+      fml_nr <- stats::as.formula(
+        paste("~", paste(fml_vars_nr, collapse = " + "))
+      )
+      x_matrix_nr <- stats::model.matrix(fml_nr, data = x_df_nr)
+    }
+
+    # Population totals in count scale (J-vector matching x_matrix columns).
+    # Intercept constraint = target total N.
+    # For type = "prop": targets_counts sum to total_w, so N = total_w.
+    # For type = "count": N = sum of any one margin's targets (all equal after
+    #   .validate_count_marginal_consistency()). Use the first variable's sum.
+    n_cols_nr <- ncol(x_matrix_nr)
+    pop_totals_nr <- stats::setNames(
+      numeric(n_cols_nr), colnames(x_matrix_nr)
+    )
+    intercept_total_nr <- sum(targets_counts[[target_var_names[[1L]]]])
+    pop_totals_nr["(Intercept)"] <- intercept_total_nr
+    for (v in vars_spec) {
+      if (length(v$targets) < 2L) next
+      col_name <- v$col
+      lvls <- names(v$targets)
+      for (lev in lvls[-1L]) {
+        col_nm <- paste0(col_name, lev)
+        if (col_nm %in% names(pop_totals_nr)) {
+          pop_totals_nr[col_nm] <- v$targets[[lev]]
+        }
+      }
+    }
+
+    calfun_nr <- .make_calfun_raking()
+    nr_result <- .calibrate_nr_engine(
+      x_matrix    = x_matrix_nr,
+      weights_vec = weights_vec,
+      calfun      = calfun_nr,
+      population  = pop_totals_nr,
+      epsilon     = control_resolved$epsilon,
+      maxit       = control_resolved$maxit
+    )
+
+    new_weights <- unname(nr_result$weights)
+    nr_lambda <- nr_result$lambda
+    convergence <- list(
+      converged   = nr_result$converged,
+      iterations  = nr_result$n_iterations,
+      max_error   = NA_real_,
+      tolerance   = control_resolved$epsilon
+    )
+
+    # Post-hoc renormalize to enforce exact weight sum conservation against
+    # floating-point residuals from the NR loop (spec §6).
+    # For type = "prop": sum(w_cal) should equal total_w (sum of design wts).
+    # For type = "count": sum(w_cal) should equal target N.
+    nr_target_total <- intercept_total_nr
+    new_weights <- new_weights * (nr_target_total / sum(new_weights))
+  }
 
   # ---- 10. Build x_matrix and calibration provenance (survey objects only) -
   # x_matrix: treatment-contrast model matrix (intercept + k-1 dummies per
-  # factor), same parameterization as calibrate_greg(). method = "raking".
+  # factor), same parameterization as calibrate_linear(). method = "raking".
   is_survey_obj <- S7::S7_inherits(data, surveycore::survey_base)
   caldata <- NULL
 
@@ -404,10 +480,13 @@ calibrate_rake <- function(
       x_matrix <- stats::model.matrix(fml_rake, data = x_df)
     }
 
-    # Population totals in count scale (J-vector matching x_matrix columns)
+    # Population totals in count scale (J-vector matching x_matrix columns).
+    # Intercept = target total N (same as intercept_total_nr for "nr" path;
+    # for "classic_ipf", total_w is correct since all targets_counts sum to it).
     n_cols <- ncol(x_matrix)
     pop_totals_rake <- stats::setNames(numeric(n_cols), colnames(x_matrix))
-    pop_totals_rake["(Intercept)"] <- total_w
+    intercept_total_rake <- sum(targets_counts[[target_var_names[[1L]]]])
+    pop_totals_rake["(Intercept)"] <- intercept_total_rake
     for (v in vars_spec) {
       if (length(v$targets) < 2L) next
       col_name <- v$col
@@ -422,15 +501,26 @@ calibrate_rake <- function(
 
     q_weights <- rep(1, nrow(plain_df))
 
+    # For "nr": pass the converged lambda explicitly; crossproduct_inv computed
+    # in .build_calibration_provenance() but spec says NULL for NR — override.
+    # For "classic_ipf": lambda = NULL (not analytically solved).
     caldata <- .build_calibration_provenance(
-      engine_result     = engine_result,
+      engine_result     = .engine_result_for_caldata(
+        new_weights, convergence
+      ),
       x_matrix          = x_matrix,
       base_weights      = weights_vec,
       q_weights         = q_weights,
       population_totals = pop_totals_rake,
       method            = "raking",
+      lambda            = nr_lambda,
       cell_factors      = NULL
     )
+
+    # NR: crossproduct_inv is NULL per spec (not stored for raking NR)
+    if (algorithm == "nr") {
+      caldata$crossproduct_inv <- NULL
+    }
 
     # ---- Replicate loop (survey_replicate only) ----------------------------
     if (S7::S7_inherits(data, surveycore::survey_replicate)) {
@@ -448,28 +538,63 @@ calibrate_rake <- function(
         if (type == "prop") {
           rep_targets_counts <- lapply(targets_a, function(m) m * rep_total_w)
         } else {
-          rep_targets_counts <- targets_a
+          # For type = "count": scale target totals by replicate weight ratio
+          rep_scale <- rep_total_w / total_w
+          rep_targets_counts <- lapply(targets_counts, function(m) m * rep_scale)
         }
         rep_vars_spec <- lapply(target_var_names, function(v) {
           list(col = v, targets = rep_targets_counts[[v]])
         })
-        rep_cal_spec <- list(
-          type      = engine_method,
-          variables = rep_vars_spec,
-          total_n   = nrow(plain_df),
-          cap       = cap
-        )
 
         failed <- tryCatch(
           {
-            rep_engine <- .calibrate_engine(
-              data_df          = plain_df,
-              weights_vec      = rep_wt,
-              calibration_spec = rep_cal_spec,
-              method           = engine_method,
-              control          = control_resolved
-            )
-            data@data[[repwt_col]] <- rep_engine$weights
+            if (algorithm == "classic_ipf") {
+              rep_cal_spec <- list(
+                type      = "anesrake",
+                variables = rep_vars_spec,
+                total_n   = nrow(plain_df),
+                cap       = cap
+              )
+              rep_engine <- .calibrate_engine(
+                data_df          = plain_df,
+                weights_vec      = rep_wt,
+                calibration_spec = rep_cal_spec,
+                method           = "anesrake",
+                control          = control_resolved
+              )
+              data@data[[repwt_col]] <- rep_engine$weights
+            } else {
+              # "nr": build rep pop_totals then call .calibrate_nr_engine()
+              # Intercept = target total for this replicate = sum of any margin.
+              n_cols_rep <- ncol(x_matrix)
+              pop_totals_rep <- stats::setNames(
+                numeric(n_cols_rep), colnames(x_matrix)
+              )
+              rep_intercept <- sum(
+                rep_targets_counts[[target_var_names[[1L]]]]
+              )
+              pop_totals_rep["(Intercept)"] <- rep_intercept
+              for (v in rep_vars_spec) {
+                if (length(v$targets) < 2L) next
+                col_name <- v$col
+                lvls <- names(v$targets)
+                for (lev in lvls[-1L]) {
+                  col_nm <- paste0(col_name, lev)
+                  if (col_nm %in% names(pop_totals_rep)) {
+                    pop_totals_rep[col_nm] <- v$targets[[lev]]
+                  }
+                }
+              }
+              rep_nr <- .calibrate_nr_engine(
+                x_matrix    = x_matrix,
+                weights_vec = rep_wt,
+                calfun      = .make_calfun_raking(),
+                population  = pop_totals_rep,
+                epsilon     = control_resolved$epsilon,
+                maxit       = control_resolved$maxit
+              )
+              data@data[[repwt_col]] <- rep_nr$weights
+            }
             FALSE
           },
           error = function(e) {
@@ -484,7 +609,8 @@ calibrate_rake <- function(
                 "i" = paste0(
                   "This replicate's weights are kept at their ",
                   "pre-calibration values. Variance estimates may be ",
-                  "affected. Inspect {.code output@calibration$replicate_converged}."
+                  "affected. Inspect ",
+                  "{.code output@calibration$replicate_converged}."
                 )
               ),
               class = "surveywts_warning_replicate_calibration_failed"
@@ -538,6 +664,21 @@ calibrate_rake <- function(
   } else {
     .update_survey_weights(data, new_weights, history_entry, caldata = caldata)
   }
+}
+
+# ---------------------------------------------------------------------------
+# Internal helper: build a minimal engine_result for .build_calibration_provenance
+# ---------------------------------------------------------------------------
+# Wraps calibrated weights + convergence list into the format expected by
+# .build_calibration_provenance(). Used for both classic_ipf and nr paths.
+#
+# @keywords internal
+# @noRd
+.engine_result_for_caldata <- function(new_weights, convergence) {
+  list(
+    weights    = new_weights,
+    convergence = convergence
+  )
 }
 
 # ============================================================================

@@ -12,7 +12,7 @@ calibrate(
   type = c("prop", "count"),
   reference_design = NULL,
   ...,
-  method = c("greg", "rake", "poststrat")
+  method = c("rake", "linear", "logit")
 )
 }
 \arguments{
@@ -20,7 +20,7 @@ calibrate(
 \code{survey_nonprob}. Forwarded to the dispatched function.}
 
 \item{targets}{Target specification. Forwarded to the dispatched function.
-See \code{\link[=calibrate_greg]{calibrate_greg()}}, \code{\link[=calibrate_rake]{calibrate_rake()}}, or \code{\link[=calibrate_poststrat]{calibrate_poststrat()}}
+See \code{\link[=calibrate_rake]{calibrate_rake()}}, \code{\link[=calibrate_linear]{calibrate_linear()}}, or \code{\link[=calibrate_logit]{calibrate_logit()}}
 for accepted formats.}
 
 \item{weights}{<\code{\link[tidyselect:language]{tidy-select}}> Weight column name
@@ -36,20 +36,20 @@ to the dispatched function.}
 the dispatched function.}
 
 \item{...}{Additional arguments passed to the dispatched function. See
-\code{\link[=calibrate_greg]{calibrate_greg()}}, \code{\link[=calibrate_rake]{calibrate_rake()}}, or \code{\link[=calibrate_poststrat]{calibrate_poststrat()}} for
+\code{\link[=calibrate_rake]{calibrate_rake()}}, \code{\link[=calibrate_linear]{calibrate_linear()}}, or \code{\link[=calibrate_logit]{calibrate_logit()}} for
 available arguments.}
 
-\item{method}{Character scalar. Calibration method: \code{"greg"} (default),
-\code{"rake"}, or \code{"poststrat"}. Matched with \code{\link[rlang:arg_match]{rlang::arg_match()}}.}
+\item{method}{Character scalar. Calibration method: \code{"rake"} (default),
+\code{"linear"}, or \code{"logit"}. Matched with \code{\link[rlang:arg_match]{rlang::arg_match()}}.}
 }
 \value{
 A \code{weighted_df} or survey object (same class as \code{data}), as
-returned by the dispatched function. See \code{\link[=calibrate_greg]{calibrate_greg()}},
-\code{\link[=calibrate_rake]{calibrate_rake()}}, or \code{\link[=calibrate_poststrat]{calibrate_poststrat()}} for details.
+returned by the dispatched function. See \code{\link[=calibrate_rake]{calibrate_rake()}},
+\code{\link[=calibrate_linear]{calibrate_linear()}}, or \code{\link[=calibrate_logit]{calibrate_logit()}} for details.
 }
 \description{
-Thin dispatcher that routes to \code{\link[=calibrate_greg]{calibrate_greg()}}, \code{\link[=calibrate_rake]{calibrate_rake()}}, or
-\code{\link[=calibrate_poststrat]{calibrate_poststrat()}} based on \code{method}. All arguments are forwarded
+Thin dispatcher that routes to \code{\link[=calibrate_rake]{calibrate_rake()}}, \code{\link[=calibrate_linear]{calibrate_linear()}}, or
+\code{\link[=calibrate_logit]{calibrate_logit()}} based on \code{method}. All arguments are forwarded
 unchanged to the dispatched function; all validation and error handling
 occurs there.
 }
@@ -63,17 +63,17 @@ targets <- list(
   age_group = c("18-34" = 0.40, "35-54" = 0.40, "55+" = 0.20),
   sex = c("M" = 0.50, "F" = 0.50)
 )
-# Dispatch to calibrate_greg() (default method)
-result_greg <- calibrate(df, targets = targets)
+# Dispatch to calibrate_rake() (default method)
+result_rake <- calibrate(df, targets = targets)
 
-# Dispatch to calibrate_rake() explicitly
-result_rake <- calibrate(df, targets = targets, method = "rake")
+# Dispatch to calibrate_linear() explicitly
+result_linear <- calibrate(df, targets = targets, method = "linear")
 
 }
 \seealso{
 Other calibration: 
-\code{\link{calibrate_greg}()},
 \code{\link{calibrate_linear}()},
+\code{\link{calibrate_logit}()},
 \code{\link{calibrate_poststrat}()},
 \code{\link{calibrate_rake}()}
 }

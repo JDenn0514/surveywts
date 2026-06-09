@@ -339,7 +339,7 @@ make_dagjk_datasets <- function() {
     reference_design = ref  # -> targets_from_reference = TRUE
   )
 
-  # Dataset E: ipw() + calibrate_greg() with reference_design= (targets_from_reference = TRUE)
+  # Dataset E: ipw() + calibrate_linear() with reference_design= (targets_from_reference = TRUE)
   # Exercises use_level_b = TRUE calibration (not raking) branch
   ipw_e <- suppressWarnings(surveywts::ipw(
     data             = nps_df,
@@ -352,7 +352,7 @@ make_dagjk_datasets <- function() {
     sex       = c("M" = 0.48, "F" = 0.52)
   )
   E <- tryCatch(
-    surveywts::calibrate_greg(
+    surveywts::calibrate_linear(
       data             = ipw_e,
       targets          = targets_e,
       type             = "prop",
@@ -361,7 +361,7 @@ make_dagjk_datasets <- function() {
     error = function(e) NULL
   )
 
-  # Dataset F: ipw() + calibrate_greg() WITHOUT reference_design (targets_from_reference = FALSE)
+  # Dataset F: ipw() + calibrate_linear() WITHOUT reference_design (targets_from_reference = FALSE)
   # Exercises use_level_b = FALSE calibration branch in .dagjk_single_replicate()
   ipw_f <- suppressWarnings(surveywts::ipw(
     data             = nps_df,
@@ -374,7 +374,7 @@ make_dagjk_datasets <- function() {
     sex       = c("M" = 0.48, "F" = 0.52)
   )
   F_data <- tryCatch(
-    surveywts::calibrate_greg(
+    surveywts::calibrate_linear(
       data    = ipw_f,
       targets = targets_f,
       type    = "prop"

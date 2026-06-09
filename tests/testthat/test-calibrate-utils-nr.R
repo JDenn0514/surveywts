@@ -622,7 +622,7 @@ test_that("calibrate_rake() with algorithm = 'anesrake' still works after PR 1",
     weights  = base_weight,
     wt_name  = "wts",
     type     = "prop",
-    algorithm = "anesrake"
+    algorithm = "classic_ipf"
   )
   test_invariants(result)
   expect_true(inherits(result, "weighted_df"))

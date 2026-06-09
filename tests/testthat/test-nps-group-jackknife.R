@@ -978,7 +978,7 @@ test_that("create_group_jackknife_weights() negative-weight check verifies assem
     surveywts::ipw(data = nps_df4, reference = ref4, selection = ~x, adjust_reference = FALSE)
   )
   calib4 <- suppressWarnings(
-    surveywts::calibrate_greg(
+    surveywts::calibrate_linear(
       data    = ipw4,
       targets = list(x = c(a = 0.01, b = 0.01, c = 0.98)),
       type    = "prop"

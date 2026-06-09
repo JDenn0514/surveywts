@@ -375,86 +375,31 @@ calibrate_linear <- function(
   # weights give the final weights.
 
   if (!is.null(bounds) && identical(bounds_scale, "absolute")) {
-    # Absolute bounds: run engine in g-weight space
-    # g_k = w_k / d_k, so bounds on w_k -> per-unit bounds on g_k
-    # But for a uniform L/U in absolute space, we cannot use a single [L, U]
-    # for all units in g-weight space unless all base weights are equal.
-    # Solution: scale the base weights to 1 internally, run with
-    # absolute-as-multiplicative bounds (L_abs / mean_d, U_abs / mean_d).
-    # This is approximate; exact per-unit solution uses individual d_k.
-    #
-    # Exact approach (per-unit): cannot be expressed as a single calfun object
-    # since the clamping bounds are unit-specific. Instead, we use the approach:
-    # run engine with scaled weights (d_k / d_k = 1), so g-weights ARE the
-    # calibrated weights. Then the calfun bounds [L, U] directly constrain
-    # the output weights (since w_k_new = 1 * g_k = g_k).
-    # The constraint sum(w_new * x) = pop must match: pop_scaled = pop / (total_w / n).
-    #
-    # Cleaner: transform to unit weights, adjust population totals proportionally
-    # No — this changes the problem. Best approach: use per-unit L/U in calfun.
-    #
-    # Since .make_calfun_linear() uses global L/U (not per-unit), we use
-    # the following exact approach:
-    #   - Internally work in normalized weight space: set base_weights = 1 for all
-    #   - Scale population totals by 1/mean(d_k) so intercept = n
-    #   - After engine returns, the "g-weights" (returned weights / 1) are the
-    #     absolute weights relative to mean(d_k)
-    #   Actually this still won't give per-unit bounds.
-    #
-    # The simplest correct approach for absolute bounds with a single [L, U]:
-    # The calfun clamps Fm1(u) to [L-1, U-1] in g-weight space.
-    # For absolute bounds on w_k: g_k = w_k / d_k in [L/d_k, U/d_k] per unit.
-    # To use the calfun without modification, we can normalize:
-    #   d'_k = d_k, use the calfun with L' = L (absolute), U' = U (absolute)
-    #   and check: w_k_new = d_k * F(x_k' lambda) in [L, U]
-    # This requires: F(u) in [L/d_k, U/d_k] per unit — unit-dependent bounds.
-    #
-    # For the truncated-linear method, we instead treat the engine differently:
-    # Use the per-unit projection approach — clamp g_k to [L/d_k, U/d_k].
-    # This is equivalent to working with unit weights d'_k = 1 and bounding
-    # the final weights (which equal the g-weights when base = 1) to [L, U].
-    #
-    # IMPLEMENTATION: Use the "unit weights = 1" trick with a single [L, U] calfun
-    # and adjust the population totals proportionally.
-    #
-    # Per unit approach:
-    # We pass base_weights = 1 (unit weights) and scale pop totals so that
-    # sum(1 * F(x' lambda) * x) = pop_new where pop_new = pop * n / total_w.
-    # After the engine, multiply g-weights (which are final weights in unit space)
-    # back by nothing — they ARE the final absolute weights.
-    # This only works if all original d_k * (L/d_k) = L and d_k * (U/d_k) = U,
-    # i.e., the bounds are the same for all units in absolute scale.
-    # This is exactly the absolute scale interpretation!
-
-    mean_d <- mean(weights_vec)
+    # D6: Absolute bounds -- per-unit g-weight bounds
+    # Absolute bounds [L_abs, U_abs] constrain the final weight w_k directly.
+    # The g-weight g_k = w_k / d_k, so the per-unit multiplicative bounds are:
+    #   L_vec[k] = L_abs / d_k,  U_vec[k] = U_abs / d_k
+    # These are passed as length-n vectors to .make_calfun_linear(), which
+    # clamps Fm1(u_k) to [L_vec[k] - 1, U_vec[k] - 1] independently per unit.
+    # The base weights (d_k) are passed unchanged; the calibration constraint
+    # sum(d_k * F(u_k) * x_k) = pop is satisfied with the per-unit L/U.
     abs_L <- bounds[[1L]]
     abs_U <- bounds[[2L]]
+    L_vec <- abs_L / weights_vec
+    U_vec <- abs_U / weights_vec
 
-    # Normalized base weights (unit weights = 1) times mean_d factor
-    # We run the engine with actual base_weights but bounds = [L/mean_d, U/mean_d]
-    # so that g_k * d_k = w_k_abs is approximately in [L*d_k/mean_d, U*d_k/mean_d]
-    # -- this is a per-unit bound approximation.
-    #
-    # EXACT approach for absolute bounds: run with base_weights = rep(1, n)
-    # and population totals scaled by n / total_w.
-    # Then the final weights = 1 * F(u) and F(u) in [L, U] absolutely.
-
-    scale_factor <- total_w / nrow(plain_df)  # = mean(d_k)
-    scaled_weights <- rep(1, nrow(plain_df))
-    scaled_population <- population_totals_vec / scale_factor
-
-    calfun <- .make_calfun_linear(L = abs_L, U = abs_U)
+    calfun <- .make_calfun_linear(L = L_vec, U = U_vec)
 
     engine_result_raw <- .calibrate_nr_engine(
       x_matrix    = x_matrix,
-      weights_vec = scaled_weights,
+      weights_vec = weights_vec,
       calfun      = calfun,
-      population  = scaled_population,
+      population  = population_totals_vec,
       epsilon     = control$epsilon,
-      maxit       = as.integer(control$maxit)
+      maxit       = as.integer(control$maxit),
+      q_weights   = q_for_engine
     )
 
-    # The raw weights from the engine are the absolute calibrated weights
     new_weights <- engine_result_raw$weights
 
     engine_result <- list(
@@ -480,7 +425,8 @@ calibrate_linear <- function(
       calfun      = calfun,
       population  = population_totals_vec,
       epsilon     = control$epsilon,
-      maxit       = as.integer(control$maxit)
+      maxit       = as.integer(control$maxit),
+      q_weights   = q_for_engine
     )
 
     new_weights <- engine_result_raw$weights
@@ -506,7 +452,8 @@ calibrate_linear <- function(
       calfun      = calfun,
       population  = population_totals_vec,
       epsilon     = control$epsilon,
-      maxit       = as.integer(control$maxit)
+      maxit       = as.integer(control$maxit),
+      q_weights   = q_for_engine
     )
 
     new_weights <- engine_result_raw$weights
@@ -609,16 +556,24 @@ calibrate_linear <- function(
         failed <- tryCatch(
           {
             if (!is.null(bounds) && identical(bounds_scale, "absolute")) {
-              rep_scale <- sum(rep_wt) / nrow(plain_df)
-              rep_scaled_wt <- rep(1, nrow(plain_df))
-              rep_scaled_pop <- rep_pop_vec / rep_scale
+              # D6 replicate: per-unit bounds for this replicate's base weights.
+              # Units with rep_wt = 0 (excluded from this bootstrap sample) get
+              # unclamped bounds (L_k = -Inf, U_k = Inf) since they contribute
+              # zero to all weighted totals and cannot be bounded meaningfully.
+              nonzero <- rep_wt > 0
+              rep_L_vec <- rep(-Inf, length(rep_wt))
+              rep_U_vec <- rep(Inf, length(rep_wt))
+              rep_L_vec[nonzero] <- abs_L / rep_wt[nonzero]
+              rep_U_vec[nonzero] <- abs_U / rep_wt[nonzero]
+              rep_calfun <- .make_calfun_linear(L = rep_L_vec, U = rep_U_vec)
               rep_engine <- .calibrate_nr_engine(
                 x_matrix    = x_matrix,
-                weights_vec = rep_scaled_wt,
-                calfun      = calfun,
-                population  = rep_scaled_pop,
+                weights_vec = rep_wt,
+                calfun      = rep_calfun,
+                population  = rep_pop_vec,
                 epsilon     = control$epsilon,
-                maxit       = as.integer(control$maxit)
+                maxit       = as.integer(control$maxit),
+                q_weights   = q_for_engine
               )
               data@data[[repwt_col]] <- rep_engine$weights
             } else {
@@ -628,7 +583,8 @@ calibrate_linear <- function(
                 calfun      = calfun,
                 population  = rep_pop_vec,
                 epsilon     = control$epsilon,
-                maxit       = as.integer(control$maxit)
+                maxit       = as.integer(control$maxit),
+                q_weights   = q_for_engine
               )
               data@data[[repwt_col]] <- rep_engine$weights
             }

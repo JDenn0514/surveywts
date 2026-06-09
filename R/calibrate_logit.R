@@ -356,37 +356,63 @@ calibrate_logit <- function(
   # For multiplicative bounds: pass bounds directly to .make_calfun_logit().
 
   if (identical(bounds_scale, "absolute")) {
-    # Absolute bounds: the user wants the final weight w_k in (L_abs, U_abs).
-    # Logit constrains g_k = w_k / d_k in (L_g, U_g) with L_g < 1 < U_g.
-    # Convert: use unit weights so the engine's g-weights equal the final
-    # weights (d_k' = 1 => w_k = F(u)); then to place F(u) in (L_abs, U_abs)
-    # we normalize both the bounds and the population totals by mean_d.
-    #
-    # Normalise: L_g = L_abs / mean_d, U_g = U_abs / mean_d (both in g-weight
-    # space). Then engine output w_k' = F(u) in (L_g, U_g). Multiply back by
-    # mean_d to recover final absolute weights in (L_abs, U_abs).
+    # D6: Absolute bounds -- per-unit g-weight bounds for logit
+    # Absolute bounds [L_abs, U_abs] constrain the final weight w_k directly.
+    # The g-weight g_k = w_k / d_k, so the per-unit logit bounds are:
+    #   L_vec[k] = L_abs / d_k,  U_vec[k] = U_abs / d_k
+    # Logit requires L_g < 1 and U_g > 1 for each unit. If any d_k <= L_abs
+    # then L_vec[k] >= 1 (ill-defined); if any d_k >= U_abs then U_vec[k] <= 1.
     abs_L <- bounds[[1L]]
     abs_U <- bounds[[2L]]
+    L_vec <- abs_L / weights_vec
+    U_vec <- abs_U / weights_vec
 
-    scale_factor <- total_w / nrow(plain_df)  # = mean(d_k)
-    L_g <- abs_L / scale_factor
-    U_g <- abs_U / scale_factor
-    scaled_weights <- rep(1, nrow(plain_df))
-    scaled_population <- population_totals_vec / scale_factor
+    # Precondition check: per-unit logit bounds must satisfy L_vec < 1 < U_vec
+    bad_lower <- weights_vec <= abs_L
+    bad_upper <- weights_vec >= abs_U
+    if (any(bad_lower) || any(bad_upper)) {
+      n_bad_lower <- sum(bad_lower)
+      n_bad_upper <- sum(bad_upper)
+      n_bad_total <- n_bad_lower + n_bad_upper
+      msg <- c(
+        "x" = paste0(
+          "Absolute bounds ({abs_L}, {abs_U}) are incompatible with ",
+          "{n_bad_total} base weight{?s}."
+        ),
+        "v" = paste0(
+          "Widen {.arg bounds} or switch to ",
+          "{.code bounds_scale = \"multiplicative\"} ",
+          "for relative g-weight bounds."
+        )
+      )
+      if (n_bad_lower > 0L) {
+        msg <- c(msg, "i" = paste0(
+          "{n_bad_lower} base weight{?s} <= L_abs = {abs_L} ",
+          "(per-unit lower g-bound L_k = L_abs/d_k >= 1)."
+        ))
+      }
+      if (n_bad_upper > 0L) {
+        msg <- c(msg, "i" = paste0(
+          "{n_bad_upper} base weight{?s} >= U_abs = {abs_U} ",
+          "(per-unit upper g-bound U_k = U_abs/d_k <= 1)."
+        ))
+      }
+      cli::cli_abort(msg, class = "surveywts_error_bounds_invalid_calibration")
+    }
 
-    calfun <- .make_calfun_logit(L = L_g, U = U_g)
+    calfun <- .make_calfun_logit(L = L_vec, U = U_vec)
 
     engine_result_raw <- .calibrate_nr_engine(
       x_matrix    = x_matrix,
-      weights_vec = scaled_weights,
+      weights_vec = weights_vec,
       calfun      = calfun,
-      population  = scaled_population,
+      population  = population_totals_vec,
       epsilon     = control$epsilon,
-      maxit       = as.integer(control$maxit)
+      maxit       = as.integer(control$maxit),
+      q_weights   = q_for_engine
     )
 
-    # Scale output back to absolute weight space: w_k = w_k' * mean_d
-    new_weights <- engine_result_raw$weights * scale_factor
+    new_weights <- engine_result_raw$weights
 
     engine_result <- list(
       weights      = new_weights,
@@ -411,7 +437,8 @@ calibrate_logit <- function(
       calfun      = calfun,
       population  = population_totals_vec,
       epsilon     = control$epsilon,
-      maxit       = as.integer(control$maxit)
+      maxit       = as.integer(control$maxit),
+      q_weights   = q_for_engine
     )
 
     new_weights <- engine_result_raw$weights
@@ -486,25 +513,23 @@ calibrate_logit <- function(
         failed <- tryCatch(
           {
             if (identical(bounds_scale, "absolute")) {
-              # Mirror the full-sample absolute-bounds approach: normalise by
-              # rep mean_d, run with unit weights, scale output back.
-              rep_scale <- sum(rep_wt) / nrow(plain_df)
-              rep_scaled_wt <- rep(1, nrow(plain_df))
-              rep_scaled_pop <- rep_pop_vec / rep_scale
-              # calfun was already built with L_g / U_g from full-sample path.
-              # Rebuild with rep-specific scale so bounds stay correct.
-              rep_L_g <- abs_L / rep_scale
-              rep_U_g <- abs_U / rep_scale
-              rep_calfun <- .make_calfun_logit(L = rep_L_g, U = rep_U_g)
-              rep_engine <- .calibrate_nr_engine(
-                x_matrix    = x_matrix,
-                weights_vec = rep_scaled_wt,
-                calfun      = rep_calfun,
-                population  = rep_scaled_pop,
-                epsilon     = control$epsilon,
-                maxit       = as.integer(control$maxit)
+              # D6 replicate: per-unit bounds for this replicate's base weights
+              rep_L_vec <- abs_L / rep_wt
+              rep_U_vec <- abs_U / rep_wt
+              rep_calfun <- .make_calfun_logit(L = rep_L_vec, U = rep_U_vec)
+              rep_engine <- tryCatch(
+                .calibrate_nr_engine(
+                  x_matrix    = x_matrix,
+                  weights_vec = rep_wt,
+                  calfun      = rep_calfun,
+                  population  = rep_pop_vec,
+                  epsilon     = control$epsilon,
+                  maxit       = as.integer(control$maxit),
+                  q_weights   = q_for_engine
+                ),
+                error = function(e) stop(e)
               )
-              data@data[[repwt_col]] <- rep_engine$weights * rep_scale
+              data@data[[repwt_col]] <- rep_engine$weights
             } else {
               rep_engine <- .calibrate_nr_engine(
                 x_matrix    = x_matrix,
@@ -512,7 +537,8 @@ calibrate_logit <- function(
                 calfun      = calfun,
                 population  = rep_pop_vec,
                 epsilon     = control$epsilon,
-                maxit       = as.integer(control$maxit)
+                maxit       = as.integer(control$maxit),
+                q_weights   = q_for_engine
               )
               data@data[[repwt_col]] <- rep_engine$weights
             }

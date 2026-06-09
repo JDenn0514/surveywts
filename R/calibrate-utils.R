@@ -572,6 +572,10 @@
   #   (standard formula works numerically for negative Au of moderate magnitude)
   #
   # Clamp to (L, U) as final guard.
+  #
+  # When L or U are length-n vectors (absolute-bounds path with per-unit
+  # scaling), we subset them by the same logical index to avoid dimension
+  # mismatch inside the large_pos and normal branches.
   .eval_f <- function(u) {
     au <- A * u
     f <- numeric(length(u))
@@ -579,17 +583,21 @@
     # Large positive au: use the exp(-au)-scaled form to avoid exp(au)=Inf
     large_pos <- au > 500
     if (any(large_pos)) {
+      L_sub <- if (length(L) > 1L) L[large_pos] else L
+      U_sub <- if (length(U) > 1L) U[large_pos] else U
       ena <- exp(-au[large_pos])  # exp(-au) underflows to 0 safely
-      f[large_pos] <- (L * (U - 1) * ena + U * (1 - L)) /
-        ((U - 1) * ena + (1 - L))
+      f[large_pos] <- (L_sub * (U_sub - 1) * ena + U_sub * (1 - L_sub)) /
+        ((U_sub - 1) * ena + (1 - L_sub))
     }
 
     # Normal range (including large negative au where exp(au) underflows to 0)
     normal <- !large_pos
     if (any(normal)) {
+      L_sub <- if (length(L) > 1L) L[normal] else L
+      U_sub <- if (length(U) > 1L) U[normal] else U
       ea <- exp(au[normal])   # exp of negative / small number: finite
-      f[normal] <- (L * (U - 1) + U * (1 - L) * ea) /
-        (U - 1 + (1 - L) * ea)
+      f[normal] <- (L_sub * (U_sub - 1) + U_sub * (1 - L_sub) * ea) /
+        (U_sub - 1 + (1 - L_sub) * ea)
     }
 
     # Clamp to (L, U) as a final numerical guard
@@ -630,20 +638,22 @@
 # ---------------------------------------------------------------------------
 
 # Solves the calibration constraints using Newton-Raphson iteration.
-# Calibrated weights satisfy: sum_k d_k * F(x_k' * lambda) * x_k = t_x
+# Calibrated weights satisfy: sum_k d_k * F(q_k * x_k' * lambda) * x_k = t_x
 #
-# Algorithm (Deville, Sarndal & Sautory 1993, §11):
+# Algorithm (Deville & Sarndal 1992, Deville et al. 1993 §11):
 #   Initialize lambda = 0 (phi(0) = 0 since Fm1(0) = 0 for all calfun types)
 #   Iterate:
-#     u_k = x_k' * lambda
+#     u_k = q_k * x_k' * lambda                    [D1: q_weights scaling]
 #     phi(lambda) = X' * (d * Fm1(u))
-#     Jacobian = X' * diag(d * F'(u)) * X
+#     Jacobian = X' * diag(d * F'(u) * q) * X      [D2: q_weights in Jacobian]
 #     misfit = discrepancy - phi(lambda)
 #     lambda_new = lambda + solve(Jacobian, misfit)
 #   Convergence: max(|misfit| / (1 + |population|)) < epsilon
 #
 # For the linear method (F(u) = 1+u), one step is exact.
 # Step-halving guard: up to 20 halvings when non-finite g-weights appear.
+# Step-halving also uses q_k scaling:
+#   g_candidate = 1 + Fm1(q_k * x_k' * lambda_new) [D3: q_weights in halvings]
 #
 # Arguments:
 #   x_matrix    : n x J numeric matrix — calibration model matrix
@@ -652,6 +662,10 @@
 #   population  : named numeric length-J — population totals in count scale
 #   epsilon     : numeric(1) — convergence tolerance
 #   maxit       : integer(1) — maximum iterations
+#   q_weights   : numeric length-n or NULL — per-unit scale factors q_k > 0
+#                 (Deville & Sarndal 1992 notation). NULL is equivalent to
+#                 rep(1, n). Corresponds to variance = sigma2_k = 1/q_k in
+#                 survey::calibrate().
 #
 # Returns: named list:
 #   weights      : numeric length-n — calibrated weights
@@ -671,10 +685,16 @@
   calfun,
   population,
   epsilon = 1e-7,
-  maxit = 50L
+  maxit = 50L,
+  q_weights = NULL
 ) {
   J <- ncol(x_matrix)
   lambda <- rep(0, J)
+
+  # Resolve q_weights: NULL => rep(1, n) so all downstream code is uniform
+  if (is.null(q_weights)) {
+    q_weights <- rep(1, nrow(x_matrix))
+  }
 
   # Pre-compute HT totals: t_hat = X' * d
   t_hat <- drop(t(x_matrix) %*% weights_vec)
@@ -686,8 +706,8 @@
   }
 
   for (iter in seq_len(maxit)) {
-    # Current u_k = x_k' * lambda
-    u_vec <- drop(x_matrix %*% lambda)
+    # D1: u_k = q_k * x_k' * lambda  (scaled linear predictor)
+    u_vec <- q_weights * drop(x_matrix %*% lambda)
 
     # phi(lambda) = X' * (d * Fm1(u))
     fm1_vals <- calfun$Fm1(u_vec)
@@ -696,9 +716,9 @@
     # Residual: discrepancy - phi(lambda)
     misfit <- discrepancy - phi
 
-    # Jacobian: X' * diag(d * F'(u)) * X
+    # D2: Jacobian = X' * diag(d * F'(u) * q) * X  (q_weights in Jacobian)
     df_vals <- calfun$dF(u_vec)
-    jacobian <- t(x_matrix) %*% (weights_vec * df_vals * x_matrix)
+    jacobian <- t(x_matrix) %*% ((weights_vec * df_vals * q_weights) * x_matrix)
 
     # Newton step
     delta_lambda <- tryCatch(
@@ -725,22 +745,24 @@
       }
     )
 
-    # Step-halving guard: up to 20 halvings when non-finite g-weights appear
+    # D3: Step-halving uses q_weights in the g_candidate check
     step_size <- 1
     lambda_new <- lambda + step_size * delta_lambda
-    g_candidate <- 1 + calfun$Fm1(drop(x_matrix %*% lambda_new))
+    g_candidate <- 1 + calfun$Fm1(q_weights * drop(x_matrix %*% lambda_new))
     n_halvings <- 0L
     while (any(!is.finite(g_candidate)) && n_halvings < 20L) {
       step_size <- step_size / 2
       lambda_new <- lambda + step_size * delta_lambda
-      g_candidate <- 1 + calfun$Fm1(drop(x_matrix %*% lambda_new))
+      g_candidate <- 1 + calfun$Fm1(
+        q_weights * drop(x_matrix %*% lambda_new)
+      )
       n_halvings <- n_halvings + 1L
     }
 
     lambda <- lambda_new
 
     # Check convergence after updating lambda
-    u_new <- drop(x_matrix %*% lambda)
+    u_new <- q_weights * drop(x_matrix %*% lambda)
     fm1_new <- calfun$Fm1(u_new)
     phi_new <- drop(t(x_matrix) %*% (weights_vec * fm1_new))
     misfit_new <- discrepancy - phi_new
@@ -757,7 +779,7 @@
   }
 
   # Reached maxit without converging
-  u_final <- drop(x_matrix %*% lambda)
+  u_final <- q_weights * drop(x_matrix %*% lambda)
   fm1_final <- calfun$Fm1(u_final)
   phi_final <- drop(t(x_matrix) %*% (weights_vec * fm1_final))
   misfit_final <- discrepancy - phi_final

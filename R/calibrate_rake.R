@@ -200,6 +200,23 @@ calibrate_rake <- function(
     )
   }
 
+  # ---- Cap value validation --------------------------------------------------
+  if (!is.null(cap)) {
+    if (!is.numeric(cap) || length(cap) != 1L || !is.finite(cap) || cap <= 0) {
+      cli::cli_abort(
+        c(
+          "x" = "{.arg cap} must be a positive finite numeric scalar.",
+          "i" = "Got {.val {cap}}.",
+          "v" = paste0(
+            "Use a value > 0 (e.g., {.code cap = 5}) or ",
+            "{.code cap = NULL} to disable capping."
+          )
+        ),
+        class = "surveywts_error_cap_not_positive"
+      )
+    }
+  }
+
   # ---- Apply algorithm-specific control defaults (before warning check) ----
   classic_ipf_defaults <- list(
     maxit = 1000L, improvement = 0.01, pval = 0.05,

@@ -686,6 +686,28 @@ test_that("calibrate_rake() rejects cap with algorithm = 'nr'", {
 })
 
 # ---------------------------------------------------------------------------
+# E20. Error — surveywts_error_cap_not_positive (cap = 0 or non-positive)
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() rejects cap = 0", {
+  df <- make_surveywts_data(seed = 32)
+  targets <- .make_targets_rake()
+
+  expect_error(
+    calibrate_rake(
+      df, targets = targets, weights = base_weight, cap = 0, algorithm = "classic_ipf"
+    ),
+    class = "surveywts_error_cap_not_positive"
+  )
+  expect_snapshot(
+    error = TRUE,
+    calibrate_rake(
+      df, targets = targets, weights = base_weight, cap = 0, algorithm = "classic_ipf"
+    )
+  )
+})
+
+# ---------------------------------------------------------------------------
 # 32. Warning — control_param_ignored (pval with algorithm = "nr")
 # ---------------------------------------------------------------------------
 

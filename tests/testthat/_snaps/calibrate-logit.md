@@ -198,6 +198,27 @@
       i Got <character>.
       v Supply a positive numeric vector of length 50.
 
+# E22b: calibrate_logit() throws surveywts_error_calibration_not_converged for maxit = 1
+
+    Code
+      calibrate_logit(df, targets = targets, weights = base_weight, control = list(
+        maxit = 1L))
+    Condition
+      Error in `.calibrate_nr_engine()`:
+      x Calibration did not converge after 1 iteration.
+      i The maximum relative misfit at termination was 0.633786.
+      v Try increasing `maxit`, relaxing `epsilon`, or widening the `bounds`.
+
+# E23b: calibrate_logit() throws surveywts_error_unit_scale_invalid for non-positive unit_scale
+
+    Code
+      calibrate_logit(df, targets = targets, weights = base_weight, unit_scale = q)
+    Condition
+      Error in `.validate_unit_scale()`:
+      x `unit_scale` must contain only strictly positive values.
+      i Found 1 non-positive value in `unit_scale`.
+      v All q-weights must be > 0.
+
 # calibrate_logit() throws surveywts_error_bounds_invalid_calibration for bounds length != 2
 
     Code

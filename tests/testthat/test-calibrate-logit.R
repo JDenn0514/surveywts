@@ -820,6 +820,59 @@ test_that("E23: calibrate_logit() throws surveywts_error_population_totals_inval
 })
 
 # ---------------------------------------------------------------------------
+# E22b: Error — calibration not converged (maxit = 1 with non-trivial targets)
+# ---------------------------------------------------------------------------
+
+test_that("E22b: calibrate_logit() throws surveywts_error_calibration_not_converged for maxit = 1", {
+  df <- make_surveywts_data(n = 200, seed = 221)
+  targets <- list(
+    age_group = c("18-34" = 0.10, "35-54" = 0.80, "55+" = 0.10),
+    sex       = c("M" = 0.30, "F" = 0.70)
+  )
+
+  expect_error(
+    calibrate_logit(
+      df, targets = targets, weights = base_weight,
+      control = list(maxit = 1L)
+    ),
+    class = "surveywts_error_calibration_not_converged"
+  )
+  expect_snapshot(
+    error = TRUE,
+    calibrate_logit(
+      df, targets = targets, weights = base_weight,
+      control = list(maxit = 1L)
+    )
+  )
+})
+
+# ---------------------------------------------------------------------------
+# E23b: Error — unit_scale non-positive values
+# ---------------------------------------------------------------------------
+
+test_that("E23b: calibrate_logit() throws surveywts_error_unit_scale_invalid for non-positive unit_scale", {
+  df <- make_surveywts_data(n = 50, seed = 231)
+  targets <- .make_logit_targets()
+  q <- rep(1, nrow(df))
+  q[1] <- -1
+
+  expect_error(
+    calibrate_logit(
+      df, targets = targets, weights = base_weight,
+      unit_scale = q
+    ),
+    class = "surveywts_error_unit_scale_invalid"
+  )
+  expect_snapshot(
+    error = TRUE,
+    calibrate_logit(
+      df, targets = targets, weights = base_weight,
+      unit_scale = q
+    )
+  )
+})
+
+# ---------------------------------------------------------------------------
 # Additional bounds error tests
 # ---------------------------------------------------------------------------
 

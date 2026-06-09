@@ -242,3 +242,56 @@
       i Got `L = -1`.
       v Supply `bounds = c(L, U)` where `0 < L < U`.
 
+# HLE-1: calibrate_linear() rejects unit_scale with non-numeric type
+
+    Code
+      calibrate_linear(df_500, targets = targets, weights = base_weight, unit_scale = as.character(
+        q_unequal))
+    Condition
+      Error in `.validate_unit_scale()`:
+      x `unit_scale` must be a positive numeric vector or `NULL`.
+      i Got <character>.
+      v Supply a positive numeric vector of length 500.
+
+# HLE-2: calibrate_linear() rejects unit_scale with wrong length
+
+    Code
+      calibrate_linear(df_500, targets = targets, weights = base_weight, unit_scale = q_unequal[
+        -1L])
+    Condition
+      Error in `.validate_unit_scale()`:
+      x `unit_scale` must have length equal to the number of rows in `data`.
+      i Got length 499 but expected 500.
+      v Supply a positive numeric vector of length 500.
+
+# HLE-3: calibrate_linear() rejects unit_scale with NA values
+
+    Code
+      calibrate_linear(df_500, targets = targets, weights = base_weight, unit_scale = q_na)
+    Condition
+      Error in `.validate_unit_scale()`:
+      x `unit_scale` must not contain `NA` values.
+      i Found 1 `NA` value in `unit_scale`.
+      v Remove `NA`s or set `unit_scale = NULL` to use uniform q-weights.
+
+# HLE-4: calibrate_linear() rejects unit_scale with non-positive values
+
+    Code
+      calibrate_linear(df_500, targets = targets, weights = base_weight, unit_scale = q_nonpos)
+    Condition
+      Error in `.validate_unit_scale()`:
+      x `unit_scale` must contain only strictly positive values.
+      i Found 1 non-positive value in `unit_scale`.
+      v All q-weights must be > 0.
+
+# HLE-5: calibrate_linear() throws surveywts_error_calibration_not_converged with dual pattern
+
+    Code
+      calibrate_linear(df_tight, targets = targets_tight, weights = base_weight,
+        bounds = c(0.999, 1.001), control = list(maxit = 1L, epsilon = 1e-15))
+    Condition
+      Error in `.calibrate_nr_engine()`:
+      x Calibration did not converge after 1 iteration.
+      i The maximum relative misfit at termination was 0.054782.
+      v Try increasing `maxit`, relaxing `epsilon`, or widening the `bounds`.
+

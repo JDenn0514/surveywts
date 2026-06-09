@@ -1117,31 +1117,33 @@ test_that("EC4: calibrate_logit() @calibration$lambda is converged NR solution (
 # ---------------------------------------------------------------------------
 
 test_that("H_abs: calibrate_logit() with absolute bounds produces weights in open interval (L, U)", {
-  # Scale base_weight by 1000 so mean_d ~= 1000, inside (200, 2000).
-  # Logit absolute bounds require L_abs < mean(d_k) < U_abs.
+  # Scale base_weight by 1000 so weights are in ~[400, 3100].
+  # Use bounds (200, 3500) so all d_k strictly inside (L_abs, U_abs) —
+  # a requirement of logit absolute bounds with per-unit g-weight bounds.
   df <- make_surveywts_data(n = 200, seed = 51)
   df$base_weight <- df$base_weight * 1000
   targets <- list(
     age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30)
   )
 
-  # Absolute bounds: output weights (not g-weights) in open interval (200, 2000)
+  # Absolute bounds: output weights (not g-weights) in open interval (200, 3500)
   result <- calibrate_logit(
     df,
     targets = targets,
     weights = base_weight,
-    bounds = c(200, 2000),
+    bounds = c(200, 3500),
     bounds_scale = "absolute"
   )
 
   test_invariants(result)
   w <- result[["wts"]]
   expect_true(all(w > 200), label = "all weights > 200 (absolute lower bound)")
-  expect_true(all(w < 2000), label = "all weights < 2000 (absolute upper bound)")
+  expect_true(all(w < 3500), label = "all weights < 3500 (absolute upper bound)")
   expect_true(all(w > 0))
 })
 
 test_that("H_abs: calibrate_logit() absolute bounds stored in @calibration$bounds_scale", {
+  # seed=52 has weights in [0.36, 2.46]; bounds (0.3, 3) contain all d_k strictly.
   df <- make_surveywts_data(n = 100, seed = 52)
   taylor <- .make_test_taylor_logit(df)
   targets <- list(
@@ -1151,7 +1153,7 @@ test_that("H_abs: calibrate_logit() absolute bounds stored in @calibration$bound
   result <- calibrate_logit(
     taylor,
     targets = targets,
-    bounds = c(0.5, 5),
+    bounds = c(0.3, 3),
     bounds_scale = "absolute"
   )
 
@@ -1196,5 +1198,707 @@ test_that("E_abs: calibrate_logit() throws surveywts_error_bounds_invalid_calibr
       bounds_scale = "absolute"
     ),
     class = "surveywts_error_bounds_invalid_calibration"
+  )
+})
+
+# ===========================================================================
+# unit_scale (q_weights) tests — calibrate-unit-scale PR 1
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# HG-1: Regression guard — unit_scale = rep(1, n) identical to unit_scale = NULL
+# ---------------------------------------------------------------------------
+
+test_that("HG-1: unit_scale = rep(1, n) produces weights identical to unit_scale = NULL within 1e-14", {
+  targets <- .make_logit_targets()
+
+  result_null <- calibrate_logit(
+    df_500, targets = targets, weights = base_weight
+  )
+  result_ones <- calibrate_logit(
+    df_500, targets = targets, weights = base_weight,
+    unit_scale = q_all_ones
+  )
+
+  test_invariants(result_null)
+  test_invariants(result_ones)
+
+  expect_equal(
+    result_ones[["wts"]],
+    result_null[["wts"]],
+    tolerance = 1e-14,
+    label = "HG-1: unit_scale = rep(1, n) identical to unit_scale = NULL"
+  )
+})
+
+# ---------------------------------------------------------------------------
+# HG-2: Oracle — default bounds, unit_scale = q_unequal vs survey::calibrate(calfun="logit")
+# ---------------------------------------------------------------------------
+
+test_that("HG-2: logit with q_unequal matches survey::calibrate(calfun='logit', variance=1/q) within 1e-8", {
+  skip_if_not_installed("survey")
+
+  targets <- .make_logit_targets()
+  total_w <- sum(df_500$base_weight)
+
+  result <- calibrate_logit(
+    df_500, targets = targets,
+    weights = base_weight,
+    unit_scale = q_unequal
+  )
+
+  svy_design <- survey::svydesign(
+    ids = ~1, data = df_500, weights = ~base_weight
+  )
+  pop_totals <- c(
+    `(Intercept)` = total_w,
+    age_group3554 = targets$age_group[["35-54"]] * total_w,
+    `age_group55+` = targets$age_group[["55+"]] * total_w,
+    sexM = targets$sex[["M"]] * total_w
+  )
+  svy_cal <- survey::calibrate(
+    svy_design,
+    formula = ~age_group + sex,
+    population = pop_totals,
+    calfun = "logit",
+    bounds = c(1e-6, 1e6),
+    variance = 1 / q_unequal
+  )
+  survey_weights <- as.numeric(stats::weights(svy_cal))
+
+  test_invariants(result)
+  expect_equal(
+    result[["wts"]],
+    survey_weights,
+    tolerance = 1e-8,
+    label = "HG-2: logit with q_unequal matches survey::calibrate"
+  )
+})
+
+# ---------------------------------------------------------------------------
+# HG-3: Oracle — default bounds, constant unit_scale = q_all_twos
+# ---------------------------------------------------------------------------
+
+test_that("HG-3: logit with q_all_twos matches survey::calibrate(variance=0.5) within 1e-8", {
+  skip_if_not_installed("survey")
+
+  targets <- .make_logit_targets()
+  total_w <- sum(df_500$base_weight)
+
+  result <- calibrate_logit(
+    df_500, targets = targets,
+    weights = base_weight,
+    unit_scale = q_all_twos
+  )
+
+  svy_design <- survey::svydesign(
+    ids = ~1, data = df_500, weights = ~base_weight
+  )
+  pop_totals <- c(
+    `(Intercept)` = total_w,
+    age_group3554 = targets$age_group[["35-54"]] * total_w,
+    `age_group55+` = targets$age_group[["55+"]] * total_w,
+    sexM = targets$sex[["M"]] * total_w
+  )
+  svy_cal <- survey::calibrate(
+    svy_design,
+    formula = ~age_group + sex,
+    population = pop_totals,
+    calfun = "logit",
+    bounds = c(1e-6, 1e6),
+    variance = rep(0.5, nrow(df_500))
+  )
+  survey_weights <- as.numeric(stats::weights(svy_cal))
+
+  test_invariants(result)
+  expect_equal(
+    result[["wts"]],
+    survey_weights,
+    tolerance = 1e-8,
+    label = "HG-3: logit with q_all_twos matches survey::calibrate"
+  )
+})
+
+# ---------------------------------------------------------------------------
+# HG-4: Oracle — multiplicative bounds with unit_scale = q_unequal
+# ---------------------------------------------------------------------------
+
+test_that("HG-4: multiplicative-bounded logit with q_unequal matches survey::calibrate within 1e-8", {
+  skip_if_not_installed("survey")
+
+  targets <- list(
+    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30)
+  )
+  total_w <- sum(df_500$base_weight)
+  L <- 0.3
+  U <- 3.0
+
+  result <- calibrate_logit(
+    df_500, targets = targets,
+    weights = base_weight,
+    bounds = c(L, U),
+    unit_scale = q_unequal
+  )
+
+  svy_design <- survey::svydesign(
+    ids = ~1, data = df_500, weights = ~base_weight
+  )
+  pop_totals <- c(
+    `(Intercept)` = total_w,
+    age_group3554 = targets$age_group[["35-54"]] * total_w,
+    `age_group55+` = targets$age_group[["55+"]] * total_w
+  )
+  svy_cal <- survey::calibrate(
+    svy_design,
+    formula = ~age_group,
+    population = pop_totals,
+    calfun = "logit",
+    bounds = c(L, U),
+    variance = 1 / q_unequal
+  )
+  survey_weights <- as.numeric(stats::weights(svy_cal))
+
+  test_invariants(result)
+  expect_equal(
+    result[["wts"]],
+    survey_weights,
+    tolerance = 1e-8,
+    label = "HG-4: multiplicative-bounded logit with q_unequal oracle"
+  )
+})
+
+# ---------------------------------------------------------------------------
+# HG-5: Calibration constraint holds with unit_scale != NULL
+# ---------------------------------------------------------------------------
+
+test_that("HG-5: calibration constraint satisfied within 1e-6 when unit_scale != NULL", {
+  targets <- .make_logit_targets()
+
+  result <- calibrate_logit(
+    df_500, targets = targets,
+    weights = base_weight,
+    unit_scale = q_unequal
+  )
+
+  test_invariants(result)
+  w <- result[["wts"]]
+  total_w <- sum(w)
+
+  for (var in names(targets)) {
+    for (lev in names(targets[[var]])) {
+      obs_prop <- sum(w[result[[var]] == lev]) / total_w
+      expect_equal(
+        obs_prop, targets[[var]][[lev]],
+        tolerance = 1e-6,
+        label = paste0("HG-5: constraint: ", var, "=", lev)
+      )
+    }
+  }
+})
+
+# ---------------------------------------------------------------------------
+# HG-6: weighting_history records unit_scale vector
+# ---------------------------------------------------------------------------
+
+test_that("HG-6: weighting_history entry records unit_scale vector", {
+  targets <- .make_logit_targets()
+
+  result <- calibrate_logit(
+    df_500, targets = targets,
+    weights = base_weight,
+    unit_scale = q_unequal
+  )
+
+  test_invariants(result)
+  h <- attr(result, "weighting_history")
+  expect_equal(length(h), 1L)
+  expect_equal(
+    h[[1L]]$parameters$unit_scale,
+    q_unequal,
+    tolerance = 1e-14,
+    label = "HG-6: unit_scale stored in history"
+  )
+})
+
+# ---------------------------------------------------------------------------
+# HG-7: Absolute-bounds oracle — bounds.const = TRUE in survey::calibrate
+# ---------------------------------------------------------------------------
+
+test_that("HG-7: absolute-bounds logit matches survey::calibrate(calfun='logit', bounds.const=TRUE) within 1e-6", {
+  skip_if_not_installed("survey")
+  skip_if(
+    utils::packageVersion("survey") < "4.1",
+    "survey >= 4.1 required for bounds.const"
+  )
+
+  targets <- list(
+    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30)
+  )
+  # df_200 (seed=7) has weights in [0.406, 2.716].
+  # Use abs_L = 0.3 so all d_k strictly in (0.3, 3.0).
+  abs_L <- 0.3
+  abs_U <- 3.0
+  total_w <- sum(df_200$base_weight)
+
+  result <- calibrate_logit(
+    df_200, targets = targets,
+    weights = base_weight,
+    bounds = c(abs_L, abs_U),
+    bounds_scale = "absolute"
+  )
+
+  svy_design <- survey::svydesign(
+    ids = ~1, data = df_200, weights = ~base_weight
+  )
+  pop_totals <- c(
+    `(Intercept)` = total_w,
+    age_group3554 = targets$age_group[["35-54"]] * total_w,
+    `age_group55+` = targets$age_group[["55+"]] * total_w
+  )
+  svy_cal <- survey::calibrate(
+    svy_design,
+    formula = ~age_group,
+    population = pop_totals,
+    calfun = "logit",
+    bounds = c(abs_L, abs_U),
+    bounds.const = TRUE
+  )
+  survey_weights <- as.numeric(stats::weights(svy_cal))
+
+  test_invariants(result)
+  # Tolerance is 1e-6: per-unit-bounds and survey's bounds.const use slightly
+  # different NR paths at epsilon=1e-7, so exact agreement to 1e-8 is not expected.
+  expect_equal(
+    result[["wts"]],
+    survey_weights,
+    tolerance = 1e-6,
+    label = "HG-7: absolute-bounds logit oracle"
+  )
+})
+
+# ---------------------------------------------------------------------------
+# HG-8: Bounded vs unbounded outputs differ with same q
+# ---------------------------------------------------------------------------
+
+test_that("HG-8: bounded and unbounded logit produce different weights with same q", {
+  targets <- .make_logit_targets()
+
+  result_wide <- calibrate_logit(
+    df_500, targets = targets,
+    weights = base_weight,
+    bounds = c(1e-6, 1e6),
+    unit_scale = q_unequal
+  )
+  result_tight <- calibrate_logit(
+    df_500, targets = targets,
+    weights = base_weight,
+    bounds = c(0.5, 2),
+    unit_scale = q_unequal
+  )
+
+  test_invariants(result_wide)
+  test_invariants(result_tight)
+
+  diff_max <- max(abs(result_tight[["wts"]] - result_wide[["wts"]]))
+  expect_true(
+    diff_max > 1e-6,
+    label = "HG-8: bounds=(0.5,2) vs wide bounds produce different weights"
+  )
+})
+
+# ---------------------------------------------------------------------------
+# HG-9: Unequal-weights absolute-bounds differs from old mean-based approach
+# ---------------------------------------------------------------------------
+
+test_that("HG-9: absolute-bounds logit with unequal d_k differs from old mean-based approach", {
+  targets <- list(
+    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30)
+  )
+  # df_200 (seed=7) has weights in [0.406, 2.716]; use abs_L=0.3 so all d_k in (0.3, 3.0).
+  abs_L <- 0.3
+  abs_U <- 3.0
+  total_w <- sum(df_200$base_weight)
+
+  # New per-unit approach
+  result_new <- calibrate_logit(
+    df_200, targets = targets,
+    weights = base_weight,
+    bounds = c(abs_L, abs_U),
+    bounds_scale = "absolute"
+  )
+
+  # Old mean-based approach: run engine with unit weights, scaled pop, scale back
+  weights_vec <- df_200$base_weight
+  n <- nrow(df_200)
+  mean_d <- mean(weights_vec)
+  L_g <- abs_L / mean_d
+  U_g <- abs_U / mean_d
+  x_df <- df_200
+  lvls <- c("18-34", "35-54", "55+")
+  x_df$age_group <- factor(x_df$age_group, levels = lvls)
+  x_mat <- stats::model.matrix(~age_group, data = x_df)
+  pop_totals_vec <- c(
+    `(Intercept)` = total_w,
+    age_group3554 = targets$age_group[["35-54"]] * total_w,
+    `age_group55+` = targets$age_group[["55+"]] * total_w
+  )
+  calfun_old <- surveywts:::.make_calfun_logit(L = L_g, U = U_g)
+  old_engine <- surveywts:::.calibrate_nr_engine(
+    x_matrix    = x_mat,
+    weights_vec = rep(1, n),
+    calfun      = calfun_old,
+    population  = pop_totals_vec / mean_d
+  )
+  old_weights <- old_engine$weights * mean_d
+
+  test_invariants(result_new)
+  max_diff <- max(abs(result_new[["wts"]] - old_weights))
+  expect_true(
+    max_diff > 0,
+    label = "HG-9: per-unit and mean-based logit approaches differ for unequal d_k"
+  )
+})
+
+# ---------------------------------------------------------------------------
+# HG-10: Combined oracle — absolute-bounds + unit_scale = q_unequal
+# ---------------------------------------------------------------------------
+
+test_that("HG-10: absolute-bounds logit + unit_scale=q_unequal[1:200] matches survey::calibrate within 1e-6", {
+  skip_if_not_installed("survey")
+  skip_if(
+    utils::packageVersion("survey") < "4.1",
+    "survey >= 4.1 required for bounds.const"
+  )
+
+  targets <- list(
+    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30)
+  )
+  # df_200 (seed=7) has weights in [0.406, 2.716]; use abs_L=0.3 so all d_k in (0.3, 3.0).
+  abs_L <- 0.3
+  abs_U <- 3.0
+  total_w <- sum(df_200$base_weight)
+  q_200 <- q_unequal[seq_len(nrow(df_200))]
+
+  result <- calibrate_logit(
+    df_200, targets = targets,
+    weights = base_weight,
+    bounds = c(abs_L, abs_U),
+    bounds_scale = "absolute",
+    unit_scale = q_200
+  )
+
+  svy_design <- survey::svydesign(
+    ids = ~1, data = df_200, weights = ~base_weight
+  )
+  pop_totals <- c(
+    `(Intercept)` = total_w,
+    age_group3554 = targets$age_group[["35-54"]] * total_w,
+    `age_group55+` = targets$age_group[["55+"]] * total_w
+  )
+  svy_cal <- survey::calibrate(
+    svy_design,
+    formula = ~age_group,
+    population = pop_totals,
+    calfun = "logit",
+    bounds = c(abs_L, abs_U),
+    bounds.const = TRUE,
+    variance = 1 / q_200
+  )
+  survey_weights <- as.numeric(stats::weights(svy_cal))
+
+  test_invariants(result)
+  # Tolerance is 1e-6: per-unit-bounds + q_weights and survey's bounds.const + variance
+  # converge to the same solution from slightly different NR paths at epsilon=1e-7.
+  expect_equal(
+    result[["wts"]],
+    survey_weights,
+    tolerance = 1e-6,
+    label = "HG-10: absolute-bounds logit + unit_scale oracle"
+  )
+})
+
+# ---------------------------------------------------------------------------
+# HGE-1 through HGE-5: Error paths
+# ---------------------------------------------------------------------------
+
+test_that("HGE-1: calibrate_logit() rejects unit_scale with non-numeric type", {
+  targets <- .make_logit_targets()
+
+  expect_error(
+    calibrate_logit(
+      df_500, targets = targets, weights = base_weight,
+      unit_scale = as.character(q_unequal)
+    ),
+    class = "surveywts_error_unit_scale_invalid"
+  )
+  expect_snapshot(
+    error = TRUE,
+    calibrate_logit(
+      df_500, targets = targets, weights = base_weight,
+      unit_scale = as.character(q_unequal)
+    )
+  )
+})
+
+test_that("HGE-2: calibrate_logit() rejects unit_scale with wrong length", {
+  targets <- .make_logit_targets()
+
+  expect_error(
+    calibrate_logit(
+      df_500, targets = targets, weights = base_weight,
+      unit_scale = q_unequal[-1L]
+    ),
+    class = "surveywts_error_unit_scale_invalid"
+  )
+  expect_snapshot(
+    error = TRUE,
+    calibrate_logit(
+      df_500, targets = targets, weights = base_weight,
+      unit_scale = q_unequal[-1L]
+    )
+  )
+})
+
+test_that("HGE-3: calibrate_logit() rejects unit_scale with NA values", {
+  targets <- .make_logit_targets()
+  q_na <- q_unequal
+  q_na[5L] <- NA_real_
+
+  expect_error(
+    calibrate_logit(
+      df_500, targets = targets, weights = base_weight,
+      unit_scale = q_na
+    ),
+    class = "surveywts_error_unit_scale_invalid"
+  )
+  expect_snapshot(
+    error = TRUE,
+    calibrate_logit(
+      df_500, targets = targets, weights = base_weight,
+      unit_scale = q_na
+    )
+  )
+})
+
+test_that("HGE-4: calibrate_logit() throws bounds_invalid when d_k <= L_abs (absolute bounds)", {
+  # Base weight = 0.3, abs_L = 0.5 => L_vec[k] = 0.5/0.3 = 1.67 >= 1: ill-defined
+  n <- 50L
+  set.seed(401)
+  df_small <- data.frame(
+    age_group = sample(c("18-34", "35-54", "55+"), n, replace = TRUE),
+    base_weight = c(0.3, rep(1.5, n - 1L)),
+    stringsAsFactors = FALSE
+  )
+  targets_s <- list(
+    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30)
+  )
+  abs_L <- 0.5
+  abs_U <- 5.0
+
+  expect_error(
+    calibrate_logit(
+      df_small, targets = targets_s, weights = base_weight,
+      bounds = c(abs_L, abs_U), bounds_scale = "absolute"
+    ),
+    class = "surveywts_error_bounds_invalid_calibration"
+  )
+  expect_snapshot(
+    error = TRUE,
+    calibrate_logit(
+      df_small, targets = targets_s, weights = base_weight,
+      bounds = c(abs_L, abs_U), bounds_scale = "absolute"
+    )
+  )
+})
+
+test_that("HGE-5: calibrate_logit() throws bounds_invalid when d_k >= U_abs (absolute bounds)", {
+  # Base weight = 6, abs_U = 5 => U_vec[k] = 5/6 <= 1: ill-defined
+  n <- 50L
+  set.seed(402)
+  df_small <- data.frame(
+    age_group = sample(c("18-34", "35-54", "55+"), n, replace = TRUE),
+    base_weight = c(6.0, rep(1.5, n - 1L)),
+    stringsAsFactors = FALSE
+  )
+  targets_s <- list(
+    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30)
+  )
+  abs_L <- 0.5
+  abs_U <- 5.0
+
+  expect_error(
+    calibrate_logit(
+      df_small, targets = targets_s, weights = base_weight,
+      bounds = c(abs_L, abs_U), bounds_scale = "absolute"
+    ),
+    class = "surveywts_error_bounds_invalid_calibration"
+  )
+  expect_snapshot(
+    error = TRUE,
+    calibrate_logit(
+      df_small, targets = targets_s, weights = base_weight,
+      bounds = c(abs_L, abs_U), bounds_scale = "absolute"
+    )
+  )
+})
+
+# ---------------------------------------------------------------------------
+# RL-3: Replicate — full-sample logit oracle with unit_scale
+# ---------------------------------------------------------------------------
+
+test_that("RL-3: replicate logit calibration full-sample weights match oracle with unit_scale", {
+  targets <- list(
+    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30)
+  )
+  q_200 <- q_unequal[seq_len(nrow(df_200))]
+
+  taylor <- .make_test_taylor_logit(df_200)
+  rep_design <- create_bootstrap_weights(taylor, replicates = 10L)
+
+  result <- calibrate_logit(
+    rep_design, targets = targets,
+    unit_scale = q_200
+  )
+
+  test_invariants(result)
+
+  result_full <- calibrate_logit(
+    df_200, targets = targets,
+    weights = base_weight,
+    unit_scale = q_200
+  )
+
+  expect_equal(
+    result@data[[result@variables$weights]],
+    result_full[["wts"]],
+    tolerance = 1e-8,
+    label = "RL-3: replicate full-sample matches non-replicate oracle"
+  )
+})
+
+# ---------------------------------------------------------------------------
+# RL-4: Replicate — unit_scale = NULL vs rep(1, n) identical
+# ---------------------------------------------------------------------------
+
+test_that("RL-4: replicate logit with unit_scale = NULL and rep(1,n) produce identical full-sample weights", {
+  targets <- list(
+    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30)
+  )
+
+  taylor <- .make_test_taylor_logit(df_200)
+  rep_design <- create_bootstrap_weights(taylor, replicates = 10L)
+
+  result_null <- calibrate_logit(rep_design, targets = targets)
+  result_ones <- calibrate_logit(
+    rep_design, targets = targets,
+    unit_scale = rep(1.0, nrow(df_200))
+  )
+
+  test_invariants(result_null)
+  test_invariants(result_ones)
+
+  expect_equal(
+    result_ones@data[[result_ones@variables$weights]],
+    result_null@data[[result_null@variables$weights]],
+    tolerance = 1e-14,
+    label = "RL-4: unit_scale = NULL vs rep(1,n) identical in replicate logit"
+  )
+})
+
+# ---------------------------------------------------------------------------
+# RL-6: Replicate — absolute-bounds logit constraint + all base weights in (L, U)
+# ---------------------------------------------------------------------------
+
+test_that("RL-6: absolute-bounds replicate logit: constraint holds and base weights strictly in (L_abs, U_abs)", {
+  # df_200 (seed=7) has weights in [0.406, 2.716]; use abs_L=0.3 so all d_k in (0.3, 3.0).
+  abs_L <- 0.3
+  abs_U <- 3.0
+  targets <- list(
+    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30)
+  )
+
+  taylor <- .make_test_taylor_logit(df_200)
+  rep_design <- create_bootstrap_weights(taylor, replicates = 10L)
+
+  # Ensure all base weights are strictly within (L_abs, U_abs)
+  stopifnot(all(df_200$base_weight > abs_L & df_200$base_weight < abs_U))
+
+  result <- calibrate_logit(
+    rep_design, targets = targets,
+    bounds = c(abs_L, abs_U),
+    bounds_scale = "absolute"
+  )
+
+  test_invariants(result)
+
+  # Calibration constraint on full-sample weights
+  fs_wts <- result@data[[result@variables$weights]]
+  total_fs <- sum(fs_wts)
+  x_full <- rep_design@data$age_group
+  for (lev in names(targets$age_group)) {
+    obs <- sum(fs_wts[x_full == lev]) / total_fs
+    expect_equal(obs, targets$age_group[[lev]], tolerance = 1e-8,
+                 label = paste0("RL-6: constraint age_group=", lev))
+  }
+  expect_true(
+    all(df_200$base_weight > abs_L & df_200$base_weight < abs_U),
+    label = "RL-6: all base weights strictly in (0.3, 3.0)"
+  )
+})
+
+# ---------------------------------------------------------------------------
+# EC-7: Edge case — logit g-weights in open interval (L, U)
+# ---------------------------------------------------------------------------
+
+test_that("EC-7: logit g-weights are strictly in open interval (L, U) with q_unequal", {
+  L <- 0.3
+  U <- 3.0
+  targets <- list(
+    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30)
+  )
+  q_200 <- q_unequal[seq_len(nrow(df_200))]
+
+  result <- calibrate_logit(
+    df_200, targets = targets,
+    weights = base_weight,
+    bounds = c(L, U),
+    unit_scale = q_200
+  )
+
+  test_invariants(result)
+  g <- result[["wts"]] / df_200$base_weight
+  expect_true(all(g > L), label = "EC-7: all g-weights > L")
+  expect_true(all(g < U), label = "EC-7: all g-weights < U")
+})
+
+# ---------------------------------------------------------------------------
+# EC-10: Edge case — absolute-bounds logit final weights strictly in (L_abs, U_abs)
+# ---------------------------------------------------------------------------
+
+test_that("EC-10: absolute-bounds logit: all final weights strictly within (L_abs, U_abs)", {
+  # df_200 (seed=7) has weights in [0.406, 2.716]; use abs_L=0.3 so all d_k in (0.3, 3.0).
+  abs_L <- 0.3
+  abs_U <- 3.0
+  targets <- list(
+    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30)
+  )
+
+  # Verify precondition: all base weights strictly within (L_abs, U_abs)
+  stopifnot(all(df_200$base_weight > abs_L & df_200$base_weight < abs_U))
+
+  result <- calibrate_logit(
+    df_200, targets = targets, weights = base_weight,
+    bounds = c(abs_L, abs_U), bounds_scale = "absolute"
+  )
+
+  test_invariants(result)
+  w <- result[["wts"]]
+  expect_true(
+    all(w > abs_L),
+    label = "EC-10: all weights strictly > L_abs"
+  )
+  expect_true(
+    all(w < abs_U),
+    label = "EC-10: all weights strictly < U_abs"
   )
 })

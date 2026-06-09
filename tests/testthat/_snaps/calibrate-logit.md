@@ -241,3 +241,57 @@
       i Got `L = -1`.
       v Supply `bounds = c(L, U)` where `0 < L < U`.
 
+# HGE-1: calibrate_logit() rejects unit_scale with non-numeric type
+
+    Code
+      calibrate_logit(df_500, targets = targets, weights = base_weight, unit_scale = as.character(
+        q_unequal))
+    Condition
+      Error in `.validate_unit_scale()`:
+      x `unit_scale` must be a positive numeric vector or `NULL`.
+      i Got <character>.
+      v Supply a positive numeric vector of length 500.
+
+# HGE-2: calibrate_logit() rejects unit_scale with wrong length
+
+    Code
+      calibrate_logit(df_500, targets = targets, weights = base_weight, unit_scale = q_unequal[
+        -1L])
+    Condition
+      Error in `.validate_unit_scale()`:
+      x `unit_scale` must have length equal to the number of rows in `data`.
+      i Got length 499 but expected 500.
+      v Supply a positive numeric vector of length 500.
+
+# HGE-3: calibrate_logit() rejects unit_scale with NA values
+
+    Code
+      calibrate_logit(df_500, targets = targets, weights = base_weight, unit_scale = q_na)
+    Condition
+      Error in `.validate_unit_scale()`:
+      x `unit_scale` must not contain `NA` values.
+      i Found 1 `NA` value in `unit_scale`.
+      v Remove `NA`s or set `unit_scale = NULL` to use uniform q-weights.
+
+# HGE-4: calibrate_logit() throws bounds_invalid when d_k <= L_abs (absolute bounds)
+
+    Code
+      calibrate_logit(df_small, targets = targets_s, weights = base_weight, bounds = c(
+        abs_L, abs_U), bounds_scale = "absolute")
+    Condition
+      Error in `calibrate_logit()`:
+      x Absolute bounds (0.5, 5) are incompatible with 1 base weight.
+      v Widen `bounds` or switch to `bounds_scale = "multiplicative"` for relative g-weight bounds.
+      i 1 base weight <= L_abs = 0.5 (per-unit lower g-bound L_k = L_abs/d_k >= 1).
+
+# HGE-5: calibrate_logit() throws bounds_invalid when d_k >= U_abs (absolute bounds)
+
+    Code
+      calibrate_logit(df_small, targets = targets_s, weights = base_weight, bounds = c(
+        abs_L, abs_U), bounds_scale = "absolute")
+    Condition
+      Error in `calibrate_logit()`:
+      x Absolute bounds (0.5, 5) are incompatible with 1 base weight.
+      v Widen `bounds` or switch to `bounds_scale = "multiplicative"` for relative g-weight bounds.
+      i 1 base weight >= U_abs = 5 (per-unit upper g-bound U_k = U_abs/d_k <= 1).
+

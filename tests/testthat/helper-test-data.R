@@ -4,6 +4,8 @@
 # Provides:
 #   - make_surveywts_data()   — synthetic data generator
 #   - test_invariants()           — invariant checker
+#   - df_500, df_200              — pre-generated shared fixtures (n=500/200)
+#   - q_unequal, q_all_twos, q_all_ones — shared q-weight fixtures
 
 make_surveywts_data <- function(
   n = 500L,
@@ -433,6 +435,22 @@ make_dagjk_datasets <- function() {
   base_rep@data <- updated_data
   base_rep
 }
+
+# ============================================================================
+# Shared fixtures for calibrate-unit-scale tests
+# ============================================================================
+# These are defined at file top level so all test_that() blocks in both
+# test-calibrate-linear.R and test-calibrate-logit.R can reference them
+# without re-running set.seed().
+
+df_500 <- make_surveywts_data(n = 500, seed = 42)
+df_200 <- make_surveywts_data(n = 200, seed = 7)
+q_unequal <- {
+  set.seed(99)
+  exp(rnorm(500, 0, 0.3))
+}
+q_all_twos <- rep(2, 500)
+q_all_ones <- rep(1, 500)
 
 # Pin all weighting history timestamps to a fixed date for stable snapshots.
 # Works for survey_nonprob and survey_replicate (both have @metadata@weighting_history).

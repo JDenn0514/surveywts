@@ -2,68 +2,127 @@
 % Please edit documentation in R/calibrate_to_estimate.R
 \name{calibrate_to_estimate}
 \alias{calibrate_to_estimate}
-\title{Calibrate a replicate design to control totals with uncertainty}
+\title{Calibrate replicate weights to externally supplied population estimates}
 \usage{
 calibrate_to_estimate(
   design,
-  formula,
-  estimate,
+  targets,
   vcov_estimate,
-  method = c("raking", "linear", "logit"),
-  bounds = list(lower = -Inf, upper = Inf),
+  method = c("rake", "linear", "logit"),
+  bounds = c(-Inf, Inf),
+  unit_scale = NULL,
+  reference_design = NULL,
   control = list()
 )
 }
 \arguments{
-\item{design}{A \code{survey_replicate} design to calibrate.}
+\item{design}{A \code{survey_replicate} object. The design to be calibrated.}
 
-\item{formula}{A one-sided formula specifying calibration variables,
-e.g., \code{~ age_group + sex}. All variables must exist in \code{design}.}
+\item{targets}{A named list of population count totals. Each element is
+a named numeric vector whose names are the level labels for that variable
+in \code{design@data}. All values must be strictly positive. The list name is
+the variable name in \code{design@data}.}
 
-\item{estimate}{Named numeric vector of control totals. Names must match
-the column names returned by
-\code{survey::svytotal(formula, .to_svyrep_design(design))}.}
+\item{vcov_estimate}{A numeric matrix of dimension \verb{k x k}, where
+\code{k = length(unlist(targets))}. The variance-covariance matrix of the
+population estimates. Must be symmetric (tolerance \code{1e-8}) and positive
+definite.}
 
-\item{vcov_estimate}{Numeric matrix. Variance-covariance of \code{estimate}.
-Must be symmetric positive definite with dimensions
-\verb{length(estimate) x length(estimate)}.}
+\item{method}{Calibration method. One of \code{"rake"} (default), \code{"linear"},
+or \code{"logit"}. Matched with \code{\link[rlang:arg_match]{rlang::arg_match()}}.}
 
-\item{method}{Calibration method: \code{"raking"}, \code{"linear"}, or \code{"logit"}.
-Same semantics as \code{\link[=calibrate_to_survey]{calibrate_to_survey()}}.}
+\item{bounds}{Numeric vector of length 2: \code{c(lower, upper)}. Bounds on the
+calibrated-to-starting-weight ratio. Default \code{c(-Inf, Inf)}.
+Note: per-unit \code{bounds_scale} is not supported; use scalar bounds only.}
 
-\item{bounds}{Named list with \code{lower} and \code{upper} weight bounds.
-Default: \code{list(lower = -Inf, upper = Inf)}.}
+\item{unit_scale}{\code{NULL} or a positive numeric vector of length
+\code{nrow(design@data)}. Passed to svrep as the \code{variance} argument
+(per-unit variance scaling). \code{NULL} means no scaling.}
 
-\item{control}{Named list of convergence parameters, merged with defaults
-\code{list(maxit = 50, epsilon = 1e-7)}.}
+\item{reference_design}{A \code{survey_taylor} object or \code{NULL}. Stored in the
+history entry for provenance only; not used in computation.}
+
+\item{control}{Named list of calibration control parameters. Known keys:
+\itemize{
+\item \code{maxit}: maximum iterations (default \code{50L})
+\item \code{epsilon}: convergence tolerance (default \code{1e-7})
+\item \code{col_selection}: passed to svrep for reproducible replicate selection;
+not stored in history.
+Unknown keys trigger a \code{surveywts_warning_control_param_ignored} warning.
+}}
 }
 \value{
-A \code{survey_replicate} with updated full-sample and replicate weights
-and a new \code{"sample_calibration_estimate"} entry appended to
-\verb{@metadata@weighting_history}.
+A \code{survey_replicate} object with updated full-sample and replicate
+weights. A history entry with \code{operation = "calibrate_to_estimate"} is
+appended to \verb{@metadata@weighting_history}.
 }
 \description{
-Adjusts the weights of \code{design} to match control totals specified as a
-point estimate vector and an associated variance-covariance matrix.
-Replicate weights are calibrated to perturbed versions of the estimate,
-propagating the uncertainty in the control totals into the variance
-estimates.
+Adjusts the full-sample and replicate weights of \code{design} so that its
+estimated totals for the variables named in \code{targets} match the supplied
+count totals. The \code{vcov_estimate} matrix propagates the uncertainty of
+those external estimates into the calibrated design's variance estimates.
 }
 \details{
-\code{method = "logit"} requires finite bounds. See \code{\link[=calibrate_to_survey]{calibrate_to_survey()}}
-for details.
+\code{design} must be a \code{survey_replicate} object because replicate weights
+are required to propagate the uncertainty of the external estimates
+(captured in \code{vcov_estimate}) into the variance of the calibrated design.
+Taylor-linearization designs are not sufficient for this purpose.
+
+The \code{targets} list is converted to a named vector via \code{unlist(targets)},
+and a calibration formula is built from \code{names(targets)}. Ensure that
+the names of each \code{targets} element exactly match the levels in the
+corresponding column of \code{design@data} (for factor columns: \code{levels()};
+for character columns: \code{unique()}).
+
+When \code{method = "linear"}, any negative full-sample weights are clipped to
+\code{.Machine$double.eps} with a warning; replicate weights are not clipped.
 }
-\note{
-This function assumes the control totals are approximately multivariate
-normally distributed (i.e., the sampling distribution of \code{estimate} is
-well-approximated by a multivariate normal with mean \code{estimate} and
-covariance \code{vcov_estimate}). This assumption is satisfied by the CLT for
-large control surveys. For small control samples or strongly non-normal
-sampling distributions, the resulting variance estimates may be misleading.
-Additionally, the function treats \code{estimate} as if the true population
-totals were known; estimation error in the control survey is incorporated
-only through \code{vcov_estimate}, not through any model of the data-generating
-process.
+\examples{
+data(api, package = "survey")
+
+set.seed(1)
+d_primary <- survey::svydesign(id = ~1, weights = ~pw, data = apiclus1)
+boot_primary <- svrep::as_bootstrap_design(
+  d_primary,
+  type = "Rao-Wu-Yue-Beaumont",
+  replicates = 20
+)
+
+# Convert to surveywts survey_replicate object
+primary <- surveycore::survey_replicate(
+  data = cbind(
+    as.data.frame(boot_primary$variables),
+    as.data.frame(as.matrix(boot_primary$repweights))
+  ),
+  variables = list(
+    weights    = "pw",
+    repweights = paste0("V", seq_len(ncol(boot_primary$repweights))),
+    type       = boot_primary$type,
+    scale      = boot_primary$scale,
+    rscales    = boot_primary$rscales,
+    mse        = isTRUE(boot_primary$mse)
+  )
+)
+
+# Known population counts by school type
+targets <- list(
+  stype = c(E = 4421, H = 755, M = 1018)
+)
+vcov_est <- diag(c(10000, 1000, 2000))
+
+result <- surveywts::calibrate_to_estimate(
+  design        = primary,
+  targets       = targets,
+  vcov_estimate = vcov_est
+)
+
+}
+\references{
+Fuller, W.A. (1998). Replication variance estimation for two-phase
+samples. \emph{Statistica Sinica}, 8, 1153--1164.
+
+Opsomer, J.D. and Erciulescu, A. (2021). Replication variance estimation
+after sample-based calibration. \emph{Survey Methodology}, 47, 265--277.
 }
 \seealso{
 Other sample-calibration: 

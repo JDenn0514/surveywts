@@ -2,56 +2,141 @@
 % Please edit documentation in R/calibrate_to_survey.R
 \name{calibrate_to_survey}
 \alias{calibrate_to_survey}
-\title{Calibrate a replicate design to a replicate control survey}
+\title{Calibrate replicate weights to a control survey}
 \usage{
 calibrate_to_survey(
   primary_design,
   control_design,
-  formula,
-  method = c("raking", "linear", "logit"),
-  bounds = list(lower = -Inf, upper = Inf),
+  variables,
+  method = c("rake", "linear", "logit"),
+  bounds = c(-Inf, Inf),
+  unit_scale = NULL,
+  reference_design = NULL,
   control = list()
 )
 }
 \arguments{
-\item{primary_design}{A \code{survey_replicate} design to calibrate.}
+\item{primary_design}{A \code{survey_replicate} object. The design to be
+calibrated. Must have replicate weights.}
 
-\item{control_design}{A \code{survey_replicate} design providing control totals.
-Must have the same number of replicates as \code{primary_design}.}
+\item{control_design}{A \code{survey_replicate} object. The reference survey
+from which population totals are estimated. Must have replicate weights.}
 
-\item{formula}{A one-sided formula specifying calibration variables,
-e.g., \code{~ age_group + sex}. All variables must exist in both designs.}
+\item{variables}{<\code{\link[tidyselect:language]{tidy-select}}> Bare names of the
+calibration variables in \code{primary_design@data}. Must be present in both
+\code{primary_design} and \code{control_design}.}
 
-\item{method}{Calibration method: \code{"raking"} (iterative multiplicative;
-always positive weights), \code{"linear"} (one-step GREG; may produce negative
-weights), or \code{"logit"} (bounded iterative; requires finite \code{bounds}).}
+\item{method}{Calibration method. One of \code{"rake"} (default), \code{"linear"},
+or \code{"logit"}. Matched with \code{\link[rlang:arg_match]{rlang::arg_match()}}.}
 
-\item{bounds}{Named list with \code{lower} and \code{upper} weight bounds passed to
-svrep. Default: \code{list(lower = -Inf, upper = Inf)} (unbounded).}
+\item{bounds}{Numeric vector of length 2: \code{c(lower, upper)}. Bounds on
+the calibrated-to-starting-weight ratio. Default \code{c(-Inf, Inf)}.
+Note: per-unit \code{bounds_scale} is not supported; use scalar bounds only.}
 
-\item{control}{Named list of convergence parameters, merged with defaults
-\code{list(maxit = 50, epsilon = 1e-7)}. Applied to every calibration call
-(full-sample and each replicate).}
+\item{unit_scale}{\code{NULL} or a positive numeric vector of length
+\code{nrow(primary_design@data)}. Passed to svrep as the \code{variance} argument
+(per-unit variance scaling). \code{NULL} means no scaling.}
+
+\item{reference_design}{A \code{survey_taylor} object or \code{NULL}. Stored in the
+history entry for provenance only; not used in computation.}
+
+\item{control}{Named list of calibration control parameters. Known keys:
+\itemize{
+\item \code{maxit}: maximum iterations (default \code{50L})
+\item \code{epsilon}: convergence tolerance (default \code{1e-7})
+\item \code{control_col_matches}: passed to svrep for reproducible
+primary-to-control replicate matching; not stored in history.
+Unknown keys trigger a \code{surveywts_warning_control_param_ignored} warning.
+}}
 }
 \value{
-A \code{survey_replicate} with updated full-sample and replicate weights
-and a new \code{"sample_calibration_replicate"} entry appended to
-\verb{@metadata@weighting_history}.
+A \code{survey_replicate} object with updated full-sample and replicate
+weights. A history entry with \code{operation = "calibrate_to_survey"} is
+appended to \verb{@metadata@weighting_history}.
 }
 \description{
 Adjusts the full-sample and replicate weights of \code{primary_design} so that
-weighted totals of the calibration variables match those of \code{control_design}.
-Each replicate is calibrated to the corresponding replicate of the control,
-propagating the variance of the control totals into the variance estimates.
+its estimated totals for \code{variables} match those estimated from
+\code{control_design}. Variance estimation correctly propagates the sampling
+uncertainty of the control survey's estimates into the calibrated primary
+design.
 }
 \details{
-\code{method = "logit"} requires finite \code{bounds$lower} and \code{bounds$upper}. With
-the default infinite bounds, \code{survey::cal.logit} will fail with a raw survey
-package error -- this is not wrapped by surveywts.
+Both \code{primary_design} and \code{control_design} must be \code{survey_replicate}
+objects because replicate weights are required to propagate the
+uncertainty of the control survey's estimated totals into the variance
+of the calibrated design. Taylor-linearization designs are not
+sufficient for this purpose.
 
-The intercept calibration constraint forces the calibrated weight sum to
-equal the control survey's weight sum, not the primary design's original
-weight sum.
+When \code{method = "logit"}, finite bounds are required by the algorithm;
+the default \code{c(-Inf, Inf)} is passed through and svrep applies logit
+calibration. When \code{method = "linear"}, any negative full-sample weights
+are clipped to \code{.Machine$double.eps} with a warning, but replicate
+weights are not clipped.
+}
+\examples{
+data(api, package = "survey")
+
+# Build simple designs from apiclus1 and apisrs
+set.seed(1)
+d_primary <- survey::svydesign(id = ~1, weights = ~pw, data = apiclus1)
+d_control <- survey::svydesign(id = ~1, weights = ~pw, data = apisrs)
+
+# Create bootstrap replicate weights
+boot_primary <- svrep::as_bootstrap_design(
+  d_primary,
+  type = "Rao-Wu-Yue-Beaumont",
+  replicates = 20
+)
+boot_control <- svrep::as_bootstrap_design(
+  d_control,
+  type = "Rao-Wu-Yue-Beaumont",
+  replicates = 20
+)
+
+# Convert to surveywts survey_replicate objects
+primary <- surveycore::survey_replicate(
+  data = cbind(
+    as.data.frame(boot_primary$variables),
+    as.data.frame(as.matrix(boot_primary$repweights))
+  ),
+  variables = list(
+    weights    = "pw",
+    repweights = paste0("V", seq_len(ncol(boot_primary$repweights))),
+    type       = boot_primary$type,
+    scale      = boot_primary$scale,
+    rscales    = boot_primary$rscales,
+    mse        = isTRUE(boot_primary$mse)
+  )
+)
+control <- surveycore::survey_replicate(
+  data = cbind(
+    as.data.frame(boot_control$variables),
+    as.data.frame(as.matrix(boot_control$repweights))
+  ),
+  variables = list(
+    weights    = "pw",
+    repweights = paste0("V", seq_len(ncol(boot_control$repweights))),
+    type       = boot_control$type,
+    scale      = boot_control$scale,
+    rscales    = boot_control$rscales,
+    mse        = isTRUE(boot_control$mse)
+  )
+)
+
+result <- surveywts::calibrate_to_survey(
+  primary_design = primary,
+  control_design = control,
+  variables      = c(stype)
+)
+
+}
+\references{
+Fuller, W.A. (1998). Replication variance estimation for two-phase
+samples. \emph{Statistica Sinica}, 8, 1153--1164.
+
+Opsomer, J.D. and Erciulescu, A. (2021). Replication variance estimation
+after sample-based calibration. \emph{Survey Methodology}, 47, 265--277.
 }
 \seealso{
 Other sample-calibration: 

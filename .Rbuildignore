@@ -11,3 +11,7 @@
 ^pkgdown$
 ^LICENSE\.md$
 ^docs$
+^\.surveywts-workspace$
+^VENDORED\.md$
+^archive$
+^changelog$

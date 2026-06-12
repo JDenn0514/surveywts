@@ -1,6 +1,6 @@
 # Implementation Plan — calibration-framework
 
-**Status**: PLAN_READY
+**Status**: DONE
 **Spec**: `plans/spec-calibration-framework.md`
 **Test-spec**: `plans/test-spec-calibration-framework.md`
 **PR range**: PR 1–5

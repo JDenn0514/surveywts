@@ -4,8 +4,6 @@
 # Provides:
 #   - make_surveywts_data()   — synthetic data generator
 #   - test_invariants()           — invariant checker
-#   - df_500, df_200              — pre-generated shared fixtures (n=500/200)
-#   - q_unequal, q_all_twos, q_all_ones — shared q-weight fixtures
 
 make_surveywts_data <- function(
   n = 500L,
@@ -88,10 +86,12 @@ test_invariants <- function(obj) {
     testthat::expect_true(all(w >= 0) && any(w > 0))
   }
   if (S7::S7_inherits(obj, surveycore::survey_replicate)) {
-    testthat::expect_true(is.character(obj@variables$weights))
-    testthat::expect_true(is.character(obj@variables$repweights))
-    testthat::expect_true(length(obj@variables$repweights) >= 1L)
-    testthat::expect_true(all(obj@variables$repweights %in% names(obj@data)))
+    testthat::expect_true(S7::S7_inherits(obj, surveycore::survey_replicate))
+    wt_col <- obj@variables$weights
+    testthat::expect_true(is.character(wt_col) && length(wt_col) == 1)
+    testthat::expect_true(wt_col %in% names(obj@data))
+    testthat::expect_true(is.numeric(obj@data[[wt_col]]))
+    testthat::expect_true(all(obj@data[[wt_col]] > 0))
   }
 }
 
@@ -160,15 +160,15 @@ make_taylor_design <- function(
   surveycore::as_survey(df, ids = psu_id, strata = stratum, weights = base_weight)
 }
 
-# Replicate design for nonresponse phase tests.
-# Returns a survey_replicate built from make_surveywts_data().
-make_replicate_design <- function(n_replicates = 50L, seed = 42L) {
-  df <- make_surveywts_data(n = 200L, seed = seed)
+# Simple bootstrap replicate design for sample-calibration tests.
+# Returns a survey_replicate with 50 bootstrap replicates.
+make_replicate_design <- function(n = 200L, seed = 42L) {
+  df <- make_surveywts_data(n = n, seed = seed)
   taylor <- surveycore::survey_taylor(
     data = df,
     variables = list(weights = "base_weight")
   )
-  create_bootstrap_weights(taylor, replicates = n_replicates)
+  create_bootstrap_weights(taylor, replicates = 50L)
 }
 
 # Paired-PSU design for BRR tests.
@@ -195,7 +195,6 @@ make_nps_ref <- function(seed = 42) {
 }
 
 # Level A: margins are fixed population targets, NOT derived from ref design.
-# targets_from_reference = FALSE in the rake history entry.
 make_nps_level_a <- function(seed = 1, n = 500) {
   nps_df <- make_surveywts_data(n = n, seed = seed)
   ref    <- make_nps_ref(seed = seed + 100)
@@ -211,12 +210,10 @@ make_nps_level_a <- function(seed = 1, n = 500) {
       sex       = c("M" = 0.49, "F" = 0.51)
     ),
     type = "prop"
-    # No reference_design= argument → targets_from_reference = FALSE
   )
 }
 
 # Level B: calibration margins derived from the reference design.
-# targets_from_reference = TRUE in the rake history entry.
 make_nps_level_b <- function(seed = 2, n = 500) {
   ref <- make_nps_ref(seed = seed + 100)
   nps_df <- make_surveywts_data(n = n, seed = seed)
@@ -232,24 +229,14 @@ make_nps_level_b <- function(seed = 2, n = 500) {
       sex       = c("M" = 0.49, "F" = 0.51)
     ),
     type             = "prop",
-    reference_design = ref  # -> targets_from_reference = TRUE
+    reference_design = ref
   )
 }
 
 # DAGJK datasets for create_group_jackknife_weights() tests.
-# Returns a named list:
-#   A: survey_nonprob after ipw() only (reference stored in history)
-#   B: survey_nonprob after ipw() + rake() with literal targets
-#   C: survey_nonprob after ipw() — same as A (reference in ipw history)
-#   ref: the survey_taylor reference used for all datasets
-#
-# NPS: 80 units. Reference: 500 units (large enough to avoid degenerate scores).
-# Two categorical covariates: age_group (3 levels), sex (2 levels).
-# Using well-matched distributions to ensure ipw() converges cleanly.
 make_dagjk_datasets <- function() {
   set.seed(101L)
 
-  # Reference probability sample (500 units — must be >> NPS for propensity stability)
   ref_df <- data.frame(
     age_group   = sample(
       c("18-34", "35-54", "55+"),
@@ -271,7 +258,6 @@ make_dagjk_datasets <- function() {
     variables = list(weights = "ref_weight")
   )
 
-  # NPS (80 units, slightly different distribution to induce propensity variation)
   set.seed(202L)
   nps_df <- data.frame(
     age_group = sample(
@@ -289,8 +275,6 @@ make_dagjk_datasets <- function() {
     stringsAsFactors = FALSE
   )
 
-  # Dataset A: ipw() only, no post-ipw calibration
-  # reference is stored in ipw history entry
   A <- suppressWarnings(surveywts::ipw(
     data             = nps_df,
     reference        = ref,
@@ -298,7 +282,6 @@ make_dagjk_datasets <- function() {
     adjust_reference = FALSE
   ))
 
-  # Dataset B: ipw() + calibrate_rake() with literal fixed targets
   ipw_b <- suppressWarnings(surveywts::ipw(
     data             = nps_df,
     reference        = ref,
@@ -312,10 +295,8 @@ make_dagjk_datasets <- function() {
       sex       = c("M" = 0.48, "F" = 0.52)
     ),
     type = "prop"
-    # No reference_design= → targets_from_reference = FALSE
   )
 
-  # Dataset C: same as A (reference in ipw history entry)
   C <- suppressWarnings(surveywts::ipw(
     data             = nps_df,
     reference        = ref,
@@ -323,8 +304,6 @@ make_dagjk_datasets <- function() {
     adjust_reference = FALSE
   ))
 
-  # Dataset D: ipw() + calibrate_rake() with reference_design= (targets_from_reference = TRUE)
-  # Exercises use_level_b = TRUE path (raking branch) in .dagjk_single_replicate()
   ipw_d <- suppressWarnings(surveywts::ipw(
     data             = nps_df,
     reference        = ref,
@@ -338,11 +317,9 @@ make_dagjk_datasets <- function() {
       sex       = c("M" = 0.48, "F" = 0.52)
     ),
     type             = "prop",
-    reference_design = ref  # -> targets_from_reference = TRUE
+    reference_design = ref
   )
 
-  # Dataset E: ipw() + calibrate_linear() with reference_design= (targets_from_reference = TRUE)
-  # Exercises use_level_b = TRUE calibration (not raking) branch
   ipw_e <- suppressWarnings(surveywts::ipw(
     data             = nps_df,
     reference        = ref,
@@ -358,13 +335,11 @@ make_dagjk_datasets <- function() {
       data             = ipw_e,
       targets          = targets_e,
       type             = "prop",
-      reference_design = ref   # -> targets_from_reference = TRUE
+      reference_design = ref
     ),
     error = function(e) NULL
   )
 
-  # Dataset F: ipw() + calibrate_linear() WITHOUT reference_design (targets_from_reference = FALSE)
-  # Exercises use_level_b = FALSE calibration branch in .dagjk_single_replicate()
   ipw_f <- suppressWarnings(surveywts::ipw(
     data             = nps_df,
     reference        = ref,
@@ -380,7 +355,6 @@ make_dagjk_datasets <- function() {
       data    = ipw_f,
       targets = targets_f,
       type    = "prop"
-      # no reference_design -> targets_from_reference = FALSE
     ),
     error = function(e) NULL
   )
@@ -392,8 +366,7 @@ make_dagjk_datasets <- function() {
 # Replicate design helpers for calibrate-surveycore PR 2 tests
 # ============================================================================
 
-# .make_replicate_design() — wraps df in survey_taylor then bootstrap
-# replicates. Default seed = 42.
+# .make_replicate_design() — wraps df in survey_taylor then bootstrap replicates.
 .make_replicate_design <- function(df, weight_col = "base_weight", seed = 42) {
   set.seed(seed)
   taylor <- surveycore::survey_taylor(
@@ -403,12 +376,9 @@ make_dagjk_datasets <- function() {
   create_bootstrap_weights(taylor, replicates = 10L)
 }
 
-# .make_brr_design() — constructs a survey_replicate via survey_taylor with
-# bootstrap replicates, then sets some replicate columns to negative values
-# (e.g., wt * -0.1) to simulate BRR-style negative replicate weights.
+# .make_brr_design() — bootstrap replicates with first column negated.
 .make_brr_design <- function(df, weight_col = "base_weight") {
   base_rep <- .make_replicate_design(df, weight_col = weight_col)
-  # Negate first replicate column to simulate BRR negative weights
   repwt_cols <- base_rep@variables$repweights
   updated_data <- base_rep@data
   updated_data[[repwt_cols[[1L]]]] <- updated_data[[repwt_cols[[1L]]]] * (-0.1)
@@ -416,9 +386,8 @@ make_dagjk_datasets <- function() {
   base_rep
 }
 
-# .make_empty_cell_replicate_design() — constructs a survey_replicate where
-# at least one replicate column has zero weight for all units in one level of
-# calibration_var. Achieved by zeroing out that level's entries in one column.
+# .make_empty_cell_replicate_design() — survey_replicate where one replicate
+# column has zero weight for all units in the first level of calibration_var.
 .make_empty_cell_replicate_design <- function(
   df,
   calibration_var,
@@ -429,7 +398,6 @@ make_dagjk_datasets <- function() {
   first_level <- unique(df[[calibration_var]])[[1L]]
   idx <- which(base_rep@data[[calibration_var]] == first_level)
   updated_data <- base_rep@data
-  # Zero out the last replicate column for the first level, forcing empty cell
   last_col <- repwt_cols[[length(repwt_cols)]]
   updated_data[[last_col]][idx] <- 0
   base_rep@data <- updated_data
@@ -439,9 +407,6 @@ make_dagjk_datasets <- function() {
 # ============================================================================
 # Shared fixtures for calibrate-unit-scale tests
 # ============================================================================
-# These are defined at file top level so all test_that() blocks in both
-# test-calibrate-linear.R and test-calibrate-logit.R can reference them
-# without re-running set.seed().
 
 df_500 <- make_surveywts_data(n = 500, seed = 42)
 df_200 <- make_surveywts_data(n = 200, seed = 7)
@@ -453,8 +418,6 @@ q_all_twos <- rep(2, 500)
 q_all_ones <- rep(1, 500)
 
 # Pin all weighting history timestamps to a fixed date for stable snapshots.
-# Works for survey_nonprob and survey_replicate (both have @metadata@weighting_history).
-# Usage: result <- .pin_ts(result)
 .pin_ts <- function(obj, ts = as.POSIXct("2025-01-15 10:00:00", tz = "UTC")) {
   if (S7::S7_inherits(obj, surveycore::survey_nonprob) ||
         S7::S7_inherits(obj, surveycore::survey_replicate)) {

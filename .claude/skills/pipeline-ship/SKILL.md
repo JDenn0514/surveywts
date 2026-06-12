@@ -206,7 +206,18 @@ After all batches complete and all plan checkboxes are `[x]`:
 2. Append `PIPELINES_COMPLETE` to `status.md`
 3. Append `REVIEW_PASSED` to `status.md`
 4. Append `DONE` to `status.md`
-5. Return to user with summary: PRs merged, coverage delta, any STOPs encountered
+5. Archive plan artifacts — move all files specific to this pipeline ID into
+   a dedicated archive folder:
+   ```bash
+   mkdir -p plans/archive/{id}
+   mv plans/*-{id}.md plans/archive/{id}/
+   mv plans/status.md plans/archive/{id}/ 2>/dev/null || true
+   mv plans/impact.md plans/archive/{id}/ 2>/dev/null || true
+   ```
+   This moves `spec-{id}.md`, `test-spec-{id}.md`, `impl-{id}.md`,
+   `decisions-{id}.md`, `comprehension-{id}.md` (if present), `status.md`,
+   and `impact.md` (if present) out of `plans/` into `plans/archive/{id}/`.
+6. Return to user with summary: PRs merged, coverage delta, any STOPs encountered
 
 ## Signal handling
 

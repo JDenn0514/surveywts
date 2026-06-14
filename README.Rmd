@@ -152,8 +152,8 @@ summarize_weights(calibrated)
 control survey, propagating the control's own sampling uncertainty into the
 final variance estimates. Both designs must carry replicate weights.
 
-```{r calibrate-to-survey, eval=FALSE}
-npors_rep <- create_bootstrap_weights(npors_2025_ref, seed = 1)
+```{r calibrate-to-survey}
+npors_rep <- create_bootstrap_weights(npors_2025_clean_ref, seed = 1)
 gss_rep <- create_bootstrap_weights(gss_ipw_ref, seed = 1)
 
 calibrated_to_ref <- calibrate_to_survey(

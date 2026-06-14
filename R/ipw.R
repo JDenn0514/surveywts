@@ -1112,29 +1112,6 @@ ipw <- function(
     )
   }
 
-  # Behavior Rule 16: warn if any score < 0.01
-  if (any(scores < 0.01)) {
-    n_extreme <- sum(scores < 0.01)
-    cli::cli_warn(
-      c(
-        "!" = paste0(
-          "{n_extreme} propensity score(s) are below 0.01, ",
-          "producing extreme IPW weights (> 100)."
-        ),
-        "i" = paste0(
-          "Very low participation propensity scores indicate NPS units ",
-          "with covariate combinations that are rare in the NPS but ",
-          "common in the reference."
-        ),
-        "v" = paste0(
-          "Consider trimming ({.code trim = TRUE}) or reviewing covariate ",
-          "balance between {.arg data} and {.arg reference}."
-        )
-      ),
-      class = "surveywts_warning_extreme_propensity_scores"
-    )
-  }
-
   # Behavior Rule 17: compute weights
   w <- 1 / scores
 

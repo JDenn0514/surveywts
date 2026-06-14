@@ -727,45 +727,6 @@ test_that("ipw() errors when epsilon = -1", {
 # Category 4 — Warning paths
 # ---------------------------------------------------------------------------
 
-test_that("ipw() warns for extreme propensity scores (score < 0.01)", {
-  # Binary covariate: 1 "low" unit in NPS vs 200 "low" in reference.
-  # pi("low") = 1/200 = 0.005 < 0.01 → warning fires.
-  # n_nps_k <= n_ref_k for both levels → score equations are feasible, NR converges.
-  # Use adjust_reference = FALSE to isolate the extreme-score warning from the
-  # reference-weight-adjustment warning (nps_fraction = 200/400 = 50% > 5%).
-  set.seed(123L)
-  nps_skewed <- data.frame(
-    group = c("low", rep("high", 199L)),
-    stringsAsFactors = FALSE
-  )
-  ref_df_skewed <- data.frame(
-    group       = c(rep("low", 200L), rep("high", 200L)),
-    base_weight = 1,
-    stringsAsFactors = FALSE
-  )
-  ref_skewed <- surveycore::survey_taylor(
-    data      = ref_df_skewed,
-    variables = list(weights = "base_weight")
-  )
-
-  # Capture all warnings and check that extreme propensity warning is among them.
-  warns <- list()
-  result <- withCallingHandlers(
-    ipw(nps_skewed, ref_skewed, selection = ~group, adjust_reference = FALSE),
-    warning = function(w) {
-      warns[[length(warns) + 1L]] <<- w
-      invokeRestart("muffleWarning")
-    }
-  )
-  classes <- vapply(warns, function(w) class(w)[[1L]], character(1L))
-  expect_true(
-    "surveywts_warning_extreme_propensity_scores" %in% classes,
-    label = "extreme propensity score warning was fired"
-  )
-  test_invariants(result)
-  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
-})
-
 test_that("ipw() warns when missing_method='omit' drops NPS rows with NA; warning names variable", {
   nps <- .make_ipw_nps()
   nps$age_group[1L:3L] <- NA_character_

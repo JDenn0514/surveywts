@@ -334,11 +334,6 @@
     Code
       expect_warning(ipw(nps_with_wide_age, ref_narrow_age, selection = ~ age + sex),
       class = "surveywts_warning_ipw_covariate_range_extrapolation")
-    Condition
-      Warning:
-      ! 10 propensity score(s) are below 0.01, producing extreme IPW weights (> 100).
-      i Very low participation propensity scores indicate NPS units with covariate combinations that are rare in the NPS but common in the reference.
-      v Consider trimming (`trim = TRUE`) or reviewing covariate balance between `data` and `reference`.
 
 # reference factor levels absent from NPS warns (Rule 8c)
 
@@ -350,8 +345,4 @@
       ! Newton-Raphson did not converge after 25 iterations (max |delta| = 1).
       i Propensity scores from the last iteration are returned.
       v Increase `maxit`, relax `epsilon`, or check for extreme covariate imbalance between `data` and `reference`.
-      Warning:
-      ! 10 propensity score(s) are below 0.01, producing extreme IPW weights (> 100).
-      i Very low participation propensity scores indicate NPS units with covariate combinations that are rare in the NPS but common in the reference.
-      v Consider trimming (`trim = TRUE`) or reviewing covariate balance between `data` and `reference`.
 

@@ -72,6 +72,19 @@ npors_df <- data.frame(
 
 npors_2025_ref <- surveycore::as_survey(npors_df, weights = wt_pop)
 
+# --- npors_2025_clean_ref (NAs removed from all predictor columns) -----------
+# Drops rows where gender, age_group, race_ethn, or educ is NA so the object
+# can be passed to ipw() without triggering the reference-NA listwise-deletion
+# warning.  Use npors_2025_ref when downstream code handles missingness itself.
+npors_clean_df <- npors_df[
+  !is.na(npors_df$gender) &
+    !is.na(npors_df$age_group) &
+    !is.na(npors_df$race_ethn) &
+    !is.na(npors_df$educ),
+]
+
+npors_2025_clean_ref <- surveycore::as_survey(npors_clean_df, weights = wt_pop)
+
 # --- acs_ipw_ref (probability reference) -----------------------------------
 acs <- acs_pums_wy[acs_pums_wy$agep >= 18L, ]  # 4736 adults
 
@@ -117,4 +130,4 @@ acs_df <- data.frame(
 
 acs_ipw_ref <- surveycore::as_survey(acs_df, weights = pwgtp)
 
-usethis::use_data(npors_2025_ref, acs_ipw_ref, overwrite = TRUE)
+usethis::use_data(npors_2025_ref, npors_2025_clean_ref, acs_ipw_ref, overwrite = TRUE)

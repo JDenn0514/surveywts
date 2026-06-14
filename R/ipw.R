@@ -13,7 +13,14 @@
 #' @keywords internal
 #' @noRd
 .fit_participation_propensity <- function(
-  selection, nps_data, ref_data, ref_weights, method, estimating_eq, maxit, epsilon
+  selection,
+  nps_data,
+  ref_data,
+  ref_weights,
+  method,
+  estimating_eq,
+  maxit,
+  epsilon
 ) {
   sel_vars <- all.vars(selection)
 
@@ -31,35 +38,44 @@
   }
   has_sep <- any(sep_mask)
 
-  nps_fit  <- if (has_sep) nps_data[!sep_mask, , drop = FALSE] else nps_data
+  nps_fit <- if (has_sep) nps_data[!sep_mask, , drop = FALSE] else nps_data
   nps_pred <- nps_data
 
   # Align factor levels: reference is authoritative.
   for (var in sel_vars) {
     if (is.character(ref_data[[var]]) || is.factor(ref_data[[var]])) {
-      ref_levs <- sort(unique(as.character(ref_data[[var]][!is.na(ref_data[[var]])])))
+      ref_levs <- sort(unique(as.character(ref_data[[var]][
+        !is.na(ref_data[[var]])
+      ])))
       if (has_sep) {
         # Replace "(Missing)" in prediction dataset with the baseline ref level
         pred_col <- as.character(nps_pred[[var]])
         pred_col[pred_col == "(Missing)"] <- ref_levs[1L]
         nps_pred[[var]] <- factor(pred_col, levels = ref_levs)
-        nps_fit[[var]]  <- factor(as.character(nps_fit[[var]]), levels = ref_levs)
+        nps_fit[[var]] <- factor(
+          as.character(nps_fit[[var]]),
+          levels = ref_levs
+        )
       } else {
-        nps_fit[[var]]  <- factor(nps_data[[var]], levels = ref_levs)
+        nps_fit[[var]] <- factor(nps_data[[var]], levels = ref_levs)
         nps_pred[[var]] <- nps_fit[[var]]
       }
       ref_data[[var]] <- factor(ref_data[[var]], levels = ref_levs)
     }
   }
 
-  X_nps_fit  <- stats::model.matrix(selection, data = nps_fit)
-  X_nps_pred <- if (has_sep) stats::model.matrix(selection, data = nps_pred) else X_nps_fit
-  X_ref  <- stats::model.matrix(selection, data = ref_data)
-  d_ref  <- ref_weights
-  gamma  <- rep(0, ncol(X_nps_fit))
-  link   <- stats::binomial(link = method)$linkinv
+  X_nps_fit <- stats::model.matrix(selection, data = nps_fit)
+  X_nps_pred <- if (has_sep) {
+    stats::model.matrix(selection, data = nps_pred)
+  } else {
+    X_nps_fit
+  }
+  X_ref <- stats::model.matrix(selection, data = ref_data)
+  d_ref <- ref_weights
+  gamma <- rep(0, ncol(X_nps_fit))
+  link <- stats::binomial(link = method)$linkinv
   converged <- FALSE
-  delta     <- rep(Inf, ncol(X_nps_fit))
+  delta <- rep(Inf, ncol(X_nps_fit))
 
   # GEE path: reference population covariate totals are constant across NR
   # iterations (do not depend on gamma). Compute once before the loop.
@@ -71,20 +87,20 @@
     # When NPS is heavily overrepresented, gamma diverges and scores hit this float
     # boundary. Returning early here lets ipw() throw
     # surveywts_error_propensity_scores_degenerate with the correct class.
-    eps        <- .Machine$double.eps
+    eps <- .Machine$double.eps
     cur_scores <- link(drop(X_nps_pred %*% gamma))
     if (any(cur_scores <= eps | cur_scores >= 1 - eps)) {
       return(list(
-        scores      = cur_scores,
-        converged   = FALSE,
+        scores = cur_scores,
+        converged = FALSE,
         final_delta = max(abs(delta))
       ))
     }
 
     if (estimating_eq == "mle") {
       pi_ref <- link(drop(X_ref %*% gamma))
-      score  <- colSums(X_nps_fit) - drop(t(X_ref) %*% (d_ref * pi_ref))
-      hess   <- -crossprod(X_ref, X_ref * (d_ref * pi_ref * (1 - pi_ref)))
+      score <- colSums(X_nps_fit) - drop(t(X_ref) %*% (d_ref * pi_ref))
+      hess <- -crossprod(X_ref, X_ref * (d_ref * pi_ref * (1 - pi_ref)))
     } else {
       # GEE path: calibration score that guarantees sum(w * x) = sum(d_ref * x)
       # at convergence. Jacobian sums over NPS rows (not reference rows).
@@ -93,24 +109,26 @@
       # early — same converged = FALSE path as the outer saturation guard.
       if (any(pi_nps <= eps)) {
         return(list(
-          scores      = link(drop(X_nps_pred %*% gamma)),
-          converged   = FALSE,
+          scores = link(drop(X_nps_pred %*% gamma)),
+          converged = FALSE,
           final_delta = max(abs(delta))
         ))
       }
       score <- colSums(X_nps_fit / pi_nps) - ref_totals
-      hess  <- -crossprod(X_nps_fit, X_nps_fit * ((1 - pi_nps) / pi_nps))
+      hess <- -crossprod(X_nps_fit, X_nps_fit * ((1 - pi_nps) / pi_nps))
     }
-    delta  <- tryCatch(
+    delta <- tryCatch(
       solve(hess, score),
-      error = function(e) cli::cli_abort(
-        c(
-          "x" = "Propensity Hessian is singular: {e$message}",
-          "i" = "Collinear or degenerate covariates in {.arg selection}.",
-          "v" = "Simplify {.arg selection} or check for constant covariate columns."
-        ),
-        class = "surveywts_error_propensity_hessian_singular"
-      )
+      error = function(e) {
+        cli::cli_abort(
+          c(
+            "x" = "Propensity Hessian is singular: {e$message}",
+            "i" = "Collinear or degenerate covariates in {.arg selection}.",
+            "v" = "Simplify {.arg selection} or check for constant covariate columns."
+          ),
+          class = "surveywts_error_propensity_hessian_singular"
+        )
+      }
     )
     gamma <- gamma - delta
     if (max(abs(delta)) < epsilon) {
@@ -119,8 +137,8 @@
     }
   }
   list(
-    scores      = link(drop(X_nps_pred %*% gamma)),
-    converged   = converged,
+    scores = link(drop(X_nps_pred %*% gamma)),
+    converged = converged,
     final_delta = max(abs(delta))
   )
 }
@@ -349,8 +367,11 @@
 #' ("quantile balancing IPW"). Users can approximate this by adding cut-point
 #' indicators to `selection`:
 #' ```r
-#' nps$age_q <- cut(nps$age, quantile(nps$age, c(0, .25, .5, .75, 1)),
-#'                  include.lowest = TRUE)
+#' nps$age_q <- cut(
+#'   nps$age,
+#'   quantile(nps$age, c(0, .25, .5, .75, 1)),
+#'   include.lowest = TRUE
+#' )
 #' ipw(nps, ref, selection = ~age_q + sex)
 #' ```
 #' Native QBIPW support (Beresewicz et al., 2025, eqs. 4.1--4.2) is planned
@@ -548,18 +569,18 @@
 ipw <- function(
   data,
   reference,
-  selection        = NULL,
-  predictors       = NULL,
-  missing_method   = c("omit", "separate", "impute"),
-  mice_args        = list(),
-  method           = "logit",
-  estimating_eq    = c("mle", "gee"),
-  maxit            = 25L,
-  epsilon          = 1e-8,
+  selection = NULL,
+  predictors = NULL,
+  missing_method = c("omit", "separate", "impute"),
+  mice_args = list(),
+  method = "logit",
+  estimating_eq = c("mle", "gee"),
+  maxit = 25L,
+  epsilon = 1e-8,
   adjust_reference = TRUE,
-  trim             = FALSE,
-  population_size  = NULL,
-  wt_name          = "ipw_weight"
+  trim = FALSE,
+  population_size = NULL,
+  wt_name = "ipw_weight"
 ) {
   # Behavior Rule 0: partial-match method
   method <- match.arg(method, c("logit", "probit", "cloglog"))
@@ -568,8 +589,11 @@ ipw <- function(
   estimating_eq <- match.arg(estimating_eq, c("mle", "gee"))
 
   # Behavior Rule 0e: validate adjust_reference
-  if (!is.logical(adjust_reference) || length(adjust_reference) != 1L ||
-      is.na(adjust_reference)) {
+  if (
+    !is.logical(adjust_reference) ||
+      length(adjust_reference) != 1L ||
+      is.na(adjust_reference)
+  ) {
     cli::cli_abort(
       c(
         "x" = "{.arg adjust_reference} must be TRUE or FALSE.",
@@ -588,9 +612,13 @@ ipw <- function(
 
   # Behavior Rule 0f: validate population_size
   if (!is.null(population_size)) {
-    if (!is.numeric(population_size) || length(population_size) != 1L ||
-        is.na(population_size) || !is.finite(population_size) ||
-        population_size <= 0) {
+    if (
+      !is.numeric(population_size) ||
+        length(population_size) != 1L ||
+        is.na(population_size) ||
+        !is.finite(population_size) ||
+        population_size <= 0
+    ) {
       cli::cli_abort(
         c(
           "x" = "{.arg population_size} must be a positive finite number.",
@@ -704,7 +732,9 @@ ipw <- function(
 
   # Behavior Rule 7: validate selection variables exist in reference@data
   .validate_formula_variables(
-    selection, reference@data, "reference",
+    selection,
+    reference@data,
+    "reference",
     error_class = "surveywts_error_formula_variable_not_in_reference"
   )
 
@@ -716,7 +746,7 @@ ipw <- function(
     if (is.character(nps_col) || is.factor(nps_col)) {
       nps_levels <- unique(as.character(nps_col[!is.na(nps_col)]))
       ref_levels <- unique(as.character(ref_col[!is.na(ref_col)]))
-      orphaned   <- setdiff(nps_levels, ref_levels)
+      orphaned <- setdiff(nps_levels, ref_levels)
       if (length(orphaned) > 0L) {
         lev <- orphaned[[1L]]
         cli::cli_abort(
@@ -746,11 +776,18 @@ ipw <- function(
   # Behavior Rule 9a: Reference NA handling (always listwise regardless of missing_method)
   ref_data_for_fit <- reference@data
   ref_weights_for_fit <- ref_weights
-  ref_na_mask <- Reduce("|", lapply(sel_vars, function(v) is.na(ref_data_for_fit[[v]])))
+  ref_na_mask <- Reduce(
+    "|",
+    lapply(sel_vars, function(v) is.na(ref_data_for_fit[[v]]))
+  )
   if (any(ref_na_mask)) {
     n_na_ref <- sum(ref_na_mask)
     na_vars_ref <- sel_vars[
-      vapply(sel_vars, function(v) any(is.na(ref_data_for_fit[[v]])), logical(1L))
+      vapply(
+        sel_vars,
+        function(v) any(is.na(ref_data_for_fit[[v]])),
+        logical(1L)
+      )
     ]
     cli::cli_warn(
       c(
@@ -772,10 +809,10 @@ ipw <- function(
 
   # Behavior Rule 9a-ii: Reference weight adjustment (Valliant 2020, Eq. 1)
   # n_hat from post-NA-deletion reference weights; nps_fraction from full NPS.
-  n_hat        <- sum(ref_weights_for_fit)
+  n_hat <- sum(ref_weights_for_fit)
   nps_fraction <- nrow(data) / n_hat
   if (adjust_reference && nps_fraction > 0.05) {
-    adjust_factor       <- 1 - nps_fraction
+    adjust_factor <- 1 - nps_fraction
     ref_weights_for_fit <- ref_weights_for_fit * adjust_factor
     cli::cli_warn(
       c(
@@ -946,7 +983,10 @@ ipw <- function(
         char_col <- as.character(col)
         char_col[is.na(char_col)] <- "(Missing)"
         existing_levels <- sort(unique(char_col[char_col != "(Missing)"]))
-        data[[var]] <- factor(char_col, levels = c("(Missing)", existing_levels))
+        data[[var]] <- factor(
+          char_col,
+          levels = c("(Missing)", existing_levels)
+        )
       }
     }
   } else {
@@ -997,7 +1037,10 @@ ipw <- function(
       }
       imp <- do.call(
         mice::mice,
-        c(list(data = impute_df, m = 1L, method = "pmm", printFlag = FALSE), mice_args)
+        c(
+          list(data = impute_df, m = 1L, method = "pmm", printFlag = FALSE),
+          mice_args
+        )
       )
       completed <- mice::complete(imp, 1L)
       for (v in na_vars_nps) {
@@ -1029,8 +1072,12 @@ ipw <- function(
   }
 
   # Behavior Rule 12: validate maxit >= 1L
-  if (!is.numeric(maxit) || length(maxit) != 1L || is.na(maxit) ||
-      as.integer(maxit) < 1L) {
+  if (
+    !is.numeric(maxit) ||
+      length(maxit) != 1L ||
+      is.na(maxit) ||
+      as.integer(maxit) < 1L
+  ) {
     cli::cli_abort(
       c(
         "x" = "{.arg maxit} must be a whole number >= 1.",
@@ -1042,8 +1089,12 @@ ipw <- function(
   }
 
   # Behavior Rule 13: validate epsilon > 0
-  if (!is.numeric(epsilon) || length(epsilon) != 1L || is.na(epsilon) ||
-      epsilon <= 0) {
+  if (
+    !is.numeric(epsilon) ||
+      length(epsilon) != 1L ||
+      is.na(epsilon) ||
+      epsilon <= 0
+  ) {
     cli::cli_abort(
       c(
         "x" = "{.arg epsilon} must be a positive number.",
@@ -1056,14 +1107,14 @@ ipw <- function(
 
   # Behavior Rule 14: fit propensity model; check convergence
   fit <- .fit_participation_propensity(
-    selection     = selection,
-    nps_data      = data,
-    ref_data      = ref_data_for_fit,
-    ref_weights   = ref_weights_for_fit,
-    method        = method,
+    selection = selection,
+    nps_data = data,
+    ref_data = ref_data_for_fit,
+    ref_weights = ref_weights_for_fit,
+    method = method,
     estimating_eq = estimating_eq,
-    maxit         = as.integer(maxit),
-    epsilon       = epsilon
+    maxit = as.integer(maxit),
+    epsilon = epsilon
   )
   if (!fit$converged) {
     cli::cli_warn(
@@ -1088,7 +1139,7 @@ ipw <- function(
   # linear predictor overflowed, which happens when the NR has diverged due to
   # extreme NPS/reference imbalance.
   scores <- fit$scores
-  .eps   <- .Machine$double.eps
+  .eps <- .Machine$double.eps
   if (any(scores <= .eps | scores >= 1 - .eps)) {
     n_degen <- sum(scores <= .eps | scores >= 1 - .eps)
     cli::cli_abort(
@@ -1122,12 +1173,12 @@ ipw <- function(
   if (trim) {
     trim_threshold <- stats::median(w) + 5 * stats::IQR(w)
     trim_result <- .trim_weights_internal(
-      weights     = w,
-      lower       = -Inf,
-      upper       = trim_threshold,
+      weights = w,
+      lower = -Inf,
+      upper = trim_threshold,
       has_trimmed = rep(FALSE, length(w))
     )
-    w         <- trim_result$weights
+    w <- trim_result$weights
     n_trimmed <- sum(trim_result$has_trimmed)
   }
 
@@ -1137,40 +1188,43 @@ ipw <- function(
   # Behavior Rule 20: construct survey_nonprob and append history
 
   # Step 1 - construct the object (NSE injection for wt_name)
-  out_df            <- data
+  out_df <- data
   out_df[[wt_name]] <- w
   result <- surveycore::as_survey_nonprob(
-    data             = out_df,
-    weights          = !!rlang::sym(wt_name),
+    data = out_df,
+    weights = !!rlang::sym(wt_name),
     reference_sample = reference
   )
 
   # Step 2 - build history entry and append
   history_entry <- list(
-    step                      = length(.get_history(result)) + 1L,
-    timestamp                 = Sys.time(),
-    operation                 = "ipw",
-    formula                   = selection,
-    method                    = method,
-    estimating_eq             = estimating_eq,
-    missing_method            = missing_method,
-    estimator                 = "ipw2",
-    adjust_reference          = adjust_reference,
-    nps_fraction              = nps_fraction,
-    adjust_factor             = adjust_factor,
-    maxit                     = as.integer(maxit),
-    epsilon                   = epsilon,
-    trim                      = trim,
-    trim_threshold            = trim_threshold,
-    n_nps                     = nrow(data),
-    n_reference               = nrow(ref_data_for_fit),
-    estimated_population_size = if (!is.null(population_size)) population_size
-                                else estimated_population_size,
-    population_size_known     = !is.null(population_size),
-    n_trimmed                 = as.integer(n_trimmed),
-    reference_design          = reference,
-    targets_from_reference    = FALSE,
-    propensity_scores         = scores
+    step = length(.get_history(result)) + 1L,
+    timestamp = Sys.time(),
+    operation = "ipw",
+    formula = selection,
+    method = method,
+    estimating_eq = estimating_eq,
+    missing_method = missing_method,
+    estimator = "ipw2",
+    adjust_reference = adjust_reference,
+    nps_fraction = nps_fraction,
+    adjust_factor = adjust_factor,
+    maxit = as.integer(maxit),
+    epsilon = epsilon,
+    trim = trim,
+    trim_threshold = trim_threshold,
+    n_nps = nrow(data),
+    n_reference = nrow(ref_data_for_fit),
+    estimated_population_size = if (!is.null(population_size)) {
+      population_size
+    } else {
+      estimated_population_size
+    },
+    population_size_known = !is.null(population_size),
+    n_trimmed = as.integer(n_trimmed),
+    reference_design = reference,
+    targets_from_reference = FALSE,
+    propensity_scores = scores
   )
   meta <- result@metadata
   meta@weighting_history <- c(meta@weighting_history, list(history_entry))

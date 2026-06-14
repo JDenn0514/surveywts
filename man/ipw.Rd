@@ -257,8 +257,11 @@ continuous covariates substantially reduces bias under nonlinear selection
 ("quantile balancing IPW"). Users can approximate this by adding cut-point
 indicators to \code{selection}:
 
-\if{html}{\out{<div class="sourceCode r">}}\preformatted{nps$age_q <- cut(nps$age, quantile(nps$age, c(0, .25, .5, .75, 1)),
-                 include.lowest = TRUE)
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{nps$age_q <- cut(
+  nps$age,
+  quantile(nps$age, c(0, .25, .5, .75, 1)),
+  include.lowest = TRUE
+)
 ipw(nps, ref, selection = ~age_q + sex)
 }\if{html}{\out{</div>}}
 

@@ -7,7 +7,7 @@
 \format{
 A data frame with 20,000 rows and 38 columns:
 \describe{
-\item{id}{Integer. Row identifier.}
+\item{id}{Numeric. Row identifier.}
 \item{gender}{Numeric. \code{1} = Male, \code{2} = Female.}
 \item{age}{Numeric (continuous). Age in years.}
 \item{racethn}{Numeric. Race/ethnicity: \code{1} = White non-Hispanic,
@@ -21,11 +21,6 @@ East North Central, \code{2} = East South Central, \code{3} = Middle Atlantic,
 \code{4} = Mountain, \code{5} = New England, \code{6} = Pacific, \code{7} = South
 Atlantic, \code{8} = West North Central, \code{9} = West South Central.
 Coding matches \link{pew_2016_optin}.}
-\item{partyscale5}{Numeric. Party ID: \code{1} = Republican,
-\code{2} = Lean Republican, \code{3} = Ind/No Lean, \code{4} = Lean Democrat,
-\code{5} = Democrat.}
-\item{ideo3}{Numeric. Ideology: \code{1} = Liberal, \code{2} = Moderate,
-\code{3} = Conservative.}
 \item{marital_acs}{Numeric. Marital status (ACS-sourced).}
 \item{hhsizecat}{Numeric. Household size category.}
 \item{childrencat}{Numeric. Number of children category.}
@@ -40,39 +35,40 @@ Coding matches \link{pew_2016_optin}.}
 \item{home_acs_rec}{Numeric. Home ownership.}
 \item{metropolitan}{Numeric. Lives in a metropolitan statistical area.}
 \item{internet_access}{Numeric. Household internet access.}
+\item{fdstmp_cps}{Integer. Household received food stamps: \code{1} = Yes,
+\code{0} = No.}
 \item{tenure_acs}{Numeric. Lived in home one year ago.}
+\item{pub_off_cps}{Integer. Contacted public official in last 12 months:
+\code{1} = Yes, \code{0} = No.}
 \item{boycott}{Numeric. Boycotted a product/service in last 12 months.}
-\item{religcat}{Numeric. Religion category (6 levels).}
-}
-
-\strong{Benchmark variables} (shared with \link{pew_2016_optin}): binary items are
-dichotomised to \code{1} = positive response, \code{0} = negative response; no Refused
-codes exist in this dataset. Coding is consistent with \link{pew_2016_optin}.
-\describe{
+\item{comgrp_cps}{Integer. Participated in community group in last 12
+months: \code{1} = Yes, \code{0} = No.}
+\item{talk_cps}{Numeric. Frequency of talking with neighbors (ordinal):
+\code{1} = Basically every day, \code{2} = A few times a week, \code{3} = A few times
+a month, \code{4} = Rarely, \code{5} = Not at all.}
+\item{trust_cps}{Numeric. Trust in neighbors (ordinal): \code{1} = All of
+the people, \code{2} = Most, \code{3} = Some, \code{4} = None.}
+\item{tablet_cps}{Integer. Household has a tablet or e-reader:
+\code{1} = Yes, \code{0} = No.}
+\item{textim_cps}{Integer. Uses texting or instant messaging:
+\code{1} = Yes, \code{0} = No.}
+\item{social_cps}{Integer. Uses social networking: \code{1} = Yes, \code{0} = No.}
+\item{volsum}{Integer. Volunteered in last 12 months: \code{1} = Volunteered,
+\code{0} = Did not volunteer.}
 \item{registered}{Integer. Registered to vote: \code{1} = Yes, \code{0} = No.
 Recoded from the raw SPSS file (original: \code{1} = No, \code{2} = Yes).}
 \item{vote14}{Integer. Voted in 2014: \code{1} = Voted, \code{0} = Did not vote.
 Recoded from the raw SPSS file (original: \code{1} = Did not vote,
 \code{2} = Voted).}
+\item{partyscale5}{Numeric. Party ID: \code{1} = Republican,
+\code{2} = Lean Republican, \code{3} = Ind/No Lean, \code{4} = Lean Democrat,
+\code{5} = Democrat.}
+\item{religcat}{Numeric. Religion category (6 levels).}
+\item{ideo3}{Numeric. Ideology: \code{1} = Liberal, \code{2} = Moderate,
+\code{3} = Conservative.}
 \item{folgov}{Numeric. Follows government/public affairs (ordinal):
 \code{1} = Most of the time, \code{2} = Some of the time, \code{3} = Only now and
 then, \code{4} = Hardly at all.}
-\item{talk_cps}{Numeric. Frequency of talking with neighbors (ordinal):
-\code{1} = Basically every day … \code{5} = Not at all.}
-\item{trust_cps}{Numeric. Trust in neighbors (ordinal): \code{1} = All of
-the people … \code{4} = None.}
-\item{comgrp_cps}{Integer. Participated in community group: \code{1} = Yes,
-\code{0} = No.}
-\item{pub_off_cps}{Integer. Contacted public official: \code{1} = Yes,
-\code{0} = No.}
-\item{volsum}{Integer. Volunteered in past year: \code{1} = Volunteered,
-\code{0} = Did not volunteer.}
-\item{tablet_cps}{Integer. Uses tablet/e-reader: \code{1} = Yes, \code{0} = No.}
-\item{textim_cps}{Integer. Uses texting/instant messaging: \code{1} = Yes,
-\code{0} = No.}
-\item{social_cps}{Integer. Uses social networking: \code{1} = Yes, \code{0} = No.}
-\item{fdstmp_cps}{Integer. Household received food stamps: \code{1} = Yes,
-\code{0} = No.}
 \item{owngun_gss}{Integer. Gun in home: \code{1} = Yes, \code{0} = No.}
 }
 }
@@ -93,6 +89,10 @@ as unweighted means of the dichotomized benchmark columns.
 Value labels are preserved as named numeric attributes on each column
 (accessible via \code{attr(pew_2016_synth_pop$gender, "labels")}). Variable
 labels are stored in the \code{"label"} attribute of each column.
+
+Binary benchmark variables (shared with \link{pew_2016_optin}) are dichotomised
+to \code{1} = positive response, \code{0} = negative response; no Refused codes
+exist in this dataset.
 }
 \details{
 Pew 2016 ATP synthetic population

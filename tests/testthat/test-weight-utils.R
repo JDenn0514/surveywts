@@ -368,6 +368,61 @@ test_that("trim_weights() rejects NA weight values", {
   expect_snapshot(error = TRUE, trim_weights(df, weights = w))
 })
 
+test_that("trim_weights() surveywts_error_empty_data: S7 class invariant prevents 0-row survey_nonprob", {
+  # The surveycore survey_nonprob S7 class validator rejects @data assignment
+  # when the resulting weight column is empty (0 rows => all-NA weights => error).
+  # A 0-row survey_nonprob with repweights is therefore unrepresentable; the
+  # surveywts_error_empty_data path in trim_weights() for this combination is
+  # structurally unreachable via the public API.
+  # This test documents that constraint and verifies the S7 rejection itself.
+  n <- 10L
+  n_rep <- 3L
+  set.seed(99)
+  df <- make_surveywts_data(n = n, seed = 99)
+  for (i in seq_len(n_rep)) {
+    df[[paste0("rep_", i)]] <- abs(stats::rnorm(n, 1, 0.2))
+  }
+  nonprob_rep_local <- surveycore::as_survey_nonprob(
+    data = df,
+    weights = base_weight,
+    repweights = tidyselect::starts_with("rep_"),
+    type = "bootstrap",
+    scale = 1 / n_rep,
+    mse = TRUE
+  )
+  # Assigning 0-row data triggers surveycore class validator, not surveywts
+  expect_error(
+    {
+      nonprob_rep_local@data <- nonprob_rep_local@data[integer(0), ]
+    },
+    class = "surveycore_error_weights_all_zero"
+  )
+})
+
+test_that("trim_weights() fires surveywts_error_weights_nonpositive for survey_nonprob with repweights and weight <= 0", {
+  # Build inline to avoid depending on the later-defined helper
+  n <- 10L
+  n_rep <- 3L
+  set.seed(99)
+  df <- make_surveywts_data(n = n, seed = 99)
+  for (i in seq_len(n_rep)) {
+    df[[paste0("rep_", i)]] <- abs(stats::rnorm(n, 1, 0.2))
+  }
+  nonprob_rep_local <- surveycore::as_survey_nonprob(
+    data = df,
+    weights = base_weight,
+    repweights = tidyselect::starts_with("rep_"),
+    type = "bootstrap",
+    scale = 1 / n_rep,
+    mse = TRUE
+  )
+  nonprob_rep_local@data[["base_weight"]][1] <- 0
+  expect_error(
+    trim_weights(nonprob_rep_local, upper = 2),
+    class = "surveywts_error_weights_nonpositive"
+  )
+})
+
 test_that("trim_weights() rejects upper = NULL with type = 'percentile'", {
   df <- make_surveywts_data(seed = 1)
   expect_error(
@@ -983,6 +1038,37 @@ test_that("stabilize_weights() rejects wt_name = '' (plain df + NULL weights)", 
   )
 })
 
+test_that("stabilize_weights() surveywts_error_empty_data: S7 class invariant prevents 0-row survey_nonprob", {
+  # The surveycore survey_nonprob S7 class validator rejects @data assignment
+  # when the resulting weight column is empty (0 rows => all-NA weights => error).
+  # A 0-row survey_nonprob with repweights is therefore unrepresentable; the
+  # surveywts_error_empty_data path in stabilize_weights() for this combination
+  # is structurally unreachable via the public API.
+  # This test documents that constraint and verifies the S7 rejection itself.
+  n <- 10L
+  n_rep <- 3L
+  set.seed(99)
+  df <- make_surveywts_data(n = n, seed = 99)
+  for (i in seq_len(n_rep)) {
+    df[[paste0("rep_", i)]] <- abs(stats::rnorm(n, 1, 0.2))
+  }
+  nonprob_rep_local <- surveycore::as_survey_nonprob(
+    data = df,
+    weights = base_weight,
+    repweights = tidyselect::starts_with("rep_"),
+    type = "bootstrap",
+    scale = 1 / n_rep,
+    mse = TRUE
+  )
+  # Assigning 0-row data triggers surveycore class validator, not surveywts
+  expect_error(
+    {
+      nonprob_rep_local@data <- nonprob_rep_local@data[integer(0), ]
+    },
+    class = "surveycore_error_weights_all_zero"
+  )
+})
+
 # 4. History correctness — stabilize_weights() -----------------------------
 
 test_that("stabilize_weights() history entry has all required fields", {
@@ -1205,6 +1291,7 @@ test_that("trim_weights() does not update replicates for survey_nonprob WITHOUT 
 
 test_that("trim_weights() nonprob + repweights: warning fires when all main weights in bounds", {
   nonprob_rep <- .make_nonprob_with_repweights(seed = 15)
+  rep_cols <- nonprob_rep@variables$repweights
   # Very wide bounds so no trimming occurs
   expect_warning(
     result <- trim_weights(nonprob_rep, lower = 0.01, upper = 100),
@@ -1212,6 +1299,13 @@ test_that("trim_weights() nonprob + repweights: warning fires when all main weig
   )
   # Class is preserved
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  # Rep columns differ from input (wide bounds still clip high rep values)
+  # and main weights are unchanged when none are outside bounds
+  main_col <- nonprob_rep@variables$weights
+  expect_identical(
+    result@data[[main_col]],
+    nonprob_rep@data[[main_col]]
+  )
 })
 
 test_that("trim_weights() nonprob + repweights: strict=FALSE (default) not applied to replicates", {
@@ -1226,6 +1320,31 @@ test_that("trim_weights() nonprob + repweights: strict=FALSE (default) not appli
   result_rep <- as.matrix(result@data[result@variables$repweights])
   # Replicate values should be clipped at upper_abs (one pass only)
   expect_true(all(result_rep <= upper_abs + .Machine$double.eps))
+})
+
+test_that("trim_weights() handles all-outside-bounds replicate columns for survey_nonprob with repweights", {
+  nonprob_rep <- .make_nonprob_with_repweights(seed = 17)
+  # Tight absolute upper so all rep values are clipped
+  result <- suppressWarnings(trim_weights(nonprob_rep, upper = 0.001))
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  rep_cols <- result@variables$repweights
+  for (col in rep_cols) {
+    expect_true(all(result@data[[col]] <= 0.001 + .Machine$double.eps * 10))
+  }
+})
+
+test_that("trim_weights() clips a single replicate column for survey_nonprob with repweights", {
+  nonprob_rep <- .make_nonprob_with_repweights(seed = 18)
+  # Narrow to one rep column by modifying @variables
+  first_rep_col <- nonprob_rep@variables$repweights[[1]]
+  nonprob_rep@variables <- modifyList(
+    nonprob_rep@variables,
+    list(repweights = first_rep_col)
+  )
+  # Set rep values high so clipping fires
+  nonprob_rep@data[[first_rep_col]] <- rep(100, nrow(nonprob_rep@data))
+  result <- trim_weights(nonprob_rep, upper = 5)
+  expect_true(all(result@data[[first_rep_col]] <= 5 + .Machine$double.eps * 10))
 })
 
 # ===========================================================================

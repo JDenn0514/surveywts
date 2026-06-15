@@ -3,6 +3,7 @@
 \docType{data}
 \name{pew_2016_optin}
 \alias{pew_2016_optin}
+\alias{pew_2016_optin_svy}
 \title{Pew 2016 ATP opt-in sample}
 \format{
 A data frame with 31,863 rows and 99 columns:
@@ -81,7 +82,7 @@ legal, \code{2} = Should not be legal, \code{9} = Refused.}
 \item{children_hh}{Numeric. Number of children under 18 in household.}
 \item{home_acs}{Numeric. Home ownership/rental status (raw ACS question).}
 \item{tenure_acs}{Numeric. Lived in home one year ago: \code{1} = Yes,
-\code{2} = No — different address in same city, \code{3} = No — different city.}
+\code{2} = No -- different address in same city, \code{3} = No -- different city.}
 \item{gender}{Numeric. \code{1} = Male, \code{2} = Female, \code{3} = Refused.}
 \item{educ_acs}{Numeric. Highest degree completed (raw ACS question).}
 \item{marital_acs}{Numeric. Marital status (ACS question).}
@@ -171,6 +172,16 @@ Central, \code{3} = Middle Atlantic, \code{4} = Mountain, \code{5} = New England
 \item{language}{Numeric. Interview language: \code{1} = English,
 \code{2} = Spanish.}
 }
+\subsection{\code{pew_2016_optin_svy}}{
+
+A \code{survey_nonprob} object wrapping \code{pew_2016_optin}. Constructed with
+equal weights (\code{1L}) since no weight column exists in the raw opt-in data.
+Represents the raw panel before any weighting. The \code{equal_wt} helper
+column is NOT stored in the \code{pew_2016_optin} tibble -- it was used only
+during construction.
+}
+
+An object of class \code{surveycore::survey_nonprob} (inherits from \code{surveycore::survey_base}, \code{S7_object}) of length 1.
 }
 \source{
 Derived from the Pew Research Center 2016 opt-in sample SPSS file.
@@ -178,6 +189,8 @@ See \verb{data-raw/pew-2016.R} for the preparation script.
 }
 \usage{
 pew_2016_optin
+
+pew_2016_optin_svy
 }
 \description{
 A 2016 Pew Research Center study fielded simultaneously on three
@@ -190,11 +203,16 @@ be validated against population truth estimates.
 Value labels are preserved as named numeric attributes on each column
 (accessible via \code{attr(pew_2016_optin$gender, "labels")}). Variable labels
 are stored in the \code{"label"} attribute of each column.
+
+\code{pew_2016_optin_svy} is a \code{survey_nonprob} object. The raw opt-in data
+has no weight column. Equal weights (\code{1L}) are assigned for each
+respondent, representing the raw panel before any weighting. Apply
+\code{ipw()} or \code{calibrate()} to add real weights.
 }
 \details{
 Pew 2016 ATP opt-in sample
 }
 \seealso{
-\link{pew_2016_synth_pop}
+\link{pew_2016_optin_svy}, \link{pew_2016_synth_pop}
 }
 \keyword{datasets}

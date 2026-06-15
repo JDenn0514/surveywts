@@ -101,15 +101,20 @@ rounds out the ecosystem with tidy data manipulation for survey objects.
 
 `ipw()` constructs weights for a non-probability sample by fitting a
 participation propensity model against a probability reference survey.
-surveywts ships with a harmonized online panel (`ns_wave1_ipw`) and a
-GSS 2024 reference design (`gss_ipw_ref`) to illustrate the workflow.
+surveywts ships with a harmonized online panel (`ns_wave1`) and
+probability reference surveys (`gss_2024`, `npors_2025_clean`,
+`acs_wy_2022`) to illustrate the workflow. Each tibble is paired with a
+survey design companion (e.g., `gss_2024_svy`).
 
 ``` r
 library(surveywts)
 
+# Construct a reference design from the npors_2025_clean tibble
+npors_ref <- surveycore::as_survey(npors_2025_clean, weights = wt_pop)
+
 nps_wts <- ipw(
-  ns_wave1_ipw,
-  npors_2025_clean_ref,
+  ns_wave1,
+  npors_ref,
   predictors = c("gender", "age_group", "race_ethn", "educ"),
   missing_method = "omit"
 )
@@ -162,8 +167,19 @@ uncertainty into the final variance estimates. Both designs must carry
 replicate weights.
 
 ``` r
-npors_rep <- create_bootstrap_weights(npors_2025_clean_ref, seed = 1)
-gss_rep <- create_bootstrap_weights(gss_ipw_ref, seed = 1)
+npors_rep <- create_bootstrap_weights(npors_2025_clean_svy, seed = 1)
+
+# gss_2024_svy retains all rows including those with NA sex (19 rows).
+# Subset to complete cases for the calibration variables before bootstrapping.
+gss_complete <- gss_2024[!is.na(gss_2024$gender) & !is.na(gss_2024$age_group), ]
+gss_ref <- surveycore::as_survey(
+  gss_complete,
+  weights = wtssps,
+  strata  = vstrat,
+  ids     = vpsu,
+  nest    = TRUE
+)
+gss_rep <- create_bootstrap_weights(gss_ref, seed = 1)
 
 calibrated_to_ref <- calibrate_to_survey(
   npors_rep,

@@ -96,6 +96,11 @@ Follow `artifact-schemas.md §spec-{id}.md` exactly. Key rules:
   numerical method change, no contract change, ≤3 files touched.
 - Follow `surveywts-conventions.md` for naming, `@family` assignments, and
   return visibility.
+- For each new exported function, assign a documentation tier (Utility /
+  Standard / Algorithmic / Dispatcher) and record it in the spec's function
+  contract. The tier determines which `@section` blocks are required and
+  whether `@references` is mandatory. See `.claude/rules/function-documentation.md`
+  for the full tier criteria and section rules.
 - If `comprehension.md` exists and contains citations, include a `@references`
   roxygen tag on each exported function the spec covers. Format each citation
   as a bulleted line under `@references`. Mark any field that was `[NOT FOUND]`

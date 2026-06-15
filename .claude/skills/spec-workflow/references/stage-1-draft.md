@@ -102,7 +102,13 @@ Model every spec on this structure. Required sections:
 - Domain estimation and grouping behavior must be specified for every analysis
   function.
 - Do NOT restate rules already defined in `code-style.md`,
-  `r-package-conventions.md`, or `surveywts-conventions.md`. Reference them.
+  `r-package-conventions.md`, `surveywts-conventions.md`, or
+  `function-documentation.md`. Reference them.
+- For each new exported function, assign a documentation tier (Utility /
+  Standard / Algorithmic / Dispatcher) and record it in the spec's function
+  contract. The tier determines which `@section` blocks are required and
+  whether `@references` is mandatory. See `.claude/rules/function-documentation.md`
+  for the full tier criteria and section rules.
 
 ---
 

@@ -98,6 +98,7 @@ Write surface: {exact files from impl-{id}.md}
 Tasks: {tasks from impl-{id}.md for this PR}
 Acceptance criteria: {from impl-{id}.md}
 Read: .claude/agents/builder.md, .claude/rules/, pipeline-shared/references/r-package-profile.md
+Key documentation rule: `.claude/rules/function-documentation.md` — tier system, `@returns` (not `@return`), named `@section` requirements, `@examples` package-data rule for all exported functions
 Comprehension (if exists): plans/comprehension-{id}.md
 
 DO NOT read test-spec-{id}.md. DO NOT read any other PR's implementation.md.

@@ -68,8 +68,12 @@ After implementing any function with roxygen changes:
 
 - Run `Rscript -e 'devtools::document()'`
 - Commit (if using worktree) the NAMESPACE and `man/*.Rd` diffs alongside code
-- Every exported function has `@return`; every arg has `@param`; examples are
+- Every exported function has `@returns`; every arg has `@param`; examples are
   runnable (no `\dontrun{}` without justification)
+- Full documentation standards — tier system, `@returns` format, required named
+  `@section` blocks (Algorithm, Convergence, Missing Data, etc.), mathematical
+  notation (`\eqn{}`/`\deqn{}`), `@examples` package-data requirement, and
+  `@seealso` requirements — see `.claude/rules/function-documentation.md`
 - No `@importFrom` except S3 method registration (see `r-package-conventions.md`)
 - Use `::` everywhere for external calls
 - `@family` tags per `surveywts-conventions.md §2`

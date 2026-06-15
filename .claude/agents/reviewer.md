@@ -79,7 +79,25 @@ violations is itself a STOP (tester-classification error).
 Verify all profile gates have a result or documented skip per
 `r-package-profile.md` skip conditions.
 
-## Step 5 — Coverage floor check
+## Step 5 — Documentation standards
+
+For each new or modified exported function in the PR's write surface, verify
+against `.claude/rules/function-documentation.md`:
+
+- Tier is assigned (Utility / Standard / Algorithmic / Dispatcher) and matches
+  the function's complexity
+- Tier-required `@section` blocks are present (Algorithm required for Tier 3;
+  Convergence required for iterative Tier 3; see rule doc for full requirements)
+- `@returns` used (not `@return`)
+- `@examples` use package data, not inline-constructed data frames
+- `@seealso` present for dispatchers, sibling functions, and canonical companions
+- `@references` present for any function implementing a published method
+- Mathematical notation uses `\eqn{}`/`\deqn{}` where required (subscripts,
+  superscripts, Greek letters, summation notation)
+
+Any violation → BLOCK, traceable to builder.
+
+## Step 6 — Coverage floor check
 
 - `audit.md §Profile gates` covr entry ≥ 95% → OK
 - 95–98% AND dropped vs baseline → HOLD (should already have been raised by
@@ -87,7 +105,7 @@ Verify all profile gates have a result or documented skip per
 - < 95% → STOP
 - Drop in *new* lines (added by this PR) → STOP regardless of absolute %
 
-## Step 6 — Comprehension alignment (methods-heavy PRs only)
+## Step 7 — Comprehension alignment (methods-heavy PRs only)
 
 If `comprehension.md` exists, verify:
 
@@ -99,13 +117,14 @@ If `comprehension.md` exists, verify:
 
 Gaps are BLOCK (planner should have written the gotcha into spec or test-spec).
 
-## Step 7 — Verdict
+## Step 8 — Verdict
 
 **PASS** when ALL of:
 - Convergence check: no gaps
 - Tolerance Integrity: no violations
 - Scope discipline: implementation matches plan
 - CRAN cookbook + profile gates: clean
+- Documentation standards: clean
 - Coverage: floor met, no regression in new code
 - Comprehension alignment (if applicable): clean
 - `audit.md` verdict = PASS

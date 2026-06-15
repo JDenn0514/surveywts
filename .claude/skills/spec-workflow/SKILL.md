@@ -127,6 +127,7 @@ Every stage works alongside — never instead of — these rule files:
 | `code-style.md` | Indentation, pipe, air formatter, S7 patterns, cli error structure, argument order, helper placement |
 | `r-package-conventions.md` | `::` usage, NAMESPACE, roxygen2, `@return`, `@examples`, export policy |
 | `surveywts-conventions.md` | Package-specific naming patterns, `@family` groups, return visibility, export policy |
+| `function-documentation.md` | Tier system (Utility / Standard / Algorithmic / Dispatcher), `@param` / `@returns` / `@details` / `@section` rules, `@examples` constraints, mathematical notation |
 | `testing-standards.md` | `test_that()` scope, 98% coverage, assertion patterns, data generators |
 | `testing-surveywts.md` | `test_invariants()`, layer 1 vs layer 3 error testing, data generators, numerical tolerances |
 

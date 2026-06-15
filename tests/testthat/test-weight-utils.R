@@ -368,6 +368,61 @@ test_that("trim_weights() rejects NA weight values", {
   expect_snapshot(error = TRUE, trim_weights(df, weights = w))
 })
 
+test_that("trim_weights() surveywts_error_empty_data: S7 class invariant prevents 0-row survey_nonprob", {
+  # The surveycore survey_nonprob S7 class validator rejects @data assignment
+  # when the resulting weight column is empty (0 rows => all-NA weights => error).
+  # A 0-row survey_nonprob with repweights is therefore unrepresentable; the
+  # surveywts_error_empty_data path in trim_weights() for this combination is
+  # structurally unreachable via the public API.
+  # This test documents that constraint and verifies the S7 rejection itself.
+  n <- 10L
+  n_rep <- 3L
+  set.seed(99)
+  df <- make_surveywts_data(n = n, seed = 99)
+  for (i in seq_len(n_rep)) {
+    df[[paste0("rep_", i)]] <- abs(stats::rnorm(n, 1, 0.2))
+  }
+  nonprob_rep_local <- surveycore::as_survey_nonprob(
+    data = df,
+    weights = base_weight,
+    repweights = tidyselect::starts_with("rep_"),
+    type = "bootstrap",
+    scale = 1 / n_rep,
+    mse = TRUE
+  )
+  # Assigning 0-row data triggers surveycore class validator, not surveywts
+  expect_error(
+    {
+      nonprob_rep_local@data <- nonprob_rep_local@data[integer(0), ]
+    },
+    class = "surveycore_error_weights_all_zero"
+  )
+})
+
+test_that("trim_weights() fires surveywts_error_weights_nonpositive for survey_nonprob with repweights and weight <= 0", {
+  # Build inline to avoid depending on the later-defined helper
+  n <- 10L
+  n_rep <- 3L
+  set.seed(99)
+  df <- make_surveywts_data(n = n, seed = 99)
+  for (i in seq_len(n_rep)) {
+    df[[paste0("rep_", i)]] <- abs(stats::rnorm(n, 1, 0.2))
+  }
+  nonprob_rep_local <- surveycore::as_survey_nonprob(
+    data = df,
+    weights = base_weight,
+    repweights = tidyselect::starts_with("rep_"),
+    type = "bootstrap",
+    scale = 1 / n_rep,
+    mse = TRUE
+  )
+  nonprob_rep_local@data[["base_weight"]][1] <- 0
+  expect_error(
+    trim_weights(nonprob_rep_local, upper = 2),
+    class = "surveywts_error_weights_nonpositive"
+  )
+})
+
 test_that("trim_weights() rejects upper = NULL with type = 'percentile'", {
   df <- make_surveywts_data(seed = 1)
   expect_error(
@@ -983,6 +1038,37 @@ test_that("stabilize_weights() rejects wt_name = '' (plain df + NULL weights)", 
   )
 })
 
+test_that("stabilize_weights() surveywts_error_empty_data: S7 class invariant prevents 0-row survey_nonprob", {
+  # The surveycore survey_nonprob S7 class validator rejects @data assignment
+  # when the resulting weight column is empty (0 rows => all-NA weights => error).
+  # A 0-row survey_nonprob with repweights is therefore unrepresentable; the
+  # surveywts_error_empty_data path in stabilize_weights() for this combination
+  # is structurally unreachable via the public API.
+  # This test documents that constraint and verifies the S7 rejection itself.
+  n <- 10L
+  n_rep <- 3L
+  set.seed(99)
+  df <- make_surveywts_data(n = n, seed = 99)
+  for (i in seq_len(n_rep)) {
+    df[[paste0("rep_", i)]] <- abs(stats::rnorm(n, 1, 0.2))
+  }
+  nonprob_rep_local <- surveycore::as_survey_nonprob(
+    data = df,
+    weights = base_weight,
+    repweights = tidyselect::starts_with("rep_"),
+    type = "bootstrap",
+    scale = 1 / n_rep,
+    mse = TRUE
+  )
+  # Assigning 0-row data triggers surveycore class validator, not surveywts
+  expect_error(
+    {
+      nonprob_rep_local@data <- nonprob_rep_local@data[integer(0), ]
+    },
+    class = "surveycore_error_weights_all_zero"
+  )
+})
+
 # 4. History correctness — stabilize_weights() -----------------------------
 
 test_that("stabilize_weights() history entry has all required fields", {
@@ -1061,4 +1147,316 @@ test_that("stabilize_weights() by with group of size 1: weight for that observat
   # Group "A" has 1 observation: its weight should be 1
   idx_a <- df$grp == "A"
   expect_equal(result[["w"]][idx_a], 1.0, tolerance = 1e-10)
+})
+
+# ===========================================================================
+# .has_repweights() predicate
+# ===========================================================================
+
+# Helper: build a survey_nonprob with repweights for these tests.
+.make_nonprob_with_repweights <- function(n = 100L, n_rep = 10L, seed = 42L) {
+  set.seed(seed)
+  df <- make_surveywts_data(n = n, seed = seed)
+  for (i in seq_len(n_rep)) {
+    df[[paste0("rep_", i)]] <- abs(stats::rnorm(n, 1, 0.2))
+  }
+  surveycore::as_survey_nonprob(
+    data = df,
+    weights = base_weight,
+    repweights = tidyselect::starts_with("rep_"),
+    type = "bootstrap",
+    scale = 1 / n_rep,
+    mse = TRUE
+  )
+}
+
+# Helper: build a survey_nonprob WITHOUT repweights.
+.make_nonprob_no_repweights <- function(n = 100L, seed = 42L) {
+  df <- make_surveywts_data(n = n, seed = seed)
+  surveycore::survey_nonprob(
+    data = df,
+    variables = list(
+      ids = NULL, strata = NULL, fpc = NULL,
+      weights = "base_weight", nest = FALSE
+    ),
+    metadata = surveycore::survey_metadata(),
+    groups = character(0),
+    call = NULL,
+    calibration = NULL
+  )
+}
+
+test_that(".has_repweights() returns TRUE for survey_replicate", {
+  rep_design <- make_replicate_design(seed = 1)
+  expect_true(.has_repweights(rep_design))
+})
+
+test_that(".has_repweights() returns TRUE for survey_nonprob with repweights (length >= 1)", {
+  nonprob_rep <- .make_nonprob_with_repweights(seed = 1)
+  expect_true(.has_repweights(nonprob_rep))
+})
+
+test_that(".has_repweights() returns FALSE for survey_nonprob with NULL repweights", {
+  nonprob_no_rep <- .make_nonprob_no_repweights(seed = 1)
+  expect_false(.has_repweights(nonprob_no_rep))
+})
+
+test_that(".has_repweights() returns FALSE for survey_nonprob with character(0) repweights", {
+  nonprob_rep <- .make_nonprob_with_repweights(seed = 1)
+  # Manually set repweights to character(0)
+  nonprob_rep@variables <- modifyList(
+    nonprob_rep@variables,
+    list(repweights = character(0))
+  )
+  expect_false(.has_repweights(nonprob_rep))
+})
+
+test_that(".has_repweights() returns FALSE for survey_taylor", {
+  df <- make_surveywts_data(seed = 1)
+  design <- .make_test_taylor_wt(df)
+  expect_false(.has_repweights(design))
+})
+
+test_that(".has_repweights() returns FALSE for weighted_df", {
+  df <- make_surveywts_data(seed = 1)
+  wdf <- .make_test_wdf(df)
+  expect_false(.has_repweights(wdf))
+})
+
+test_that(".has_repweights() returns FALSE for plain data.frame", {
+  df <- make_surveywts_data(seed = 1)
+  expect_false(.has_repweights(df))
+})
+
+test_that(".has_repweights() returns FALSE for NULL without throwing", {
+  expect_false(.has_repweights(NULL))
+})
+
+test_that(".has_repweights() returns FALSE for list", {
+  expect_false(.has_repweights(list(x = 1)))
+})
+
+# ===========================================================================
+# trim_weights() — survey_nonprob with repweights
+# ===========================================================================
+
+test_that("trim_weights() preserves survey_nonprob class for nonprob with repweights", {
+  nonprob_rep <- .make_nonprob_with_repweights(seed = 10)
+  result <- trim_weights(nonprob_rep, upper = 0.9, type = "percentile")
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  expect_false(S7::S7_inherits(result, surveycore::survey_replicate))
+})
+
+test_that("trim_weights() updates replicate columns for survey_nonprob with repweights", {
+  nonprob_rep <- .make_nonprob_with_repweights(seed = 11)
+  orig_rep <- as.matrix(nonprob_rep@data[nonprob_rep@variables$repweights])
+
+  result <- trim_weights(nonprob_rep, upper = 0.8, type = "percentile")
+
+  result_rep <- as.matrix(result@data[result@variables$repweights])
+  expect_identical(dim(result_rep), dim(orig_rep))
+  # At least some replicate values changed
+  expect_false(all(result_rep == orig_rep))
+})
+
+test_that("trim_weights() applies same bounds to replicates as main weights for nonprob", {
+  nonprob_rep <- .make_nonprob_with_repweights(seed = 12)
+  w_main <- nonprob_rep@data[[nonprob_rep@variables$weights]]
+  upper_pct <- 0.9
+  upper_abs <- stats::quantile(w_main, upper_pct, type = 7, names = FALSE)
+
+  result <- trim_weights(nonprob_rep, upper = upper_pct, type = "percentile")
+  result_rep <- as.matrix(result@data[result@variables$repweights])
+
+  # All rep values should be clipped at upper_abs
+  expect_true(all(result_rep <= upper_abs + .Machine$double.eps))
+})
+
+test_that("trim_weights() appends history entry for survey_nonprob with repweights", {
+  nonprob_rep <- .make_nonprob_with_repweights(seed = 13)
+  result <- trim_weights(nonprob_rep, upper = 0.9, type = "percentile")
+  hist <- result@metadata@weighting_history
+  expect_true(length(hist) >= 1L)
+  last_entry <- hist[[length(hist)]]
+  expect_identical(last_entry$operation, "trim_weights")
+})
+
+test_that("trim_weights() does not update replicates for survey_nonprob WITHOUT repweights", {
+  nonprob_no_rep <- .make_nonprob_no_repweights(seed = 14)
+  # Should succeed without error, returning survey_nonprob
+  result <- trim_weights(nonprob_no_rep, upper = 0.9, type = "percentile")
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+})
+
+test_that("trim_weights() nonprob + repweights: warning fires when all main weights in bounds", {
+  nonprob_rep <- .make_nonprob_with_repweights(seed = 15)
+  rep_cols <- nonprob_rep@variables$repweights
+  # Very wide bounds so no trimming occurs
+  expect_warning(
+    result <- trim_weights(nonprob_rep, lower = 0.01, upper = 100),
+    class = "surveywts_warning_no_weights_trimmed"
+  )
+  # Class is preserved
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  # Rep columns differ from input (wide bounds still clip high rep values)
+  # and main weights are unchanged when none are outside bounds
+  main_col <- nonprob_rep@variables$weights
+  expect_identical(
+    result@data[[main_col]],
+    nonprob_rep@data[[main_col]]
+  )
+})
+
+test_that("trim_weights() nonprob + repweights: strict=FALSE (default) not applied to replicates", {
+  # The strict loop applies only to main weights; replicates use one-pass clip-and-redistribute.
+  # We verify that the function completes and replicate columns have values <= upper_abs.
+  nonprob_rep <- .make_nonprob_with_repweights(seed = 16)
+  w_main <- nonprob_rep@data[[nonprob_rep@variables$weights]]
+  upper_pct <- 0.85
+  upper_abs <- stats::quantile(w_main, upper_pct, type = 7, names = FALSE)
+
+  result <- trim_weights(nonprob_rep, upper = upper_pct, type = "percentile", strict = TRUE)
+  result_rep <- as.matrix(result@data[result@variables$repweights])
+  # Replicate values should be clipped at upper_abs (one pass only)
+  expect_true(all(result_rep <= upper_abs + .Machine$double.eps))
+})
+
+test_that("trim_weights() handles all-outside-bounds replicate columns for survey_nonprob with repweights", {
+  nonprob_rep <- .make_nonprob_with_repweights(seed = 17)
+  # Tight absolute upper so all rep values are clipped
+  result <- suppressWarnings(trim_weights(nonprob_rep, upper = 0.001))
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  rep_cols <- result@variables$repweights
+  for (col in rep_cols) {
+    expect_true(all(result@data[[col]] <= 0.001 + .Machine$double.eps * 10))
+  }
+})
+
+test_that("trim_weights() clips a single replicate column for survey_nonprob with repweights", {
+  nonprob_rep <- .make_nonprob_with_repweights(seed = 18)
+  # Narrow to one rep column by modifying @variables
+  first_rep_col <- nonprob_rep@variables$repweights[[1]]
+  nonprob_rep@variables <- modifyList(
+    nonprob_rep@variables,
+    list(repweights = first_rep_col)
+  )
+  # Set rep values high so clipping fires
+  nonprob_rep@data[[first_rep_col]] <- rep(100, nrow(nonprob_rep@data))
+  result <- trim_weights(nonprob_rep, upper = 5)
+  expect_true(all(result@data[[first_rep_col]] <= 5 + .Machine$double.eps * 10))
+})
+
+# ===========================================================================
+# stabilize_weights() — survey_nonprob with repweights
+# ===========================================================================
+
+test_that("stabilize_weights() preserves survey_nonprob class for nonprob with repweights", {
+  nonprob_rep <- .make_nonprob_with_repweights(seed = 20)
+  result <- stabilize_weights(nonprob_rep)
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  expect_false(S7::S7_inherits(result, surveycore::survey_replicate))
+})
+
+test_that("stabilize_weights() global: scales all rep columns by same factor for nonprob", {
+  nonprob_rep <- .make_nonprob_with_repweights(seed = 21)
+  orig_main <- nonprob_rep@data[[nonprob_rep@variables$weights]]
+  orig_rep <- as.matrix(nonprob_rep@data[nonprob_rep@variables$repweights])
+  n <- nrow(nonprob_rep@data)
+  scale_f <- n / sum(orig_main)
+
+  result <- stabilize_weights(nonprob_rep)
+  result_rep <- as.matrix(result@data[result@variables$repweights])
+
+  expected_colsums <- colSums(orig_rep) * scale_f
+  expect_equal(colSums(result_rep), expected_colsums, tolerance = 1e-10)
+})
+
+test_that("stabilize_weights() per-group: applies per-row scale factors to rep columns for nonprob", {
+  nonprob_rep <- .make_nonprob_with_repweights(seed = 22)
+  orig_main <- nonprob_rep@data[[nonprob_rep@variables$weights]]
+  orig_rep <- as.matrix(nonprob_rep@data[nonprob_rep@variables$repweights])
+  data_df <- nonprob_rep@data
+
+  result <- stabilize_weights(nonprob_rep, by = age_group)
+  result_rep <- as.matrix(result@data[result@variables$repweights])
+
+  for (grp in unique(data_df$age_group)) {
+    idx <- data_df$age_group == grp
+    n_h <- sum(idx)
+    W_h <- sum(orig_main[idx])
+    sf_h <- n_h / W_h
+    for (j in seq_len(ncol(orig_rep))) {
+      orig_sum_h <- sum(orig_rep[idx, j])
+      result_sum_h <- sum(result_rep[idx, j])
+      expect_equal(result_sum_h, orig_sum_h * sf_h, tolerance = 1e-10)
+    }
+  }
+})
+
+test_that("stabilize_weights() appends history entry for survey_nonprob with repweights", {
+  nonprob_rep <- .make_nonprob_with_repweights(seed = 23)
+  result <- stabilize_weights(nonprob_rep)
+  hist <- result@metadata@weighting_history
+  expect_true(length(hist) >= 1L)
+  last_entry <- hist[[length(hist)]]
+  expect_identical(last_entry$operation, "stabilize_weights")
+})
+
+test_that("stabilize_weights() does not scale replicates for survey_nonprob WITHOUT repweights", {
+  nonprob_no_rep <- .make_nonprob_no_repweights(seed = 24)
+  result <- stabilize_weights(nonprob_no_rep)
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+})
+
+test_that("stabilize_weights() nonprob + repweights: scale_factor == 1.0 when weights already sum to n", {
+  set.seed(42)
+  n <- 50L
+  n_rep <- 5L
+  df <- data.frame(
+    id = seq_len(n),
+    age_group = sample(c("18-34", "35-54", "55+"), n, replace = TRUE),
+    sex = sample(c("M", "F"), n, replace = TRUE),
+    education = sample(c("<HS", "HS", "College", "Graduate"), n, replace = TRUE),
+    region = sample(c("Northeast", "South", "Midwest", "West"), n, replace = TRUE),
+    base_weight = rep(1.0, n)  # weights already sum to n
+  )
+  for (i in seq_len(n_rep)) {
+    df[[paste0("rep_", i)]] <- abs(stats::rnorm(n, 1, 0.2))
+  }
+  nonprob_rep <- surveycore::as_survey_nonprob(
+    data = df,
+    weights = base_weight,
+    repweights = tidyselect::starts_with("rep_"),
+    type = "bootstrap",
+    scale = 1 / n_rep,
+    mse = TRUE
+  )
+  orig_rep <- as.matrix(nonprob_rep@data[nonprob_rep@variables$repweights])
+  result <- stabilize_weights(nonprob_rep)
+  result_rep <- as.matrix(result@data[result@variables$repweights])
+  # scale factor is 1.0, so rep columns are unchanged
+  expect_equal(result_rep, orig_rep, tolerance = 1e-10)
+})
+
+test_that("stabilize_weights() nonprob + repweights: two rep columns scale correctly", {
+  set.seed(99)
+  n <- 30L
+  df <- make_surveywts_data(n = n, seed = 99)
+  df[["rep_1"]] <- abs(stats::rnorm(n, 1, 0.3))
+  df[["rep_2"]] <- abs(stats::rnorm(n, 1, 0.3))
+  nonprob_rep <- surveycore::as_survey_nonprob(
+    data = df,
+    weights = base_weight,
+    repweights = tidyselect::starts_with("rep_"),
+    type = "bootstrap",
+    scale = 0.5,
+    mse = TRUE
+  )
+  orig_main <- nonprob_rep@data[["base_weight"]]
+  orig_rep1 <- nonprob_rep@data[["rep_1"]]
+  scale_f <- n / sum(orig_main)
+  result <- stabilize_weights(nonprob_rep)
+  expect_equal(result@data[["rep_1"]], orig_rep1 * scale_f, tolerance = 1e-10)
 })

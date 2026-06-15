@@ -11,7 +11,7 @@ templates (organized by function in subsections XII.A through XII.G).
 | Class | Thrown by | Condition |
 |-------|-----------|-----------|
 | `surveywts_error_unsupported_class` | All calibration / NR functions | `data` is not a supported class |
-| `surveywts_error_replicate_not_supported` | All calibration / NR functions | `data` is `survey_replicate` |
+| ~~`surveywts_error_replicate_not_supported`~~ | ~~All calibration / NR functions~~ | **RETIRED** — Replicate release complete; `survey_replicate` now accepted by diagnostic functions (`effective_sample_size()`, `weight_variability()`, `summarize_weights()`) |
 | `surveywts_error_empty_data` | All calibration / NR functions | `nrow(data) == 0` |
 | `surveywts_error_weights_not_found` | All functions accepting `weights` | Named weight column missing from `data` |
 | `surveywts_error_weights_not_numeric` | `.validate_weights()` | Weight column is not numeric |

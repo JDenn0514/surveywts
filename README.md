@@ -162,7 +162,7 @@ uncertainty into the final variance estimates. Both designs must carry
 replicate weights.
 
 ``` r
-npors_rep <- create_bootstrap_weights(npors_2025_ref, seed = 1)
+npors_rep <- create_bootstrap_weights(npors_2025_clean_ref, seed = 1)
 gss_rep <- create_bootstrap_weights(gss_ipw_ref, seed = 1)
 
 calibrated_to_ref <- calibrate_to_survey(
@@ -170,6 +170,8 @@ calibrated_to_ref <- calibrate_to_survey(
   gss_rep,
   variables = c(gender, age_group)
 )
+#> Matching between primary and control replicates will be done at random.
+#> For tips on reproducible matching, see `help('calibrate_to_sample')`
 ```
 
 ### Generating replicate weights

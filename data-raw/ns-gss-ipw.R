@@ -91,7 +91,8 @@ gss_ipw_ref <- surveycore::as_survey(
   gss_sub,
   weights = wt_pop,
   strata  = vstrat,
-  ids     = vpsu
+  ids     = vpsu,
+  nest    = TRUE
 )
 
 usethis::use_data(ns_wave1_ipw, gss_ipw_ref, overwrite = TRUE)

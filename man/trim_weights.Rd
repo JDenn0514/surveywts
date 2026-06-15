@@ -17,7 +17,8 @@ trim_weights(
 }
 \arguments{
 \item{data}{A \code{data.frame}, \code{weighted_df}, \code{survey_taylor}, \code{survey_nonprob},
-or \code{survey_replicate}. All survey classes supported.}
+or \code{survey_replicate}. All survey classes supported. For inputs carrying
+replicate weight columns, see the \strong{Replicate Weights} section.}
 
 \item{weights}{<\code{\link[tidyselect:language]{tidy-select}}> Weight column.
 Auto-detected for \code{weighted_df} and survey objects. For plain \code{data.frame}
@@ -49,20 +50,33 @@ within \verb{[lower_abs, upper_abs]}. Not applied to replicate columns.}
 \code{data} is a plain \code{data.frame} with \code{weights = NULL}. Default \code{"wts"}.}
 }
 \value{
-An object of the same class as \code{data} with trimmed weights and one
-new entry in the weighting history.
+An object of the same class as \code{data} with trimmed weights. A new
+entry with \code{operation = "trim_weights"} is appended to the weighting
+history.
 }
 \description{
 Clips (trims) survey weights to \verb{[lower, upper]} and redistributes the
 trimmed excess equally across untrimmed units, preserving the total weight
 sum. Bounds can be absolute weight values or percentiles. Applies to main
-weights and — for \code{survey_replicate} input — all replicate weight columns.
+weights and — for inputs carrying replicate weight columns
+(\code{survey_replicate} or \code{survey_nonprob} with \code{repweights}) — all replicate
+columns.
 }
 \details{
 The clip-and-redistribute logic is adapted from \code{survey::trimWeights()}
 (Thomas Lumley). The default upper cutoff follows Potter & Zheng (2015):
 \code{median(w) + k * IQR(w)} with \code{k = 5}.
 }
+\section{Replicate Weights}{
+
+When the input carries replicate weight columns (either \code{survey_replicate}
+or \code{survey_nonprob} with \code{repweights}), the same absolute bounds
+\verb{[lower_abs, upper_abs]} derived from the main weights are applied to each
+replicate column using the same clip-and-redistribute logic. The \code{strict}
+loop is not applied to replicate columns; each replicate column receives
+exactly one clip-and-redistribute pass.
+}
+
 \examples{
 set.seed(42)
 df <- data.frame(

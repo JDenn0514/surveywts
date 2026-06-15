@@ -8,7 +8,8 @@ stabilize_weights(data, weights = NULL, by = NULL, wt_name = "wts")
 }
 \arguments{
 \item{data}{A \code{data.frame}, \code{weighted_df}, \code{survey_taylor}, \code{survey_nonprob},
-or \code{survey_replicate}. All survey classes supported.}
+or \code{survey_replicate}. All survey classes supported. For inputs carrying
+replicate weight columns, see the \strong{Replicate Weights} section.}
 
 \item{weights}{<\code{\link[tidyselect:language]{tidy-select}}> Weight column.
 Auto-detected for \code{weighted_df} and survey objects. For plain \code{data.frame}
@@ -22,20 +23,31 @@ Stabilization is performed within each group (weights in group \code{h} sum to
 \code{data} is a plain \code{data.frame} with \code{weights = NULL}. Default \code{"wts"}.}
 }
 \value{
-An object of the same class as \code{data} with stabilized weights and
-one new entry in the weighting history.
+An object of the same class as \code{data} with stabilized weights. A
+new entry with \code{operation = "stabilize_weights"} is appended to the
+weighting history.
 }
 \description{
 Rescales weights so they sum to the sample size \code{n} (globally) or to the
 group sample size within each group (when \code{by} is specified). Relative
 weights within the sample are preserved exactly. Applies to main weights
-and — for \code{survey_replicate} input — all replicate weight columns.
+and — for inputs carrying replicate weight columns (\code{survey_replicate} or
+\code{survey_nonprob} with \code{repweights}) — all replicate columns.
 }
 \details{
 The scale factor is \code{n / sum(w)} globally, or \code{n_h / W_h} per group \code{h}.
 This operation preserves ratio estimators (means, proportions) but changes
 population total estimates by the factor \code{n / W}.
 }
+\section{Replicate Weights}{
+
+When the input carries replicate weight columns (either \code{survey_replicate}
+or \code{survey_nonprob} with \code{repweights}), all replicate columns are scaled by
+the same factor(s) derived from the main weights — globally \code{n / sum(w)} or
+per group \code{n_h / W_h}. Each row's replicate values are multiplied by the
+same scalar (global) or per-group scalar that was applied to the main weight.
+}
+
 \examples{
 set.seed(42)
 df <- data.frame(

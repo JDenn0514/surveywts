@@ -12,14 +12,17 @@
 #' Clips (trims) survey weights to `[lower, upper]` and redistributes the
 #' trimmed excess equally across untrimmed units, preserving the total weight
 #' sum. Bounds can be absolute weight values or percentiles. Applies to main
-#' weights and — for `survey_replicate` input — all replicate weight columns.
+#' weights and — for inputs carrying replicate weight columns
+#' (`survey_replicate` or `survey_nonprob` with `repweights`) — all replicate
+#' columns.
 #'
 #' The clip-and-redistribute logic is adapted from `survey::trimWeights()`
 #' (Thomas Lumley). The default upper cutoff follows Potter & Zheng (2015):
 #' `median(w) + k * IQR(w)` with `k = 5`.
 #'
 #' @param data A `data.frame`, `weighted_df`, `survey_taylor`, `survey_nonprob`,
-#'   or `survey_replicate`. All survey classes supported.
+#'   or `survey_replicate`. All survey classes supported. For inputs carrying
+#'   replicate weight columns, see the **Replicate Weights** section.
 #' @param weights <[`tidy-select`][tidyselect::language]> Weight column.
 #'   Auto-detected for `weighted_df` and survey objects. For plain `data.frame`
 #'   with `weights = NULL`, uniform weights (all 1) are used and the output
@@ -43,8 +46,17 @@
 #' @param wt_name `character(1)`. Output weight column name. Used only when
 #'   `data` is a plain `data.frame` with `weights = NULL`. Default `"wts"`.
 #'
-#' @return An object of the same class as `data` with trimmed weights and one
-#'   new entry in the weighting history.
+#' @returns An object of the same class as `data` with trimmed weights. A new
+#'   entry with `operation = "trim_weights"` is appended to the weighting
+#'   history.
+#'
+#' @section Replicate Weights:
+#' When the input carries replicate weight columns (either `survey_replicate`
+#' or `survey_nonprob` with `repweights`), the same absolute bounds
+#' `[lower_abs, upper_abs]` derived from the main weights are applied to each
+#' replicate column using the same clip-and-redistribute logic. The `strict`
+#' loop is not applied to replicate columns; each replicate column receives
+#' exactly one clip-and-redistribute pass.
 #'
 #' @family utilities
 #' @export
@@ -254,8 +266,8 @@ trim_weights <- function(
     }
   }
 
-  # Step 7: replicate column trimming (survey_replicate only)
-  if (S7::S7_inherits(data, surveycore::survey_replicate)) {
+  # Step 7: replicate column trimming (survey_replicate or nonprob w/ repweights)
+  if (.has_repweights(data)) {
     rep_weights <- as.matrix(data@data[data@variables$repweights])
     # pmax/pmin strip matrix attributes; restore them explicitly
     rwnew <- matrix(
@@ -311,12 +323,12 @@ trim_weights <- function(
     updated_data[[wt_col_name]] <- weights_vec
     new_history <- c(old_history, list(history_entry))
     .make_weighted_df(updated_data, wt_col_name, new_history)
-  } else if (S7::S7_inherits(data, surveycore::survey_replicate)) {
+  } else if (.has_repweights(data)) {
     result_design <- .update_survey_weights(data, weights_vec, history_entry)
     result_design@data[data@variables$repweights] <- as.data.frame(rwnew)
     result_design
   } else {
-    # survey_taylor or survey_nonprob
+    # survey_taylor or survey_nonprob without repweights
     .update_survey_weights(data, weights_vec, history_entry)
   }
 }

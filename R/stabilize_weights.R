@@ -11,14 +11,16 @@
 #' Rescales weights so they sum to the sample size `n` (globally) or to the
 #' group sample size within each group (when `by` is specified). Relative
 #' weights within the sample are preserved exactly. Applies to main weights
-#' and — for `survey_replicate` input — all replicate weight columns.
+#' and — for inputs carrying replicate weight columns (`survey_replicate` or
+#' `survey_nonprob` with `repweights`) — all replicate columns.
 #'
 #' The scale factor is `n / sum(w)` globally, or `n_h / W_h` per group `h`.
 #' This operation preserves ratio estimators (means, proportions) but changes
 #' population total estimates by the factor `n / W`.
 #'
 #' @param data A `data.frame`, `weighted_df`, `survey_taylor`, `survey_nonprob`,
-#'   or `survey_replicate`. All survey classes supported.
+#'   or `survey_replicate`. All survey classes supported. For inputs carrying
+#'   replicate weight columns, see the **Replicate Weights** section.
 #' @param weights <[`tidy-select`][tidyselect::language]> Weight column.
 #'   Auto-detected for `weighted_df` and survey objects. For plain `data.frame`
 #'   with `weights = NULL`, uniform weights (all 1) are used.
@@ -28,8 +30,16 @@
 #' @param wt_name `character(1)`. Output weight column name. Used only when
 #'   `data` is a plain `data.frame` with `weights = NULL`. Default `"wts"`.
 #'
-#' @return An object of the same class as `data` with stabilized weights and
-#'   one new entry in the weighting history.
+#' @returns An object of the same class as `data` with stabilized weights. A
+#'   new entry with `operation = "stabilize_weights"` is appended to the
+#'   weighting history.
+#'
+#' @section Replicate Weights:
+#' When the input carries replicate weight columns (either `survey_replicate`
+#' or `survey_nonprob` with `repweights`), all replicate columns are scaled by
+#' the same factor(s) derived from the main weights — globally `n / sum(w)` or
+#' per group `n_h / W_h`. Each row's replicate values are multiplied by the
+#' same scalar (global) or per-group scalar that was applied to the main weight.
 #'
 #' @family utilities
 #' @export
@@ -134,8 +144,8 @@ stabilize_weights <- function(
     weights_new <- weights_vec * scale_factor
     scale_factor_record <- scale_factor
 
-    # For survey_replicate: apply same factor to all replicate columns
-    if (S7::S7_inherits(data, surveycore::survey_replicate)) {
+    # For objects with replicate columns: apply same factor to all rep columns
+    if (.has_repweights(data)) {
       rep_weights <- as.matrix(data@data[data@variables$repweights])
       rep_weights_new <- rep_weights * scale_factor
     }
@@ -161,8 +171,8 @@ stabilize_weights <- function(
 
     weights_new <- weights_vec * scale_factors_vec
 
-    # For survey_replicate: apply per-group factors to all replicate columns
-    if (S7::S7_inherits(data, surveycore::survey_replicate)) {
+    # For objects with replicate columns: apply per-group factors to all rep columns
+    if (.has_repweights(data)) {
       rep_weights <- as.matrix(data@data[data@variables$repweights])
       rep_weights_new <- rep_weights * scale_factors_vec
     }
@@ -194,7 +204,7 @@ stabilize_weights <- function(
     updated_data[[wt_col_name]] <- weights_new
     new_history <- c(old_history, list(history_entry))
     .make_weighted_df(updated_data, wt_col_name, new_history)
-  } else if (S7::S7_inherits(data, surveycore::survey_replicate)) {
+  } else if (.has_repweights(data)) {
     result_design <- .update_survey_weights(data, weights_new, history_entry)
     result_design@data[data@variables$repweights] <- as.data.frame(rep_weights_new)
     result_design

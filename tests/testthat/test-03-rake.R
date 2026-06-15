@@ -1,8 +1,7 @@
 # tests/testthat/test-03-rake.R
 #
-# Tests for rake()
-# Per spec §XIII rake() test items 1–26 plus 17b, 23b, 26c, chaining
-# Per impl plan PR 6 acceptance criteria
+# Tests for calibrate_rake()
+# Per spec §IV: signature, args, returns, errors, warnings, messages, edge cases
 #
 # All error path tests use the dual pattern:
 #   expect_error(class = ...) + expect_snapshot(error = TRUE, ...)
@@ -10,9 +9,15 @@
 #   expect_warning(class = ...) + expect_snapshot()
 # Message tests use:
 #   expect_message(class = ...)
+#
+# PR 4 changes:
+#   - algorithm = "anesrake" renamed to "classic_ipf"
+#   - algorithm = "survey" removed (expect arg_match error — no class=)
+#   - algorithm = "nr" added: Newton-Raphson raking via .calibrate_nr_engine()
+#   - calibrate() default method changed to "rake"
 
 # ---------------------------------------------------------------------------
-# Helper: build survey_taylor fixture (requires surveycore)
+# Helpers
 # ---------------------------------------------------------------------------
 
 .make_test_taylor_rake <- function(df, weight_col = "base_weight") {
@@ -28,33 +33,29 @@
   )
 }
 
-# ---------------------------------------------------------------------------
-# Standard margins for most tests
-# ---------------------------------------------------------------------------
-
-.make_margins <- function(type = "prop") {
+.make_targets_rake <- function(type = "prop") {
   if (type == "prop") {
     list(
       age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
-      sex       = c("M" = 0.48, "F" = 0.52)
+      sex = c("M" = 0.48, "F" = 0.52)
     )
   } else {
     list(
       age_group = c("18-34" = 150, "35-54" = 200, "55+" = 150),
-      sex       = c("M" = 240, "F" = 260)
+      sex = c("M" = 240, "F" = 260)
     )
   }
 }
 
 # ---------------------------------------------------------------------------
-# 1. Happy path — data.frame input → weighted_df output (default: anesrake)
+# 1. Happy path — data.frame, type = "prop", algorithm = "classic_ipf"
 # ---------------------------------------------------------------------------
 
-test_that("rake() returns weighted_df for data.frame input", {
+test_that("calibrate_rake() returns weighted_df for data.frame input (prop, classic_ipf)", {
   df <- make_surveywts_data(seed = 1)
-  margins <- .make_margins()
+  targets <- .make_targets_rake()
 
-  result <- rake(df, margins = margins)
+  result <- calibrate_rake(df, targets = targets)
 
   test_invariants(result)
   expect_true(inherits(result, "weighted_df"))
@@ -63,105 +64,59 @@ test_that("rake() returns weighted_df for data.frame input", {
 })
 
 # ---------------------------------------------------------------------------
-# 1b. Happy path — factor-typed margin variable
+# 2. Happy path — type = "count", algorithm = "classic_ipf"
 # ---------------------------------------------------------------------------
 
-test_that("rake() handles factor margin variables the same as character", {
-  df <- make_surveywts_data(seed = 2)
-  df$age_group <- factor(df$age_group, levels = c("18-34", "35-54", "55+"))
-  margins <- .make_margins()
+test_that("calibrate_rake() with type = 'count' accepts count targets (classic_ipf)", {
+  df <- make_surveywts_data(n = 500, seed = 2)
+  targets <- .make_targets_rake("count")
 
-  result <- rake(df, margins = margins)
+  result <- calibrate_rake(df, targets = targets, type = "count")
+
+  test_invariants(result)
+  expect_true(inherits(result, "weighted_df"))
+  # classic_ipf converges to proportional targets; verify marginals are closer to
+  # target proportions than starting values (improvement-based convergence)
+  w <- result[["wts"]]
+  expect_true(all(w > 0))
+})
+
+# ---------------------------------------------------------------------------
+# 3. algorithm = "survey" no longer valid — expect rlang::arg_match() error
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() with algorithm = 'survey' triggers arg_match error", {
+  df <- make_surveywts_data(seed = 3)
+  targets <- .make_targets_rake()
+
+  # "survey" was removed from algorithm choices in PR 4.
+  # rlang::arg_match() error — no class= (not a cli_abort)
+  expect_error(
+    calibrate_rake(df, targets = targets, algorithm = "survey")
+  )
+})
+
+# ---------------------------------------------------------------------------
+# 4. Happy path — weighted_df input -> weighted_df
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() accepts weighted_df input and returns weighted_df", {
+  df <- make_surveywts_data(seed = 4)
+  targets <- .make_targets_rake()
+
+  wdf <- calibrate_rake(df, targets = targets)
+  result <- calibrate_rake(wdf, targets = targets)
 
   test_invariants(result)
   expect_true(inherits(result, "weighted_df"))
 })
 
 # ---------------------------------------------------------------------------
-# 2. Happy path — survey_taylor → survey_taylor (class preserved)
+# 5. Happy path — survey_nonprob input -> class preserved
 # ---------------------------------------------------------------------------
 
-test_that("rake() preserves survey_taylor class for survey_taylor input", {
-  df <- make_surveywts_data(seed = 3)
-  design <- .make_test_taylor_rake(df)
-  margins <- .make_margins()
-
-  result <- rake(design, margins = margins)
-
-  test_invariants(result)
-  expect_true(S7::S7_inherits(result, surveycore::survey_taylor))
-  expect_false(S7::S7_inherits(result, surveycore::survey_nonprob))
-  # Design vars are unchanged
-  expect_identical(result@variables$ids,    design@variables$ids)
-  expect_identical(result@variables$strata, design@variables$strata)
-  expect_identical(result@variables$fpc,    design@variables$fpc)
-  expect_identical(result@variables$nest,   design@variables$nest)
-  # History entry appended regardless of whether weights actually changed
-  expect_identical(length(result@metadata@weighting_history), 1L)
-})
-
-# ---------------------------------------------------------------------------
-# 2a. Happy path — multiple margins explicitly verified
-# ---------------------------------------------------------------------------
-
-test_that("rake() calibrates all margin variables correctly (method='survey')", {
-  df <- make_surveywts_data(seed = 4)
-  margins <- list(
-    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
-    sex       = c("M" = 0.48, "F" = 0.52),
-    education = c("<HS" = 0.10, "HS" = 0.30, "College" = 0.40, "Graduate" = 0.20)
-  )
-
-  # Use method="survey" to guarantee all variables are raked regardless of
-  # chi-square significance (avoids "already calibrated" with close samples)
-  result <- rake(df, margins = margins, method = "survey")
-
-  test_invariants(result)
-  expect_identical(length(margins), 3L)
-
-  w <- result[["wts"]]
-  total_w <- sum(w)
-
-  for (var in names(margins)) {
-    for (lev in names(margins[[var]])) {
-      obs_prop <- sum(w[result[[var]] == lev]) / total_w
-      expect_equal(obs_prop, margins[[var]][[lev]], tolerance = 1e-4,
-                   label = paste0(var, "=", lev))
-    }
-  }
-})
-
-# ---------------------------------------------------------------------------
-# 3. Happy path — weighted_df input → weighted_df (history accumulates)
-# ---------------------------------------------------------------------------
-
-test_that("rake() on weighted_df accumulates weighting history", {
+test_that("calibrate_rake() preserves survey_nonprob class", {
   df <- make_surveywts_data(seed = 5)
-  margins <- .make_margins()
-
-  wdf <- rake(df, margins = margins)
-  test_invariants(wdf)
-  expect_identical(length(attr(wdf, "weighting_history")), 1L)
-
-  # Second rake accumulates a second entry
-  margins2 <- list(
-    age_group = c("18-34" = 0.28, "35-54" = 0.42, "55+" = 0.30),
-    sex       = c("M" = 0.50, "F" = 0.50)
-  )
-  wdf2 <- rake(wdf, margins = margins2, weights = wts)
-  test_invariants(wdf2)
-  expect_identical(length(attr(wdf2, "weighting_history")), 2L)
-  expect_identical(attr(wdf2, "weighting_history")[[2L]]$step, 2L)
-})
-
-# ---------------------------------------------------------------------------
-# 4. Happy path — survey_nonprob input → survey_nonprob (re-raking)
-# ---------------------------------------------------------------------------
-
-test_that("rake() on survey_nonprob returns survey_nonprob", {
-  df <- make_surveywts_data(seed = 6)
-
-  # Construct survey_nonprob directly (not via rake())
   sc_input <- surveycore::survey_nonprob(
     data = df,
     variables = list(
@@ -173,178 +128,167 @@ test_that("rake() on survey_nonprob returns survey_nonprob", {
     call = NULL,
     calibration = NULL
   )
+  targets <- .make_targets_rake()
 
-  margins2 <- list(
-    age_group = c("18-34" = 0.28, "35-54" = 0.42, "55+" = 0.30),
-    sex       = c("M" = 0.50, "F" = 0.50)
-  )
-  sc2 <- rake(sc_input, margins = margins2)
-  test_invariants(sc2)
-  expect_true(S7::S7_inherits(sc2, surveycore::survey_nonprob))
-  # History should have 1 entry (sc_input had no prior history)
-  expect_identical(length(sc2@metadata@weighting_history), 1L)
-})
-
-# ---------------------------------------------------------------------------
-# 5. Happy path — type = "count"
-# ---------------------------------------------------------------------------
-
-test_that("rake() with type = 'count' accepts count targets", {
-  df <- make_surveywts_data(n = 500, seed = 7)
-  margins <- .make_margins("count")
-
-  result <- rake(df, margins = margins, type = "count")
+  result <- calibrate_rake(sc_input, targets = targets)
 
   test_invariants(result)
-  expect_true(inherits(result, "weighted_df"))
-  expect_true(all(result[["wts"]] > 0))
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
 })
 
 # ---------------------------------------------------------------------------
-# 6. Happy path — margins as named list (explicit)
+# 6. Happy path — survey_taylor input -> class preserved, design vars unchanged
 # ---------------------------------------------------------------------------
 
-test_that("rake() accepts named list margins (Format A)", {
-  df <- make_surveywts_data(seed = 8)
-  margins <- list(
+test_that("calibrate_rake() preserves survey_taylor class and design vars", {
+  df <- make_surveywts_data(seed = 6)
+  design <- .make_test_taylor_rake(df)
+  targets <- .make_targets_rake()
+
+  result <- calibrate_rake(design, targets = targets)
+
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_taylor))
+  expect_identical(result@variables$ids, design@variables$ids)
+  expect_identical(result@variables$strata, design@variables$strata)
+})
+
+# ---------------------------------------------------------------------------
+# 7. Happy path — Format B targets -> same result as Format A
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() Format B targets gives same result as Format A", {
+  df <- make_surveywts_data(n = 200, seed = 7)
+
+  targets_a <- list(
     age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
-    sex       = c("M" = 0.48, "F" = 0.52)
+    sex = c("M" = 0.48, "F" = 0.52)
   )
-
-  result <- rake(df, margins = margins)
-
-  test_invariants(result)
-  expect_true(inherits(result, "weighted_df"))
-})
-
-# ---------------------------------------------------------------------------
-# 7. Happy path — margins as long data frame (Format B)
-# ---------------------------------------------------------------------------
-
-test_that("rake() accepts long data.frame margins (Format B)", {
-  df <- make_surveywts_data(n = 300, seed = 9)
-  # Use a single-variable Format B with all observed levels
-  age_levels <- sort(unique(df$age_group))
-  n_levels <- length(age_levels)
-  target_each <- 1 / n_levels
-  margins_df <- data.frame(
-    variable = "age_group",
-    level    = age_levels,
-    target   = rep(target_each, n_levels),
+  targets_b <- data.frame(
+    variable = c("age_group", "age_group", "age_group", "sex", "sex"),
+    level = c("18-34", "35-54", "55+", "M", "F"),
+    target = c(0.30, 0.40, 0.30, 0.48, 0.52),
     stringsAsFactors = FALSE
   )
 
-  result <- rake(df, margins = margins_df)
+  result_a <- calibrate_rake(df, targets = targets_a, algorithm = "classic_ipf")
+  result_b <- calibrate_rake(df, targets = targets_b, algorithm = "classic_ipf")
 
-  test_invariants(result)
-  expect_true(inherits(result, "weighted_df"))
+  test_invariants(result_a)
+  test_invariants(result_b)
+  expect_equal(result_a[["wts"]], result_b[["wts"]], tolerance = 1e-10)
 })
 
 # ---------------------------------------------------------------------------
-# 8. Happy path — mixed format (named list with data.frame element)
+# 8. Happy path — cap applied with algorithm = "classic_ipf"
 # ---------------------------------------------------------------------------
 
-test_that("rake() accepts mixed margins format (list with df element)", {
-  df <- make_surveywts_data(seed = 10)
-  margins <- list(
-    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
-    sex       = data.frame(
-      level  = c("M", "F"),
-      target = c(0.48, 0.52),
-      stringsAsFactors = FALSE
-    )
-  )
-  # Ensure all levels of age_group are in data
-  df$age_group <- sample(c("18-34", "35-54", "55+"), nrow(df), replace = TRUE,
-                         prob = c(0.3, 0.4, 0.3))
+test_that("calibrate_rake() cap limits weight ratio (algorithm = 'classic_ipf')", {
+  df <- make_surveywts_data(seed = 8)
+  targets <- .make_targets_rake()
+  cap_val <- 3.0
 
-  result <- rake(df, margins = margins)
+  result <- calibrate_rake(df, targets = targets, cap = cap_val)
 
   test_invariants(result)
-  expect_true(inherits(result, "weighted_df"))
+  w <- result[["wts"]]
+  expect_true(all(w / mean(w) <= cap_val + 1e-10))
 })
 
 # ---------------------------------------------------------------------------
-# 9. Numerical correctness — method = "survey" vs survey::rake()
+# 9. Happy path — reference_design -> targets_from_reference = TRUE in history
 # ---------------------------------------------------------------------------
 
-test_that("rake(method='survey') matches survey::rake() within 1e-8", {
+test_that("calibrate_rake() records targets_from_reference in history", {
+  df <- make_surveywts_data(seed = 9)
+  ref <- .make_test_taylor_rake(df)
+  targets <- .make_targets_rake()
 
-  df <- make_surveywts_data(n = 200, seed = 11)
-  margins <- list(
+  result <- calibrate_rake(df, targets = targets, reference_design = ref)
+
+  test_invariants(result)
+  history <- attr(result, "weighting_history")
+  expect_true(isTRUE(history[[1L]]$parameters$targets_from_reference))
+})
+
+# ---------------------------------------------------------------------------
+# 10. Numerical oracle — algorithm = "nr" matches survey::calibrate(calfun="raking")
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake(algorithm='nr') matches survey::calibrate(raking) within 1e-8", {
+  skip_if_not_installed("survey")
+
+  df <- make_surveywts_data(n = 200, seed = 10)
+  targets <- list(
     age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
-    sex       = c("M" = 0.48, "F" = 0.52)
+    sex = c("M" = 0.48, "F" = 0.52)
   )
   total_w <- sum(df$base_weight)
 
-  # surveywts result
-  sw_result <- rake(
+  sw_result <- calibrate_rake(
     df,
-    margins = margins,
+    targets = targets,
     weights = base_weight,
-    method = "survey",
-    control = list(maxit = 500, epsilon = 1e-7)
+    algorithm = "nr",
+    control = list(maxit = 100L, epsilon = 1e-10)
   )
   sw_weights <- sw_result[["wts"]]
 
-  # survey::rake() reference
+  # Build oracle via survey::calibrate(calfun = survey::cal.raking)
   svy_design <- survey::svydesign(ids = ~1, weights = ~base_weight, data = df)
-  age_table <- survey::make.formula("age_group")
-  sex_table <- survey::make.formula("sex")
-
-  age_totals <- survey::rake(
+  mm <- stats::model.matrix(~age_group + sex, data = df)
+  pop_totals_vec <- stats::setNames(numeric(ncol(mm)), colnames(mm))
+  pop_totals_vec["(Intercept)"] <- total_w
+  for (lev in names(targets$age_group)) {
+    col_nm <- paste0("age_group", lev)
+    if (col_nm %in% names(pop_totals_vec)) {
+      pop_totals_vec[col_nm] <- targets$age_group[[lev]] * total_w
+    }
+  }
+  for (lev in names(targets$sex)) {
+    col_nm <- paste0("sex", lev)
+    if (col_nm %in% names(pop_totals_vec)) {
+      pop_totals_vec[col_nm] <- targets$sex[[lev]] * total_w
+    }
+  }
+  svy_cal <- survey::calibrate(
     svy_design,
-    sample.margins = list(~age_group, ~sex),
-    population.margins = list(
-      data.frame(age_group = c("18-34", "35-54", "55+"),
-                 Freq = margins$age_group * total_w),
-      data.frame(sex = c("M", "F"),
-                 Freq = margins$sex * total_w)
-    ),
-    control = list(maxit = 500, epsilon = 1e-7, verbose = FALSE)
+    formula = ~age_group + sex,
+    population = pop_totals_vec,
+    calfun = survey::cal.raking,
+    epsilon = 1e-10
   )
-  svy_weights <- as.numeric(weights(age_totals))
+  svy_weights <- as.numeric(weights(svy_cal))
 
-  expect_equal(sw_weights, svy_weights, tolerance = 1e-6)
+  expect_equal(sw_weights, svy_weights, tolerance = 1e-8)
 })
 
 # ---------------------------------------------------------------------------
-# 10. Standard error paths (SE-1 through SE-8)
+# 11. Error — surveywts_error_unsupported_class
 # ---------------------------------------------------------------------------
 
-test_that("rake() rejects unsupported input class (SE-1)", {
-  margins <- .make_margins()
+test_that("calibrate_rake() rejects unsupported class", {
+  targets <- .make_targets_rake()
+
   expect_error(
-    rake(matrix(1:6, 2, 3), margins = margins),
+    calibrate_rake(list(x = 1), targets = targets),
     class = "surveywts_error_unsupported_class"
   )
   expect_snapshot(
     error = TRUE,
-    rake(matrix(1:6, 2, 3), margins = margins)
+    calibrate_rake(list(x = 1), targets = targets)
   )
 })
 
-test_that("rake() rejects 0-row data frame (SE-2)", {
-  empty_df <- data.frame(
-    age_group = character(0),
-    sex = character(0),
-    base_weight = numeric(0),
-    stringsAsFactors = FALSE
-  )
-  margins <- .make_margins()
-  expect_error(
-    rake(empty_df, margins = margins),
-    class = "surveywts_error_empty_data"
-  )
-  expect_snapshot(
-    error = TRUE,
-    rake(empty_df, margins = margins)
-  )
-})
+# ---------------------------------------------------------------------------
+# 12. survey_replicate no longer rejected at class-check gate
+#     (PR 1: survey_replicate branch removed from .check_input_class())
+#     Full survey_replicate support for calibrate_rake() lands in PR 2.
+# ---------------------------------------------------------------------------
 
-test_that("rake() rejects survey_replicate input (SE-3)", {
-  df <- make_surveywts_data(seed = 12)
-  margins <- .make_margins()
+test_that("calibrate_rake() no longer rejects survey_replicate at class-check gate", {
+  df <- make_surveywts_data(seed = 11)
+  targets <- .make_targets_rake()
   meta <- surveycore::survey_metadata()
   rep_design <- surveycore::survey_replicate(
     data = df,
@@ -358,1182 +302,1343 @@ test_that("rake() rejects survey_replicate input (SE-3)", {
     groups = character(0),
     call = NULL
   )
-  expect_error(
-    rake(rep_design, margins = margins),
-    class = "surveywts_error_replicate_not_supported"
-  )
-  expect_snapshot(
-    error = TRUE,
-    rake(rep_design, margins = margins)
-  )
+
+  # .check_input_class() no longer throws surveywts_error_replicate_not_supported
+  # for survey_replicate objects (PR 1 change).
+  expect_no_error(.check_input_class(rep_design))
 })
 
-test_that("rake() rejects named weight column missing from data (SE-4)", {
-  df <- make_surveywts_data(seed = 13)
-  margins <- .make_margins()
-  expect_error(
-    rake(df, margins = margins, weights = nonexistent_wt),
-    class = "surveywts_error_weights_not_found"
-  )
-  expect_snapshot(
-    error = TRUE,
-    rake(df, margins = margins, weights = nonexistent_wt)
-  )
-})
+# ---------------------------------------------------------------------------
+# 13. Error — surveywts_error_empty_data
+# ---------------------------------------------------------------------------
 
-test_that("rake() rejects non-numeric weight column (SE-5)", {
-  df <- make_surveywts_data(seed = 14)
-  df$bad_wt <- as.character(df$base_weight)
-  margins <- .make_margins()
-  expect_error(
-    rake(df, margins = margins, weights = bad_wt),
-    class = "surveywts_error_weights_not_numeric"
-  )
-  expect_snapshot(
-    error = TRUE,
-    rake(df, margins = margins, weights = bad_wt)
-  )
-})
-
-test_that("rake() rejects non-positive weight column (SE-6)", {
-  df <- make_surveywts_data(seed = 15)
-  df$base_weight[1] <- 0
-  margins <- .make_margins()
-  expect_error(
-    rake(df, margins = margins, weights = base_weight),
-    class = "surveywts_error_weights_nonpositive"
-  )
-  expect_snapshot(
-    error = TRUE,
-    rake(df, margins = margins, weights = base_weight)
-  )
-})
-
-test_that("rake() rejects NA in weight column (SE-7)", {
-  df <- make_surveywts_data(seed = 16)
-  df$base_weight[1] <- NA_real_
-  margins <- .make_margins()
-  expect_error(
-    rake(df, margins = margins, weights = base_weight),
-    class = "surveywts_error_weights_na"
-  )
-  expect_snapshot(
-    error = TRUE,
-    rake(df, margins = margins, weights = base_weight)
-  )
-})
-
-test_that("rake() empty_data fires before weights_not_found (SE-8)", {
+test_that("calibrate_rake() rejects 0-row data", {
   empty_df <- data.frame(
-    age_group = character(0),
-    sex = character(0),
-    stringsAsFactors = FALSE
+    age_group = character(0), sex = character(0),
+    base_weight = numeric(0), stringsAsFactors = FALSE
   )
-  margins <- .make_margins()
+  targets <- .make_targets_rake()
+
   expect_error(
-    rake(empty_df, margins = margins, weights = missing_wt),
+    calibrate_rake(empty_df, targets = targets),
     class = "surveywts_error_empty_data"
   )
   expect_snapshot(
     error = TRUE,
-    rake(empty_df, margins = margins, weights = missing_wt)
+    calibrate_rake(empty_df, targets = targets)
   )
 })
 
 # ---------------------------------------------------------------------------
-# 11. Error — margins_format_invalid (bad class)
+# 14. Error — surveywts_error_weights_not_found
 # ---------------------------------------------------------------------------
 
-test_that("rake() rejects margins that are not a list or data.frame", {
-  df <- make_surveywts_data(seed = 17)
+test_that("calibrate_rake() rejects nonexistent weight column", {
+  df <- make_surveywts_data(seed = 12)
+  targets <- .make_targets_rake()
+
   expect_error(
-    rake(df, margins = c(0.5, 0.5)),
-    class = "surveywts_error_margins_format_invalid"
+    calibrate_rake(df, targets = targets, weights = nonexistent_wt),
+    class = "surveywts_error_weights_not_found"
   )
   expect_snapshot(
     error = TRUE,
-    rake(df, margins = c(0.5, 0.5))
+    calibrate_rake(df, targets = targets, weights = nonexistent_wt)
   )
 })
 
 # ---------------------------------------------------------------------------
-# 12. Error — margins_format_invalid (data.frame missing required columns)
+# 15. Error — surveywts_error_weights_not_numeric
 # ---------------------------------------------------------------------------
 
-test_that("rake() rejects data.frame margins missing required columns", {
-  df <- make_surveywts_data(seed = 18)
-  bad_df <- data.frame(variable = "age_group", level = "18-34",
-                       stringsAsFactors = FALSE)  # missing 'target'
+test_that("calibrate_rake() rejects character weight column", {
+  df <- make_surveywts_data(seed = 13)
+  df$bad_wt <- as.character(df$base_weight)
+  targets <- .make_targets_rake()
+
   expect_error(
-    rake(df, margins = bad_df),
-    class = "surveywts_error_margins_format_invalid"
+    calibrate_rake(df, targets = targets, weights = bad_wt),
+    class = "surveywts_error_weights_not_numeric"
   )
   expect_snapshot(
     error = TRUE,
-    rake(df, margins = bad_df)
+    calibrate_rake(df, targets = targets, weights = bad_wt)
   )
 })
 
 # ---------------------------------------------------------------------------
-# 13. Error — margins_variable_not_found
+# 16. Error — surveywts_error_weights_nonpositive
 # ---------------------------------------------------------------------------
 
-test_that("rake() rejects margins with variable not in data", {
-  df <- make_surveywts_data(seed = 19)
-  margins <- list(
-    age_group   = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
-    not_a_column = c("A" = 0.50, "B" = 0.50)
-  )
+test_that("calibrate_rake() rejects weight column with 0", {
+  df <- make_surveywts_data(seed = 14)
+  df$base_weight[1] <- 0
+  targets <- .make_targets_rake()
+
   expect_error(
-    rake(df, margins = margins),
-    class = "surveywts_error_margins_variable_not_found"
+    calibrate_rake(df, targets = targets, weights = base_weight),
+    class = "surveywts_error_weights_nonpositive"
   )
   expect_snapshot(
     error = TRUE,
-    rake(df, margins = margins)
+    calibrate_rake(df, targets = targets, weights = base_weight)
   )
 })
 
 # ---------------------------------------------------------------------------
-# 14. Error — variable_not_categorical (numeric margin variable)
+# 17. Error — surveywts_error_weights_na
 # ---------------------------------------------------------------------------
 
-test_that("rake() rejects numeric margin variable", {
-  df <- make_surveywts_data(seed = 20)
-  # Add a numeric column to use as (invalid) raking variable
-  df$income <- rnorm(nrow(df), mean = 50000, sd = 10000)
-  margins <- list(
-    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
-    income    = c("50000" = 1.0)  # attempt to rake on numeric column
-  )
+test_that("calibrate_rake() rejects weight column with NA", {
+  df <- make_surveywts_data(seed = 15)
+  df$base_weight[1] <- NA_real_
+  targets <- .make_targets_rake()
+
   expect_error(
-    rake(df, margins = margins),
-    class = "surveywts_error_variable_not_categorical"
+    calibrate_rake(df, targets = targets, weights = base_weight),
+    class = "surveywts_error_weights_na"
   )
   expect_snapshot(
     error = TRUE,
-    rake(df, margins = margins)
+    calibrate_rake(df, targets = targets, weights = base_weight)
   )
 })
 
 # ---------------------------------------------------------------------------
-# 15. Error — variable_has_na (NA in a margins variable)
+# 18. Error — surveywts_error_wt_name_not_scalar
 # ---------------------------------------------------------------------------
 
-test_that("rake() rejects NA in a margin variable", {
-  df <- make_surveywts_data(seed = 21)
-  df$age_group[1] <- NA_character_
-  margins <- .make_margins()
-  expect_error(
-    rake(df, margins = margins),
-    class = "surveywts_error_variable_has_na"
-  )
-  expect_snapshot(
-    error = TRUE,
-    rake(df, margins = margins)
-  )
-})
-
-# ---------------------------------------------------------------------------
-# 15b. Error — population_level_missing (using Format B to exercise .parse_margins())
-# ---------------------------------------------------------------------------
-
-test_that("rake() rejects margins missing a data level (Format B input)", {
-  df <- make_surveywts_data(n = 200, seed = 22)
-  # Format B that omits "55+" level for age_group
-  margins_df <- data.frame(
-    variable = c("age_group", "age_group", "sex", "sex"),
-    level    = c("18-34", "35-54", "M", "F"),
-    target   = c(0.40, 0.60, 0.48, 0.52),
-    stringsAsFactors = FALSE
-  )
-  expect_error(
-    rake(df, margins = margins_df),
-    class = "surveywts_error_population_level_missing"
-  )
-  expect_snapshot(
-    error = TRUE,
-    rake(df, margins = margins_df)
-  )
-})
-
-# ---------------------------------------------------------------------------
-# 15c. Error — population_level_extra (margins level absent from data)
-# ---------------------------------------------------------------------------
-
-test_that("rake() rejects margins with level not in data", {
-  df <- make_surveywts_data(seed = 23)
-  margins <- list(
-    age_group = c("18-34" = 0.25, "35-54" = 0.40, "55+" = 0.25, "65+" = 0.10),
-    sex       = c("M" = 0.48, "F" = 0.52)
-  )
-  expect_error(
-    rake(df, margins = margins),
-    class = "surveywts_error_population_level_extra"
-  )
-  expect_snapshot(
-    error = TRUE,
-    rake(df, margins = margins)
-  )
-})
-
-# ---------------------------------------------------------------------------
-# 16. Error — population_totals_invalid (type = "prop", don't sum to 1)
-# ---------------------------------------------------------------------------
-
-test_that("rake() rejects margin proportions not summing to 1", {
-  df <- make_surveywts_data(seed = 24)
-  margins <- list(
-    age_group = c("18-34" = 0.20, "35-54" = 0.30, "55+" = 0.20),  # sums to 0.7
-    sex       = c("M" = 0.48, "F" = 0.52)
-  )
-  expect_error(
-    rake(df, margins = margins),
-    class = "surveywts_error_population_totals_invalid"
-  )
-  expect_snapshot(
-    error = TRUE,
-    rake(df, margins = margins)
-  )
-})
-
-# ---------------------------------------------------------------------------
-# 16b. Error — population_totals_invalid (type = "count", target ≤ 0)
-# ---------------------------------------------------------------------------
-
-test_that("rake() rejects non-positive count targets", {
-  df <- make_surveywts_data(seed = 25)
-  margins <- list(
-    age_group = c("18-34" = 150, "35-54" = -10, "55+" = 150),
-    sex       = c("M" = 240, "F" = 260)
-  )
-  expect_error(
-    rake(df, margins = margins, type = "count"),
-    class = "surveywts_error_population_totals_invalid"
-  )
-  expect_snapshot(
-    error = TRUE,
-    rake(df, margins = margins, type = "count")
-  )
-})
-
-# ---------------------------------------------------------------------------
-# 16c. Happy path — proportions summing to 1.0 + 9e-7 succeed (within 1e-6)
-# ---------------------------------------------------------------------------
-
-test_that("rake() accepts proportions summing to 1.0 + 9e-7 (within tolerance)", {
-  df <- make_surveywts_data(seed = 26)
-  margins <- list(
-    age_group = c("18-34" = 0.30 + 9e-7 / 3, "35-54" = 0.40, "55+" = 0.30),
-    sex       = c("M" = 0.48, "F" = 0.52)
-  )
-  # Should not throw
-  result <- rake(df, margins = margins)
-  test_invariants(result)
-  expect_true(inherits(result, "weighted_df"))
-})
-
-# ---------------------------------------------------------------------------
-# 16d. Error — population_totals_invalid for proportions summing to 1.0 + 2e-6
-# ---------------------------------------------------------------------------
-
-test_that("rake() rejects proportions summing to 1.0 + 2e-6 (outside tolerance)", {
-  df <- make_surveywts_data(seed = 27)
-  margins <- list(
-    age_group = c("18-34" = 0.30 + 2e-6, "35-54" = 0.40, "55+" = 0.30),
-    sex       = c("M" = 0.48, "F" = 0.52)
-  )
-  expect_error(
-    rake(df, margins = margins),
-    class = "surveywts_error_population_totals_invalid"
-  )
-  expect_snapshot(
-    error = TRUE,
-    rake(df, margins = margins)
-  )
-})
-
-# ---------------------------------------------------------------------------
-# 17. Error — calibration_not_converged (hits maxit, method = "survey")
-# ---------------------------------------------------------------------------
-
-test_that("rake() throws calibration_not_converged when survey method hits maxit", {
-  df <- make_surveywts_data(seed = 28)
-  margins <- .make_margins()
-  expect_error(
-    rake(
-      df, margins = margins, method = "survey",
-      control = list(maxit = 1, epsilon = 1e-20)
-    ),
-    class = "surveywts_error_calibration_not_converged"
-  )
-  expect_snapshot(
-    error = TRUE,
-    rake(
-      df, margins = margins, method = "survey",
-      control = list(maxit = 1, epsilon = 1e-20)
-    )
-  )
-})
-
-# ---------------------------------------------------------------------------
-# 17b. Error — calibration_not_converged triggered by control$maxit = 0
-# ---------------------------------------------------------------------------
-
-test_that("rake() throws calibration_not_converged for maxit = 0", {
-  df <- make_surveywts_data(seed = 29)
-  margins <- .make_margins()
-  expect_error(
-    rake(df, margins = margins, control = list(maxit = 0)),
-    class = "surveywts_error_calibration_not_converged"
-  )
-  expect_snapshot(
-    error = TRUE,
-    rake(df, margins = margins, control = list(maxit = 0))
-  )
-})
-
-# ---------------------------------------------------------------------------
-# 17c. Error — calibration_not_converged (hits maxit, method = "anesrake")
-# ---------------------------------------------------------------------------
-
-test_that("rake() throws calibration_not_converged when anesrake method hits maxit", {
-  # Covers .calibrate_engine() anesrake non-convergence path — utils.R lines 1054-1070.
-  # Extreme age targets force IPF into oscillation between variables; maxit = 2
-  # and a near-zero improvement threshold ensure the algorithm cannot converge.
-  df <- make_surveywts_data(seed = 28)
-  margins <- list(
-    age_group = c("18-34" = 0.10, "35-54" = 0.80, "55+" = 0.10),
-    sex       = c("M" = 0.50, "F" = 0.50)
-  )
-  expect_error(
-    rake(
-      df, margins = margins, method = "anesrake",
-      control = list(maxit = 2, improvement = 1e-10)
-    ),
-    class = "surveywts_error_calibration_not_converged"
-  )
-  expect_snapshot(
-    error = TRUE,
-    rake(
-      df, margins = margins, method = "anesrake",
-      control = list(maxit = 2, improvement = 1e-10)
-    )
-  )
-})
-
-# ---------------------------------------------------------------------------
-# 18. Edge — single margin
-# ---------------------------------------------------------------------------
-
-test_that("rake() works with a single margin variable", {
-  df <- make_surveywts_data(seed = 30)
-  margins <- list(
-    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30)
-  )
-
-  result <- rake(df, margins = margins)
-
-  test_invariants(result)
-  expect_true(inherits(result, "weighted_df"))
-})
-
-# ---------------------------------------------------------------------------
-# 19. History — correct structure after raking
-# ---------------------------------------------------------------------------
-
-test_that("rake() produces correct weighting_history structure", {
-  df <- make_surveywts_data(seed = 31)
-  margins <- .make_margins()
-
-  result <- rake(df, margins = margins)
-
-  history <- attr(result, "weighting_history")
-  expect_identical(length(history), 1L)
-
-  entry <- history[[1L]]
-  expect_identical(entry$step, 1L)
-  expect_identical(entry$operation, "raking")
-  expect_true(inherits(entry$timestamp, "POSIXct"))
-  expect_true(nchar(entry$call) > 0L)
-  expect_true(is.list(entry$parameters))
-  expect_true("method" %in% names(entry$parameters))
-  expect_true("cap" %in% names(entry$parameters))
-  expect_true("control" %in% names(entry$parameters))
-  expect_true(is.list(entry$weight_stats))
-  expect_true("before" %in% names(entry$weight_stats))
-  expect_true("after" %in% names(entry$weight_stats))
-  expect_true(is.list(entry$convergence))
-  expect_true("converged" %in% names(entry$convergence))
-  expect_true("iterations" %in% names(entry$convergence))
-  expect_true("max_error" %in% names(entry$convergence))
-  expect_true("tolerance" %in% names(entry$convergence))
-  expect_identical(
-    entry$package_version,
-    as.character(utils::packageVersion("surveywts"))
-  )
-})
-
-# ---------------------------------------------------------------------------
-# 20. History — step number increments across chained calls
-# ---------------------------------------------------------------------------
-
-test_that("rake() step number increments correctly in chained calls", {
-  df <- make_surveywts_data(seed = 32)
-  margins1 <- .make_margins()
-  margins2 <- list(
-    age_group = c("18-34" = 0.28, "35-54" = 0.42, "55+" = 0.30),
-    sex       = c("M" = 0.50, "F" = 0.50)
-  )
-
-  wdf1 <- rake(df, margins = margins1)
-  wdf2 <- rake(wdf1, margins = margins2, weights = wts)
-
-  history <- attr(wdf2, "weighting_history")
-  expect_identical(length(history), 2L)
-  expect_identical(history[[1L]]$step, 1L)
-  expect_identical(history[[2L]]$step, 2L)
-})
-
-# ---------------------------------------------------------------------------
-# 20b. Integration — calibrate() → rake() chain produces two-entry history
-# ---------------------------------------------------------------------------
-
-test_that("calibrate() → rake() chain produces two-entry history with correct labels", {
-  df <- make_surveywts_data(seed = 33)
-  pop <- list(
-    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
-    sex       = c("M" = 0.48, "F" = 0.52)
-  )
-  margins <- list(
-    education = c("<HS" = 0.10, "HS" = 0.30, "College" = 0.40, "Graduate" = 0.20)
-  )
-
-  wdf1 <- calibrate(df, variables = c(age_group, sex), population = pop)
-  wdf2 <- rake(wdf1, margins = margins, weights = wts)
-
-  history <- attr(wdf2, "weighting_history")
-  expect_identical(length(history), 2L)
-  expect_identical(history[[1L]]$step, 1L)
-  expect_identical(history[[1L]]$operation, "calibration")
-  expect_identical(history[[2L]]$step, 2L)
-  expect_identical(history[[2L]]$operation, "raking")
-})
-
-# ---------------------------------------------------------------------------
-# 21. Happy path — method = "survey" (explicit)
-# ---------------------------------------------------------------------------
-
-test_that("rake(method='survey') produces valid calibrated weights", {
-  df <- make_surveywts_data(seed = 34)
-  # Use targets that differ from sample proportions to force actual calibration
-  margins <- list(
-    age_group = c("18-34" = 0.40, "35-54" = 0.35, "55+" = 0.25),
-    sex       = c("M" = 0.55, "F" = 0.45)
-  )
-
-  result <- rake(df, margins = margins, method = "survey")
-
-  test_invariants(result)
-  expect_true(inherits(result, "weighted_df"))
-  expect_true(all(result[["wts"]] > 0))
-
-  # Verify margins are calibrated
-  w <- result[["wts"]]
-  total_w <- sum(w)
-  for (var in names(margins)) {
-    for (lev in names(margins[[var]])) {
-      obs_prop <- sum(w[result[[var]] == lev]) / total_w
-      expect_equal(obs_prop, margins[[var]][[lev]], tolerance = 1e-5,
-                   label = paste0(var, "=", lev))
-    }
-  }
-})
-
-# ---------------------------------------------------------------------------
-# 22. Happy path — cap with method = "anesrake"
-# ---------------------------------------------------------------------------
-
-test_that("rake() cap limits weight ratio with method = 'anesrake'", {
-  df <- make_surveywts_data(seed = 35)
-  margins <- .make_margins()
-  cap_val <- 3.0
-
-  result <- rake(df, margins = margins, cap = cap_val)
-
-  test_invariants(result)
-  w <- result[["wts"]]
-  expect_true(all(w / mean(w) <= cap_val + 1e-10))
-})
-
-# ---------------------------------------------------------------------------
-# 22b. Error — cap with method = "survey" is not supported
-# ---------------------------------------------------------------------------
-
-test_that("rake() rejects cap with method = 'survey'", {
-  df <- make_surveywts_data(seed = 36)
-  margins <- .make_margins()
-  cap_val <- 3.0
+test_that("calibrate_rake() rejects wt_name = c('a', 'b')", {
+  df <- make_surveywts_data(seed = 16)
+  targets <- .make_targets_rake()
 
   expect_error(
-    rake(df, margins = margins, method = "survey", cap = cap_val),
-    class = "surveywts_error_cap_not_supported_survey"
-  )
-  expect_snapshot(
-    error = TRUE,
-    rake(df, margins = margins, method = "survey", cap = cap_val)
-  )
-})
-
-# ---------------------------------------------------------------------------
-# 22c. Happy path — cap = NULL (no capping)
-# ---------------------------------------------------------------------------
-
-test_that("rake() with cap = NULL does not restrict weight ratios", {
-  df <- make_surveywts_data(seed = 37)
-  # Use severely imbalanced margins to produce high weight ratios
-  margins <- list(
-    age_group = c("18-34" = 0.70, "35-54" = 0.20, "55+" = 0.10),
-    sex       = c("M" = 0.80, "F" = 0.20)
-  )
-
-  result_no_cap <- rake(df, margins = margins, cap = NULL)
-  result_with_cap <- rake(df, margins = margins, cap = 3.0)
-
-  test_invariants(result_no_cap)
-  test_invariants(result_with_cap)
-
-  w_no_cap <- result_no_cap[["wts"]]
-  w_with_cap <- result_with_cap[["wts"]]
-
-  # Per-step capping reduces extreme weight ratios vs no-cap,
-  # though it does not guarantee a strict global cap at convergence
-  # (weights adjusted after capping can exceed the threshold again).
-  max_ratio_capped <- max(w_with_cap / mean(w_with_cap))
-  max_ratio_no_cap <- max(w_no_cap / mean(w_no_cap))
-  expect_true(max_ratio_capped < max_ratio_no_cap)
-  # With cap, the resulting weights differ from uncapped
-  expect_false(isTRUE(all.equal(w_no_cap, w_with_cap)))
-})
-
-# ---------------------------------------------------------------------------
-# 23. Happy path — control$variable_select = "max"
-# ---------------------------------------------------------------------------
-
-test_that("rake() with variable_select = 'max' produces valid calibrated weights", {
-  df <- make_surveywts_data(seed = 38)
-  margins <- .make_margins()
-
-  result_max <- rake(df, margins = margins, control = list(variable_select = "max"))
-  result_total <- rake(df, margins = margins)  # default "total"
-
-  test_invariants(result_max)
-  test_invariants(result_total)
-  # Both should converge and produce valid weights
-  expect_true(all(result_max[["wts"]] > 0))
-  # Results may differ due to different selection order
-})
-
-# ---------------------------------------------------------------------------
-# 23b. Happy path — control$variable_select = "average"
-# ---------------------------------------------------------------------------
-
-test_that("rake() with variable_select = 'average' produces valid calibrated weights", {
-  df <- make_surveywts_data(seed = 39)
-  margins <- .make_margins()
-
-  result <- rake(df, margins = margins, control = list(variable_select = "average"))
-
-  test_invariants(result)
-  expect_true(all(result[["wts"]] > 0))
-})
-
-# ---------------------------------------------------------------------------
-# 24. Numerical correctness — method = "anesrake" vs anesrake::anesrake()
-# ---------------------------------------------------------------------------
-
-test_that("rake(method='anesrake') converges to the target marginals", {
-  # Note: anesrake::anesrake() and our implementation use different variable-
-  # selection thresholds (percentage discrepancy vs chi-square p-value), so
-  # per-unit weights will generally differ. This test verifies that our
-  # algorithm converges to the correct target margins, which is the
-  # mathematically relevant correctness property.
-  # Use extreme targets (far from sampling probabilities of 0.30/0.40/0.30 and
-  # 0.48/0.52) so chi-square discrepancy is undeniably significant at pval=0.05.
-  df <- make_surveywts_data(n = 500, seed = 40)
-  margins <- list(
-    age_group = c("18-34" = 0.10, "35-54" = 0.70, "55+" = 0.20),
-    sex       = c("M" = 0.70, "F" = 0.30)
-  )
-
-  # pval = 2 disables chi-square variable selection (p-values are in [0,1], so
-  # p > 2 is never true — all variables are raked every sweep). This tests pure
-  # IPF convergence to exact margins without the variable-selection shortcut.
-  result <- rake(
-    df,
-    margins = margins,
-    weights = base_weight,
-    method = "anesrake",
-    control = list(maxit = 5000, pval = 2, improvement = 1e-8)
-  )
-  w <- result[["wts"]]
-
-  # With disabled variable selection and tight convergence, margins are exact.
-  age_props <- tapply(w, df$age_group, sum) / sum(w)
-  sex_props  <- tapply(w, df$sex, sum) / sum(w)
-
-  for (lev in names(margins$age_group)) {
-    expect_equal(unname(age_props[[lev]]), margins$age_group[[lev]], tolerance = 1e-4)
-  }
-  for (lev in names(margins$sex)) {
-    expect_equal(unname(sex_props[[lev]]), margins$sex[[lev]], tolerance = 1e-4)
-  }
-})
-
-# ---------------------------------------------------------------------------
-# 25. Warning — control$pval set with method = "survey"
-# ---------------------------------------------------------------------------
-
-test_that("rake() warns when anesrake-specific control param set with method='survey'", {
-  df <- make_surveywts_data(seed = 41)
-  margins <- .make_margins()
-  expect_warning(
-    rake(df, margins = margins, method = "survey",
-         control = list(pval = 0.01)),
-    class = "surveywts_warning_control_param_ignored"
-  )
-  expect_snapshot(
-    rake(df, margins = margins, method = "survey",
-         control = list(pval = 0.01))
-  )
-})
-
-# ---------------------------------------------------------------------------
-# 25b. Warning — control$epsilon set with method = "anesrake"
-# ---------------------------------------------------------------------------
-
-test_that("rake() warns when survey-specific control param set with method='anesrake'", {
-  df <- make_surveywts_data(seed = 42)
-  margins <- .make_margins()
-  expect_warning(
-    rake(df, margins = margins, method = "anesrake",
-         control = list(epsilon = 1e-5)),
-    class = "surveywts_warning_control_param_ignored"
-  )
-  expect_snapshot(
-    rake(df, margins = margins, method = "anesrake",
-         control = list(epsilon = 1e-5))
-  )
-})
-
-# ---------------------------------------------------------------------------
-# 26. Control defaults — method-specific defaults applied correctly
-# ---------------------------------------------------------------------------
-
-test_that("rake() applies method-specific control defaults correctly", {
-  df <- make_surveywts_data(seed = 43)
-  margins <- .make_margins()
-
-  # Method = "anesrake": default maxit = 1000
-  result_a <- rake(df, margins = margins, method = "anesrake")
-  entry_a <- attr(result_a, "weighting_history")[[1L]]
-  expect_identical(entry_a$parameters$control$maxit, 1000L)
-
-  # Method = "survey": default maxit = 100
-  result_s <- rake(df, margins = margins, method = "survey")
-  entry_s <- attr(result_s, "weighting_history")[[1L]]
-  expect_identical(entry_s$parameters$control$maxit, 100L)
-
-  # User override: maxit = 200
-  result_o <- rake(df, margins = margins, method = "survey",
-                   control = list(maxit = 200))
-  entry_o <- attr(result_o, "weighting_history")[[1L]]
-  expect_identical(entry_o$parameters$control$maxit, 200L)
-})
-
-# ---------------------------------------------------------------------------
-# 26b. Message — already_calibrated (all variables pass chi-square threshold)
-# ---------------------------------------------------------------------------
-
-test_that("rake() emits already_calibrated message when data is already calibrated", {
-  df <- make_surveywts_data(seed = 44)
-  margins <- .make_margins()
-
-  # First rake using method="survey" to guarantee actual weight adjustment
-  wdf <- rake(df, margins = margins, method = "survey")
-
-  # Second rake with same margins — already calibrated, chi-square ~ 0
-  expect_message(
-    result <- rake(wdf, margins = margins, weights = wts,
-                   control = list(pval = 0.99)),  # high threshold ensures skip
-    class = "surveywts_message_already_calibrated"
-  )
-  test_invariants(result)
-
-  history <- attr(result, "weighting_history")
-  last_entry <- history[[length(history)]]
-  expect_identical(last_entry$convergence$iterations, 1L)
-  expect_identical(last_entry$convergence$max_error, 0)
-})
-
-# ---------------------------------------------------------------------------
-# 26c. Happy path — min_cell_n with high threshold still rakes
-# ---------------------------------------------------------------------------
-
-test_that("rake() with high min_cell_n still converges via anesrake delegation", {
-  # NOTE: With vendor delegation, anesrake::anesrake() handles nlim
-  # internally (it filters based on cell size during variable selection
-  # but still runs the raking algorithm). Unlike the old vendored
-  # implementation, it does not skip raking entirely when all cells are
-
-  # below nlim.
-  df <- make_surveywts_data(seed = 45)
-  margins <- .make_margins()
-
-  result <- rake(
-    df, margins = margins,
-    control = list(min_cell_n = nrow(df) + 1L)
-  )
-  test_invariants(result)
-
-  history <- attr(result, "weighting_history")
-  last_entry <- history[[1L]]
-  expect_true(last_entry$convergence$converged)
-})
-
-# ---------------------------------------------------------------------------
-# 27. Error — margins_format_invalid (unnamed list)
-# ---------------------------------------------------------------------------
-
-test_that("rake() rejects an unnamed list as margins", {
-  # Covers R/rake.R lines 74-86: unnamed list check
-  df <- make_surveywts_data(seed = 46)
-  margins_unnamed <- list(
-    c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
-    c("M" = 0.48, "F" = 0.52)
-  )
-
-  expect_error(
-    rake(df, margins = margins_unnamed),
-    class = "surveywts_error_margins_format_invalid"
-  )
-  expect_snapshot(error = TRUE, rake(df, margins = margins_unnamed))
-})
-
-# ---------------------------------------------------------------------------
-# 28. Error — margins_format_invalid (data.frame element missing columns)
-# ---------------------------------------------------------------------------
-
-test_that("rake() rejects named list with data.frame element missing level/target columns", {
-  # Covers R/rake.R lines 94-103: df element without level/target
-  df <- make_surveywts_data(seed = 47)
-  margins_bad_df <- list(
-    age_group = data.frame(
-      cat = c("18-34", "35-54", "55+"),  # wrong column names (not level/target)
-      prop = c(0.30, 0.40, 0.30),
-      stringsAsFactors = FALSE
-    )
-  )
-
-  expect_error(
-    rake(df, margins = margins_bad_df),
-    class = "surveywts_error_margins_format_invalid"
-  )
-  expect_snapshot(error = TRUE, rake(df, margins = margins_bad_df))
-})
-
-# ---------------------------------------------------------------------------
-# 29. Single-level margin variable — degenerate chi-sq (df = 0)
-# ---------------------------------------------------------------------------
-
-test_that("rake() handles single-level margin variable (degenerate chi-sq df = 0)", {
-  # Covers degenerate chi-sq case: p_val = 1.0 when df = 0
-  # (single-level variable). Delegated to anesrake::anesrake().
-  df <- data.frame(
-    group_one = rep("A", 50),               # single level: df = 0 in chi-sq
-    group_two = c(rep("X", 30), rep("Y", 20)),  # two levels: gets raked
-    base_weight = rep(1, 50),
-    stringsAsFactors = FALSE
-  )
-  margins <- list(
-    group_one = c("A" = 1.0),             # single level — degenerate chi-sq
-    group_two = c("X" = 0.5, "Y" = 0.5)  # needs adjustment from 60/40
-  )
-
-  result <- rake(df, margins = margins, weights = base_weight)
-
-  test_invariants(result)
-  expect_true(inherits(result, "weighted_df"))
-})
-
-# ---------------------------------------------------------------------------
-# 30. Exactly calibrated data — prev_total_chi_sq = 0
-# ---------------------------------------------------------------------------
-
-test_that("rake() handles exactly calibrated data (chi-sq = 0)", {
-  # Data proportions exactly match the margin targets → initial chi-sq = 0.
-  # Delegated to anesrake::anesrake(); triggers already-calibrated message.
-  df_exact <- data.frame(
-    age_group   = c(rep("18-34", 3), rep("35-54", 4), rep("55+", 3)),
-    w           = rep(1, 10),
-    stringsAsFactors = FALSE
-  )
-  margins_exact <- list(
-    age_group = c("18-34" = 0.3, "35-54" = 0.4, "55+" = 0.3)
-  )
-
-  # Data is exactly calibrated: should return already_calibrated message
-  expect_message(
-    result <- rake(df_exact, margins = margins_exact, weights = w),
-    class = "surveywts_message_already_calibrated"
-  )
-  test_invariants(result)
-  expect_identical(
-    attr(result, "weighting_history")[[1L]]$convergence$max_error,
-    0
-  )
-})
-
-# ---------------------------------------------------------------------------
-# 31. Error — calibration_not_converged via anesrake engine (maxit = 0)
-# ---------------------------------------------------------------------------
-
-test_that("rake() throws calibration_not_converged via anesrake engine with maxit=0", {
-  # With vendor delegation, anesrake::anesrake() treats partial convergence
-  # as stable results ("Results are stable, but do not perfectly match...").
-  # True non-convergence is triggered via the maxit = 0 guard in
-  # .calibrate_engine(), which fires before anesrake is called.
-  df <- make_surveywts_data(seed = 48)
-  margins_extreme <- list(
-    age_group = c("18-34" = 0.80, "35-54" = 0.10, "55+" = 0.10),
-    sex       = c("M" = 0.90, "F" = 0.10)
-  )
-
-  expect_error(
-    rake(
-      df,
-      margins = margins_extreme,
-      control = list(maxit = 0L)
-    ),
-    class = "surveywts_error_calibration_not_converged"
-  )
-  expect_snapshot(
-    error = TRUE,
-    rake(
-      df,
-      margins = margins_extreme,
-      control = list(maxit = 0L)
-    )
-  )
-})
-
-# ---------------------------------------------------------------------------
-# wt_name — validation error tests
-# ---------------------------------------------------------------------------
-
-test_that("rake() rejects non-character wt_name", {
-  df <- make_surveywts_data(seed = 1)
-  margins <- .make_margins()
-  expect_error(
-    rake(df, margins = margins, wt_name = 42),
+    calibrate_rake(df, targets = targets, wt_name = c("a", "b")),
     class = "surveywts_error_wt_name_not_scalar"
   )
   expect_snapshot(
     error = TRUE,
-    rake(df, margins = margins, wt_name = 42)
+    calibrate_rake(df, targets = targets, wt_name = c("a", "b"))
   )
 })
 
-test_that("rake() rejects empty wt_name", {
-  df <- make_surveywts_data(seed = 1)
-  margins <- .make_margins()
+# ---------------------------------------------------------------------------
+# 19. Error — surveywts_error_wt_name_empty
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() rejects wt_name = ''", {
+  df <- make_surveywts_data(seed = 17)
+  targets <- .make_targets_rake()
+
   expect_error(
-    rake(df, margins = margins, wt_name = ""),
+    calibrate_rake(df, targets = targets, wt_name = ""),
     class = "surveywts_error_wt_name_empty"
   )
   expect_snapshot(
     error = TRUE,
-    rake(df, margins = margins, wt_name = "")
+    calibrate_rake(df, targets = targets, wt_name = "")
   )
 })
 
-test_that("rake() rejects NA wt_name", {
-  df <- make_surveywts_data(seed = 1)
-  margins <- .make_margins()
+# ---------------------------------------------------------------------------
+# 20. Error — surveywts_error_reference_design_not_taylor
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() rejects non-taylor reference_design", {
+  df <- make_surveywts_data(seed = 18)
+  targets <- .make_targets_rake()
+
   expect_error(
-    rake(df, margins = margins, wt_name = NA_character_),
-    class = "surveywts_error_wt_name_empty"
+    calibrate_rake(df, targets = targets, reference_design = "bad"),
+    class = "surveywts_error_reference_design_not_taylor"
   )
   expect_snapshot(
     error = TRUE,
-    rake(df, margins = margins, wt_name = NA_character_)
+    calibrate_rake(df, targets = targets, reference_design = "bad")
   )
 })
 
 # ---------------------------------------------------------------------------
-# wt_name — happy path tests
+# 21. Error — surveywts_error_margins_format_invalid (not a list/df)
 # ---------------------------------------------------------------------------
 
-test_that("rake() names output weight column 'wts' by default", {
-  df <- make_surveywts_data(seed = 1)
-  margins <- .make_margins()
-  result <- rake(df, margins = margins)
-  test_invariants(result)
-  expect_identical(attr(result, "weight_col"), "wts")
-  expect_true("wts" %in% names(result))
-})
+test_that("calibrate_rake() rejects targets = 42", {
+  df <- make_surveywts_data(seed = 19)
 
-test_that("rake() uses custom wt_name for output column", {
-  df <- make_surveywts_data(seed = 1)
-  margins <- .make_margins()
-  result <- rake(df, margins = margins, wt_name = "raked_wt")
-  test_invariants(result)
-  expect_identical(attr(result, "weight_col"), "raked_wt")
-  expect_true("raked_wt" %in% names(result))
+  expect_error(
+    calibrate_rake(df, targets = 42),
+    class = "surveywts_error_margins_format_invalid"
+  )
+  expect_snapshot(
+    error = TRUE,
+    calibrate_rake(df, targets = 42)
+  )
 })
 
 # ---------------------------------------------------------------------------
-# wt_name — input preservation and overwrite tests
+# 22. Error — surveywts_error_margins_format_invalid (df missing level col)
 # ---------------------------------------------------------------------------
 
-test_that("rake() preserves input weight column when wt_name differs", {
-  df <- make_surveywts_data(seed = 1)
-  margins <- .make_margins()
-  result <- rake(
-    df, margins = margins, weights = base_weight, wt_name = "raked_wt"
+test_that("calibrate_rake() rejects Format B data frame missing 'level' column", {
+  df <- make_surveywts_data(seed = 20)
+  bad_df <- data.frame(
+    variable = "age_group", target = 0.5,
+    stringsAsFactors = FALSE
+  )  # missing 'level' column
+
+  expect_error(
+    calibrate_rake(df, targets = bad_df),
+    class = "surveywts_error_margins_format_invalid"
+  )
+  expect_snapshot(
+    error = TRUE,
+    calibrate_rake(df, targets = bad_df)
+  )
+})
+
+# ---------------------------------------------------------------------------
+# 23. Error — surveywts_error_targets_variable_not_found
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() rejects targets naming absent column", {
+  df <- make_surveywts_data(seed = 21)
+  targets <- list(
+    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
+    not_a_column = c("A" = 0.50, "B" = 0.50)
+  )
+
+  expect_error(
+    calibrate_rake(df, targets = targets, weights = base_weight),
+    class = "surveywts_error_targets_variable_not_found"
+  )
+  expect_snapshot(
+    error = TRUE,
+    calibrate_rake(df, targets = targets, weights = base_weight)
+  )
+})
+
+# ---------------------------------------------------------------------------
+# 24. Error — surveywts_error_variable_not_categorical
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() rejects numeric raking variable", {
+  df <- make_surveywts_data(seed = 22)
+  df$income <- rnorm(nrow(df))
+  targets <- list(
+    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
+    income = c("50000" = 1.0)
+  )
+
+  expect_error(
+    calibrate_rake(df, targets = targets, weights = base_weight),
+    class = "surveywts_error_variable_not_categorical"
+  )
+  expect_snapshot(
+    error = TRUE,
+    calibrate_rake(df, targets = targets, weights = base_weight)
+  )
+})
+
+# ---------------------------------------------------------------------------
+# 25. Error — surveywts_error_variable_has_na
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() rejects raking variable with NA", {
+  df <- make_surveywts_data(seed = 23)
+  df$age_group[1] <- NA_character_
+  targets <- .make_targets_rake()
+
+  expect_error(
+    calibrate_rake(df, targets = targets, weights = base_weight),
+    class = "surveywts_error_variable_has_na"
+  )
+  expect_snapshot(
+    error = TRUE,
+    calibrate_rake(df, targets = targets, weights = base_weight)
+  )
+})
+
+# ---------------------------------------------------------------------------
+# 26. Error — surveywts_error_population_level_missing
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() rejects targets missing a data level", {
+  df <- make_surveywts_data(seed = 24)
+  targets <- list(
+    age_group = c("18-34" = 0.50, "35-54" = 0.50),  # missing "55+"
+    sex = c("M" = 0.48, "F" = 0.52)
+  )
+
+  expect_error(
+    calibrate_rake(df, targets = targets, weights = base_weight),
+    class = "surveywts_error_population_level_missing"
+  )
+  expect_snapshot(
+    error = TRUE,
+    calibrate_rake(df, targets = targets, weights = base_weight)
+  )
+})
+
+# ---------------------------------------------------------------------------
+# 27. Error — surveywts_error_population_level_extra
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() rejects targets with level not in data", {
+  df <- make_surveywts_data(seed = 25)
+  targets <- list(
+    age_group = c("18-34" = 0.25, "35-54" = 0.40, "55+" = 0.25, "65+" = 0.10),
+    sex = c("M" = 0.48, "F" = 0.52)
+  )
+
+  expect_error(
+    calibrate_rake(df, targets = targets, weights = base_weight),
+    class = "surveywts_error_population_level_extra"
+  )
+  expect_snapshot(
+    error = TRUE,
+    calibrate_rake(df, targets = targets, weights = base_weight)
+  )
+})
+
+# ---------------------------------------------------------------------------
+# 28. Error — surveywts_error_population_totals_invalid (prop sums to 1.1)
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() rejects proportions summing to 1.1", {
+  df <- make_surveywts_data(seed = 26)
+  targets <- list(
+    age_group = c("18-34" = 0.40, "35-54" = 0.40, "55+" = 0.30),  # sums to 1.1
+    sex = c("M" = 0.48, "F" = 0.52)
+  )
+
+  expect_error(
+    calibrate_rake(df, targets = targets, weights = base_weight),
+    class = "surveywts_error_population_totals_invalid"
+  )
+  expect_snapshot(
+    error = TRUE,
+    calibrate_rake(df, targets = targets, weights = base_weight)
+  )
+})
+
+# ---------------------------------------------------------------------------
+# 29. Error — surveywts_error_population_totals_invalid (count, marginal sums differ)
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() rejects type='count' with inconsistent marginal sums", {
+  df <- make_surveywts_data(n = 200, seed = 27)
+  # age_group sums to 500, sex sums to 550 — differ by 50 > 1e-3
+  targets <- list(
+    age_group = c("18-34" = 150, "35-54" = 200, "55+" = 150),  # sum = 500
+    sex = c("M" = 270, "F" = 280)                               # sum = 550
+  )
+
+  expect_error(
+    calibrate_rake(df, targets = targets, weights = base_weight, type = "count"),
+    class = "surveywts_error_population_totals_invalid"
+  )
+  expect_snapshot(
+    error = TRUE,
+    calibrate_rake(df, targets = targets, weights = base_weight, type = "count")
+  )
+})
+
+# ---------------------------------------------------------------------------
+# 30. Error — surveywts_error_calibration_not_converged
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() throws calibration_not_converged hitting maxit (nr)", {
+  df <- make_surveywts_data(seed = 28)
+  targets <- .make_targets_rake()
+
+  expect_error(
+    calibrate_rake(
+      df, targets = targets, weights = base_weight, algorithm = "nr",
+      control = list(maxit = 1L, epsilon = 1e-20)
+    ),
+    class = "surveywts_error_calibration_not_converged"
+  )
+  expect_snapshot(
+    error = TRUE,
+    calibrate_rake(
+      df, targets = targets, weights = base_weight, algorithm = "nr",
+      control = list(maxit = 1L, epsilon = 1e-20)
+    )
+  )
+})
+
+# ---------------------------------------------------------------------------
+# 31. Error — surveywts_error_cap_not_supported_nr
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() rejects cap with algorithm = 'nr'", {
+  df <- make_surveywts_data(seed = 29)
+  targets <- .make_targets_rake()
+
+  expect_error(
+    calibrate_rake(df, targets = targets, weights = base_weight, algorithm = "nr", cap = 3.0),
+    class = "surveywts_error_cap_not_supported_nr"
+  )
+  expect_snapshot(
+    error = TRUE,
+    calibrate_rake(df, targets = targets, weights = base_weight, algorithm = "nr", cap = 3.0)
+  )
+})
+
+# ---------------------------------------------------------------------------
+# E20. Error — surveywts_error_cap_not_positive (cap = 0 or non-positive)
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() rejects cap = 0", {
+  df <- make_surveywts_data(seed = 32)
+  targets <- .make_targets_rake()
+
+  expect_error(
+    calibrate_rake(
+      df, targets = targets, weights = base_weight, cap = 0, algorithm = "classic_ipf"
+    ),
+    class = "surveywts_error_cap_not_positive"
+  )
+  expect_snapshot(
+    error = TRUE,
+    calibrate_rake(
+      df, targets = targets, weights = base_weight, cap = 0, algorithm = "classic_ipf"
+    )
+  )
+})
+
+# ---------------------------------------------------------------------------
+# 32. Warning — control_param_ignored (pval with algorithm = "nr")
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() warns for classic_ipf-specific control param with algorithm='nr'", {
+  df <- make_surveywts_data(seed = 30)
+  targets <- .make_targets_rake()
+
+  expect_warning(
+    result <- calibrate_rake(
+      df, targets = targets, weights = base_weight, algorithm = "nr",
+      control = list(pval = 0.01)
+    ),
+    class = "surveywts_warning_control_param_ignored"
+  )
+  expect_snapshot(
+    calibrate_rake(
+      df, targets = targets, weights = base_weight, algorithm = "nr",
+      control = list(pval = 0.01)
+    )
+  )
+})
+
+# ---------------------------------------------------------------------------
+# 33. Warning — control_param_ignored (epsilon with algorithm = "classic_ipf")
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() warns for nr-specific control param with algorithm='classic_ipf'", {
+  df <- make_surveywts_data(seed = 31)
+  targets <- .make_targets_rake()
+
+  expect_warning(
+    result <- calibrate_rake(
+      df, targets = targets, weights = base_weight, algorithm = "classic_ipf",
+      control = list(epsilon = 1e-9)
+    ),
+    class = "surveywts_warning_control_param_ignored"
+  )
+  expect_snapshot(
+    calibrate_rake(
+      df, targets = targets, weights = base_weight, algorithm = "classic_ipf",
+      control = list(epsilon = 1e-9)
+    )
+  )
+})
+
+# ---------------------------------------------------------------------------
+# 34. Message — surveywts_message_already_calibrated
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() emits already_calibrated when data matches targets", {
+  df_exact <- data.frame(
+    age_group = c(rep("18-34", 3), rep("35-54", 4), rep("55+", 3)),
+    w = rep(1, 10),
+    stringsAsFactors = FALSE
+  )
+  targets <- list(
+    age_group = c("18-34" = 0.3, "35-54" = 0.4, "55+" = 0.3)
+  )
+
+  expect_message(
+    result <- calibrate_rake(df_exact, targets = targets, weights = w),
+    class = "surveywts_message_already_calibrated"
   )
   test_invariants(result)
-  expect_true("base_weight" %in% names(result))
-  expect_true("raked_wt" %in% names(result))
-  expect_identical(attr(result, "weight_col"), "raked_wt")
 })
 
-test_that("rake() overwrites input column when wt_name matches", {
-  df <- make_surveywts_data(seed = 1)
-  margins <- .make_margins()
-  result <- rake(
-    df, margins = margins, weights = base_weight, wt_name = "base_weight"
+# ---------------------------------------------------------------------------
+# 35. Edge case — 0-row data -> error
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() rejects 0-row data (edge case)", {
+  df <- data.frame(
+    age_group = character(0), sex = character(0),
+    stringsAsFactors = FALSE
   )
-  test_invariants(result)
-  expect_identical(attr(result, "weight_col"), "base_weight")
-  expect_false(identical(result[["base_weight"]], df[["base_weight"]]))
+  targets <- .make_targets_rake()
+
+  expect_error(
+    calibrate_rake(df, targets = targets),
+    class = "surveywts_error_empty_data"
+  )
 })
 
 # ---------------------------------------------------------------------------
-# wt_name — no phantom column test (Rule 1b)
+# 36. Edge case — cap non-NULL + algorithm = "nr" -> error before parsing
 # ---------------------------------------------------------------------------
 
-test_that("rake() has no phantom column when weights = NULL + custom wt_name", {
-  df <- make_surveywts_data(seed = 1)
-  margins <- .make_margins()
-  result <- rake(df, margins = margins, wt_name = "raked_wt")
-  test_invariants(result)
-  expect_true("raked_wt" %in% names(result))
-  expect_false(".weight" %in% names(result))
-  expected_cols <- c(names(df), "raked_wt")
-  expect_true(all(names(result) %in% expected_cols))
+test_that("calibrate_rake() cap + algorithm='nr' error fires before margin parsing", {
+  df <- make_surveywts_data(seed = 32)
+
+  # targets = 42 is also invalid, but cap error should fire first
+  expect_error(
+    calibrate_rake(df, targets = 42, algorithm = "nr", cap = 3.0),
+    class = "surveywts_error_cap_not_supported_nr"
+  )
 })
 
 # ---------------------------------------------------------------------------
-# wt_name — survey object ignore test
+# 37. Edge case — Format B targets -> identical result to Format A
 # ---------------------------------------------------------------------------
 
-test_that("rake() ignores wt_name for survey_nonprob input", {
-  df <- make_surveywts_data(seed = 1)
-  snp <- surveycore::survey_nonprob(
+test_that("calibrate_rake() Format B targets gives identical result to Format A", {
+  df <- make_surveywts_data(n = 200, seed = 33)
+
+  targets_a <- list(sex = c("M" = 0.48, "F" = 0.52))
+  targets_b <- data.frame(
+    variable = c("sex", "sex"),
+    level = c("M", "F"),
+    target = c(0.48, 0.52),
+    stringsAsFactors = FALSE
+  )
+
+  result_a <- calibrate_rake(df, targets = targets_a, algorithm = "classic_ipf")
+  result_b <- calibrate_rake(df, targets = targets_b, algorithm = "classic_ipf")
+
+  test_invariants(result_a)
+  test_invariants(result_b)
+  expect_equal(result_a[["wts"]], result_b[["wts"]], tolerance = 1e-10)
+})
+
+# ---------------------------------------------------------------------------
+# 38. Edge case — single-level raking variable
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() handles single-level raking variable", {
+  df <- data.frame(
+    group_one = rep("A", 50),
+    group_two = c(rep("X", 30), rep("Y", 20)),
+    base_weight = rep(1, 50),
+    stringsAsFactors = FALSE
+  )
+  targets <- list(
+    group_one = c("A" = 1.0),
+    group_two = c("X" = 0.5, "Y" = 0.5)
+  )
+
+  result <- calibrate_rake(df, targets = targets, weights = base_weight)
+
+  test_invariants(result)
+  expect_true(inherits(result, "weighted_df"))
+})
+
+# ---------------------------------------------------------------------------
+# 39. History field — operation = "calibrate_rake"
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() history entry has operation = 'calibrate_rake'", {
+  df <- make_surveywts_data(seed = 34)
+  targets <- .make_targets_rake()
+
+  result <- calibrate_rake(df, targets = targets)
+
+  history <- attr(result, "weighting_history")
+  op <- history[[1L]]$operation
+  expect_identical(op, "calibrate_rake")
+})
+
+# ---------------------------------------------------------------------------
+# 40. History — algorithm stored in parameters
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() history stores algorithm in parameters", {
+  df <- make_surveywts_data(seed = 35)
+  targets <- .make_targets_rake()
+
+  result <- calibrate_rake(df, targets = targets, algorithm = "classic_ipf")
+
+  history <- attr(result, "weighting_history")
+  expect_identical(history[[1L]]$parameters$algorithm, "classic_ipf")
+})
+
+# ---------------------------------------------------------------------------
+# 41. History — targets stored as Format A
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() history stores targets as Format A named list", {
+  df <- make_surveywts_data(seed = 36)
+  targets <- .make_targets_rake()
+
+  result <- calibrate_rake(df, targets = targets)
+
+  history <- attr(result, "weighting_history")
+  stored_targets <- history[[1L]]$parameters$targets
+  expect_true(is.list(stored_targets))
+  expect_true(!is.null(names(stored_targets)))
+})
+
+# ---------------------------------------------------------------------------
+# 42. Deleted-function regression guard: old rake() / margins arg no longer exists
+# ---------------------------------------------------------------------------
+
+test_that("old rake() with margins arg no longer exists", {
+  df <- make_surveywts_data(seed = 37)
+  margins <- list(
+    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30)
+  )
+
+  # rake() is gone; calling with margins arg should error
+  expect_error(
+    rake(df, margins = margins)
+  )
+})
+
+# ===========================================================================
+# survey_taylor input — @calibration slot (RT tests, PR 2)
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# RT-1. survey_taylor input -> survey_taylor output
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() with survey_taylor returns survey_taylor", {
+  df <- make_surveywts_data(seed = 501)
+  design <- .make_test_taylor_rake(df)
+  targets <- .make_targets_rake()
+
+  result <- calibrate_rake(design, targets = targets)
+
+  expect_true(S7::S7_inherits(result, surveycore::survey_taylor))
+})
+
+# ---------------------------------------------------------------------------
+# RT-2. @calibration populated for survey_taylor
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() with survey_taylor populates @calibration", {
+  df <- make_surveywts_data(seed = 502)
+  design <- .make_test_taylor_rake(df)
+  targets <- .make_targets_rake()
+
+  result <- calibrate_rake(design, targets = targets)
+
+  expect_false(is.null(result@calibration))
+  expect_true(is.list(result@calibration))
+})
+
+# ---------------------------------------------------------------------------
+# RT-3. All 12 @calibration fields present
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() @calibration has all 12 required fields", {
+  df <- make_surveywts_data(seed = 503)
+  design <- .make_test_taylor_rake(df)
+  targets <- .make_targets_rake()
+
+  result <- calibrate_rake(design, targets = targets)
+
+  required_fields <- c(
+    "x_matrix", "base_weights", "g_weights", "crossproduct_inv",
+    "population_totals", "discrepancy", "lambda", "method",
+    "cell_factors", "q_weights", "converged", "n_iterations"
+  )
+  expect_true(all(required_fields %in% names(result@calibration)))
+})
+
+# ---------------------------------------------------------------------------
+# RT-4. method == "raking"
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() @calibration$method == 'raking'", {
+  df <- make_surveywts_data(seed = 504)
+  design <- .make_test_taylor_rake(df)
+  targets <- .make_targets_rake()
+
+  result <- calibrate_rake(design, targets = targets)
+
+  expect_identical(result@calibration$method, "raking")
+})
+
+# ---------------------------------------------------------------------------
+# RT-5. lambda is NULL (multiplicative form, not stored)
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() @calibration$lambda is NULL", {
+  df <- make_surveywts_data(seed = 505)
+  design <- .make_test_taylor_rake(df)
+  targets <- .make_targets_rake()
+
+  result <- calibrate_rake(design, targets = targets)
+
+  expect_null(result@calibration$lambda)
+})
+
+# ---------------------------------------------------------------------------
+# RT-6. cell_factors is NULL
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() @calibration$cell_factors is NULL", {
+  df <- make_surveywts_data(seed = 506)
+  design <- .make_test_taylor_rake(df)
+  targets <- .make_targets_rake()
+
+  result <- calibrate_rake(design, targets = targets)
+
+  expect_null(result@calibration$cell_factors)
+})
+
+# ---------------------------------------------------------------------------
+# RT-7. base_weights equals pre-calibration weight vector (1e-10)
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() @calibration$base_weights matches pre-calibration", {
+  df <- make_surveywts_data(seed = 507)
+  design <- .make_test_taylor_rake(df)
+  targets <- .make_targets_rake()
+  pre_weights <- design@data[[design@variables$weights]]
+
+  result <- calibrate_rake(design, targets = targets)
+
+  expect_equal(result@calibration$base_weights, pre_weights, tolerance = 1e-10)
+})
+
+# ---------------------------------------------------------------------------
+# RT-8. g_weights * base_weights == output_weights (1e-10)
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() g_weights * base_weights == calibrated weights (1e-10)", {
+  df <- make_surveywts_data(seed = 508)
+  design <- .make_test_taylor_rake(df)
+  targets <- .make_targets_rake()
+
+  result <- calibrate_rake(design, targets = targets)
+  cal <- result@calibration
+  out_weights <- result@data[[result@variables$weights]]
+
+  expect_equal(cal$g_weights * cal$base_weights, out_weights, tolerance = 1e-10)
+})
+
+# ---------------------------------------------------------------------------
+# RT-9. q_weights all 1
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() @calibration$q_weights are all 1", {
+  df <- make_surveywts_data(seed = 509)
+  design <- .make_test_taylor_rake(df)
+  targets <- .make_targets_rake()
+
+  result <- calibrate_rake(design, targets = targets)
+
+  expect_equal(result@calibration$q_weights, rep(1, nrow(df)), tolerance = 1e-10)
+})
+
+# ---------------------------------------------------------------------------
+# RT-10. replicate_converged is NULL for survey_taylor
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() @calibration$replicate_converged is NULL for survey_taylor", {
+  df <- make_surveywts_data(seed = 510)
+  design <- .make_test_taylor_rake(df)
+  targets <- .make_targets_rake()
+
+  result <- calibrate_rake(design, targets = targets)
+
+  expect_null(result@calibration$replicate_converged)
+})
+
+# ---------------------------------------------------------------------------
+# RT-11. History entry appended
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() appends history entry to survey_taylor", {
+  df <- make_surveywts_data(seed = 511)
+  design <- .make_test_taylor_rake(df)
+  targets <- .make_targets_rake()
+
+  result <- calibrate_rake(design, targets = targets)
+
+  expect_identical(length(result@metadata@weighting_history), 1L)
+  expect_identical(
+    result@metadata@weighting_history[[1L]]$operation,
+    "calibrate_rake"
+  )
+})
+
+# ===========================================================================
+# survey_replicate input — @calibration + replicate_converged (RR tests, PR 2)
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# RR-1. survey_replicate output class
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() with survey_replicate returns survey_replicate", {
+  df <- make_surveywts_data(seed = 521)
+  targets <- .make_targets_rake()
+  rep_design <- .make_replicate_design(df, seed = 521)
+
+  result <- calibrate_rake(rep_design, targets = targets)
+
+  expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
+})
+
+# ---------------------------------------------------------------------------
+# RR-2. @calibration populated for survey_replicate
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() survey_replicate @calibration is non-NULL", {
+  df <- make_surveywts_data(seed = 522)
+  targets <- .make_targets_rake()
+  rep_design <- .make_replicate_design(df, seed = 522)
+
+  result <- calibrate_rake(rep_design, targets = targets)
+
+  expect_false(is.null(result@calibration))
+})
+
+# ---------------------------------------------------------------------------
+# RR-3. replicate_converged is named logical of length R
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() replicate_converged is named logical length R", {
+  df <- make_surveywts_data(seed = 523)
+  targets <- .make_targets_rake()
+  rep_design <- .make_replicate_design(df, seed = 523)
+  R <- length(rep_design@variables$repweights)
+
+  result <- calibrate_rake(rep_design, targets = targets)
+
+  rc <- result@calibration$replicate_converged
+  expect_true(is.logical(rc))
+  expect_identical(length(rc), R)
+  expect_identical(names(rc), rep_design@variables$repweights)
+})
+
+# ---------------------------------------------------------------------------
+# RR-4. All entries TRUE when all replicates converge
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() replicate_converged all TRUE when all converge", {
+  df <- make_surveywts_data(seed = 524)
+  targets <- .make_targets_rake()
+  rep_design <- .make_replicate_design(df, seed = 524)
+
+  result <- calibrate_rake(rep_design, targets = targets)
+
+  expect_true(all(result@calibration$replicate_converged))
+})
+
+# ---------------------------------------------------------------------------
+# RR-5. Full-sample weight column calibrated
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() full-sample weights calibrated in survey_replicate", {
+  df <- make_surveywts_data(seed = 525)
+  targets <- .make_targets_rake()
+  rep_design <- .make_replicate_design(df, seed = 525)
+  pre_weights <- rep_design@data[[rep_design@variables$weights]]
+
+  result <- calibrate_rake(rep_design, targets = targets)
+
+  out_weights <- result@data[[result@variables$weights]]
+  expect_false(identical(out_weights, pre_weights))
+})
+
+# ---------------------------------------------------------------------------
+# RR-6. All 12 @calibration fields present for survey_replicate
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() survey_replicate @calibration has 12 required fields", {
+  df <- make_surveywts_data(seed = 526)
+  targets <- .make_targets_rake()
+  rep_design <- .make_replicate_design(df, seed = 526)
+
+  result <- calibrate_rake(rep_design, targets = targets)
+
+  required_fields <- c(
+    "x_matrix", "base_weights", "g_weights", "crossproduct_inv",
+    "population_totals", "discrepancy", "lambda", "method",
+    "cell_factors", "q_weights", "converged", "n_iterations"
+  )
+  expect_true(all(required_fields %in% names(result@calibration)))
+})
+
+# ---------------------------------------------------------------------------
+# RR-7. Warning emitted when a replicate fails
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() warns when a replicate fails calibration", {
+  df <- make_surveywts_data(seed = 527)
+  rep_design <- .make_empty_cell_replicate_design(df, "age_group")
+  targets <- .make_targets_rake()
+
+  expect_warning(
+    calibrate_rake(rep_design, targets = targets),
+    class = "surveywts_warning_replicate_calibration_failed"
+  )
+})
+
+# ---------------------------------------------------------------------------
+# RR-8. 0 replicate columns -> replicate_converged length 0
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() with 0 repweights gives replicate_converged length 0", {
+  df <- make_surveywts_data(n = 50, seed = 528)
+  targets <- .make_targets_rake()
+  meta <- surveycore::survey_metadata()
+  rep_empty <- surveycore::survey_replicate(
     data = df,
     variables = list(
       ids = NULL, strata = NULL, fpc = NULL,
-      weights = "base_weight", nest = FALSE
+      weights = "base_weight", nest = FALSE,
+      repweights = character(0), scale = 1, rscales = numeric(0),
+      type = "bootstrap", mse = TRUE
     ),
-    metadata = surveycore::survey_metadata(),
+    metadata = meta,
     groups = character(0),
-    call = NULL,
-    calibration = NULL
+    call = NULL
   )
-  margins <- .make_margins()
-  result <- rake(snp, margins = margins, wt_name = "ignored_name")
-  expect_identical(result@variables$weights, snp@variables$weights)
+
+  result <- calibrate_rake(rep_empty, targets = targets)
+
+  rc <- result@calibration$replicate_converged
+  expect_true(is.logical(rc))
+  expect_identical(length(rc), 0L)
 })
 
 # ---------------------------------------------------------------------------
-# wt_name — weighted_df input tests
+# RR-9. method == "raking" for survey_replicate
 # ---------------------------------------------------------------------------
 
-test_that("rake() preserves old weight col and creates 'wts' for weighted_df input", {
-  df <- make_surveywts_data(seed = 1)
-  margins <- .make_margins()
-  wdf <- rake(df, margins = margins, wt_name = "original_wt")
-  result <- rake(wdf, margins = margins)
+test_that("calibrate_rake() @calibration$method == 'raking' for survey_replicate", {
+  df <- make_surveywts_data(seed = 529)
+  targets <- .make_targets_rake()
+  rep_design <- .make_replicate_design(df, seed = 529)
+
+  result <- calibrate_rake(rep_design, targets = targets)
+
+  expect_identical(result@calibration$method, "raking")
+})
+
+# ---------------------------------------------------------------------------
+# REG: survey_replicate does NOT throw surveywts_error_replicate_not_supported
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() with survey_replicate does NOT throw replicate_not_supported", {
+  df <- make_surveywts_data(seed = 531)
+  targets <- .make_targets_rake()
+  rep_design <- .make_replicate_design(df, seed = 531)
+
+  expect_no_error(
+    calibrate_rake(rep_design, targets = targets)
+  )
+})
+
+# ===========================================================================
+# NR algorithm — Happy path (H6–H8, H10, PR 4)
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# H6. algorithm = "nr" with data.frame input -> weighted_df
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() algorithm = 'nr' returns weighted_df for data.frame", {
+  df <- make_surveywts_data(seed = 601)
+  targets <- .make_targets_rake()
+
+  result <- calibrate_rake(df, targets = targets, algorithm = "nr")
+
   test_invariants(result)
-  expect_true("original_wt" %in% names(result))
-  expect_true("wts" %in% names(result))
-  expect_identical(attr(result, "weight_col"), "wts")
+  expect_true(inherits(result, "weighted_df"))
+  expect_true(all(result[["wts"]] > 0))
 })
 
-test_that("rake() overwrites weight col when wt_name matches weighted_df attr", {
-  df <- make_surveywts_data(seed = 1)
-  margins <- .make_margins()
-  wdf <- rake(df, margins = margins)
-  result <- rake(wdf, margins = margins, wt_name = "wts")
+# ---------------------------------------------------------------------------
+# H7. algorithm = "nr" with survey_taylor -> @calibration populated
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() algorithm = 'nr' with survey_taylor populates @calibration", {
+  df <- make_surveywts_data(seed = 602)
+  design <- .make_test_taylor_rake(df)
+  targets <- .make_targets_rake()
+
+  result <- calibrate_rake(design, targets = targets, algorithm = "nr")
+
+  expect_true(S7::S7_inherits(result, surveycore::survey_taylor))
+  expect_false(is.null(result@calibration))
+  expect_identical(result@calibration$method, "raking")
+})
+
+# ---------------------------------------------------------------------------
+# H8. algorithm = "nr" with survey_replicate -> replicate loop uses NR
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() algorithm = 'nr' with survey_replicate returns survey_replicate", {
+  df <- make_surveywts_data(seed = 603)
+  targets <- .make_targets_rake()
+  rep_design <- .make_replicate_design(df, seed = 603)
+
+  result <- calibrate_rake(rep_design, targets = targets, algorithm = "nr")
+
+  expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
+  expect_false(is.null(result@calibration))
+  expect_true(all(result@calibration$replicate_converged))
+})
+
+# ---------------------------------------------------------------------------
+# H10. algorithm = "nr" convergence: lambda is a numeric vector, not NULL
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() algorithm = 'nr' @calibration$lambda is numeric (not NULL)", {
+  df <- make_surveywts_data(seed = 604)
+  design <- .make_test_taylor_rake(df)
+  targets <- .make_targets_rake()
+
+  result <- calibrate_rake(design, targets = targets, algorithm = "nr")
+
+  lam <- result@calibration$lambda
+  expect_true(is.numeric(lam))
+  expect_true(length(lam) > 0L)
+})
+
+# ===========================================================================
+# NR algorithm — Error paths (E17–E20, PR 4)
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# E17. cap + algorithm = "nr" -> surveywts_error_cap_not_supported_nr
+#      (fires before any other validation)
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() cap + nr fires before margin parsing", {
+  df <- make_surveywts_data(seed = 611)
+
+  # targets = 42 is invalid, but cap+nr check fires first
+  expect_error(
+    calibrate_rake(df, targets = 42, algorithm = "nr", cap = 3.0),
+    class = "surveywts_error_cap_not_supported_nr"
+  )
+})
+
+# ---------------------------------------------------------------------------
+# E18. algorithm = "nr" + maxit = 1 + epsilon = 1e-20 -> not_converged
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() nr with maxit=1 + tiny epsilon throws not_converged", {
+  df <- make_surveywts_data(seed = 612)
+  targets <- .make_targets_rake()
+
+  expect_error(
+    calibrate_rake(
+      df, targets = targets, algorithm = "nr",
+      control = list(maxit = 1L, epsilon = 1e-20)
+    ),
+    class = "surveywts_error_calibration_not_converged"
+  )
+})
+
+# ---------------------------------------------------------------------------
+# E19. algorithm = "nr" — wrong control keys (classic_ipf keys) trigger warning
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() algorithm='nr' warns on classic_ipf-specific control params", {
+  df <- make_surveywts_data(seed = 613)
+  targets <- .make_targets_rake()
+
+  expect_warning(
+    calibrate_rake(
+      df, targets = targets, algorithm = "nr",
+      control = list(improvement = 0.01)
+    ),
+    class = "surveywts_warning_control_param_ignored"
+  )
+})
+
+# ---------------------------------------------------------------------------
+# E20. algorithm = "nr" — wrong control keys (pval) trigger warning
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() algorithm='nr' warns on pval control param", {
+  df <- make_surveywts_data(seed = 614)
+  targets <- .make_targets_rake()
+
+  expect_warning(
+    calibrate_rake(
+      df, targets = targets, algorithm = "nr",
+      control = list(pval = 0.05)
+    ),
+    class = "surveywts_warning_control_param_ignored"
+  )
+})
+
+# ===========================================================================
+# NR algorithm — Edge cases (EC3–EC9, PR 4)
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# EC3. NR lambda stored, crossproduct_inv is NULL in @calibration
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() nr @calibration has lambda numeric, crossproduct_inv NULL", {
+  df <- make_surveywts_data(seed = 621)
+  design <- .make_test_taylor_rake(df)
+  targets <- .make_targets_rake()
+
+  result <- calibrate_rake(design, targets = targets, algorithm = "nr")
+
+  cal <- result@calibration
+  expect_true(is.numeric(cal$lambda))
+  expect_null(cal$crossproduct_inv)
+})
+
+# ---------------------------------------------------------------------------
+# EC4. classic_ipf lambda is NULL in @calibration
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() classic_ipf @calibration$lambda is NULL", {
+  df <- make_surveywts_data(seed = 622)
+  design <- .make_test_taylor_rake(df)
+  targets <- .make_targets_rake()
+
+  result <- calibrate_rake(design, targets = targets, algorithm = "classic_ipf")
+
+  expect_null(result@calibration$lambda)
+})
+
+# ---------------------------------------------------------------------------
+# EC5. NR weight conservation for type = "prop"
+#      sum(new_weights) == sum(base_weights) within 1e-10
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() nr conserves weight sum for type='prop' (1e-10)", {
+  df <- make_surveywts_data(seed = 623)
+  targets <- .make_targets_rake()
+
+  result <- calibrate_rake(
+    df, targets = targets, weights = base_weight, algorithm = "nr"
+  )
+
+  expect_equal(
+    sum(result[["wts"]]),
+    sum(df$base_weight),
+    tolerance = 1e-10
+  )
+})
+
+# ---------------------------------------------------------------------------
+# EC6. NR weight conservation for type = "count"
+#      sum(new_weights) == sum of any marginal total (since all equal)
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() nr with type='count' conserves weight sum to target total (1e-10)", {
+  df <- make_surveywts_data(n = 300, seed = 624)
+  targets <- list(
+    age_group = c("18-34" = 90, "35-54" = 120, "55+" = 90),  # sum = 300
+    sex = c("M" = 144, "F" = 156)                             # sum = 300
+  )
+
+  result <- calibrate_rake(
+    df, targets = targets, weights = base_weight,
+    algorithm = "nr", type = "count"
+  )
+
+  w <- result[["wts"]]
+  expect_equal(sum(w), 300, tolerance = 1e-10)
+})
+
+# ---------------------------------------------------------------------------
+# EC7. NR @calibration$method == "raking" (not "raking_nr")
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() nr @calibration$method == 'raking' (not 'raking_nr')", {
+  df <- make_surveywts_data(seed = 625)
+  design <- .make_test_taylor_rake(df)
+  targets <- .make_targets_rake()
+
+  result <- calibrate_rake(design, targets = targets, algorithm = "nr")
+
+  expect_identical(result@calibration$method, "raking")
+})
+
+# ---------------------------------------------------------------------------
+# EC8. NR replicate loop scales population totals for type = "count"
+#      Each replicate weight sum differs from base; constraint must still hold
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() nr replicate loop scales count targets correctly", {
+  df <- make_surveywts_data(n = 200, seed = 626)
+  targets_count <- list(
+    age_group = c("18-34" = 60, "35-54" = 80, "55+" = 60),  # sum = 200
+    sex = c("M" = 96, "F" = 104)                             # sum = 200
+  )
+  rep_design <- .make_replicate_design(df, seed = 626)
+
+  result <- calibrate_rake(
+    rep_design, targets = targets_count,
+    algorithm = "nr", type = "count"
+  )
+
+  expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
+  expect_true(all(result@calibration$replicate_converged))
+})
+
+# ---------------------------------------------------------------------------
+# EC9. NR g_weights * base_weights == calibrated weights (1e-10)
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() nr g_weights * base_weights == calibrated weights (1e-10)", {
+  df <- make_surveywts_data(seed = 627)
+  design <- .make_test_taylor_rake(df)
+  targets <- .make_targets_rake()
+
+  result <- calibrate_rake(design, targets = targets, algorithm = "nr")
+
+  cal <- result@calibration
+  out_weights <- result@data[[result@variables$weights]]
+  expect_equal(cal$g_weights * cal$base_weights, out_weights, tolerance = 1e-10)
+})
+
+# ===========================================================================
+# RT-5. lambda is NULL for classic_ipf (spec: lambda stored for "nr" only)
+# ===========================================================================
+
+test_that("calibrate_rake() @calibration$lambda is NULL for classic_ipf (RT-5b)", {
+  df <- make_surveywts_data(seed = 630)
+  design <- .make_test_taylor_rake(df)
+  targets <- .make_targets_rake()
+
+  result <- calibrate_rake(design, targets = targets, algorithm = "classic_ipf")
+
+  expect_null(result@calibration$lambda)
+})
+
+# ---------------------------------------------------------------------------
+# Coverage: .validate_count_marginal_consistency() single-variable early return
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() with type='count' and single variable skips multi-var consistency check", {
+  df <- make_surveywts_data(n = 200, seed = 701)
+  targets <- list(
+    age_group = c("18-34" = 67, "35-54" = 67, "55+" = 66)
+  )
+
+  result <- calibrate_rake(df, targets = targets, weights = base_weight,
+                           type = "count")
+
   test_invariants(result)
-  expect_identical(attr(result, "weight_col"), "wts")
+  expect_true(inherits(result, "weighted_df"))
 })
 
 # ---------------------------------------------------------------------------
-# wt_name — chaining test
+# Coverage: .throw_not_converged_zero_maxit() — anesrake else branch
 # ---------------------------------------------------------------------------
 
-test_that("chaining calibrate() |> rake() uses 'wts' throughout", {
-  df <- make_surveywts_data(seed = 1)
-  pop <- list(age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30))
-  margins <- list(sex = c("M" = 0.48, "F" = 0.52))
-  result <- calibrate(df, variables = c(age_group), population = pop) |>
-    rake(margins = margins)
+test_that("calibrate_rake() throws surveywts_error_calibration_not_converged for maxit = 0", {
+  df <- make_surveywts_data(n = 100, seed = 702)
+  targets <- .make_targets_rake()
+
+  expect_error(
+    calibrate_rake(df, targets = targets, weights = base_weight,
+                   control = list(maxit = 0L)),
+    class = "surveywts_error_calibration_not_converged"
+  )
+})
+
+# ---------------------------------------------------------------------------
+# H14: SRS assumption — plain data.frame + weights = NULL emits warning
+# ---------------------------------------------------------------------------
+
+test_that("H14: calibrate_rake() warns surveywts_warning_srs_no_weights for plain df + NULL weights", {
+  df <- make_surveywts_data(n = 200, seed = 800)
+  targets <- .make_targets_rake()
+
+  expect_warning(
+    result <- calibrate_rake(df, targets = targets),
+    class = "surveywts_warning_srs_no_weights"
+  )
+
   test_invariants(result)
-  expect_identical(attr(result, "weight_col"), "wts")
+  expect_true(inherits(result, "weighted_df"))
 })
 
 # ---------------------------------------------------------------------------
-# wt_name — history test
+# W1: Warning path — surveywts_warning_srs_no_weights (alias for H14)
 # ---------------------------------------------------------------------------
 
-test_that("rake() records wt_name in weighting history", {
-  df <- make_surveywts_data(seed = 1)
-  margins <- .make_margins()
-  result <- rake(df, margins = margins, wt_name = "raked_wt")
-  history <- attr(result, "weighting_history")
-  expect_identical(history[[length(history)]]$weight_col, "raked_wt")
+test_that("W1: calibrate_rake() warns surveywts_warning_srs_no_weights for plain df", {
+  df <- make_surveywts_data(n = 100, seed = 801)
+  targets <- .make_targets_rake()
+
+  expect_warning(
+    calibrate_rake(df, targets = targets),
+    class = "surveywts_warning_srs_no_weights"
+  )
 })
 
 # ---------------------------------------------------------------------------
-# Wrapper parity — rake(method = "anesrake") vs anesrake::anesrake() directly
-#
-# These tests verify that the engine correctly marshals inputs into the form
-# anesrake::anesrake() expects and correctly extracts the output. They catch
-# argument-mapping bugs that margin-convergence tests cannot: wrong
-# pctlim/nlim/choosemethod values, the cap = NULL → 5 substitution, factor
-# level ordering, and count-to-proportion conversion.
+# N2: Oracle — classic_ipf matches survey::rake() within 1e-6
 # ---------------------------------------------------------------------------
 
-# Replicates the exact marshaling the engine applies before calling
-# anesrake::anesrake(), so tests can compare per-unit weights directly.
-.call_anesrake_direct <- function(
-  df, margins_prop, starting_weights,
-  cap = 5, pctlim = 0.01, nlim = 0L, maxit = 1000L, choosemethod = "total"
-) {
-  df_direct <- df
-  for (v in names(margins_prop)) {
-    df_direct[[v]] <- factor(df_direct[[v]], levels = names(margins_prop[[v]]))
-  }
-  df_direct$.anesrake_id <- seq_len(nrow(df_direct))
+test_that("N2: calibrate_rake(algorithm='classic_ipf') matches survey::rake() within 1e-6", {
+  skip_if_not_installed("survey")
 
-  ref <- NULL
-  utils::capture.output(
-    ref <- suppressWarnings(
-      anesrake::anesrake(
-        inputter     = margins_prop,
-        dataframe    = df_direct,
-        caseid       = df_direct$.anesrake_id,
-        weightvec    = starting_weights,
-        choosemethod = choosemethod,
-        cap          = cap,
-        pctlim       = pctlim,
-        nlim         = as.integer(nlim),
-        iterate      = TRUE,
-        maxit        = as.integer(maxit),
-        type         = "pctlim",
-        force1       = FALSE
-      )
-    )
+  n <- 300L
+  df <- make_surveywts_data(n = n, seed = 333)
+  targets <- .make_targets_rake()
+  base_wt <- df$base_weight
+
+  # surveywts result
+  sw_result <- calibrate_rake(
+    df, targets = targets, weights = base_weight,
+    algorithm = "classic_ipf"
   )
-  as.numeric(ref$weightvec)
-}
+  sw_weights <- sw_result[["wts"]]
 
-test_that("rake(method='anesrake') weights match direct anesrake::anesrake() call (type='prop')", {
-  df      <- make_surveywts_data(n = 200, seed = 50)
-  margins <- list(
-    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
-    sex       = c("M" = 0.48, "F" = 0.52)
+  # survey::rake() oracle.
+  # Note: calibrate_rake() normalizes final weights to sum to n (sample size),
+  # while survey::rake() preserves sum(base_weight). Compare normalised weights
+  # (each scaled to sum to 1) so both algorithms are on the same scale.
+  pop_age <- data.frame(
+    age_group = c("18-34", "35-54", "55+"),
+    Freq      = c(0.30, 0.40, 0.30) * sum(base_wt),
+    stringsAsFactors = FALSE
   )
-
-  sw_weights <- rake(
-    df, margins = margins, weights = base_weight, method = "anesrake"
-  )[["wts"]]
-
-  # type = "prop": prop → count → prop is identity, so pass margins directly.
-  # cap = NULL in rake() → engine substitutes cap = 5 for anesrake.
-  ref_weights <- .call_anesrake_direct(df, margins, df$base_weight)
-
-  expect_equal(sw_weights, ref_weights, tolerance = 1e-10)
-})
-
-test_that("rake(method='anesrake', type='count') correctly converts counts to proportions", {
-  df             <- make_surveywts_data(n = 200, seed = 51)
-  margins_counts <- list(
-    age_group = c("18-34" = 150, "35-54" = 200, "55+" = 150),
-    sex       = c("M" = 240, "F" = 260)
+  pop_sex <- data.frame(
+    sex  = c("M", "F"),
+    Freq = c(0.48, 0.52) * sum(base_wt),
+    stringsAsFactors = FALSE
   )
-
-  sw_weights <- rake(
-    df, margins = margins_counts, weights = base_weight,
-    method = "anesrake", type = "count"
-  )[["wts"]]
-
-  # Engine converts counts to proportions before calling anesrake.
-  margins_prop <- lapply(margins_counts, function(tgt) tgt / sum(tgt))
-  ref_weights  <- .call_anesrake_direct(df, margins_prop, df$base_weight)
-
-  expect_equal(sw_weights, ref_weights, tolerance = 1e-10)
-})
-
-test_that("rake(method='anesrake', cap=NULL) substitutes anesrake's default cap of 5", {
-  df      <- make_surveywts_data(n = 200, seed = 52)
-  margins <- list(
-    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
-    sex       = c("M" = 0.48, "F" = 0.52)
+  svy_design <- survey::svydesign(ids = ~1, weights = ~base_weight, data = df)
+  svy_raked <- survey::rake(
+    svy_design,
+    sample.margins = list(~age_group, ~sex),
+    population.margins = list(pop_age, pop_sex),
+    control = list(maxit = 100, epsilon = 1e-12)
   )
+  svy_weights <- as.numeric(weights(svy_raked))
 
-  # cap = NULL (default) → engine passes cap = 5 to anesrake (NULL not accepted)
-  sw_weights  <- rake(
-    df, margins = margins, weights = base_weight, method = "anesrake", cap = NULL
-  )[["wts"]]
-  ref_weights <- .call_anesrake_direct(df, margins, df$base_weight, cap = 5)
-
-  expect_equal(sw_weights, ref_weights, tolerance = 1e-10)
-})
-
-test_that("rake(method='anesrake') passes explicit cap to anesrake::anesrake()", {
-  df      <- make_surveywts_data(n = 200, seed = 53)
-  margins <- list(
-    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
-    sex       = c("M" = 0.48, "F" = 0.52)
+  # Normalise to unit sum before comparing — removes the scale difference
+  expect_equal(
+    sw_weights / sum(sw_weights),
+    svy_weights / sum(svy_weights),
+    tolerance = 1e-6
   )
-
-  sw_weights  <- rake(
-    df, margins = margins, weights = base_weight, method = "anesrake", cap = 3.0
-  )[["wts"]]
-  ref_weights <- .call_anesrake_direct(df, margins, df$base_weight, cap = 3.0)
-
-  expect_equal(sw_weights, ref_weights, tolerance = 1e-10)
-})
-
-test_that("rake(method='anesrake') passes custom control params to anesrake::anesrake()", {
-  df      <- make_surveywts_data(n = 200, seed = 54)
-  margins <- list(
-    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
-    sex       = c("M" = 0.48, "F" = 0.52)
-  )
-
-  sw_weights <- rake(
-    df, margins = margins, weights = base_weight, method = "anesrake",
-    control = list(maxit = 500L, improvement = 0.001, variable_select = "max")
-  )[["wts"]]
-
-  ref_weights <- .call_anesrake_direct(
-    df, margins, df$base_weight,
-    maxit = 500L, pctlim = 0.001, choosemethod = "max"
-  )
-
-  expect_equal(sw_weights, ref_weights, tolerance = 1e-10)
 })

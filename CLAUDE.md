@@ -11,14 +11,14 @@ surveywts provides tools for survey weighting and calibration.
 | Release | Tag | Status | Notes |
 |---------|-----|--------|-------|
 | Calibration | `v0.1.0` | ✅ Complete | `survey_nonprob`, `calibrate()`, `rake()`, `poststratify()`, basic diagnostics |
-| Replicate | minor bump | 🔜 Next | All `create_*_weights()` functions; unlocks bootstrap variance in `survey_nonprob` |
-| Utilities | minor bump | ⬜ Pending | `trim_weights()`, `stabilize_weights()` |
-| Nonresponse | minor bump | ⬜ Pending | `calibrate_to_sample()`, weighting-class nonresponse |
-| Propensity | minor bump | ⬜ Pending | IPW for causal inference; unlocks propensity nonresponse |
-| Diagnostics | minor bump | ⬜ Pending | Balance assessment, `check_balance()`, `diagnose_propensity()`, `compare_weighted_estimates()` |
+| Replicate | minor bump | ✅ Complete | All `create_*_weights()` functions; `as_taylor_design()` |
+| Utilities | minor bump | ✅ Complete | `trim_weights()`, `stabilize_weights()` |
+| Nonresponse | minor bump | ✅ Complete | `calibrate_to_survey()`, `calibrate_to_estimate()`, `adjust_nonresponse()`, `redistribute_weights()` |
+| Propensity | minor bump | ✅ Complete | Non-probability sample IPW; unlocks propensity nonresponse |
+| Diagnostics | minor bump | 🔜 Next | Balance assessment, `check_balance()`, `diagnose_propensity()`, `compare_weighted_estimates()` |
 | Polish | minor bump | ⬜ Pending | Vignettes, `--as-cran` clean, pkgdown |
 
-**Next action:** Begin Replicate. Start with `/spec-workflow` to draft the spec.
+**Next action:** Begin Diagnostics.
 Full roadmap at `plans/roadmap.md`.
 
 ---

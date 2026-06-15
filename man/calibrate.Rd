@@ -2,69 +2,56 @@
 % Please edit documentation in R/calibrate.R
 \name{calibrate}
 \alias{calibrate}
-\title{Calibrate survey weights to known population totals}
+\title{Calibrate survey weights}
 \usage{
 calibrate(
   data,
-  variables,
-  population,
+  targets,
   weights = NULL,
   wt_name = "wts",
-  method = c("linear", "logit"),
   type = c("prop", "count"),
-  control = list(maxit = 50, epsilon = 1e-07)
+  reference_design = NULL,
+  ...,
+  method = c("rake", "linear", "logit")
 )
 }
 \arguments{
 \item{data}{A \code{data.frame}, \code{weighted_df}, \code{survey_taylor}, or
-\code{survey_nonprob}. \code{survey_replicate} -> error. Any other class -> error.}
+\code{survey_nonprob}. Forwarded to the dispatched function.}
 
-\item{variables}{<\code{\link[tidyselect:language]{tidy-select}}> Columns to
-calibrate on. Must be categorical (character or factor). Specify as a
-bare name or \code{c(var1, var2, ...)}.}
-
-\item{population}{Named list of population targets. Names must match the
-column names selected by \code{variables}. Each element: a named numeric
-vector \code{c(level = target, ...)}.
-
-For \code{type = "prop"}: values must sum to 1.0 (within \code{1e-6} tolerance).
-For \code{type = "count"}: values must be strictly positive.}
+\item{targets}{Target specification. Forwarded to the dispatched function.
+See \code{\link[=calibrate_rake]{calibrate_rake()}}, \code{\link[=calibrate_linear]{calibrate_linear()}}, or \code{\link[=calibrate_logit]{calibrate_logit()}}
+for accepted formats.}
 
 \item{weights}{<\code{\link[tidyselect:language]{tidy-select}}> Weight column name
-(bare name). \code{NULL} -> auto-detected from \code{weighted_df} attribute or
-survey object \verb{@variables$weights}. For plain \code{data.frame} with
-\code{weights = NULL}, uniform starting weights are used and the output
-column is named by \code{wt_name} (default \code{"wts"}).}
+(bare name). Forwarded to the dispatched function.}
 
-\item{wt_name}{Character scalar. Name of the output weight column in the
-returned \code{weighted_df}. Default \code{"wts"}. Ignored when \code{data} is a survey
-object (\code{survey_taylor} or \code{survey_nonprob}).}
+\item{wt_name}{Character scalar. Name of the output weight column.
+Default \code{"wts"}. Forwarded to the dispatched function.}
 
-\item{method}{Character scalar. \code{"linear"} (default): one-step exact
-GREG calibration (may produce negative weights). \code{"logit"}: bounded
-iterative calibration (always positive).}
+\item{type}{Character scalar. \code{"prop"} (default) or \code{"count"}. Forwarded
+to the dispatched function.}
 
-\item{type}{Character scalar. \code{"prop"} (default): \code{population} values
-are proportions. \code{"count"}: \code{population} values are counts.}
+\item{reference_design}{A \code{survey_taylor} object or \code{NULL}. Forwarded to
+the dispatched function.}
 
-\item{control}{Named list of convergence parameters. Merged with defaults
-\code{list(maxit = 50, epsilon = 1e-7)}. Omitted keys retain their defaults.}
+\item{...}{Additional arguments passed to the dispatched function. See
+\code{\link[=calibrate_rake]{calibrate_rake()}}, \code{\link[=calibrate_linear]{calibrate_linear()}}, or \code{\link[=calibrate_logit]{calibrate_logit()}} for
+available arguments.}
+
+\item{method}{Character scalar. Calibration method: \code{"rake"} (default),
+\code{"linear"}, or \code{"logit"}. Matched with \code{\link[rlang:arg_match]{rlang::arg_match()}}.}
 }
 \value{
-\itemize{
-\item \code{data.frame} or \code{weighted_df} input -> \code{weighted_df}
-\item \code{survey_taylor} or \code{survey_nonprob} input -> same class as input
-(\code{survey_taylor} or \code{survey_nonprob}; class is preserved)
-}
-
-The weight column in the output contains calibrated weights. A history
-entry with \code{operation = "calibration"} is appended to
-\code{weighting_history}.
+A \code{weighted_df} or survey object (same class as \code{data}), as
+returned by the dispatched function. See \code{\link[=calibrate_rake]{calibrate_rake()}},
+\code{\link[=calibrate_linear]{calibrate_linear()}}, or \code{\link[=calibrate_logit]{calibrate_logit()}} for details.
 }
 \description{
-Adjusts survey weights so that the weighted marginal totals match known
-population values. Supports linear (GREG) and logit calibration methods
-for categorical auxiliary variables.
+Thin dispatcher that routes to \code{\link[=calibrate_rake]{calibrate_rake()}}, \code{\link[=calibrate_linear]{calibrate_linear()}}, or
+\code{\link[=calibrate_logit]{calibrate_logit()}} based on \code{method}. All arguments are forwarded
+unchanged to the dispatched function; all validation and error handling
+occurs there.
 }
 \examples{
 df <- data.frame(
@@ -72,16 +59,22 @@ df <- data.frame(
   sex = c("M", "F", "M", "F", "M"),
   stringsAsFactors = FALSE
 )
-pop <- list(
-  age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
-  sex = c("M" = 0.48, "F" = 0.52)
+targets <- list(
+  age_group = c("18-34" = 0.40, "35-54" = 0.40, "55+" = 0.20),
+  sex = c("M" = 0.50, "F" = 0.50)
 )
-result <- calibrate(df, variables = c(age_group, sex), population = pop)
+# Dispatch to calibrate_rake() (default method)
+result_rake <- calibrate(df, targets = targets)
+
+# Dispatch to calibrate_linear() explicitly
+result_linear <- calibrate(df, targets = targets, method = "linear")
 
 }
 \seealso{
 Other calibration: 
-\code{\link{poststratify}()},
-\code{\link{rake}()}
+\code{\link{calibrate_linear}()},
+\code{\link{calibrate_logit}()},
+\code{\link{calibrate_rake}()},
+\code{\link{poststratify}()}
 }
 \concept{calibration}

@@ -1,3 +1,57 @@
+# surveywts 0.2.1 (development)
+
+## Datasets
+
+### New datasets
+
+Seven new tibble datasets and seven paired survey design companion objects
+replace the previous IPW-only reference designs.
+
+New tibbles:
+* `gss_2024`: GSS 2024 (3,309 rows, 30 columns) with derived `gender`,
+  `age_group`, and `wt_pop` columns.
+* `ns_wave1`: National Survey Wave 1 (6,422 rows, 174 columns) with derived
+  `age_group`, `race_ethn`, and `educ` columns; `gender` converted to factor.
+* `npors_2025`: Pew NPORS 2025 (5,022 rows, 69 columns) with derived
+  `gender` (factor), `age_group`, `race_ethn`, `educ`, and `wt_pop` columns.
+* `npors_2025_clean`: `npors_2025` filtered to complete cases on the four
+  derived columns (approximately 4,814 rows).
+* `acs_wy_2022`: ACS PUMS 2022 Wyoming adults (4,736 rows, 100 columns) with
+  derived `gender`, `age_group`, `race_ethn`, and `educ` columns.
+
+Companion survey design objects (one per tibble, plus two for the pew_2016
+datasets):
+* `gss_2024_svy`: `survey_taylor` using `wtssps` with `vstrat`/`vpsu`.
+* `ns_wave1_svy`: `survey_nonprob` using `weight`.
+* `npors_2025_svy`: `survey_taylor` using `weight`.
+* `npors_2025_clean_svy`: `survey_taylor` using `weight`.
+* `acs_wy_2022_svy`: `survey_replicate` (SDR, 80 replicates, `mse = TRUE`).
+* `pew_2016_optin_svy`: `survey_nonprob` with equal weights.
+* `pew_2016_synth_pop_svy`: `survey_taylor` (SRS) with equal weights.
+
+### Retired datasets
+
+The following datasets have been removed. Update code that references them:
+
+| Old name | Replacement |
+|---|---|
+| `ns_wave1_ipw` | `ns_wave1` |
+| `gss_ipw_ref` | `gss_2024` + `surveycore::as_survey(gss_2024, weights = wt_pop, ...)` |
+| `npors_2025_ref` | `npors_2025` |
+| `npors_2025_clean_ref` | `npors_2025_clean` |
+| `acs_ipw_ref` | `acs_wy_2022` + `surveycore::as_survey(acs_wy_2022, weights = pwgtp)` |
+
+### `ipw()` examples updated
+
+The bundled examples in `?ipw` now use the new dataset names. Reference
+designs for IPW are constructed from tibbles using `surveycore::as_survey()`:
+```r
+gss_ref <- surveycore::as_survey(
+  gss_2024, weights = wt_pop, strata = vstrat, ids = vpsu, nest = TRUE
+)
+result <- ipw(ns_wave1, gss_ref, selection = ~gender + age_group)
+```
+
 # surveywts 0.2.0
 
 ## Replicate weight generation

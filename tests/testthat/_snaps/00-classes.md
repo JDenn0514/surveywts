@@ -64,7 +64,7 @@
       # Weight: wt_final (n = 5, mean = 1.00, CV = 0.22, ESS = 5) 
       # Weighting history: 2 steps 
       #   Step 1 [2025-01-15]: weighting-class nonresponse (by: age, sex) 
-      #   Step 2 [2025-01-15]: raking (margins: age, sex, education) 
+      #   Step 2 [2025-01-15]: raking (targets: age, sex, education) 
       # ── Data ────────────────────────────────────────────────────────────────────────
       # A tibble: 5 x 5
            id age   sex   education wt_final
@@ -103,7 +103,7 @@
       # IDs: ~psu | Strata: ~stratum | Weights: w 
       # Weighting history: 2 steps 
       #   Step 1 [2025-01-15]: weighting-class nonresponse (by: age, sex) 
-      #   Step 2 [2025-01-15]: raking (margins: age, sex, education) 
+      #   Step 2 [2025-01-15]: raking (targets: age, sex, education) 
 
 # print method for survey_nonprob handles NULL ids, NULL strata, empty history
 
@@ -161,7 +161,7 @@
       # A weighted data frame: 5 × 2 
       # Weight: w (n = 5, mean = 1.00, CV = 0.16, ESS = 5) 
       # Weighting history: 3 steps 
-      #   Step 1 [2025-01-15]: calibration (variables: age_group) 
+      #   Step 1 [2025-01-15]: calibration 
       #   Step 2 [2025-01-15]: poststratify (strata: age_group) 
       #   Step 3 [2025-01-15]: weighting-class nonresponse 
       # ── Data ────────────────────────────────────────────────────────────────────────

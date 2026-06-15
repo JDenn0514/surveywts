@@ -13,10 +13,10 @@ into a single tidyverse-compatible, S7-based package.
 | Release | Tag | Theme | Status |
 |---------|-----|-------|--------|
 | Calibration | `v0.1.0` | `survey_nonprob` class, calibration methods, basic diagnostics | ✅ Complete |
-| Replicate | minor bump | All `create_*_weights()` functions; unlocks bootstrap variance in `survey_nonprob` | 🔜 Next |
-| Utilities | minor bump | `trim_weights()`, `stabilize_weights()` | ⬜ Pending |
-| Nonresponse | minor bump | Sample-based calibration, weighting-class nonresponse | ⬜ Pending |
-| Propensity | minor bump | IPW for causal inference; unlocks propensity nonresponse | ⬜ Pending |
+| Replicate | minor bump | All `create_*_weights()` functions; unlocks bootstrap variance in `survey_nonprob` | ✅ Complete |
+| Utilities | minor bump | `trim_weights()`, `stabilize_weights()` | 🔜 Next |
+| Nonresponse | minor bump | Sample-based calibration, weighting-class nonresponse | ✅ Complete |
+| Propensity | minor bump | Non-probability sample IPW; unlocks propensity nonresponse | ⬜ Pending |
 | Diagnostics | minor bump | Balance assessment, visual diagnostics | ⬜ Pending |
 | Polish | minor bump | Vignettes, `--as-cran` clean, pkgdown, CRAN submission | ⬜ Pending |
 
@@ -167,8 +167,8 @@ weighting step.
 ### Notes
 
 `trim_weights()` wraps `.trim_weights_internal()`, an unexported helper
-introduced in Propensity for the `trim_at` argument in
-`create_propensity_weights()`. The exported version is a user-facing wrapper.
+introduced in Propensity for internal weight trimming in the non-prob IPW
+functions. The exported version is a user-facing wrapper.
 
 ---
 
@@ -192,8 +192,9 @@ estimated (not fixed). Adjust for unit nonresponse using weighting classes.
   fully implemented; Nonresponse unlocks the two propensity stubs:
   - `method = "propensity-cell"`: estimate response propensity via logistic
     regression → sort into quintile cells → redistribute within cells
-  - `method = "propensity"`: full IPW via logistic regression (delegates to Propensity
-    `estimate_propensity()` + `create_propensity_weights()`)
+  - `method = "propensity"`: full IPW via logistic regression (delegates to the
+    propensity estimation machinery introduced in Propensity; uses response
+    propensity P(respond | sampled), not participation propensity)
 - `redistribute_weights(svy, reduce_if, increase_if, by = NULL)` — general
   weight redistribution primitive (exported standalone)
 
@@ -206,55 +207,73 @@ All functions append to `@metadata@weighting_history`.
 | `R/06-sample-calibration.R` | `calibrate_to_survey()`, `calibrate_to_estimate()` |
 | `R/07-nonresponse.R` | `adjust_nonresponse()`, `redistribute_weights()` |
 
+### Implementation Dependencies
+
+- `svrep` — called directly by `calibrate_to_survey()` and `calibrate_to_estimate()`;
+  moves from `Suggests` to `Imports` in this phase
+
 ### Test References
 
-- `svrep::calibrate_to_sample()`, `svrep::calibrate_to_estimate()`
 - `survey` — weighting-class nonresponse comparison
 
 ---
 
-## Propensity — Propensity Score Weighting (minor bump)
+## Propensity — Non-Probability Sample IPW (minor bump)
 
-**What users can do:** Construct inverse probability weights for causal
-inference. Choose estimand (ATE, ATT, ATC, overlap, matching). Unlocks
-`adjust_nonresponse(method = "propensity")` from Nonresponse.
+**What users can do:** Construct inverse probability weights for data collected
+via non-probability sampling (opt-in panels, administrative data, convenience
+samples). Produces a `survey_nonprob` object ready for estimation. Two
+approaches based on available data:
+
+1. **Reference probability sample available** — pool the non-prob and reference
+   samples; estimate participation propensity P(in non-prob sample | X) via a
+   regression model; weights are proportional to 1/π̂
+2. **Population totals only** — calibrated IPW via estimating equations
+   (Chen–Li–Wu / GEE approach); no reference sample required
 
 ### Deliverables
 
-**Propensity estimation**
-- `estimate_propensity(data, formula, method = c("logistic", "probit", "rf", "gbm"))`
-  - `logistic`/`probit` via `stats::glm()` (no new Imports)
-  - `rf` requires `ranger` in `Suggests`; `gbm` requires `gbm` in `Suggests`
-  - Returns a structured list: fitted probabilities, model object, method metadata
+**Non-probability IPW** (exact API to be finalized in spec)
+- Primary user-facing function (name TBD): accepts the non-prob data, a
+  reference dataset or population totals, a formula of auxiliary variables,
+  and `method`; returns `survey_nonprob`
+- Logistic regression for propensity estimation via `stats::glm()` (no new
+  Imports); optional tree/ensemble methods in `Suggests`
+- Internal weight trimming via `.trim_weights_internal()` (shared with Utilities)
+- Appends to `weighting_history`
 
-**Weight creation**
-- `create_propensity_weights(svy, propensity, estimand = c("ATE", "ATT", "ATC", "overlap", "matching"), stabilize = TRUE, trim_at = NULL)`
-  - Uses internal `.trim_weights_internal()` for `trim_at` (unexported helper;
-    the exported `trim_weights()` wraps this in Utilities)
-- `add_propensity_weights(svy, formula, estimand, method)` — combined
-  one-step wrapper (calls `estimate_propensity()` + `create_propensity_weights()`)
+**Unlock `adjust_nonresponse(method = "propensity")` and `method = "propensity-cell"`**
+- Remove the stub errors introduced in Calibration; both delegate to the
+  propensity estimation machinery introduced here
+- Note: response propensity (P(respond | sampled)) and participation
+  propensity (P(in non-prob sample | X)) are conceptually distinct but
+  share the same estimation infrastructure
 
-**Nonresponse-via-calibration**
-- `calibrate_nonresponse(data, response_status, variables, weights = NULL, method = c("linear", "logit"), control = list())` —
-  calibrates respondent weights to match full-sample (respondents + nonrespondents)
-  weighted totals on `variables`; mirrors `calibrate()` signature but computes
-  targets internally from the data rather than requiring an external `population` argument
-
-**Unlock `adjust_nonresponse(method = "propensity")` and `adjust_nonresponse(method = "propensity-cell")`**
-- Remove the stub errors; both delegate to `estimate_propensity()` +
-  `create_propensity_weights()` internally
+### Out of Scope (belongs in `surveycore`)
+- Mass imputation (MI) estimators — produce population estimates, not weights
+- Doubly-robust (DR) estimators — produce population estimates, not weights
 
 ### Source File Map
 
 | File | Contents |
 |------|----------|
-| `R/08-propensity.R` | `estimate_propensity()`, `create_propensity_weights()`, `add_propensity_weights()` |
-| `R/09-calibrate-nonresponse.R` | `calibrate_nonresponse()` |
+| `R/08-nonprob-ipw.R` | Non-prob IPW function(s) (names TBD) |
 
 ### Test References
 
-- `WeightIt` — cross-validation for ATE/ATT/ATC IPW weights
-- `cobalt` — balance diagnostic cross-check
+- `nonprobsvy` (Chrostowski et al. 2025, arXiv:2504.04255) — primary
+  methodological reference and numerical cross-check
+
+### Notes
+
+- Exact function names and argument structure to be finalized in the spec;
+  review arXiv:2504.04255 before speccing
+- Whether the two cases (reference sample vs. population totals only) are
+  surfaced as one function with a `method` argument or as separate functions
+  is deferred to the spec
+- `calibrate_nonresponse()` from an earlier roadmap draft is removed; that
+  concept is covered by `calibrate_to_survey()` / `calibrate_to_estimate()`
+  in Nonresponse
 
 ---
 
@@ -299,7 +318,7 @@ this work is substantial and should not be appended to Diagnostics.
 - Full vignette suite:
   - `vignette("calibration")` — end-to-end: `survey_taylor` → raking → estimates
   - `vignette("replicate-weights")` — scheme selection guide; `svrep` comparison
-  - `vignette("propensity-weighting")` — causal estimands; ATE vs ATT workflow
+  - `vignette("propensity-weighting")` — non-probability sample IPW; reference sample vs. population-totals-only approaches
   - `vignette("nonresponse")` — weighting-class vs propensity comparison
 - `plans/error-messages.md` complete with every class from all releases
 - `surveywts-conventions.md` fully filled in
@@ -330,10 +349,9 @@ rather than being a `method = "raking"` shortcut. The shared engine is
 `.calibrate_engine()` in `R/07-utils.R` — the DRY rule requires this.
 
 ### `trim_weights()` internals across releases
-Propensity needs trimming internally (the `trim_at` argument in
-`create_propensity_weights()`). Export the function in Utilities. Use an
-unexported `.trim_weights_internal()` helper from Propensity onward;
-`trim_weights()` (exported) is just a wrapper around it.
+The non-prob IPW functions in Propensity need internal weight trimming. Export
+the function in Utilities. Use an unexported `.trim_weights_internal()` helper
+from Propensity onward; `trim_weights()` (exported) is just a wrapper around it.
 
 ### `surveycore` dependency
 Add `surveycore (>= 0.1.0)` to `DESCRIPTION Imports` as the very first change

@@ -52,9 +52,21 @@ test_that("create_replicate_weights() passes ... to underlying function", {
   skip_if_not_installed("svrep")
   td     <- make_taylor_design(seed = 1L)
   result <- create_replicate_weights(td, method = "bootstrap",
-                                      replicates = 10L, mse = FALSE, seed = 1L)
+                                      replicates = 10L,
+                                      mse = "uncentered", seed = 1L)
   test_invariants(result)
   expect_false(result@variables$mse)
+})
+
+test_that("create_replicate_weights() group-jackknife dispatches correctly", {
+  ds <- make_dagjk_datasets()
+  result_direct   <- create_group_jackknife_weights(ds$A, groups = 10L, seed = 42L)
+  result_dispatch <- create_replicate_weights(
+    ds$A, method = "group-jackknife", groups = 10L, seed = 42L
+  )
+  expect_true(S7::S7_inherits(result_dispatch, surveycore::survey_nonprob))
+  expect_identical(result_direct@data, result_dispatch@data)
+  expect_identical(result_direct@variables, result_dispatch@variables)
 })
 
 test_that("create_replicate_weights() invalid method errors via arg_match", {

@@ -6,25 +6,32 @@
 \usage{
 poststratify(
   data,
-  strata,
-  population,
+  targets,
   weights = NULL,
   wt_name = "wts",
-  type = c("prop", "count")
+  type = c("prop", "count"),
+  reference_design = NULL
 )
 }
 \arguments{
-\item{data}{A \code{data.frame}, \code{weighted_df}, \code{survey_taylor}, or
-\code{survey_nonprob}. \code{survey_replicate} -> error. Any other class -> error.}
+\item{data}{A \code{data.frame}, \code{weighted_df}, \code{survey_taylor},
+\code{survey_nonprob}, or \code{survey_replicate}. Any other class -> error.
+When \code{data} is a \code{survey_replicate}, post-stratification is applied
+independently to every replicate weight column using the same population
+\code{targets}. Replicate columns where any cell has zero or negative total
+weight fail calibration; a \code{surveywts_warning_replicate_calibration_failed}
+warning is emitted and the original replicate weights are kept.}
 
-\item{strata}{<\code{\link[tidyselect:language]{tidy-select}}> Stratification
-variables that jointly define the cells. Specify as a bare name or
-\code{c(var1, var2, ...)}. Unlike \code{\link[=calibrate]{calibrate()}} and \code{\link[=rake]{rake()}}, strata
-variables may be any type (character, factor, integer, numeric).}
+\item{targets}{A \code{data.frame} with one column per stratification variable
+(column names must match column names in \code{data}), plus a column named
+\code{"target"}, and one row per unique cell combination. The stratification
+variables are automatically identified as \code{setdiff(names(targets), "target")}.
 
-\item{population}{A \code{data.frame} with one column per variable selected by
-\code{strata} (column names must match exactly), one column named \code{"target"},
-and one row per unique cell combination.
+Unlike \code{\link[=calibrate_linear]{calibrate_linear()}} and \code{\link[=calibrate_rake]{calibrate_rake()}}, \code{targets} must be a
+\code{data.frame} — named lists are not accepted
+(\code{surveywts_error_margins_format_invalid}). The \code{targets} data frame must
+have at least one non-\code{"target"} column
+(\code{surveywts_error_no_strata_variables} if zero).
 
 For \code{type = "count"}: values in \code{target} must be strictly positive.
 For \code{type = "prop"}: values in \code{target} must sum to 1.0 (within \code{1e-6}).}
@@ -40,24 +47,37 @@ object (\code{survey_taylor} or \code{survey_nonprob}).}
 
 \item{type}{Character scalar. \code{"prop"} (default): \code{target} values are
 proportions summing to 1.0. \code{"count"}: \code{target} values are population
-counts. Consistent with \code{\link[=calibrate]{calibrate()}} and \code{\link[=rake]{rake()}}.}
+counts. Consistent with \code{\link[=calibrate_linear]{calibrate_linear()}} and \code{\link[=calibrate_rake]{calibrate_rake()}}.}
+
+\item{reference_design}{A \code{survey_taylor} object or \code{NULL}. The probability
+survey from which \code{targets} were estimated. When non-\code{NULL}, stored in
+the history entry with \code{targets_from_reference = TRUE}. Any non-\code{NULL}
+non-\code{survey_taylor} value triggers
+\code{surveywts_error_reference_design_not_taylor}.}
 }
 \value{
 \itemize{
 \item \code{data.frame} or \code{weighted_df} input -> \code{weighted_df}
 \item \code{survey_taylor} or \code{survey_nonprob} input -> same class as input
-(\code{survey_taylor} or \code{survey_nonprob}; class is preserved)
+(\code{survey_taylor} or \code{survey_nonprob}; class is preserved);
+\verb{@calibration} slot is populated
+\item \code{survey_replicate} input -> \code{survey_replicate} (class preserved);
+\verb{@calibration} slot is populated, including \code{replicate_converged}
 }
 
 The weight column in the output contains post-stratified weights. A
 history entry with \code{operation = "poststratify"} is appended to
 \code{weighting_history}.
+For \code{survey_replicate} inputs, each replicate weight column is also
+post-stratified. Failed replicates retain their original weights and are
+recorded in \code{output@calibration$replicate_converged} as \code{FALSE}.
 }
 \description{
 Adjusts survey weights so that the weighted cell counts (or proportions)
 match known population values for every joint combination of stratification
-variables. Unlike \code{\link[=calibrate]{calibrate()}} and \code{\link[=rake]{rake()}}, which match marginal totals,
-\code{poststratify()} matches exact cross-tabulation cells in a single pass.
+variables. Unlike \code{\link[=calibrate_linear]{calibrate_linear()}} and \code{\link[=calibrate_rake]{calibrate_rake()}}, which match
+marginal totals, \code{poststratify()} matches exact cross-tabulation cells in
+a single pass.
 }
 \examples{
 df <- data.frame(
@@ -72,7 +92,7 @@ pop_prop <- data.frame(
   sex = c("M", "M", "M", "F", "F", "F"),
   target = c(0.14, 0.18, 0.17, 0.15, 0.19, 0.17)
 )
-result <- poststratify(df, strata = c(age_group, sex), population = pop_prop)
+result <- poststratify(df, targets = pop_prop)
 
 # Count targets (explicit type = "count")
 pop_count <- data.frame(
@@ -80,13 +100,40 @@ pop_count <- data.frame(
   sex = c("M", "M", "M", "F", "F", "F"),
   target = c(14000, 18000, 17000, 15000, 19000, 17000)
 )
-result2 <- poststratify(df, strata = c(age_group, sex),
-  population = pop_count, type = "count")
+result2 <- poststratify(
+  df,
+  targets = pop_count,
+  type = "count"
+)
 
+}
+\references{
+Valliant, R. (1993). Poststratification and conditional variance
+estimation. \emph{Journal of the American Statistical Association},
+88(421), 89--96. doi:10.2307/2290701
+
+Deville, J.-C. and Sarndal, C.-E. (1992). Calibration estimators in
+survey sampling. \emph{Journal of the American Statistical Association},
+87(418), 376--382. doi:10.2307/2290268
+
+Rao, J. N. K., Yung, W. and Hidiroglou, M. A. (2002). Estimating
+equations for the analysis of survey data using poststratification
+information. \emph{Sankhya}, 64(2), 364--378.
+
+Deville, J.-C., Sarndal, C.-E. and Sautory, O. (1993). Generalized
+raking procedures in survey sampling. \emph{Journal of the American
+Statistical Association}, 88(423), 1013--1020.
+doi:10.1080/01621459.1993.10476369
+
+Rao, J. N. K., Wu, C. F. J. and Yue, K. (1992). Some recent work on
+resampling methods for complex surveys. \emph{Survey Methodology},
+18(2), 209--217.
 }
 \seealso{
 Other calibration: 
 \code{\link{calibrate}()},
-\code{\link{rake}()}
+\code{\link{calibrate_linear}()},
+\code{\link{calibrate_logit}()},
+\code{\link{calibrate_rake}()}
 }
 \concept{calibration}

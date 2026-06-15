@@ -11,7 +11,9 @@
 #' count totals. The `vcov_estimate` matrix propagates the uncertainty of
 #' those external estimates into the calibrated design's variance estimates.
 #'
-#' @param design A `survey_replicate` object. The design to be calibrated.
+#' @param design A `survey_replicate` or `survey_nonprob` object with
+#'   replicate weights. The design to be calibrated. Must have replicate
+#'   weights populated.
 #' @param targets A named list of population count totals. Each element is
 #'   a named numeric vector whose names are the level labels for that variable
 #'   in `design@data`. All values must be strictly positive. The list name is
@@ -37,15 +39,20 @@
 #'     not stored in history.
 #'   Unknown keys trigger a `surveywts_warning_control_param_ignored` warning.
 #'
-#' @return A `survey_replicate` object with updated full-sample and replicate
-#'   weights. A history entry with `operation = "calibrate_to_estimate"` is
-#'   appended to `@metadata@weighting_history`.
+#' @returns A calibrated design object whose class matches the class of
+#'   `design`: a `survey_nonprob` input returns a `survey_nonprob`; a
+#'   `survey_replicate` input returns a `survey_replicate`. Updated
+#'   full-sample and replicate weights are written back. A new entry with
+#'   `operation = "calibrate_to_estimate"` is appended to the weighting
+#'   history.
 #'
 #' @details
-#'   `design` must be a `survey_replicate` object because replicate weights
-#'   are required to propagate the uncertainty of the external estimates
-#'   (captured in `vcov_estimate`) into the variance of the calibrated design.
-#'   Taylor-linearization designs are not sufficient for this purpose.
+#'   `design` must carry replicate weights — either as a `survey_replicate`
+#'   object or as a `survey_nonprob` object to which replicate weights have
+#'   been added. Taylor-linearization designs are not sufficient for this
+#'   purpose because replicate weights are required to propagate the
+#'   uncertainty of the external estimates (captured in `vcov_estimate`) into
+#'   the variance of the calibrated design.
 #'
 #'   The `targets` list is converted to a named vector via `unlist(targets)`,
 #'   and a calibration formula is built from `names(targets)`. Ensure that
@@ -118,13 +125,15 @@ calibrate_to_estimate <- function(
   method   <- rlang::arg_match(method)
 
   # ---- 1. design class check ------------------------------------------------
-  if (!S7::S7_inherits(design, surveycore::survey_replicate)) {
+  is_nonprob_design <- S7::S7_inherits(design, surveycore::survey_nonprob)
+  if (!S7::S7_inherits(design, surveycore::survey_replicate) &&
+      !is_nonprob_design) {
     cls <- class(design)[[1L]]
     cli::cli_abort(
       c(
         "x" = paste0(
-          "{.arg design} must be a {.cls survey_replicate}, ",
-          "got {.cls {cls}}."
+          "{.arg design} must be a {.cls survey_replicate} or a ",
+          "{.cls survey_nonprob} with replicate weights, got {.cls {cls}}."
         ),
         "i" = paste0(
           "Replicate weights are required to propagate the uncertainty ",
@@ -137,6 +146,29 @@ calibrate_to_estimate <- function(
       ),
       class = "surveywts_error_design_not_replicate"
     )
+  }
+  if (is_nonprob_design) {
+    rw <- design@variables$repweights
+    if (is.null(rw) || length(rw) == 0L) {
+      cli::cli_abort(
+        c(
+          "x" = paste0(
+            "{.arg design} is a {.cls survey_nonprob} but has no ",
+            "replicate weights."
+          ),
+          "i" = paste0(
+            "Replicate weights are required to propagate the uncertainty ",
+            "of the external estimates."
+          ),
+          "v" = paste0(
+            "Use {.fn create_bootstrap_weights} or another ",
+            "{.fn create_*_weights} function to add replicate weights ",
+            "before calibrating."
+          )
+        ),
+        class = "surveywts_error_design_no_repweights"
+      )
+    }
   }
 
   # ---- 2. reference_design check (if non-NULL) ------------------------------
@@ -530,11 +562,20 @@ calibrate_to_estimate <- function(
     new_data[[rn]] <- rep_df[[rn]]
   }
 
-  result <- surveycore::survey_replicate(
-    data      = new_data,
-    variables = design@variables,
-    metadata  = design@metadata
-  )
+  # ---- 15. Dispatch on design class for output constructor ------------------
+  if (S7::S7_inherits(design, surveycore::survey_nonprob)) {
+    result <- surveycore::survey_nonprob(
+      data      = new_data,
+      variables = design@variables,
+      metadata  = design@metadata
+    )
+  } else {
+    result <- surveycore::survey_replicate(
+      data      = new_data,
+      variables = design@variables,
+      metadata  = design@metadata
+    )
+  }
   meta                   <- result@metadata
   meta@weighting_history <- c(meta@weighting_history, list(history_entry))
   result@metadata        <- meta

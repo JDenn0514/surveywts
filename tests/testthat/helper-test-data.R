@@ -429,3 +429,31 @@ q_all_ones <- rep(1, 500)
   }
   obj
 }
+
+# survey_nonprob with bootstrap replicate weights — for calibrate-nonprob tests.
+# Returns a survey_nonprob that has been through ipw() and then
+# create_bootstrap_weights(), so @variables$repweights is populated.
+make_nonprob_replicate_design <- function(n = 200L, seed = 1L) {
+  set.seed(seed)
+  nps_df <- make_surveywts_data(n = n, seed = seed)
+  ref_df <- make_surveywts_data(n = n * 5L, seed = seed + 100L)
+  ref    <- surveycore::as_survey(ref_df, weights = base_weight)
+  nps    <- ipw(data = nps_df, reference = ref,
+                selection = ~sex + age_group)
+  create_bootstrap_weights(
+    nps,
+    replicates = 50L,
+    type       = "quasi-randomization",
+    seed       = seed
+  )
+}
+
+# survey_nonprob WITHOUT replicate weights — for error path tests.
+# Returns a survey_nonprob from ipw() only; @variables$repweights is NULL.
+make_nonprob_no_repweights <- function(n = 200L, seed = 1L) {
+  set.seed(seed)
+  nps_df <- make_surveywts_data(n = n, seed = seed)
+  ref_df <- make_surveywts_data(n = n * 5L, seed = seed + 100L)
+  ref    <- surveycore::as_survey(ref_df, weights = base_weight)
+  ipw(data = nps_df, reference = ref, selection = ~sex + age_group)
+}

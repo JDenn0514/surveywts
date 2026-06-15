@@ -1491,3 +1491,448 @@ test_that("calibrate_to_estimate() accepts near-zero vcov (very small uncertaint
   test_invariants(result)
   expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
 })
+
+# ===========================================================================
+# 12. calibrate_to_survey() — survey_nonprob primary/control happy paths
+# ===========================================================================
+
+test_that(
+  "calibrate_to_survey() accepts survey_nonprob primary + survey_replicate control",
+  {
+    skip_if_not_installed("svrep")
+    primary <- make_nonprob_replicate_design(n = 200L, seed = 1L)
+    control <- make_replicate_design(n = 200L, seed = 2L)
+
+    result <- calibrate_to_survey(
+      primary_design = primary,
+      control_design = control,
+      variables      = c(sex)
+    )
+
+    test_invariants(result)
+    expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+    expect_identical(nrow(result@data), nrow(primary@data))
+  }
+)
+
+test_that(
+  "calibrate_to_survey() accepts survey_replicate primary + survey_nonprob control",
+  {
+    skip_if_not_installed("svrep")
+    primary <- make_replicate_design(n = 200L, seed = 1L)
+    control <- make_nonprob_replicate_design(n = 200L, seed = 2L)
+
+    result <- calibrate_to_survey(
+      primary_design = primary,
+      control_design = control,
+      variables      = c(sex)
+    )
+
+    test_invariants(result)
+    expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
+  }
+)
+
+test_that(
+  "calibrate_to_survey() accepts both survey_nonprob with replicate weights",
+  {
+    skip_if_not_installed("svrep")
+    primary <- make_nonprob_replicate_design(n = 200L, seed = 1L)
+    control <- make_nonprob_replicate_design(n = 200L, seed = 2L)
+
+    result <- calibrate_to_survey(
+      primary_design = primary,
+      control_design = control,
+      variables      = c(sex)
+    )
+
+    test_invariants(result)
+    expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  }
+)
+
+test_that(
+  "calibrate_to_survey() nonprob history grows by exactly 1 entry per call",
+  {
+    skip_if_not_installed("svrep")
+    primary  <- make_nonprob_replicate_design(n = 200L, seed = 1L)
+    control  <- make_replicate_design(n = 200L, seed = 2L)
+    n_before <- length(primary@metadata@weighting_history)
+
+    result <- calibrate_to_survey(
+      primary_design = primary,
+      control_design = control,
+      variables      = c(sex)
+    )
+
+    n_after <- length(result@metadata@weighting_history)
+    expect_identical(n_after - n_before, 1L)
+    last <- result@metadata@weighting_history[[n_after]]
+    expect_identical(last$operation, "calibrate_to_survey")
+  }
+)
+
+test_that(
+  paste0(
+    "calibrate_to_survey() records control_design_class correctly ",
+    "for nonprob primary + replicate control"
+  ),
+  {
+    skip_if_not_installed("svrep")
+    primary <- make_nonprob_replicate_design(n = 200L, seed = 1L)
+    control <- make_replicate_design(n = 200L, seed = 2L)
+
+    result <- calibrate_to_survey(
+      primary_design = primary,
+      control_design = control,
+      variables      = c(sex)
+    )
+
+    last <- result@metadata@weighting_history[[
+      length(result@metadata@weighting_history)
+    ]]
+    expect_identical(
+      last$parameters$control_design_class,
+      class(control)[[1L]]
+    )
+  }
+)
+
+test_that(
+  paste0(
+    "calibrate_to_survey() records control_design_class correctly ",
+    "for both-nonprob scenario"
+  ),
+  {
+    skip_if_not_installed("svrep")
+    primary <- make_nonprob_replicate_design(n = 200L, seed = 1L)
+    control <- make_nonprob_replicate_design(n = 200L, seed = 2L)
+
+    result <- calibrate_to_survey(
+      primary_design = primary,
+      control_design = control,
+      variables      = c(sex)
+    )
+
+    last <- result@metadata@weighting_history[[
+      length(result@metadata@weighting_history)
+    ]]
+    expect_identical(
+      last$parameters$control_design_class,
+      class(control)[[1L]]
+    )
+  }
+)
+
+# ===========================================================================
+# 13. calibrate_to_estimate() — survey_nonprob happy path
+# ===========================================================================
+
+test_that(
+  "calibrate_to_estimate() accepts survey_nonprob with replicate weights",
+  {
+    skip_if_not_installed("svrep")
+    design   <- make_nonprob_replicate_design(n = 200L, seed = 1L)
+    targets  <- list(sex = c("F" = 110, "M" = 90))
+    vcov_est <- diag(c(100, 100))
+
+    result <- calibrate_to_estimate(design, targets, vcov_est)
+
+    test_invariants(result)
+    expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+    expect_identical(nrow(result@data), nrow(design@data))
+  }
+)
+
+test_that(
+  "calibrate_to_estimate() nonprob history grows by exactly 1 entry per call",
+  {
+    skip_if_not_installed("svrep")
+    design   <- make_nonprob_replicate_design(n = 200L, seed = 1L)
+    targets  <- list(sex = c("F" = 110, "M" = 90))
+    vcov_est <- diag(c(100, 100))
+    n_before <- length(design@metadata@weighting_history)
+
+    result <- calibrate_to_estimate(design, targets, vcov_est)
+
+    n_after <- length(result@metadata@weighting_history)
+    expect_identical(n_after - n_before, 1L)
+    last <- result@metadata@weighting_history[[n_after]]
+    expect_identical(last$operation, "calibrate_to_estimate")
+  }
+)
+
+# ===========================================================================
+# 14. New error classes: _no_repweights
+# ===========================================================================
+
+test_that(
+  "calibrate_to_survey() fires surveywts_error_primary_no_repweights",
+  {
+    skip_if_not_installed("svrep")
+    primary_no_rep <- make_nonprob_no_repweights(n = 100L, seed = 1L)
+    control        <- make_replicate_design(n = 100L, seed = 2L)
+
+    expect_error(
+      calibrate_to_survey(
+        primary_design = primary_no_rep,
+        control_design = control,
+        variables      = c(sex)
+      ),
+      class = "surveywts_error_primary_no_repweights"
+    )
+    expect_snapshot(
+      error = TRUE,
+      calibrate_to_survey(
+        primary_design = primary_no_rep,
+        control_design = control,
+        variables      = c(sex)
+      )
+    )
+  }
+)
+
+test_that(
+  "calibrate_to_survey() fires surveywts_error_control_no_repweights",
+  {
+    skip_if_not_installed("svrep")
+    primary        <- make_nonprob_replicate_design(n = 100L, seed = 1L)
+    control_no_rep <- make_nonprob_no_repweights(n = 100L, seed = 2L)
+
+    expect_error(
+      calibrate_to_survey(
+        primary_design = primary,
+        control_design = control_no_rep,
+        variables      = c(sex)
+      ),
+      class = "surveywts_error_control_no_repweights"
+    )
+    expect_snapshot(
+      error = TRUE,
+      calibrate_to_survey(
+        primary_design = primary,
+        control_design = control_no_rep,
+        variables      = c(sex)
+      )
+    )
+  }
+)
+
+test_that(
+  "calibrate_to_estimate() fires surveywts_error_design_no_repweights",
+  {
+    skip_if_not_installed("svrep")
+    design_no_rep <- make_nonprob_no_repweights(n = 100L, seed = 1L)
+    targets       <- list(sex = c("F" = 60, "M" = 40))
+    vcov_est      <- diag(c(100, 100))
+
+    expect_error(
+      calibrate_to_estimate(design_no_rep, targets, vcov_est),
+      class = "surveywts_error_design_no_repweights"
+    )
+    expect_snapshot(
+      error = TRUE,
+      calibrate_to_estimate(design_no_rep, targets, vcov_est)
+    )
+  }
+)
+
+# ===========================================================================
+# 15. Validation order: nonprob checks relative to other checks
+# ===========================================================================
+
+test_that(
+  "calibrate_to_survey() primary class check fires before control (nonprob order)",
+  {
+    skip_if_not_installed("svrep")
+    df            <- make_surveywts_data(n = 100L, seed = 1L)
+    not_replicate <- surveycore::survey_taylor(
+      data = df, variables = list(weights = "base_weight")
+    )
+    nonprob_no_rep <- make_nonprob_no_repweights(n = 100L, seed = 2L)
+
+    # primary is wrong class (taylor) — primary_not_replicate fires first
+    expect_error(
+      calibrate_to_survey(not_replicate, nonprob_no_rep, variables = c(sex)),
+      class = "surveywts_error_primary_not_replicate"
+    )
+  }
+)
+
+test_that(
+  "calibrate_to_survey() primary_no_repweights fires before control check",
+  {
+    skip_if_not_installed("svrep")
+    primary_no_rep <- make_nonprob_no_repweights(n = 100L, seed = 1L)
+    df             <- make_surveywts_data(n = 100L, seed = 2L)
+    not_replicate  <- surveycore::survey_taylor(
+      data = df, variables = list(weights = "base_weight")
+    )
+
+    # primary is nonprob without repweights, control is wrong class
+    # primary_no_repweights fires first (step 1b before step 2)
+    expect_error(
+      calibrate_to_survey(
+        primary_no_rep, not_replicate, variables = c(sex)
+      ),
+      class = "surveywts_error_primary_no_repweights"
+    )
+  }
+)
+
+test_that(
+  "calibrate_to_estimate() design_no_repweights fires before targets check",
+  {
+    skip_if_not_installed("svrep")
+    design_no_rep <- make_nonprob_no_repweights(n = 100L, seed = 1L)
+
+    # design is nonprob without repweights, targets is also invalid
+    # design_no_repweights should fire first
+    expect_error(
+      calibrate_to_estimate(design_no_rep, list(c(60, 40)), diag(c(100, 100))),
+      class = "surveywts_error_design_no_repweights"
+    )
+  }
+)
+
+# ===========================================================================
+# 16. Edge case: @variables$repweights = character(0) triggers _no_repweights
+# ===========================================================================
+
+test_that(
+  paste0(
+    "calibrate_to_survey() fires primary_no_repweights when ",
+    "@variables$repweights = character(0)"
+  ),
+  {
+    skip_if_not_installed("svrep")
+    nps_df <- make_surveywts_data(n = 100L, seed = 1L)
+    ref_df <- make_surveywts_data(n = 500L, seed = 101L)
+    ref    <- surveycore::as_survey(ref_df, weights = base_weight)
+    nps    <- ipw(data = nps_df, reference = ref, selection = ~sex + age_group)
+
+    # Force empty repweights
+    vars            <- nps@variables
+    vars$repweights <- character(0)
+    nps@variables   <- vars
+
+    control <- make_replicate_design(n = 100L, seed = 2L)
+
+    expect_error(
+      calibrate_to_survey(nps, control, variables = c(sex)),
+      class = "surveywts_error_primary_no_repweights"
+    )
+  }
+)
+
+test_that(
+  paste0(
+    "calibrate_to_estimate() fires design_no_repweights when ",
+    "@variables$repweights = character(0)"
+  ),
+  {
+    skip_if_not_installed("svrep")
+    nps_df <- make_surveywts_data(n = 100L, seed = 1L)
+    ref_df <- make_surveywts_data(n = 500L, seed = 101L)
+    ref    <- surveycore::as_survey(ref_df, weights = base_weight)
+    nps    <- ipw(data = nps_df, reference = ref, selection = ~sex + age_group)
+
+    vars            <- nps@variables
+    vars$repweights <- character(0)
+    nps@variables   <- vars
+
+    targets  <- list(sex = c("F" = 60, "M" = 40))
+    vcov_est <- diag(c(100, 100))
+
+    expect_error(
+      calibrate_to_estimate(nps, targets, vcov_est),
+      class = "surveywts_error_design_no_repweights"
+    )
+  }
+)
+
+# ===========================================================================
+# 17. Regression guards
+# ===========================================================================
+
+test_that(
+  "calibrate_to_survey() still returns survey_replicate for replicate+replicate",
+  {
+    skip_if_not_installed("svrep")
+    primary <- make_replicate_design(n = 200L, seed = 1L)
+    control <- make_replicate_design(n = 200L, seed = 2L)
+
+    result <- calibrate_to_survey(primary, control, variables = c(sex))
+
+    test_invariants(result)
+    expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
+    expect_false(S7::S7_inherits(result, surveycore::survey_nonprob))
+  }
+)
+
+test_that(
+  "calibrate_to_survey() _not_replicate still fires for data.frame primary",
+  {
+    skip_if_not_installed("svrep")
+    df      <- make_surveywts_data(n = 100L, seed = 1L)
+    control <- make_replicate_design(n = 100L, seed = 2L)
+
+    expect_error(
+      calibrate_to_survey(df, control, variables = c(sex)),
+      class = "surveywts_error_primary_not_replicate"
+    )
+  }
+)
+
+test_that(
+  "calibrate_to_survey() _not_replicate still fires for survey_taylor control",
+  {
+    skip_if_not_installed("svrep")
+    primary <- make_nonprob_replicate_design(n = 100L, seed = 1L)
+    df      <- make_surveywts_data(n = 100L, seed = 2L)
+    taylor  <- surveycore::survey_taylor(
+      data = df, variables = list(weights = "base_weight")
+    )
+
+    expect_error(
+      calibrate_to_survey(primary, taylor, variables = c(sex)),
+      class = "surveywts_error_control_not_replicate"
+    )
+  }
+)
+
+test_that(
+  "calibrate_to_estimate() _not_replicate still fires for data.frame design",
+  {
+    skip_if_not_installed("svrep")
+    df       <- make_surveywts_data(n = 100L, seed = 1L)
+    targets  <- list(sex = c("F" = 60, "M" = 40))
+    vcov_est <- diag(c(100, 100))
+
+    expect_error(
+      calibrate_to_estimate(df, targets, vcov_est),
+      class = "surveywts_error_design_not_replicate"
+    )
+  }
+)
+
+test_that(
+  paste0(
+    "calibrate_to_estimate() targets_levels_mismatch still fires ",
+    "with nonprob design"
+  ),
+  {
+    skip_if_not_installed("svrep")
+    design   <- make_nonprob_replicate_design(n = 200L, seed = 1L)
+    vcov_est <- diag(c(100, 100))
+
+    expect_error(
+      calibrate_to_estimate(
+        design,
+        list(sex = c("Female" = 110, "Male" = 90)),
+        vcov_est
+      ),
+      class = "surveywts_error_targets_levels_mismatch"
+    )
+  }
+)

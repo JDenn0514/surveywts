@@ -16,7 +16,9 @@ calibrate_to_estimate(
 )
 }
 \arguments{
-\item{design}{A \code{survey_replicate} object. The design to be calibrated.}
+\item{design}{A \code{survey_replicate} or \code{survey_nonprob} object with
+replicate weights. The design to be calibrated. Must have replicate
+weights populated.}
 
 \item{targets}{A named list of population count totals. Each element is
 a named numeric vector whose names are the level labels for that variable
@@ -52,9 +54,12 @@ Unknown keys trigger a \code{surveywts_warning_control_param_ignored} warning.
 }}
 }
 \value{
-A \code{survey_replicate} object with updated full-sample and replicate
-weights. A history entry with \code{operation = "calibrate_to_estimate"} is
-appended to \verb{@metadata@weighting_history}.
+A calibrated design object whose class matches the class of
+\code{design}: a \code{survey_nonprob} input returns a \code{survey_nonprob}; a
+\code{survey_replicate} input returns a \code{survey_replicate}. Updated
+full-sample and replicate weights are written back. A new entry with
+\code{operation = "calibrate_to_estimate"} is appended to the weighting
+history.
 }
 \description{
 Adjusts the full-sample and replicate weights of \code{design} so that its
@@ -63,10 +68,12 @@ count totals. The \code{vcov_estimate} matrix propagates the uncertainty of
 those external estimates into the calibrated design's variance estimates.
 }
 \details{
-\code{design} must be a \code{survey_replicate} object because replicate weights
-are required to propagate the uncertainty of the external estimates
-(captured in \code{vcov_estimate}) into the variance of the calibrated design.
-Taylor-linearization designs are not sufficient for this purpose.
+\code{design} must carry replicate weights — either as a \code{survey_replicate}
+object or as a \code{survey_nonprob} object to which replicate weights have
+been added. Taylor-linearization designs are not sufficient for this
+purpose because replicate weights are required to propagate the
+uncertainty of the external estimates (captured in \code{vcov_estimate}) into
+the variance of the calibrated design.
 
 The \code{targets} list is converted to a named vector via \code{unlist(targets)},
 and a calibration formula is built from \code{names(targets)}. Ensure that

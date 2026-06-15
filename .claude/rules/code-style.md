@@ -15,14 +15,17 @@
 | Auto-formatter | `air` (Posit's R formatter) |
 | Pipe operator | Native `\|>` only |
 | Style guide | tidyverse style (via air) |
-| Property access | Direct `@` everywhere; accessor functions for `@data` and `@metadata` only |
-| S7 method file org | Methods grouped by type in dedicated files (`04-methods-print.R`, etc.) |
-| Class membership test | `S7::S7_inherits(x, survey_taylor)` — class object, never a string |
-| Setter return values | `invisible(x)` |
-| Getter return values | Visible (no `invisible()`) |
+| Property access | Direct `@` everywhere on surveycore S7 objects — no accessor functions defined in surveywts |
 | Argument order | `x`/`data` first → required NSE → required scalar → optional NSE → optional scalar → `...` |
 | Internal helper placement | Inline if used in 1 file; shared utils file if used in 2+ files |
 | Dispatch rule | `S7::method()` for extending existing generics; plain function + `S7::S7_inherits()` for surveywts-owned generics |
+| Type check (S7 objects) | `S7::S7_inherits(x, surveycore::survey_taylor)` — fully qualified, never a string |
+| Type check (weighted_df) | `inherits(x, "weighted_df")` — bare `inherits()` for the S3 class |
+| Print method file | `methods-print.R`; registered via `S7::methods_register()` in `.onLoad()` |
+| Weighting function returns | Visible (updated object, same class as input) |
+| Diagnostic function returns | Visible (named scalar or tibble) |
+| Print/summary methods | `invisible(x)` |
+| Validators (internal) | `invisible(TRUE)` on success |
 | Error structure | `"x"` + `"i"` + optional `"v"` bullets; `class=` on every `cli_abort()` |
 | Warning classes | `class=` on every `cli_warn()` too |
 | Message language | Declarative for `"x"`/`"i"` bullets; imperative for `"v"` bullet |
@@ -142,61 +145,125 @@ weights_var = names(weights_cols)
 
 ---
 
-## 2. S7-Specific Patterns
+## 2. Working with S7 Objects
 
 ### Property access
-Use **`@` directly** everywhere in internal code. Do not create accessor functions for most properties — the class structure is part of the documented API.
 
-**Exception:** `@data` and `@metadata` have thin accessor functions to protect against raw manipulation and provide a stable name if internal structure changes:
-
-```r
-# Accessor functions (defined in utils.R, exported)
-survey_data     <- function(x) x@data
-survey_metadata <- function(x) x@metadata
-
-# Internal code always uses @ directly
-wt_col <- x@data[[x@variables$weights]]
-n_labels <- length(x@metadata@variable_labels)
-```
-
-Do **not** expose `@` in user-facing documentation or examples. Show only function calls.
-
-### S7 method file organization
-Methods are **grouped by type** in dedicated files, not co-located with class definitions:
-
-| File | Contents |
-|------|----------|
-| `00-s7-classes.R` | Class definitions + S7 validators only |
-| `04-methods-print.R` | `S7::method(print, ...)` and `S7::method(summary, ...)` for all classes |
-| `05-methods-conversion.R` | `as_svydesign()`, `from_svydesign()`, `as_tbl_svy()`, `from_tbl_svy()` |
-
-Every method registration in `04-methods-print.R` and `05-methods-conversion.R` must include a comment pointing to the class definition:
+Use **`@` directly** everywhere in internal code to access properties of surveycore S7 objects.
 
 ```r
-# Class defined in R/00-s7-classes.R
-S7::method(print, survey_taylor) <- function(x, n = 10, ...) {
-  ...
-}
+# Reading properties of a surveycore object in surveywts internal code
+wt_vec  <- data@data[[data@variables$weights]]
+meta    <- data@metadata
+history <- meta@weighting_history
+
+# Writing back (surveywts pattern for updating weighting history):
+meta@weighting_history <- c(history, list(new_entry))
+data@metadata <- meta
 ```
+
+### Print method registration
+
+surveywts defines print methods for the surveycore classes `survey_nonprob` and
+`survey_replicate`, both registered in `R/methods-print.R`. Registration happens via
+`S7::methods_register()` called from `.onLoad()` in `R/zzz.R`. If adding a new
+print method, add it to `methods-print.R` and ensure `.onLoad()` still calls
+`S7::methods_register()`.
 
 ### Class membership testing
 Always use **`S7::S7_inherits(x, ClassName)`** with the class object — never a string.
 
 ```r
-# Correct — class object; rename caught at load time
-if (!S7::S7_inherits(phase1, survey_taylor)) {
+# Correct — fully qualified when the class comes from surveycore
+if (!S7::S7_inherits(data, surveycore::survey_nonprob)) {
+  cli::cli_abort(
+    c("x" = "{.arg data} must be a {.cls survey_nonprob}."),
+    class = "surveywts_error_not_nonprob"
+  )
+}
+
+# Also correct — bare name resolves at runtime (surveycore is imported),
+# but use :: in examples and documentation for clarity
+if (!S7::S7_inherits(data, surveycore::survey_taylor)) {
   cli::cli_abort(...)
 }
 
 # Wrong — string; rename silently breaks the check
-if (!inherits(phase1, "survey_taylor")) {
+if (!inherits(data, "survey_taylor")) {
   cli::cli_abort(...)
 }
 
-# Also wrong — S4 idiom in an S7 codebase
-if (!is(phase1, "survey_taylor")) {
-  cli::cli_abort(...)
+# weighted_df uses base inherits() — it is an S3 class, not S7
+if (inherits(data, "weighted_df")) {
+  # weighted_df path
+} else if (S7::S7_inherits(data, surveycore::survey_nonprob)) {
+  # survey_nonprob path
+} else if (is.data.frame(data)) {
+  # plain data.frame path
 }
+```
+
+### weighted_df S3 class
+
+`weighted_df` is surveywts's only home-grown class — an S3 subclass of tibble returned
+from all calibration, nonresponse, and utility functions when the input is a plain
+`data.frame` or `weighted_df`.
+
+**Type check:** Use base `inherits()`, not `S7::S7_inherits()` — it is an S3 class:
+
+```r
+# weighted_df full class vector:
+# c("weighted_df", "tbl_df", "tbl", "data.frame")
+inherits(x, "weighted_df")       # correct — matches position 1
+S7::S7_inherits(x, weighted_df)  # wrong — weighted_df is not an S7 class
+```
+
+**Attributes:**
+```r
+attr(x, "weight_col")         # character(1) — name of the weight column
+attr(x, "weighting_history")  # list — ordered history entries
+```
+
+**Never construct directly.** Users receive `weighted_df` as output; they never build
+one themselves. Internally, use `.make_weighted_df()` from `utils.R`.
+
+### Three-path input handling
+
+Every weighting function in surveywts accepts `data.frame`, `weighted_df`, and S7 survey
+objects. The canonical dispatch order is:
+
+```r
+if (S7::S7_inherits(data, surveycore::survey_nonprob)) {
+  # S7 path: extract @data, operate, write back, update @metadata@weighting_history
+} else if (inherits(data, "weighted_df")) {
+  # weighted_df path: update weight column, append to attr(, "weighting_history")
+} else {
+  # plain data.frame path: create a new weighted_df via .make_weighted_df()
+}
+```
+
+Check S7 objects before `weighted_df` because `survey_nonprob` inherits from `data.frame`
+and would pass an `is.data.frame()` check if tested last.
+
+**History entry construction** (append pattern for each path):
+```r
+new_entry <- list(
+  step      = length(attr(result, "weighting_history")) + 1L,  # or result@metadata@weighting_history for S7
+  timestamp = Sys.time(),
+  operation = "fn_name"
+  # additional function-specific fields follow
+)
+
+# weighted_df path:
+attr(result, "weighting_history") <- c(
+  attr(result, "weighting_history"),
+  list(new_entry)
+)
+
+# survey_nonprob path:
+meta <- result@metadata
+meta@weighting_history <- c(meta@weighting_history, list(new_entry))
+result@metadata <- meta
 ```
 
 ---
@@ -301,24 +368,37 @@ For the full inline markup reference (50+ classes, pluralization, progress bars,
 ### Return value visibility
 | Function type | Return |
 |---------------|--------|
-| Setters: `set_var_label()`, `set_variable_labels()`, `update_design()` | `invisible(x)` |
-| Constructors: `as_survey()`, `as_survey_rep()` | Visible (the new object) |
-| Extractors: `extract_var_label()`, `extract_val_labels()` | Visible |
-| Print/summary: `S7::method(print, ...)` | `invisible(x)` |
-| Validators (internal): `.validate_weights()` etc. | `invisible(TRUE)` on success |
+| Calibration functions: `calibrate_rake()`, `poststratify()`, etc. | Visible (updated object, same class as input) |
+| Nonresponse functions: `adjust_nonresponse()`, `redistribute_weights()` | Visible (updated object, same class as input) |
+| Utility functions: `trim_weights()`, `stabilize_weights()` | Visible (updated object, same class as input) |
+| Diagnostic functions: `effective_sample_size()`, `weight_variability()`, `summarize_weights()` | Visible (named scalar or tibble) |
+| `ipw()` — always returns `survey_nonprob` regardless of input class | Visible (`survey_nonprob`) |
+| Print methods: `S7::method(print, surveycore::survey_nonprob)`, etc. | `invisible(x)` |
+| Internal validators: `.validate_weights()`, `.validate_wt_name()`, etc. | `invisible(TRUE)` on success |
+| Internal constructors: `.make_weighted_df()` | Visible (the new object) |
 
 ```r
-# Setter — always invisible
-set_var_label.survey_base <- function(x, var, label) {
-  var_name <- rlang::as_name(rlang::enquo(var))
-  x@metadata@variable_labels[[var_name]] <- label
-  invisible(x)
+# Weighting function — always returns visible, same class as input
+trim_weights <- function(data, weights = NULL, lower = NULL, upper = NULL, ...) {
+  # ... implementation ...
+  result  # visible — no invisible()
 }
 
-# Getter — always visible
-extract_var_label.survey_base <- function(x, var) {
-  var_name <- rlang::as_name(rlang::enquo(var))
-  x@metadata@variable_labels[[var_name]]
+# Diagnostic function — visible scalar or tibble
+effective_sample_size <- function(x, weights = NULL) {
+  # ...
+  ess  # visible
+}
+
+# Internal validator — invisible(TRUE) on success, cli_abort() on failure
+.validate_wt_name <- function(wt_name) {
+  if (!is.character(wt_name) || length(wt_name) != 1L) {
+    cli::cli_abort(
+      c("x" = "{.arg wt_name} must be a single character string."),
+      class = "surveywts_error_wt_name_invalid"
+    )
+  }
+  invisible(TRUE)
 }
 ```
 
@@ -334,61 +414,49 @@ Full precedence:
 6. `...`
 
 ```r
-# as_survey_rep: data (1), weights (2, required), repweights (2, required),
-#                type (3, required scalar), then optional scalars
-as_survey_rep <- function(
+# ipw: data (1), reference (2, required), then optional args
+ipw <- function(
   data,
-  weights,
-  repweights,
-  type = c("JK1", "JK2", "JKn", "BRR", "Fay", "bootstrap", ...),
-  scale = NULL,
-  rscales = NULL,
-  fpc = NULL,
-  fpctype = c("fraction", "correction"),
-  mse = TRUE
+  reference,
+  selection = NULL,
+  predictors = NULL,
+  missing_method = c("omit", "separate", "impute"),
+  method = "logit",
+  estimating_eq = c("mle", "gee"),
+  maxit = 25L,
+  epsilon = 1e-8,
+  trim = FALSE,
+  population_size = NULL,
+  wt_name = "ipw_weight"
 )
 
-# set_var_label: x (1), var (2, required NSE), label (3, required scalar)
-set_var_label <- function(x, var, label)
+# calibrate_rake: data (1), targets (2, required), weights (3, optional NSE),
+#                 then optional scalars
+calibrate_rake <- function(
+  data,
+  targets,
+  weights = NULL,
+  wt_name = "wts",
+  type = c("prop", "count"),
+  algorithm = c("classic_ipf", "nr"),
+  cap = NULL,
+  control = list(),
+  reference_design = NULL
+)
 ```
 
 ### Dispatch rule
-**One rule: who owns the generic?**
+
+surveywts functions are plain R functions — not S7 generics, not S3 generics. Type dispatch
+is always explicit via `S7::S7_inherits()` or `inherits()`.
 
 | Situation | Use |
 |-----------|-----|
-| Extending an existing generic (`print`, `summary`, `format`, `rename`, `filter`, `select`, etc.) | `S7::method(generic, class) <- function(...) { }` |
-| Creating a new generic owned by surveywts (e.g., own constructor or extractor functions) | Plain function + `S7::S7_inherits()` for type validation |
+| Type checking a surveycore S7 object | `S7::S7_inherits(x, surveycore::survey_nonprob)` |
+| Type checking `weighted_df` | `inherits(x, "weighted_df")` |
+| Registering a print method for a surveycore class | `S7::method(print, surveycore::survey_nonprob) <- function(x, ...) { }` in `methods-print.R` |
 
-**Important:** S3 dispatch does NOT work for S7 objects. S7 uses namespaced class names
-(`"surveywts::my_class"`). `UseMethod()` would look for a method named
-`my_fn.surveywts::my_class`, which is not a legal R function name.
-Use a plain function with explicit `S7::S7_inherits()` type checking instead.
-
-```r
-# CORRECT — extending print (existing generic)
-S7::method(print, my_class) <- function(x, ...) { ... }
-
-# CORRECT — new surveywts-owned generic
-# Plain function; S7::S7_inherits() validates the type explicitly.
-my_fn <- function(x, ...) {
-  if (!S7::S7_inherits(x, my_class)) {
-    cli::cli_abort(
-      c("x" = "{.arg x} must be a surveywts object."),
-      class = "surveywts_error_not_weights_object"
-    )
-  }
-  # implementation
-}
-
-# WRONG — UseMethod() cannot find name.surveywts::my_class methods
-my_fn <- function(x, ...) UseMethod("my_fn")
-my_fn.my_class <- function(x, ...) { ... }  # never dispatched
-
-# WRONG — S3 dispatch silently ignored for S7 objects when generic is S7-aware
-print.my_class <- function(x, ...) { ... }   # never dispatched
-summary.my_class <- function(object, ...) { ... }    # never dispatched
-```
+Never use `UseMethod()` in surveywts — S3 dispatch does not work for S7 objects.
 
 ### Internal helper placement
 | Helper used in... | Lives in... |
@@ -409,7 +477,7 @@ non-obvious behavior, constraints, interactions, or where `NULL` has a
 non-obvious effect.
 
 ### Required tags on all exported functions
-- `@return` — required on every exported function
+- `@returns` — required on every exported function
 - `@examples` — must run during `R CMD check`; no `\dontrun{}`; use small
   inline datasets for slow examples
 - `@family` — group exports by type (e.g., `calibration`, `diagnostics`)
@@ -440,7 +508,7 @@ result <- enquo(x)  # requires @importFrom rlang enquo
 ### NAMESPACE hygiene
 - Never manually edit `NAMESPACE` — 100% generated by `devtools::document()`
 - Run `devtools::document()` before committing any file that changes roxygen2
-- Export policy: user-facing functions + S7 classes only; no re-exports
+- Export policy: user-facing functions only; surveywts defines no S7 class objects; no re-exports
 - Run `devtools::check()` before opening a PR; CI uses `--as-cran`
 
 ### R CMD check targets

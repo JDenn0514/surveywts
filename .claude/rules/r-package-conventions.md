@@ -19,98 +19,17 @@ This document covers conventions that apply to **all surveyverse R packages**. F
 | `R CMD check` | 0 errors, 0 warnings, ≤2 pre-approved notes |
 | Export policy | User-facing functions + S7 classes only |
 | Re-exports | None — no pipe, no tidyselect helpers |
-| Internal function docs | `@keywords internal` + `@noRd` for complex helpers |
-| `@return` | Required on all exported functions |
-| `@examples` | All runnable — no `\dontrun{}` |
+| Function docs (roxygen2) | See `function-documentation.md` in each package |
 | Version pinning | Minimum versions only (e.g., `cli (>= 3.6.0)`) |
 | Dataset `@format` | Single `\describe{}` block; every column must have `\item{}` |
 
 ---
 
-## 1. Documentation (Roxygen2)
+## 1. Function Documentation (Roxygen2)
 
-### `@param` verbosity: variable by complexity
-
-Write `@param` descriptions proportional to how non-obvious the argument is.
-
-**Terse** (one sentence) for simple, self-evident arguments:
-```r
-#' @param data A data.frame.
-#' @param label A character string.
-#' @param ... Additional arguments (currently unused).
-```
-
-**Fuller** for arguments with non-obvious behavior, constraints, or interactions:
-```r
-#' @param weights <[`tidy-select`][tidyselect::language]> Column(s) for
-#'   survey weights. If multiple columns, they are combined. Cannot contain
-#'   `NA`. Default `NULL` (uniform weights).
-```
-
-Arguments that **always** get fuller treatment:
-- Any argument that interacts with another argument (mutual exclusion, dependency)
-- Arguments where `NULL` has non-obvious behavior
-- Arguments that accept multiple interpretations
-- Arguments with valid value constraints
-
-### `@return` required on all exports
-
-Every exported function must have `@return`. Write terse returns for obvious cases:
-
-```r
-#' @return A survey design object.
-#' @return A data.frame of results.
-#' @return A character string, or `NULL` if not set.
-#' @return The modified object, invisibly.
-```
-
-### `@examples`: all runnable
-
-Every example must run successfully during `R CMD check`. Do not use `\dontrun{}` except for examples that genuinely require external resources (e.g., live database connection).
-
-If an example is slow, use a smaller inline dataset instead of `\dontrun{}`:
-
-```r
-#' @examples
-#' # Small inline example (preferred)
-#' df <- data.frame(id = 1:10, y = rnorm(10))
-#' result <- my_function(df)
-```
-
-### `@family` grouping
-
-Organize exported functions into families using `@family`:
-
-```r
-#' @family constructors
-as_survey <- function(...) { ... }
-
-#' @family selectors
-select <- function(...) { ... }
-```
-
-See package-specific conventions for exact family definitions.
-
-### Internal function documentation
-
-| Helper complexity | Documentation |
-|-------------------|---------------|
-| Obvious one-liner | No roxygen at all |
-| Complex enough to need explanation | `@keywords internal` + `@noRd` |
-
-```r
-# One-liner — no roxygen needed
-.get_col <- function(x, col) x[[col]]
-
-# Complex helper — document but suppress .Rd
-#' Validate survey design structure
-#'
-#' @param x A survey design object.
-#' @return Invisibly, `TRUE` on success (errors otherwise).
-#' @keywords internal
-#' @noRd
-.validate_design <- function(x) { ... }
-```
+For function-level roxygen2 documentation — titles, descriptions, `@param`, `@returns`,
+`@details`, named sections, `@references`, `@seealso`, `@examples`, and internal helper
+docs — see `function-documentation.md` in each package.
 
 ---
 
@@ -358,10 +277,9 @@ Every surveyverse package has a documented entry point:
 2. Never manually edit `NAMESPACE` — use roxygen2
 3. Run `devtools::document()` before committing code with roxygen changes
 4. Run `devtools::check()` before opening PRs
-5. Write `@return` on every exported function
-6. Keep `@examples` runnable (no `\dontrun{}`)
-7. Export user-facing functions and S7 classes only
-8. For datasets: one `\describe{}` block in `@format`; every column must have
+5. Export user-facing functions and S7 classes only
+6. For datasets: one `\describe{}` block in `@format`; every column must have
    `\item{}`; never split into multiple blocks
 
+**For function-level roxygen2 documentation**, see `function-documentation.md` in each package.
 **For package-specific details**, see the local conventions file in each package.

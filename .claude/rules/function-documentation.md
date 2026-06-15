@@ -185,6 +185,10 @@ Required (not optional) in three cases:
 examples cannot use existing package data as-is, flag the relevant dataset for
 remediation in planning docs — do not substitute inline data as a workaround.
 
+**`\dontrun{}`** Do not use `\dontrun{}` except for examples that genuinely
+require external resources (e.g., a live database connection or network call).
+Every other example must run successfully during `R CMD check`.
+
 **Required content:**
 
 - Always: the simplest working call using a `data.frame` input with package data
@@ -231,6 +235,27 @@ cases belong in a vignette rather than `@examples`.
   of the above
 - When uncertain: if the formula renders ambiguously as monospace code, use
   `\eqn{}` or `\deqn{}`
+
+### Internal Function Documentation
+
+| Helper complexity | Documentation |
+|-------------------|---------------|
+| Obvious one-liner | No roxygen at all |
+| Complex enough to need explanation | `@keywords internal` + `@noRd` |
+
+```r
+# One-liner — no roxygen needed
+.get_col <- function(x, col) x[[col]]
+
+# Complex helper — document but suppress .Rd
+#' Validate survey design structure
+#'
+#' @param x A survey design object.
+#' @returns Invisibly, `TRUE` on success (errors otherwise).
+#' @keywords internal
+#' @noRd
+.validate_design <- function(x) { ... }
+```
 
 ---
 

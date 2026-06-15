@@ -24,9 +24,12 @@ templates (organized by function in subsections XII.A through XII.G).
 
 | Class | Thrown by | Condition |
 |-------|-----------|-----------|
-| `surveywts_error_primary_not_replicate` | `calibrate_to_survey()` | `primary_design` is not `survey_replicate` |
-| `surveywts_error_control_not_replicate` | `calibrate_to_survey()` | `control_design` is not `survey_replicate` |
-| `surveywts_error_design_not_replicate` | `calibrate_to_estimate()` | `design` is not `survey_replicate` |
+| `surveywts_error_primary_not_replicate` | `calibrate_to_survey()` | `primary_design` is not `survey_replicate` or `survey_nonprob` with replicate weights |
+| `surveywts_error_control_not_replicate` | `calibrate_to_survey()` | `control_design` is not `survey_replicate` or `survey_nonprob` with replicate weights |
+| `surveywts_error_design_not_replicate` | `calibrate_to_estimate()` | `design` is not `survey_replicate` or `survey_nonprob` with replicate weights |
+| `surveywts_error_primary_no_repweights` | `calibrate_to_survey()` | `primary_design` is `survey_nonprob` but `@variables$repweights` is `NULL` or length-0 |
+| `surveywts_error_control_no_repweights` | `calibrate_to_survey()` | `control_design` is `survey_nonprob` but `@variables$repweights` is `NULL` or length-0 |
+| `surveywts_error_design_no_repweights` | `calibrate_to_estimate()` | `design` is `survey_nonprob` but `@variables$repweights` is `NULL` or length-0 |
 | `surveywts_error_reference_design_not_taylor` | `calibrate_to_survey()`, `calibrate_to_estimate()` | `reference_design` is non-NULL but not `survey_taylor` |
 | `surveywts_error_unit_scale_invalid` | `calibrate_to_survey()`, `calibrate_to_estimate()` | `unit_scale` non-NULL and not numeric, wrong length, has NA, or non-positive values |
 | `surveywts_error_variables_not_found` | `calibrate_to_survey()`, `calibrate_to_estimate()` | Variable absent from data, or empty tidy-select result |

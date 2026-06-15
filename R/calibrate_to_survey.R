@@ -12,10 +12,13 @@
 #' uncertainty of the control survey's estimates into the calibrated primary
 #' design.
 #'
-#' @param primary_design A `survey_replicate` object. The design to be
-#'   calibrated. Must have replicate weights.
-#' @param control_design A `survey_replicate` object. The reference survey
-#'   from which population totals are estimated. Must have replicate weights.
+#' @param primary_design A `survey_replicate` or `survey_nonprob` object with
+#'   replicate weights. The design to be calibrated. Must have replicate
+#'   weights populated.
+#' @param control_design A `survey_replicate` or `survey_nonprob` object with
+#'   replicate weights. The reference survey from which population totals are
+#'   estimated. Must have replicate weights populated. Does not affect the
+#'   class of the returned object.
 #' @param variables <[`tidy-select`][tidyselect::language]> Bare names of the
 #'   calibration variables in `primary_design@data`. Must be present in both
 #'   `primary_design` and `control_design`.
@@ -36,16 +39,20 @@
 #'     primary-to-control replicate matching; not stored in history.
 #'   Unknown keys trigger a `surveywts_warning_control_param_ignored` warning.
 #'
-#' @return A `survey_replicate` object with updated full-sample and replicate
-#'   weights. A history entry with `operation = "calibrate_to_survey"` is
-#'   appended to `@metadata@weighting_history`.
+#' @returns A calibrated design object. The class of the returned object
+#'   matches the class of `primary_design`: a `survey_nonprob` input returns
+#'   a `survey_nonprob`; a `survey_replicate` input returns a
+#'   `survey_replicate`. Updated full-sample and replicate weights are written
+#'   back. A new entry with `operation = "calibrate_to_survey"` is appended
+#'   to the weighting history.
 #'
 #' @details
-#'   Both `primary_design` and `control_design` must be `survey_replicate`
-#'   objects because replicate weights are required to propagate the
-#'   uncertainty of the control survey's estimated totals into the variance
-#'   of the calibrated design. Taylor-linearization designs are not
-#'   sufficient for this purpose.
+#'   Both `primary_design` and `control_design` must carry replicate weights
+#'   — either as `survey_replicate` objects or as `survey_nonprob` objects to
+#'   which replicate weights have been added. Taylor-linearization designs are
+#'   not sufficient for this purpose because replicate weights are required to
+#'   propagate the uncertainty of the control survey's estimated totals into
+#'   the variance of the calibrated design.
 #'
 #'   When `method = "logit"`, finite bounds are required by the algorithm;
 #'   the default `c(-Inf, Inf)` is passed through and svrep applies logit
@@ -132,13 +139,17 @@ calibrate_to_survey <- function(
   method   <- rlang::arg_match(method)
 
   # ---- 1. primary_design class check ----------------------------------------
-  if (!S7::S7_inherits(primary_design, surveycore::survey_replicate)) {
+  is_nonprob_primary <- S7::S7_inherits(
+    primary_design, surveycore::survey_nonprob
+  )
+  if (!S7::S7_inherits(primary_design, surveycore::survey_replicate) &&
+      !is_nonprob_primary) {
     cls <- class(primary_design)[[1L]]
     cli::cli_abort(
       c(
         "x" = paste0(
-          "{.arg primary_design} must be a {.cls survey_replicate}, ",
-          "got {.cls {cls}}."
+          "{.arg primary_design} must be a {.cls survey_replicate} or a ",
+          "{.cls survey_nonprob} with replicate weights, got {.cls {cls}}."
         ),
         "i" = paste0(
           "Replicate weights are required to propagate control-survey ",
@@ -146,21 +157,49 @@ calibrate_to_survey <- function(
         ),
         "v" = paste0(
           "Use {.fn create_bootstrap_weights} or another ",
-          "{.fn create_*_weights} function to add replicate weights."
+          "{.fn create_*_weights} function to add replicate weights ",
+          "before calibrating."
         )
       ),
       class = "surveywts_error_primary_not_replicate"
     )
   }
+  if (is_nonprob_primary) {
+    rw <- primary_design@variables$repweights
+    if (is.null(rw) || length(rw) == 0L) {
+      cli::cli_abort(
+        c(
+          "x" = paste0(
+            "{.arg primary_design} is a {.cls survey_nonprob} but has ",
+            "no replicate weights."
+          ),
+          "i" = paste0(
+            "Replicate weights are required to propagate control-survey ",
+            "uncertainty."
+          ),
+          "v" = paste0(
+            "Use {.fn create_bootstrap_weights} or another ",
+            "{.fn create_*_weights} function to add replicate weights ",
+            "before calibrating."
+          )
+        ),
+        class = "surveywts_error_primary_no_repweights"
+      )
+    }
+  }
 
   # ---- 2. control_design class check ----------------------------------------
-  if (!S7::S7_inherits(control_design, surveycore::survey_replicate)) {
+  is_nonprob_control <- S7::S7_inherits(
+    control_design, surveycore::survey_nonprob
+  )
+  if (!S7::S7_inherits(control_design, surveycore::survey_replicate) &&
+      !is_nonprob_control) {
     cls <- class(control_design)[[1L]]
     cli::cli_abort(
       c(
         "x" = paste0(
-          "{.arg control_design} must be a {.cls survey_replicate}, ",
-          "got {.cls {cls}}."
+          "{.arg control_design} must be a {.cls survey_replicate} or a ",
+          "{.cls survey_nonprob} with replicate weights, got {.cls {cls}}."
         ),
         "i" = paste0(
           "Replicate weights are required to propagate control-survey ",
@@ -173,6 +212,28 @@ calibrate_to_survey <- function(
       ),
       class = "surveywts_error_control_not_replicate"
     )
+  }
+  if (is_nonprob_control) {
+    rw <- control_design@variables$repweights
+    if (is.null(rw) || length(rw) == 0L) {
+      cli::cli_abort(
+        c(
+          "x" = paste0(
+            "{.arg control_design} is a {.cls survey_nonprob} but has ",
+            "no replicate weights."
+          ),
+          "i" = paste0(
+            "Replicate weights are required to propagate control-survey ",
+            "uncertainty."
+          ),
+          "v" = paste0(
+            "Use {.fn create_bootstrap_weights} or another ",
+            "{.fn create_*_weights} function to add replicate weights."
+          )
+        ),
+        class = "surveywts_error_control_no_repweights"
+      )
+    }
   }
 
   # ---- 3. reference_design check (if non-NULL) ------------------------------
@@ -412,11 +473,20 @@ calibrate_to_survey <- function(
     new_data[[rn]] <- rep_df[[rn]]
   }
 
-  result <- surveycore::survey_replicate(
-    data      = new_data,
-    variables = primary_design@variables,
-    metadata  = primary_design@metadata
-  )
+  # ---- 11. Dispatch on primary_design class for output constructor -----------
+  if (S7::S7_inherits(primary_design, surveycore::survey_nonprob)) {
+    result <- surveycore::survey_nonprob(
+      data      = new_data,
+      variables = primary_design@variables,
+      metadata  = primary_design@metadata
+    )
+  } else {
+    result <- surveycore::survey_replicate(
+      data      = new_data,
+      variables = primary_design@variables,
+      metadata  = primary_design@metadata
+    )
+  }
   meta                   <- result@metadata
   meta@weighting_history <- c(meta@weighting_history, list(history_entry))
   result@metadata        <- meta
@@ -428,8 +498,8 @@ calibrate_to_survey <- function(
 # Internal helpers used by calibrate_to_survey() and calibrate_to_estimate()
 # ---------------------------------------------------------------------------
 
-# Convert a survey_replicate S7 object to a survey package svyrep.design
-# object that svrep can consume.
+# Convert a survey_replicate or survey_nonprob S7 object to a survey package
+# svyrep.design object that svrep can consume.
 .to_svyrep <- function(design) {
   wt_col   <- design@variables$weights
   rep_cols <- design@variables$repweights

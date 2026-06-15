@@ -4,9 +4,9 @@
       calibrate_to_survey(taylor, control, variables = c(sex))
     Condition
       Error in `calibrate_to_survey()`:
-      x `primary_design` must be a <survey_replicate>, got <surveycore::survey_taylor>.
+      x `primary_design` must be a <survey_replicate> or a <survey_nonprob> with replicate weights, got <surveycore::survey_taylor>.
       i Replicate weights are required to propagate control-survey uncertainty.
-      v Use `create_bootstrap_weights()` or another `create_*_weights()` function to add replicate weights.
+      v Use `create_bootstrap_weights()` or another `create_*_weights()` function to add replicate weights before calibrating.
 
 # calibrate_to_survey() rejects non-replicate control_design
 
@@ -14,7 +14,7 @@
       calibrate_to_survey(primary, taylor, variables = c(sex))
     Condition
       Error in `calibrate_to_survey()`:
-      x `control_design` must be a <survey_replicate>, got <surveycore::survey_taylor>.
+      x `control_design` must be a <survey_replicate> or a <survey_nonprob> with replicate weights, got <surveycore::survey_taylor>.
       i Replicate weights are required to propagate control-survey uncertainty.
       v Use `create_bootstrap_weights()` or another `create_*_weights()` function to add replicate weights.
 
@@ -109,7 +109,7 @@
       calibrate_to_estimate(taylor, targets, vcov_est)
     Condition
       Error in `calibrate_to_estimate()`:
-      x `design` must be a <survey_replicate>, got <surveycore::survey_taylor>.
+      x `design` must be a <survey_replicate> or a <survey_nonprob> with replicate weights, got <surveycore::survey_taylor>.
       i Replicate weights are required to propagate the uncertainty of the external estimates.
       v Use `create_bootstrap_weights()` or another `create_*_weights()` function to add replicate weights.
 
@@ -273,4 +273,36 @@
       Error in `value[[3L]]()`:
       x svrep::calibrate_to_estimate() encountered an error.
       i svrep reported: svrep internal error
+
+# calibrate_to_survey() fires surveywts_error_primary_no_repweights
+
+    Code
+      calibrate_to_survey(primary_design = primary_no_rep, control_design = control,
+        variables = c(sex))
+    Condition
+      Error in `calibrate_to_survey()`:
+      x `primary_design` is a <survey_nonprob> but has no replicate weights.
+      i Replicate weights are required to propagate control-survey uncertainty.
+      v Use `create_bootstrap_weights()` or another `create_*_weights()` function to add replicate weights before calibrating.
+
+# calibrate_to_survey() fires surveywts_error_control_no_repweights
+
+    Code
+      calibrate_to_survey(primary_design = primary, control_design = control_no_rep,
+        variables = c(sex))
+    Condition
+      Error in `calibrate_to_survey()`:
+      x `control_design` is a <survey_nonprob> but has no replicate weights.
+      i Replicate weights are required to propagate control-survey uncertainty.
+      v Use `create_bootstrap_weights()` or another `create_*_weights()` function to add replicate weights.
+
+# calibrate_to_estimate() fires surveywts_error_design_no_repweights
+
+    Code
+      calibrate_to_estimate(design_no_rep, targets, vcov_est)
+    Condition
+      Error in `calibrate_to_estimate()`:
+      x `design` is a <survey_nonprob> but has no replicate weights.
+      i Replicate weights are required to propagate the uncertainty of the external estimates.
+      v Use `create_bootstrap_weights()` or another `create_*_weights()` function to add replicate weights before calibrating.
 

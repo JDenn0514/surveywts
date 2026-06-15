@@ -16,11 +16,14 @@ calibrate_to_survey(
 )
 }
 \arguments{
-\item{primary_design}{A \code{survey_replicate} object. The design to be
-calibrated. Must have replicate weights.}
+\item{primary_design}{A \code{survey_replicate} or \code{survey_nonprob} object with
+replicate weights. The design to be calibrated. Must have replicate
+weights populated.}
 
-\item{control_design}{A \code{survey_replicate} object. The reference survey
-from which population totals are estimated. Must have replicate weights.}
+\item{control_design}{A \code{survey_replicate} or \code{survey_nonprob} object with
+replicate weights. The reference survey from which population totals are
+estimated. Must have replicate weights populated. Does not affect the
+class of the returned object.}
 
 \item{variables}{<\code{\link[tidyselect:language]{tidy-select}}> Bare names of the
 calibration variables in \code{primary_design@data}. Must be present in both
@@ -50,9 +53,12 @@ Unknown keys trigger a \code{surveywts_warning_control_param_ignored} warning.
 }}
 }
 \value{
-A \code{survey_replicate} object with updated full-sample and replicate
-weights. A history entry with \code{operation = "calibrate_to_survey"} is
-appended to \verb{@metadata@weighting_history}.
+A calibrated design object. The class of the returned object
+matches the class of \code{primary_design}: a \code{survey_nonprob} input returns
+a \code{survey_nonprob}; a \code{survey_replicate} input returns a
+\code{survey_replicate}. Updated full-sample and replicate weights are written
+back. A new entry with \code{operation = "calibrate_to_survey"} is appended
+to the weighting history.
 }
 \description{
 Adjusts the full-sample and replicate weights of \code{primary_design} so that
@@ -62,11 +68,12 @@ uncertainty of the control survey's estimates into the calibrated primary
 design.
 }
 \details{
-Both \code{primary_design} and \code{control_design} must be \code{survey_replicate}
-objects because replicate weights are required to propagate the
-uncertainty of the control survey's estimated totals into the variance
-of the calibrated design. Taylor-linearization designs are not
-sufficient for this purpose.
+Both \code{primary_design} and \code{control_design} must carry replicate weights
+— either as \code{survey_replicate} objects or as \code{survey_nonprob} objects to
+which replicate weights have been added. Taylor-linearization designs are
+not sufficient for this purpose because replicate weights are required to
+propagate the uncertainty of the control survey's estimated totals into
+the variance of the calibrated design.
 
 When \code{method = "logit"}, finite bounds are required by the algorithm;
 the default \code{c(-Inf, Inf)} is passed through and svrep applies logit

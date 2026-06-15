@@ -23,6 +23,7 @@ This document covers conventions that apply to **all surveyverse R packages**. F
 | `@return` | Required on all exported functions |
 | `@examples` | All runnable — no `\dontrun{}` |
 | Version pinning | Minimum versions only (e.g., `cli (>= 3.6.0)`) |
+| Dataset `@format` | Single `\describe{}` block; every column must have `\item{}` |
 
 ---
 
@@ -113,7 +114,74 @@ See package-specific conventions for exact family definitions.
 
 ---
 
-## 2. NAMESPACE & Exports
+## 2. Dataset Documentation
+
+### The codoc rule: one `\describe{}` block, all columns
+
+R CMD check's `codoc` tool checks that every column in a bundled data frame
+has a matching `\item{}` entry in the documentation. It has two critical
+behaviours:
+
+1. **It only reads the FIRST `\describe{}` block** in the `@format` section.
+   Any additional `\describe{}` blocks (e.g., for a "Benchmark variables"
+   subsection) are silently ignored by `codoc`.
+2. **It requires bidirectional coverage**: every column in the data must be
+   documented, and every documented item must exist in the data.
+
+**Result of violations:** `checking for code/documentation mismatches ... WARNING`, which blocks CI.
+
+### Rules
+
+- Every data frame column must have a `\item{}` entry — no "key columns only"
+  approach with a note about undocumented columns.
+- Use **exactly one `\describe{}` block** in the `@format` section, regardless
+  of how many conceptual groups the columns fall into.
+- If you want to group columns (e.g., "Benchmark variables"), do it with
+  narrative prose inside the `@description`, not with a second `\describe{}`.
+
+```r
+# Correct — single \describe{} block, all columns covered
+#' @format A data frame with 500 rows and 6 columns:
+#' \describe{
+#'   \item{id}{Integer. Row identifier.}
+#'   \item{gender}{Numeric. 1 = Male, 2 = Female.}
+#'   \item{age}{Numeric. Age in years.}
+#'   \item{registered}{Integer. Registered to vote: 1 = Yes, 0 = No.}
+#'   \item{vote14}{Integer. Voted in 2014: 1 = Yes, 0 = No.}
+#'   \item{weight}{Numeric. Survey weight.}
+#' }
+
+# Wrong — second \describe{} block is invisible to codoc
+#' @format A data frame with 500 rows and 6 columns. Key columns:
+#' \describe{
+#'   \item{id}{Integer. Row identifier.}
+#'   \item{gender}{Numeric. 1 = Male, 2 = Female.}
+#'   \item{age}{Numeric. Age in years.}
+#' }
+#'
+#' Benchmark variables:
+#' \describe{
+#'   \item{registered}{Integer. Registered to vote: 1 = Yes, 0 = No.}
+#'   \item{vote14}{Integer. Voted in 2014: 1 = Yes, 0 = No.}
+#'   \item{weight}{Numeric. Survey weight.}
+#' }
+```
+
+### Workflow for new datasets
+
+Before writing roxygen2 for a new dataset, run:
+
+```r
+names(my_dataset)  # get the full column list
+```
+
+Then write one `\item{}` per column. Use `attr(my_dataset[[col]], "label")`
+to get the original variable label if the dataset came from an SPSS/Stata
+file.
+
+---
+
+## 3. NAMESPACE & Exports
 
 ### Export policy: user-facing functions + S7 classes
 
@@ -293,5 +361,7 @@ Every surveyverse package has a documented entry point:
 5. Write `@return` on every exported function
 6. Keep `@examples` runnable (no `\dontrun{}`)
 7. Export user-facing functions and S7 classes only
+8. For datasets: one `\describe{}` block in `@format`; every column must have
+   `\item{}`; never split into multiple blocks
 
 **For package-specific details**, see the local conventions file in each package.

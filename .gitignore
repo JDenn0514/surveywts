@@ -52,3 +52,11 @@ docs
 .quarto
 .Rproj.user
 .claude/settings.local.json
+
+# Pipeline workspace (runtime artifacts — not committed)
+.surveywts-workspace/
+
+# Raw data files (large; not committed — run data-raw scripts to regenerate)
+data-raw/pew_2016/
+
+/.quarto/

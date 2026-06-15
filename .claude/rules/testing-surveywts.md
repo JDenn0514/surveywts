@@ -23,15 +23,22 @@ only what is specific to surveywts.
 
 ## File Mapping
 
-| Source file | Test file |
+| Source file(s) | Test file |
 |---|---|
-| `R/classes.R` + `R/constructors.R` | `tests/testthat/test-00-classes.R` |
+| `R/weighted-df-dplyr.R` + constructors | `tests/testthat/test-00-classes.R` |
 | `R/calibrate.R` | `tests/testthat/test-02-calibrate.R` |
 | `R/rake.R` | `tests/testthat/test-03-rake.R` |
 | `R/poststratify.R` | `tests/testthat/test-04-poststratify.R` |
-| `R/nonresponse.R` | `tests/testthat/test-05-nonresponse.R` |
-| `R/diagnostics.R` | `tests/testthat/test-06-diagnostics.R` |
-| `R/utils.R` | (tested indirectly via PRs 5–9; no direct test file) |
+| `R/adjust_nonresponse.R`, `R/redistribute_weights.R`, `R/nonresponse-utils.R` | `tests/testthat/test-05-nonresponse.R` |
+| `R/effective_sample_size.R`, `R/weight_variability.R`, `R/summarize_weights.R`, `R/diagnostics-utils.R` | `tests/testthat/test-06-diagnostics.R` |
+| `R/calibrate_to_survey.R`, `R/calibrate_to_estimate.R` | `tests/testthat/test-sample-calibration.R` |
+| `R/trim_weights.R`, `R/stabilize_weights.R`, `R/weight-utils.R` | `tests/testthat/test-weight-utils.R` |
+| `R/create_bootstrap_weights.R`, and other `create_*_weights.R`, `R/replicate-utils.R` | `tests/testthat/test-replicate-weights.R` |
+| `R/create_replicate_weights.R`, `R/as_taylor_design.R` | `tests/testthat/test-replicate-dispatch.R` |
+| `R/methods-print.R` | `tests/testthat/test-replicate-print.R` |
+| `R/ipw.R` | `tests/testthat/test-nonprob-ipw.R` |
+| `R/create_group_jackknife_weights.R` | `tests/testthat/test-nps-group-jackknife.R` |
+| `R/utils.R` | (tested indirectly via all test files) |
 
 ---
 

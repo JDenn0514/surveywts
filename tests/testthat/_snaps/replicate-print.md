@@ -18,7 +18,7 @@
         CV:     0.40
       
       Weighting history:
-        #   Step 1 [2026-05-06]: replicate_creation (method = "bootstrap", type = "Rao-Wu-Yue-Beaumont", replicates = 50)
+        #   Step 1 [2025-01-15]: replicate_creation (method = "bootstrap", type = "Rao-Wu-Yue-Beaumont", replicates = 50)
 
 # print(survey_replicate) JKn stratified delete-1 snapshot
 
@@ -40,7 +40,7 @@
         CV:     0.40
       
       Weighting history:
-        #   Step 1 [2026-05-06]: replicate_creation (method = "jackknife", type = "JKn")
+        #   Step 1 [2025-01-15]: replicate_creation (method = "jackknife", type = "JKn")
 
 # print(survey_replicate) BRR snapshot
 
@@ -62,7 +62,7 @@
         CV:     0.40
       
       Weighting history:
-        #   Step 1 [2026-05-06]: replicate_creation (method = "brr")
+        #   Step 1 [2025-01-15]: replicate_creation (method = "brr")
 
 # print(survey_replicate) two-entry history snapshot
 
@@ -84,6 +84,6 @@
         CV:     0.40
       
       Weighting history:
-        #   Step 1 [2026-05-06]: replicate_creation (method = "bootstrap", type = "Rao-Wu-Yue-Beaumont", replicates = 20)
-        #   Step 2 [2026-01-15]: calibration (variables: age_group, sex)
+        #   Step 1 [2025-01-15]: replicate_creation (method = "bootstrap", type = "Rao-Wu-Yue-Beaumont", replicates = 20)
+        #   Step 2 [2026-01-15]: calibration
 

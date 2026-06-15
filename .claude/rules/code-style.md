@@ -75,6 +75,23 @@ as_survey <- function(
 set_var_label <- function(x, var, label) {
 ```
 
+**`@examples` blocks:** `air` does not format roxygen2 comments. Wrap
+function calls manually when the `#' result <- fn(...)` line exceeds 80
+characters — break after the opening `(`, one argument per line, closing `)`
+on its own line:
+```r
+# Good — call fits on one line
+#' result <- ipw(nps, ref, selection = ~age + sex)
+
+# Good — call is too long; break after (
+#' result <- ipw(
+#'   npors_2025_ipw,
+#'   acs_ipw_ref,
+#'   selection = ~gender + age_group + race_ethn + educ,
+#'   missing_method = "omit"
+#' )
+```
+
 For long `cli_abort()` calls, break the named vector across lines:
 ```r
 cli::cli_abort(
@@ -376,29 +393,11 @@ summary.my_class <- function(object, ...) { ... }    # never dispatched
 ### Internal helper placement
 | Helper used in... | Lives in... |
 |-------------------|-------------|
-| Exactly 1 source file | Defined at the top of that file, before its first call site |
-| 2 or more source files | `R/utils.R` |
+| Exactly 1 source file | Inline in that function's `.R` file, **below** the exported function |
+| 2+ functions in the same family | `{family}-utils.R` |
+| 2+ functions across different families | `utils.R` |
 
-All internal helpers are **not exported** and prefixed with `.`:
-
-```r
-# In R/03-constructors.R — used only by as_survey()
-.check_probs_weights_consistency <- function(probs_var, weights_var, data, tol = 1e-6) {
-  ...
-}
-
-# In R/utils.R — used by constructors AND update_design()
-.get_design_vars_flat <- function(design) {
-  c(
-    design@variables$ids,
-    design@variables$weights,
-    design@variables$strata,
-    design@variables$fpc
-  )
-}
-```
-
-When a single-use inline helper grows a second call site, promote it to `utils.R` in the same PR that adds the second call.
+All internal helpers are **not exported** and prefixed with `.`.
 
 ---
 

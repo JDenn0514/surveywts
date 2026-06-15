@@ -20,6 +20,28 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_error_wt_name_not_scalar` | `.validate_wt_name()` | `wt_name` is not `character(1)` |
 | `surveywts_error_wt_name_empty` | `.validate_wt_name()` | `wt_name` is `NA` or `""` |
 
+### `calibrate_to_survey()` and `calibrate_to_estimate()`
+
+| Class | Thrown by | Condition |
+|-------|-----------|-----------|
+| `surveywts_error_primary_not_replicate` | `calibrate_to_survey()` | `primary_design` is not `survey_replicate` |
+| `surveywts_error_control_not_replicate` | `calibrate_to_survey()` | `control_design` is not `survey_replicate` |
+| `surveywts_error_design_not_replicate` | `calibrate_to_estimate()` | `design` is not `survey_replicate` |
+| `surveywts_error_reference_design_not_taylor` | `calibrate_to_survey()`, `calibrate_to_estimate()` | `reference_design` is non-NULL but not `survey_taylor` |
+| `surveywts_error_unit_scale_invalid` | `calibrate_to_survey()`, `calibrate_to_estimate()` | `unit_scale` non-NULL and not numeric, wrong length, has NA, or non-positive values |
+| `surveywts_error_variables_not_found` | `calibrate_to_survey()`, `calibrate_to_estimate()` | Variable absent from data, or empty tidy-select result |
+| `surveywts_error_targets_not_named_list` | `calibrate_to_estimate()` | `targets` is not a named list, any element name empty/missing, or empty list |
+| `surveywts_error_targets_element_not_named` | `calibrate_to_estimate()` | Any element of `targets` is not a named numeric vector |
+| `surveywts_error_targets_element_not_positive` | `calibrate_to_estimate()` | Any value in `targets` is ≤ 0 or `NA` |
+| `surveywts_error_targets_levels_mismatch` | `calibrate_to_estimate()` | Inner names of a `targets` element don't exactly match data levels |
+| `surveywts_error_vcov_has_na` | `calibrate_to_estimate()` | `vcov_estimate` contains `NA` |
+| `surveywts_error_vcov_dimension_mismatch` | `calibrate_to_estimate()` | `vcov_estimate` is not `k × k` where `k = length(unlist(targets))` |
+| `surveywts_error_vcov_not_symmetric` | `calibrate_to_estimate()` | `max(\|V - V^T\|) > 1e-8` |
+| `surveywts_error_vcov_cholesky_failed` | `calibrate_to_estimate()` | `chol(vcov_estimate)` fails (not positive definite) |
+| `surveywts_error_calibration_not_converged` | `calibrate_to_survey()`, `calibrate_to_estimate()` | svrep emits a convergence warning |
+| `surveywts_error_calibration_failed` | `calibrate_to_survey()`, `calibrate_to_estimate()` | svrep throws a hard error |
+| ~~`surveywts_error_replicate_count_mismatch`~~ | ~~`calibrate_to_survey()`~~ | **RETIRED** — replicate count mismatches no longer raise an error |
+
 ### `calibrate()`
 
 | Class | Thrown by | Condition |
@@ -110,9 +132,10 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_warning_already_taylor` | `as_taylor_design()` | Input is already `survey_taylor` |
 | `surveywts_warning_taylor_loses_variance` | `as_taylor_design()` | Converting drops replicate weights |
 | `surveywts_warning_weight_col_dropped` | `dplyr_reconstruct.weighted_df()` | dplyr verb removed the weight column from a `weighted_df` |
-| `surveywts_warning_negative_calibrated_weights` | `calibrate()` | Linear calibration produced negative calibrated weights |
+| `surveywts_warning_negative_calibrated_weights` | `calibrate()`, `calibrate_to_survey()`, `calibrate_to_estimate()` | Linear calibration produced negative calibrated weights |
 | `surveywts_warning_class_near_empty` | `adjust_nonresponse()` | A weighting class cell has fewer than `control$min_cell` respondents (default 20) OR adjustment factor exceeds `control$max_adjust` (default 2.0) |
-| `surveywts_warning_control_param_ignored` | `rake()` | A `control` parameter is not applicable to the specified `method` (e.g., `control$pval` with `method = "survey"`, or `control$epsilon` with `method = "anesrake"`) |
+| `surveywts_warning_control_param_ignored` | `rake()`, `calibrate_to_survey()`, `calibrate_to_estimate()` | A `control` parameter is not applicable to the function (unknown key) |
+| `surveywts_warning_replicate_scheme_mismatch` | `calibrate_to_survey()` | `primary_design` and `control_design` have different replicate scheme types |
 
 ## Messages
 

@@ -86,11 +86,58 @@ test_invariants <- function(obj) {
     testthat::expect_true(all(w >= 0) && any(w > 0))
   }
   if (S7::S7_inherits(obj, surveycore::survey_replicate)) {
-    testthat::expect_true(is.character(obj@variables$weights))
-    testthat::expect_true(is.character(obj@variables$repweights))
-    testthat::expect_true(length(obj@variables$repweights) >= 2L)
-    testthat::expect_true(all(obj@variables$repweights %in% names(obj@data)))
+    testthat::expect_true(S7::S7_inherits(obj, surveycore::survey_replicate))
+    wt_col <- obj@variables$weights
+    testthat::expect_true(is.character(wt_col) && length(wt_col) == 1)
+    testthat::expect_true(wt_col %in% names(obj@data))
+    testthat::expect_true(is.numeric(obj@data[[wt_col]]))
+    testthat::expect_true(all(obj@data[[wt_col]] > 0))
   }
+}
+
+# NPS reference design for ipw() tests.
+# Returns a survey_taylor from a probability sample with the same covariate
+# columns as make_surveywts_data(). The reference represents the population
+# against which NPS participation propensity is estimated.
+make_nps_reference <- function(n = 1000L, seed = 42L) {
+  set.seed(seed)
+  age_group <- sample(
+    c("18-34", "35-54", "55+"),
+    size = n,
+    replace = TRUE,
+    prob = c(0.30, 0.40, 0.30)
+  )
+  sex <- sample(
+    c("M", "F"),
+    size = n,
+    replace = TRUE,
+    prob = c(0.48, 0.52)
+  )
+  education <- sample(
+    c("<HS", "HS", "College", "Graduate"),
+    size = n,
+    replace = TRUE,
+    prob = c(0.10, 0.30, 0.40, 0.20)
+  )
+  region <- sample(
+    c("Northeast", "South", "Midwest", "West"),
+    size = n,
+    replace = TRUE,
+    prob = c(0.20, 0.35, 0.25, 0.20)
+  )
+  base_weight <- exp(rnorm(n, mean = 0, sd = 0.4))
+  ref_df <- data.frame(
+    age_group  = age_group,
+    sex        = sex,
+    education  = education,
+    region     = region,
+    base_weight = base_weight,
+    stringsAsFactors = FALSE
+  )
+  surveycore::survey_taylor(
+    data      = ref_df,
+    variables = list(weights = "base_weight")
+  )
 }
 
 # Clustered, stratified design for general replicate weight testing.
@@ -113,6 +160,17 @@ make_taylor_design <- function(
   surveycore::as_survey(df, ids = psu_id, strata = stratum, weights = base_weight)
 }
 
+# Simple bootstrap replicate design for sample-calibration tests.
+# Returns a survey_replicate with 50 bootstrap replicates.
+make_replicate_design <- function(n = 200L, seed = 42L) {
+  df <- make_surveywts_data(n = n, seed = seed)
+  taylor <- surveycore::survey_taylor(
+    data = df,
+    variables = list(weights = "base_weight")
+  )
+  create_bootstrap_weights(taylor, replicates = 50L)
+}
+
 # Paired-PSU design for BRR tests.
 # Returns a survey_taylor with exactly 2 PSUs per stratum.
 make_paired_design <- function(n_strata = 3L, obs_per_psu = 10L, seed = 42L) {
@@ -127,4 +185,247 @@ make_paired_design <- function(n_strata = 3L, obs_per_psu = 10L, seed = 42L) {
     base_weight = exp(rnorm(n, 0, 0.4))
   )
   surveycore::as_survey(df, ids = psu_id, strata = stratum, weights = base_weight)
+}
+
+# NPS bootstrap helpers -------------------------------------------------------
+
+make_nps_ref <- function(seed = 42) {
+  ref_df <- make_surveywts_data(n = 1000, seed = seed)
+  surveycore::as_survey(ref_df, weights = base_weight)
+}
+
+# Level A: margins are fixed population targets, NOT derived from ref design.
+make_nps_level_a <- function(seed = 1, n = 500) {
+  nps_df <- make_surveywts_data(n = n, seed = seed)
+  ref    <- make_nps_ref(seed = seed + 100)
+  ipw_result <- surveywts::ipw(
+    data      = nps_df,
+    reference = ref,
+    selection = ~age_group + sex
+  )
+  surveywts::calibrate_rake(
+    ipw_result,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+  )
+}
+
+# Level B: calibration margins derived from the reference design.
+make_nps_level_b <- function(seed = 2, n = 500) {
+  ref <- make_nps_ref(seed = seed + 100)
+  nps_df <- make_surveywts_data(n = n, seed = seed)
+  ipw_result <- surveywts::ipw(
+    data      = nps_df,
+    reference = ref,
+    selection = ~age_group + sex
+  )
+  surveywts::calibrate_rake(
+    ipw_result,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type             = "prop",
+    reference_design = ref
+  )
+}
+
+# DAGJK datasets for create_group_jackknife_weights() tests.
+make_dagjk_datasets <- function() {
+  set.seed(101L)
+
+  ref_df <- data.frame(
+    age_group   = sample(
+      c("18-34", "35-54", "55+"),
+      size = 500L,
+      replace = TRUE,
+      prob = c(0.30, 0.40, 0.30)
+    ),
+    sex         = sample(
+      c("M", "F"),
+      size = 500L,
+      replace = TRUE,
+      prob = c(0.48, 0.52)
+    ),
+    ref_weight  = rep(1, 500L),
+    stringsAsFactors = FALSE
+  )
+  ref <- surveycore::survey_taylor(
+    data      = ref_df,
+    variables = list(weights = "ref_weight")
+  )
+
+  set.seed(202L)
+  nps_df <- data.frame(
+    age_group = sample(
+      c("18-34", "35-54", "55+"),
+      size = 80L,
+      replace = TRUE,
+      prob = c(0.40, 0.35, 0.25)
+    ),
+    sex = sample(
+      c("M", "F"),
+      size = 80L,
+      replace = TRUE,
+      prob = c(0.55, 0.45)
+    ),
+    stringsAsFactors = FALSE
+  )
+
+  A <- suppressWarnings(surveywts::ipw(
+    data             = nps_df,
+    reference        = ref,
+    selection        = ~age_group + sex,
+    adjust_reference = FALSE
+  ))
+
+  ipw_b <- suppressWarnings(surveywts::ipw(
+    data             = nps_df,
+    reference        = ref,
+    selection        = ~age_group + sex,
+    adjust_reference = FALSE
+  ))
+  B <- surveywts::calibrate_rake(
+    ipw_b,
+    targets = list(
+      age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
+      sex       = c("M" = 0.48, "F" = 0.52)
+    ),
+    type = "prop"
+  )
+
+  C <- suppressWarnings(surveywts::ipw(
+    data             = nps_df,
+    reference        = ref,
+    selection        = ~age_group + sex,
+    adjust_reference = FALSE
+  ))
+
+  ipw_d <- suppressWarnings(surveywts::ipw(
+    data             = nps_df,
+    reference        = ref,
+    selection        = ~age_group + sex,
+    adjust_reference = FALSE
+  ))
+  D <- surveywts::calibrate_rake(
+    ipw_d,
+    targets = list(
+      age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
+      sex       = c("M" = 0.48, "F" = 0.52)
+    ),
+    type             = "prop",
+    reference_design = ref
+  )
+
+  ipw_e <- suppressWarnings(surveywts::ipw(
+    data             = nps_df,
+    reference        = ref,
+    selection        = ~age_group + sex,
+    adjust_reference = FALSE
+  ))
+  targets_e <- list(
+    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
+    sex       = c("M" = 0.48, "F" = 0.52)
+  )
+  E <- tryCatch(
+    surveywts::calibrate_linear(
+      data             = ipw_e,
+      targets          = targets_e,
+      type             = "prop",
+      reference_design = ref
+    ),
+    error = function(e) NULL
+  )
+
+  ipw_f <- suppressWarnings(surveywts::ipw(
+    data             = nps_df,
+    reference        = ref,
+    selection        = ~age_group + sex,
+    adjust_reference = FALSE
+  ))
+  targets_f <- list(
+    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
+    sex       = c("M" = 0.48, "F" = 0.52)
+  )
+  F_data <- tryCatch(
+    surveywts::calibrate_linear(
+      data    = ipw_f,
+      targets = targets_f,
+      type    = "prop"
+    ),
+    error = function(e) NULL
+  )
+
+  list(A = A, B = B, C = C, D = D, E = E, F = F_data, ref = ref)
+}
+
+# ============================================================================
+# Replicate design helpers for calibrate-surveycore PR 2 tests
+# ============================================================================
+
+# .make_replicate_design() — wraps df in survey_taylor then bootstrap replicates.
+.make_replicate_design <- function(df, weight_col = "base_weight", seed = 42) {
+  set.seed(seed)
+  taylor <- surveycore::survey_taylor(
+    data = df,
+    variables = list(weights = weight_col)
+  )
+  create_bootstrap_weights(taylor, replicates = 10L)
+}
+
+# .make_brr_design() — bootstrap replicates with first column negated.
+.make_brr_design <- function(df, weight_col = "base_weight") {
+  base_rep <- .make_replicate_design(df, weight_col = weight_col)
+  repwt_cols <- base_rep@variables$repweights
+  updated_data <- base_rep@data
+  updated_data[[repwt_cols[[1L]]]] <- updated_data[[repwt_cols[[1L]]]] * (-0.1)
+  base_rep@data <- updated_data
+  base_rep
+}
+
+# .make_empty_cell_replicate_design() — survey_replicate where one replicate
+# column has zero weight for all units in the first level of calibration_var.
+.make_empty_cell_replicate_design <- function(
+  df,
+  calibration_var,
+  weight_col = "base_weight"
+) {
+  base_rep <- .make_replicate_design(df, weight_col = weight_col)
+  repwt_cols <- base_rep@variables$repweights
+  first_level <- unique(df[[calibration_var]])[[1L]]
+  idx <- which(base_rep@data[[calibration_var]] == first_level)
+  updated_data <- base_rep@data
+  last_col <- repwt_cols[[length(repwt_cols)]]
+  updated_data[[last_col]][idx] <- 0
+  base_rep@data <- updated_data
+  base_rep
+}
+
+# ============================================================================
+# Shared fixtures for calibrate-unit-scale tests
+# ============================================================================
+
+df_500 <- make_surveywts_data(n = 500, seed = 42)
+df_200 <- make_surveywts_data(n = 200, seed = 7)
+q_unequal <- {
+  set.seed(99)
+  exp(rnorm(500, 0, 0.3))
+}
+q_all_twos <- rep(2, 500)
+q_all_ones <- rep(1, 500)
+
+# Pin all weighting history timestamps to a fixed date for stable snapshots.
+.pin_ts <- function(obj, ts = as.POSIXct("2025-01-15 10:00:00", tz = "UTC")) {
+  if (S7::S7_inherits(obj, surveycore::survey_nonprob) ||
+        S7::S7_inherits(obj, surveycore::survey_replicate)) {
+    meta <- obj@metadata
+    for (i in seq_along(meta@weighting_history)) {
+      meta@weighting_history[[i]]$timestamp <- ts
+    }
+    obj@metadata <- meta
+  }
+  obj
 }

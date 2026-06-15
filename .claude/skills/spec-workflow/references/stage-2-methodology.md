@@ -278,6 +278,46 @@ wrong, or absent when a specific formula is required.
 
 ---
 
+### Lens 6 — Literature Cross-Check
+
+**Run only when** a paper, PDF, or `comprehension.md` is available. If no
+paper was attached and no `comprehension.md` exists, skip this lens and note
+"Lens 6 not applicable: no literature attached."
+
+This lens verifies that the spec's formulas, algorithms, and design decisions
+match the attached paper or `comprehension.md`. Its job is to catch divergence
+between what the paper says and what the spec specifies — before code is written.
+
+**Questions to answer:**
+
+1. **Formula fidelity** — For each formula in the spec, does it match the
+   corresponding formula in `comprehension.md` or the paper? Are all symbols
+   defined the same way? Is the normalization convention consistent?
+
+2. **Gotcha coverage** — For each gotcha listed in `comprehension.md`, is
+   there a corresponding edge case in the spec that specifies the behavior?
+   If a gotcha is intentionally out of scope, is that stated explicitly?
+
+3. **Reference mapping completeness** — For each design decision in the spec
+   that references the literature (`comprehension.md §Reference mapping`), is
+   the citation traceable to a specific equation or section? Vague references
+   like "following Kish (1965)" without a specific equation are a gap.
+
+4. **Assumption alignment** — Are all assumptions from `comprehension.md
+   §Assumptions` either reflected in the spec's contracts or explicitly
+   documented as deferred?
+
+5. **Open question resolution** — For each open question in `comprehension.md
+   §Open questions`, did the spec resolve it? If not, is it logged in
+   `decisions-{id}.md`?
+
+**Issue format for Lens 6:**
+
+Use the standard issue format below. For Lens 6, the "correct formula or fix"
+is always a direct quote from the paper or comprehension.md — not a guess.
+
+---
+
 ## Issue Format
 
 Use this format for every issue:
@@ -434,6 +474,8 @@ implementation and the methodology lock needs a targeted update.
 3. End the session with:
 
    > "Methodology review Pass [N] complete: {N} new issues ({X} blocking,
-   > {Y} required, {Z} suggestions). Start a new session with
-   > `/spec-workflow stage 2 resolve` to lock the methodology before running
-   > the code review. Review appended to `plans/spec-methodology-{id}.md`."
+   > {Y} required, {Z} suggestions). Lenses applied: {list of lenses 1–5
+   > that were applicable + 'Lens 6 (Literature)' if paper/comprehension.md
+   > was present}. Start a new session with `/spec-workflow stage 2 resolve`
+   > to lock the methodology before running the code review. Review appended
+   > to `plans/spec-methodology-{id}.md`."

@@ -405,41 +405,129 @@ test_that("weight_variability() works on post-nonresponse data with zero weights
 })
 
 # ---------------------------------------------------------------------------
-# 11. survey_replicate input → surveywts_error_replicate_not_supported
+# 11. survey_replicate input — accepted (Replicate release complete)
 # ---------------------------------------------------------------------------
 
-test_that("effective_sample_size() rejects survey_replicate input", {
+test_that("effective_sample_size() accepts survey_replicate input", {
   skip_if_not_installed("svrep")
-  td <- make_taylor_design(seed = 1)
-  sr <- create_bootstrap_weights(td, replicates = 10L, seed = 1L)
+  sr <- make_replicate_design(seed = 1)
 
-  expect_error(
-    effective_sample_size(sr),
-    class = "surveywts_error_replicate_not_supported"
-  )
-  expect_snapshot(error = TRUE, effective_sample_size(sr))
+  expect_no_error(effective_sample_size(sr))
 })
 
-test_that("weight_variability() rejects survey_replicate input", {
+test_that("weight_variability() accepts survey_replicate input", {
   skip_if_not_installed("svrep")
-  td <- make_taylor_design(seed = 1)
-  sr <- create_bootstrap_weights(td, replicates = 10L, seed = 1L)
+  sr <- make_replicate_design(seed = 1)
+
+  expect_no_error(weight_variability(sr))
+})
+
+test_that("summarize_weights() accepts survey_replicate input", {
+  skip_if_not_installed("svrep")
+  sr <- make_replicate_design(seed = 1)
+
+  expect_no_error(summarize_weights(sr))
+})
+
+# ---------------------------------------------------------------------------
+# 11a. Numerical correctness — survey_replicate uses main weight column only
+# ---------------------------------------------------------------------------
+
+test_that("effective_sample_size() computes correct ESS from survey_replicate main weights", {
+  skip_if_not_installed("svrep")
+  sr <- make_replicate_design(seed = 1)
+  w <- sr@data[[sr@variables$weights]]
+
+  result <- effective_sample_size(sr)
+
+  expected_ess <- sum(w)^2 / sum(w^2)
+  expect_equal(result[["n_eff"]], expected_ess, tolerance = 1e-10)
+})
+
+test_that("weight_variability() computes correct CV from survey_replicate main weights", {
+  skip_if_not_installed("svrep")
+  sr <- make_replicate_design(seed = 1)
+  w <- sr@data[[sr@variables$weights]]
+
+  result <- weight_variability(sr)
+
+  expected_cv <- stats::sd(w) / mean(w)
+  expect_equal(result[["cv"]], expected_cv, tolerance = 1e-10)
+})
+
+test_that("effective_sample_size() on survey_replicate matches survey_taylor with same main weights", {
+  skip_if_not_installed("svrep")
+  sr <- make_replicate_design(seed = 1)
+  # Build a survey_taylor with the same main weight column
+  taylor <- surveycore::survey_taylor(
+    data = sr@data,
+    variables = list(weights = sr@variables$weights)
+  )
+
+  result_sr <- effective_sample_size(sr)
+  result_taylor <- effective_sample_size(taylor)
+
+  expect_equal(result_sr[["n_eff"]], result_taylor[["n_eff"]], tolerance = 1e-10)
+})
+
+# ---------------------------------------------------------------------------
+# 11b. Regression — pre-existing error paths still fire
+# ---------------------------------------------------------------------------
+
+test_that("surveywts_error_weights_required still fires for plain data.frame with weights = NULL", {
+  df <- data.frame(x = 1:5, w = c(1.2, 0.8, 1.5, 0.9, 1.1))
 
   expect_error(
-    weight_variability(sr),
-    class = "surveywts_error_replicate_not_supported"
+    effective_sample_size(df),
+    class = "surveywts_error_weights_required"
   )
 })
 
-test_that("summarize_weights() rejects survey_replicate input", {
-  skip_if_not_installed("svrep")
-  td <- make_taylor_design(seed = 1)
-  sr <- create_bootstrap_weights(td, replicates = 10L, seed = 1L)
+test_that("surveywts_error_unsupported_class still fires for list input", {
+  x <- list(w = c(1, 2, 3))
 
   expect_error(
-    summarize_weights(sr),
-    class = "surveywts_error_replicate_not_supported"
+    effective_sample_size(x),
+    class = "surveywts_error_unsupported_class"
   )
+})
+
+# ---------------------------------------------------------------------------
+# 11c. Edge cases — survey_replicate
+# ---------------------------------------------------------------------------
+
+test_that("summarize_weights() with survey_replicate and by = age_group returns grouped tibble", {
+  skip_if_not_installed("svrep")
+  sr <- make_replicate_design(seed = 1)
+
+  result <- summarize_weights(sr, by = age_group)
+
+  expect_true(tibble::is_tibble(result))
+  expect_true("age_group" %in% names(result))
+  n_age_groups <- length(unique(sr@data[["age_group"]]))
+  expect_equal(nrow(result), n_age_groups)
+})
+
+test_that("survey_replicate with equal main weights gives n_eff == n and cv == 0", {
+  skip_if_not_installed("svrep")
+  n <- 50L
+  df_eq <- data.frame(
+    id = seq_len(n),
+    age_group = rep(c("18-34", "35-54", "55+"), length.out = n),
+    base_weight = rep(1.0, n),
+    stringsAsFactors = FALSE
+  )
+  taylor_eq <- surveycore::survey_taylor(
+    data = df_eq,
+    variables = list(weights = "base_weight")
+  )
+  sr_eq <- create_bootstrap_weights(taylor_eq, replicates = 10L)
+
+  result_ess <- effective_sample_size(sr_eq)
+  result_cv <- weight_variability(sr_eq)
+
+  expect_equal(result_ess[["n_eff"]], n, tolerance = 1e-10)
+  expect_equal(result_cv[["cv"]], 0, tolerance = 1e-10)
 })
 
 test_that("summarize_weights() works on post-nonresponse data with zero weights", {

@@ -193,3 +193,31 @@ message("  Shared benchmark variables: registered, vote14, folgov, talk_cps,")
 message("    trust_cps, comgrp_cps, pub_off_cps, volsum, tablet_cps,")
 message("    textim_cps, social_cps, fdstmp_cps, owngun_gss")
 message("Document with: ?pew_2016_optin  or  ?pew_2016_synth_pop")
+
+## ---- 6. Build survey object companions ----
+
+# pew_2016_optin_svy — survey_nonprob with equal weights (raw panel, no wt col)
+# Build from a COPY so equal_wt is NOT saved in the tibble's .rda file.
+# The tibble's .rda was saved in section 5 and is not affected here.
+optin_for_svy <- pew_2016_optin
+optin_for_svy$equal_wt <- 1L
+pew_2016_optin_svy <- surveycore::as_survey_nonprob(
+  optin_for_svy,
+  weights = equal_wt
+)
+
+# pew_2016_synth_pop_svy — SRS survey_taylor with equal weights (synthetic pop)
+# Build from a COPY for symmetry with the optin approach above.
+synth_for_svy <- pew_2016_synth_pop
+synth_for_svy$equal_wt <- 1L
+pew_2016_synth_pop_svy <- surveycore::as_survey(
+  synth_for_svy,
+  weights = equal_wt
+)
+
+# Verify equal_wt was not added to the saved tibbles
+stopifnot(!"equal_wt" %in% names(pew_2016_optin))
+stopifnot(!"equal_wt" %in% names(pew_2016_synth_pop))
+
+usethis::use_data(pew_2016_optin_svy, pew_2016_synth_pop_svy, overwrite = TRUE)
+message("Saved pew_2016_optin_svy and pew_2016_synth_pop_svy")

@@ -35,18 +35,22 @@ reference:
       Functions for inverse probability weighting of non-probability samples.
     contents:
       - ipw
-  - title: Example Datasets — IPW
+  - title: Example Datasets
     desc: >
-      Bundled datasets for use in IPW examples and tests.
+      Bundled datasets for IPW examples and calibration examples. Each tibble
+      is paired with a survey design companion object (e.g., `gss_2024_svy`).
+    subtitle: Non-probability sample
     contents:
-      - ns_wave1_ipw
-      - gss_ipw_ref
-      - npors_2025_ref
-      - npors_2025_clean_ref
-      - acs_ipw_ref
-  - title: Example Datasets — Calibration
-    desc: >
-      Bundled datasets for use in calibration examples and tests.
+      - ns_wave1
+  - title: ~
+    subtitle: Probability reference surveys
+    contents:
+      - gss_2024
+      - npors_2025
+      - npors_2025_clean
+      - acs_wy_2022
+  - title: ~
+    subtitle: Calibration example data
     contents:
       - pew_2016_optin
       - pew_2016_synth_pop

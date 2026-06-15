@@ -466,18 +466,22 @@
 #' *arXiv preprint* arXiv:2403.09028.
 #'
 #' @examples
-#' data(ns_wave1_ipw)
+#' data(ns_wave1)
 #'
 #' # --- GSS 2024 as probability reference ---
-#' data(gss_ipw_ref)
+#' # Construct a Taylor reference design from the gss_2024 tibble using wt_pop.
+#' data(gss_2024)
+#' gss_ref <- surveycore::as_survey(
+#'   gss_2024, weights = wt_pop, strata = vstrat, ids = vpsu, nest = TRUE
+#' )
 #'
 #' # Formula interface
-#' result1 <- ipw(ns_wave1_ipw, gss_ipw_ref, selection = ~gender + age_group)
+#' result1 <- ipw(ns_wave1, gss_ref, selection = ~gender + age_group)
 #'
 #' # Programmatic interface — suitable for lapply()
 #' result2 <- ipw(
-#'   ns_wave1_ipw,
-#'   gss_ipw_ref,
+#'   ns_wave1,
+#'   gss_ref,
 #'   predictors = c("gender", "age_group")
 #' )
 #'
@@ -486,31 +490,35 @@
 #' weight_variability(result1)
 #'
 #' # --- ACS PUMS Wyoming as probability reference ---
-#' data(acs_ipw_ref)
+#' # acs_wy_2022_svy is survey_replicate; ipw() needs survey_taylor.
+#' # Construct a plain Taylor design from the tibble.
+#' data(acs_wy_2022)
+#' acs_ref <- surveycore::as_survey(acs_wy_2022, weights = pwgtp)
 #' result_acs <- ipw(
-#'   ns_wave1_ipw,
-#'   acs_ipw_ref,
+#'   ns_wave1,
+#'   acs_ref,
 #'   selection = ~gender + age_group + race_ethn + educ,
 #'   missing_method = "omit"
 #' )
 #'
 #' # --- Pew NPORS 2025 as probability reference ---
-#' # ns_wave1_ipw has ~120 NA values in race_ethn; missing_method controls
-#' # how these are handled.
-#' data(npors_2025_ref)
+#' # ns_wave1 has ~419 NA values in race_ethn; missing_method controls handling.
+#' # Use npors_2025_clean to avoid reference-NA listwise-deletion warnings.
+#' data(npors_2025_clean)
+#' npors_ref <- surveycore::as_survey(npors_2025_clean, weights = wt_pop)
 #'
 #' # missing_method = "omit" (default): rows with NA in race_ethn are dropped
 #' result_omit <- ipw(
-#'   ns_wave1_ipw,
-#'   npors_2025_ref,
+#'   ns_wave1,
+#'   npors_ref,
 #'   selection = ~gender + age_group + race_ethn + educ,
 #'   missing_method = "omit"
 #' )
 #'
 #' # missing_method = "separate": NA recoded to "(Missing)" level; all rows kept
 #' result_sep <- ipw(
-#'   ns_wave1_ipw,
-#'   npors_2025_ref,
+#'   ns_wave1,
+#'   npors_ref,
 #'   selection = ~gender + age_group + race_ethn + educ,
 #'   missing_method = "separate"
 #' )
@@ -518,8 +526,8 @@
 #' # missing_method = "impute": NA imputed via mice::mice() (requires mice)
 #' if (requireNamespace("mice", quietly = TRUE)) {
 #'   result_imp <- ipw(
-#'     ns_wave1_ipw,
-#'     npors_2025_ref,
+#'     ns_wave1,
+#'     npors_ref,
 #'     selection = ~gender + age_group + race_ethn + educ,
 #'     missing_method = "impute"
 #'   )
@@ -560,8 +568,8 @@
 #' # The returned weights are unchanged; N enables manual IPW1 means:
 #' #   sum(result@data[["ipw_weight"]] * y) / population_size
 #' result_known_n <- ipw(
-#'   ns_wave1_ipw,
-#'   gss_ipw_ref,
+#'   ns_wave1,
+#'   gss_ref,
 #'   selection = ~gender + age_group,
 #'   population_size = 258000000L
 #' )

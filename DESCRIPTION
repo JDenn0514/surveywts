@@ -52,3 +52,4 @@ BugReports: https://github.com/JDenn0514/surveywts/issues
 X-schema.org-keywords: survey, statistics, weights, calibration, tidyverse
 RoxygenNote: 7.3.3
 LazyData: true
+LazyDataCompression: xz

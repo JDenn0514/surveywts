@@ -343,8 +343,8 @@ test_that("pew_2016_synth_pop_svy weights are all 1", {
 test_that("ns_wave1 has correct dimensions", {
   data(ns_wave1)
   expect_equal(nrow(ns_wave1), 6422L)
-  # 171 original; gender overwritten in-place; 3 new: age_group, race_ethn, educ
-  expect_equal(ncol(ns_wave1), 174L)
+  # 171 original; gender overwritten in-place; 3 new: age_group, race_ethn, educ; 8 added in wave1 update
+  expect_equal(ncol(ns_wave1), 182L)
 })
 
 test_that("ns_wave1 gender is factor with correct levels", {

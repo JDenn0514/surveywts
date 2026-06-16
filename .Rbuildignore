@@ -15,3 +15,7 @@
 ^VENDORED\.md$
 ^archive$
 ^changelog$
+^audit\.md$
+^implementation\.md$
+^review\.md$
+^shipper\.md$

@@ -843,8 +843,9 @@
 #' are kept unchanged.
 #'
 #' `ns_wave1_svy` is a `survey_nonprob` object using `weight` as the weight
-#' column. It represents the raw weighted non-probability sample before
-#' IPW adjustment.
+#' column with 200 quasi-randomization bootstrap replicate weights
+#' (`repwt_1`–`repwt_200`). It represents the raw weighted non-probability
+#' sample before IPW adjustment.
 #'
 #' Some respondents have `NA` in `race_ethn` (those who reported "some other
 #' race" with no Hispanic origin, which cannot be mapped to a standard category).
@@ -1049,8 +1050,9 @@
 #'
 #' ## `ns_wave1_svy`
 #' A `survey_nonprob` object wrapping `ns_wave1`. Constructed with
-#' `weights = weight`. Represents the raw weighted non-probability sample
-#' before IPW adjustment.
+#' `weights = weight` and 200 quasi-randomization bootstrap replicate weights
+#' (`repwt_1`–`repwt_200` in `@data`; `@variables$repweights` populated).
+#' Represents the raw weighted non-probability sample before IPW adjustment.
 #'
 #' @source Derived from `surveycore::ns_wave1`.
 #'   See `data-raw/ns-gss-ipw.R` for the construction script.

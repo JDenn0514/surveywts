@@ -503,3 +503,44 @@
       Weighting history:
         #   Step 1 [2025-01-15]: replicate_creation (method = "bootstrap", type = "Rao-Wu-Yue-Beaumont", replicates = 5)
 
+# create_bootstrap_weights() errors on survey_nonprob with no history
+
+    Code
+      create_bootstrap_weights(nps_no_history, type = "quasi-randomization")
+    Condition
+      Error in `.quasi_randomization_bootstrap()`:
+      x No `ipw()` or calibration step found in the weighting history of `data`.
+      i The quasi-randomization bootstrap requires either an `ipw()` step or a calibration step (e.g., `calibrate_rake()`, `poststratify()`) in the weighting history.
+      v Call `ipw()` or a calibration function on the non-probability sample before calling `create_bootstrap_weights()`.
+
+# create_bootstrap_weights() error for bad reference_sample class with calib-only NPS
+
+    Code
+      create_bootstrap_weights(nps_calib_a, type = "quasi-randomization",
+        reference_sample = data.frame(x = 1))
+    Condition
+      Error in `.validate_reference_sample()`:
+      x `reference_sample` must be a <survey_taylor>, not <data.frame>.
+      i Use `survey::svydesign()` to convert an SRS data frame to a <survey_taylor> object.
+      v Pass a <survey_taylor> created with `surveycore::as_survey()`.
+
+# surveywts_error_qr_bootstrap_requires_nonprob message does not say 'IPW history'
+
+    Code
+      create_bootstrap_weights(td, type = "quasi-randomization")
+    Condition
+      Error in `create_bootstrap_weights()`:
+      x `type = 'quasi-randomization'` requires a <survey_nonprob>; got <surveycore::survey_taylor>.
+      i The quasi-randomization bootstrap is designed for non-probability samples.
+      v Use `ipw()` or `calibrate_rake()` to create a <survey_nonprob>, then call `create_bootstrap_weights()`.
+
+# create_bootstrap_weights() errors on calibration-only Level B with no reference
+
+    Code
+      create_bootstrap_weights(nps_calib_b, type = "quasi-randomization")
+    Condition
+      Error in `.quasi_randomization_bootstrap()`:
+      x A reference probability sample is required for `type = 'quasi-randomization'` with Level B calibration.
+      i The calibration history entry has `targets_from_reference = TRUE` but no reference design was found in the entry and `reference_sample` was not supplied.
+      v Supply the reference design via `reference_sample`, or re-run the calibration with a <survey_taylor> reference.
+

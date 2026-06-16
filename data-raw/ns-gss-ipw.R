@@ -9,6 +9,7 @@
 ## Run from the package root: source("data-raw/ns-gss-ipw.R")
 
 library(surveycore)
+pkgload::load_all(quiet = TRUE)
 
 age_bins <- c(18, 35, 55, Inf)
 age_labs <- c("18-34", "35-54", "55+")
@@ -85,10 +86,19 @@ ns_wave1_svy <- surveycore::as_survey_nonprob(
   weights = weight
 )
 
+## Add quasi-randomization bootstrap replicate weights (200 replicates).
+## Seed fixed for reproducibility.
+ns_wave1_svy <- create_bootstrap_weights(
+  ns_wave1_svy,
+  type = "quasi-randomization",
+  seed = 2025L
+)
+
 usethis::use_data(ns_wave1, ns_wave1_svy, overwrite = TRUE)
 message(
   "Saved ns_wave1 (",
-  nrow(ns_wave1), " rows x ", ncol(ns_wave1), " cols) and ns_wave1_svy"
+  nrow(ns_wave1), " rows x ", ncol(ns_wave1), " cols) and ns_wave1_svy ",
+  "(with 200 bootstrap replicate weights)"
 )
 
 ## ---- gss_2024 ---------------------------------------------------------------

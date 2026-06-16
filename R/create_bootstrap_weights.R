@@ -134,11 +134,11 @@ create_bootstrap_weights <- function(
             ),
             "i" = paste0(
               "The quasi-randomization bootstrap is designed for ",
-              "non-probability samples with IPW history."
+              "non-probability samples."
             ),
             "v" = paste0(
-              "Use {.fn ipw} to create a {.cls survey_nonprob}, then call ",
-              "{.fn create_bootstrap_weights}."
+              "Use {.fn ipw} or {.fn calibrate_rake} to create a ",
+              "{.cls survey_nonprob}, then call {.fn create_bootstrap_weights}."
             )
           ),
           class = "surveywts_error_qr_bootstrap_requires_nonprob"

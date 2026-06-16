@@ -16,7 +16,7 @@ with a history-routing gate and retire the old `_no_ipw_history` error classes.
 ## PR map
 
 - [x] PR 1: `feature/nps-calib-bootstrap` — calibration-only QR bootstrap path in `.quasi_randomization_bootstrap()`
-- [ ] PR 2: `feature/nps-calib-dagjk` — calibration-only DAGJK path in `create_group_jackknife_weights()`
+- [x] PR 2: `feature/nps-calib-dagjk` — calibration-only DAGJK path in `create_group_jackknife_weights()`
 
 ---
 

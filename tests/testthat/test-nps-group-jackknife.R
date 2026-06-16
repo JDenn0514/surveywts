@@ -214,7 +214,7 @@ test_that("create_group_jackknife_weights() rejects survey_taylor input", {
   td <- make_taylor_design(seed = 1L)
   expect_error(
     create_group_jackknife_weights(td),
-    class = "surveywts_error_dagjk_requires_nonprob"
+    class = "surveywts_error_unsupported_class"
   )
   expect_snapshot(error = TRUE, create_group_jackknife_weights(td))
 })
@@ -288,7 +288,7 @@ test_that("create_group_jackknife_weights() errors when reference_sample = NULL 
   np@metadata <- meta
   expect_error(
     create_group_jackknife_weights(np, groups = 2L),
-    class = "surveywts_error_dagjk_no_reference"
+    class = "surveywts_error_jackknife_no_reference"
   )
   expect_snapshot(
     error = TRUE,
@@ -303,7 +303,7 @@ test_that("create_group_jackknife_weights() errors when reference_sample = NULL 
 test_that("create_group_jackknife_weights() rejects groups = 1", {
   expect_error(
     create_group_jackknife_weights(datasets$A, groups = 1L),
-    class = "surveywts_error_dagjk_groups_too_small"
+    class = "surveywts_error_jackknife_replicates_too_small"
   )
   expect_snapshot(
     error = TRUE,
@@ -314,21 +314,21 @@ test_that("create_group_jackknife_weights() rejects groups = 1", {
 test_that("create_group_jackknife_weights() rejects groups = 0", {
   expect_error(
     create_group_jackknife_weights(datasets$A, groups = 0L),
-    class = "surveywts_error_dagjk_groups_too_small"
+    class = "surveywts_error_jackknife_replicates_too_small"
   )
 })
 
 test_that("create_group_jackknife_weights() rejects groups = -1", {
   expect_error(
     create_group_jackknife_weights(datasets$A, groups = -1L),
-    class = "surveywts_error_dagjk_groups_too_small"
+    class = "surveywts_error_jackknife_replicates_too_small"
   )
 })
 
 test_that("create_group_jackknife_weights() rejects groups = 50.5 (fractional)", {
   expect_error(
     create_group_jackknife_weights(datasets$A, groups = 50.5),
-    class = "surveywts_error_dagjk_groups_not_whole_number"
+    class = "surveywts_error_replicates_not_whole_number"
   )
   expect_snapshot(
     error = TRUE,
@@ -339,7 +339,7 @@ test_that("create_group_jackknife_weights() rejects groups = 50.5 (fractional)",
 test_that("create_group_jackknife_weights() rejects groups = NA", {
   expect_error(
     create_group_jackknife_weights(datasets$A, groups = NA),
-    class = "surveywts_error_dagjk_groups_invalid"
+    class = "surveywts_error_jackknife_replicates_invalid"
   )
   expect_snapshot(
     error = TRUE,
@@ -350,14 +350,14 @@ test_that("create_group_jackknife_weights() rejects groups = NA", {
 test_that("create_group_jackknife_weights() rejects groups = '50' (character)", {
   expect_error(
     create_group_jackknife_weights(datasets$A, groups = "50"),
-    class = "surveywts_error_dagjk_groups_invalid"
+    class = "surveywts_error_jackknife_replicates_invalid"
   )
 })
 
 test_that("create_group_jackknife_weights() rejects groups of length > 1", {
   expect_error(
     create_group_jackknife_weights(datasets$A, groups = c(10L, 20L)),
-    class = "surveywts_error_dagjk_groups_invalid"
+    class = "surveywts_error_jackknife_replicates_invalid"
   )
 })
 
@@ -365,7 +365,7 @@ test_that("create_group_jackknife_weights() rejects groups exceeding combined N"
   # 80 NPS + 500 ref = 580 combined; request 581 groups
   expect_error(
     create_group_jackknife_weights(datasets$A, groups = 581L),
-    class = "surveywts_error_dagjk_groups_exceeds_n"
+    class = "surveywts_error_jackknife_replicates_exceeds_n"
   )
   expect_snapshot(
     error = TRUE,
@@ -390,7 +390,7 @@ test_that("create_group_jackknife_weights() rejects data with no weighting histo
   )
   expect_error(
     create_group_jackknife_weights(np_no_history, groups = 5L),
-    class = "surveywts_error_dagjk_no_history"
+    class = "surveywts_error_jackknife_no_history"
   )
   expect_snapshot(
     error = TRUE,
@@ -444,7 +444,7 @@ test_that("create_group_jackknife_weights() errors when all replicates fail", {
   )
   # Either succeeds (some replicates work) or errors with all-failed class
   if (inherits(result, "error")) {
-    expect_s3_class(result, "surveywts_error_dagjk_all_replicates_failed")
+    expect_s3_class(result, "surveywts_error_jackknife_all_replicates_failed")
   }
   # If it succeeds, that's also valid -- test documents behavior
 })
@@ -484,7 +484,7 @@ test_that(".dagjk_single_replicate() throws degenerate_replicate when no NPS uni
     ),
     error = function(e) e
   )
-  expect_s3_class(cond, "surveywts_error_dagjk_degenerate_replicate")
+  expect_s3_class(cond, "surveywts_error_jackknife_degenerate_replicate")
 })
 
 test_that(".dagjk_single_replicate() throws degenerate_replicate when no ref units remain [direct]", {
@@ -523,7 +523,7 @@ test_that(".dagjk_single_replicate() throws degenerate_replicate when no ref uni
     ),
     error = function(e) e
   )
-  expect_s3_class(cond, "surveywts_error_dagjk_degenerate_replicate")
+  expect_s3_class(cond, "surveywts_error_jackknife_degenerate_replicate")
 })
 
 test_that(".dagjk_single_replicate() throws degenerate_replicate when N_hat_g < n_nps_g [direct]", {
@@ -564,7 +564,7 @@ test_that(".dagjk_single_replicate() throws degenerate_replicate when N_hat_g < 
     ),
     error = function(e) e
   )
-  expect_s3_class(cond, "surveywts_error_dagjk_degenerate_replicate")
+  expect_s3_class(cond, "surveywts_error_jackknife_degenerate_replicate")
 })
 
 test_that("create_group_jackknife_weights() errors (all fail) when N_hat_g < n_nps_g", {
@@ -603,7 +603,7 @@ test_that("create_group_jackknife_weights() errors (all fail) when N_hat_g < n_n
     suppressWarnings(
       create_group_jackknife_weights(large_ipw, groups = 10L, seed = 1L)
     ),
-    class = "surveywts_error_dagjk_all_replicates_failed"
+    class = "surveywts_error_jackknife_all_replicates_failed"
   )
   expect_snapshot(
     error = TRUE,
@@ -621,7 +621,7 @@ test_that("create_group_jackknife_weights() warns when repweights already popula
   r1 <- create_group_jackknife_weights(datasets$A, groups = 10L, seed = 1L)
   expect_warning(
     result <- create_group_jackknife_weights(r1, groups = 10L, seed = 2L),
-    class = "surveywts_warning_dagjk_repweights_overwritten"
+    class = "surveywts_warning_jackknife_repweights_overwritten"
   )
   expect_snapshot(
     .pin_ts(create_group_jackknife_weights(r1, groups = 10L, seed = 2L))
@@ -634,7 +634,7 @@ test_that("create_group_jackknife_weights() warns when average group size < 5", 
   saw_small_groups <- FALSE
   withCallingHandlers(
     create_group_jackknife_weights(datasets$A, groups = 200L, seed = 1L),
-    surveywts_warning_dagjk_small_groups = function(w) {
+    surveywts_warning_jackknife_small_groups = function(w) {
       saw_small_groups <<- TRUE
       invokeRestart("muffleWarning")
     },
@@ -645,7 +645,7 @@ test_that("create_group_jackknife_weights() warns when average group size < 5", 
     .pin_ts(withCallingHandlers(
       create_group_jackknife_weights(datasets$A, groups = 200L, seed = 1L),
       warning = function(w) {
-        if (!inherits(w, "surveywts_warning_dagjk_small_groups")) {
+        if (!inherits(w, "surveywts_warning_jackknife_small_groups")) {
           invokeRestart("muffleWarning")
         }
       }
@@ -683,7 +683,7 @@ test_that("create_group_jackknife_weights() warns when > 10% of replicates fail"
   # seed=7L: 1 of 5 replicates fails -> replicates_failed warning fires
   expect_warning(
     result <- create_group_jackknife_weights(tiny_ipw2, groups = 5L, seed = 7L),
-    class = "surveywts_warning_dagjk_replicates_failed"
+    class = "surveywts_warning_jackknife_replicates_failed"
   )
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
   expect_snapshot(
@@ -883,7 +883,7 @@ test_that("create_group_jackknife_weights() errors when all replicates fail (cor
     suppressWarnings(
       create_group_jackknife_weights(base, groups = 5L, seed = 1L)
     ),
-    class = "surveywts_error_dagjk_all_replicates_failed"
+    class = "surveywts_error_jackknife_all_replicates_failed"
   )
   expect_snapshot(
     error = TRUE,
@@ -909,14 +909,14 @@ test_that("create_group_jackknife_weights() warns when > 10% of replicates fail 
       suppressWarnings(
         create_group_jackknife_weights(base, groups = 5L, seed = 1L)
       ),
-      surveywts_warning_dagjk_replicates_failed = function(w) {
+      surveywts_warning_jackknife_replicates_failed = function(w) {
         saw_warning <<- TRUE
         invokeRestart("muffleWarning")
       }
     ),
     error = function(e) {
       # All-fail error is also acceptable -- means >100% failed
-      if (inherits(e, "surveywts_error_dagjk_all_replicates_failed")) {
+      if (inherits(e, "surveywts_error_jackknife_all_replicates_failed")) {
         saw_warning <<- TRUE  # treat all-fail as covering the intent
       }
     }
@@ -948,7 +948,7 @@ test_that("create_group_jackknife_weights() errors when calibration fails in all
     suppressWarnings(
       create_group_jackknife_weights(base, groups = 5L, seed = 1L)
     ),
-    class = "surveywts_error_dagjk_all_replicates_failed"
+    class = "surveywts_error_jackknife_all_replicates_failed"
   )
 })
 
@@ -996,7 +996,7 @@ test_that("create_group_jackknife_weights() negative-weight check verifies assem
   )
   if (inherits(result, "error")) {
     # All replicates failed -- the expected behavior given extreme calibration targets
-    expect_s3_class(result, "surveywts_error_dagjk_all_replicates_failed")
+    expect_s3_class(result, "surveywts_error_jackknife_all_replicates_failed")
   } else {
     # Some replicates succeeded; assembled rep_mat must be non-negative
     rep_cols <- result@variables$repweights
@@ -1101,7 +1101,7 @@ test_that("create_group_jackknife_weights() rejects survey_nonprob with no histo
   )
   expect_error(
     create_group_jackknife_weights(nps_no_history, groups = 10L),
-    class = "surveywts_error_dagjk_no_history"
+    class = "surveywts_error_jackknife_no_history"
   )
   expect_snapshot(
     error = TRUE,
@@ -1162,7 +1162,7 @@ test_that("create_group_jackknife_weights() rejects Level B with no reference (c
 
   expect_error(
     create_group_jackknife_weights(nps_calib_b_raw, groups = 10L),
-    class = "surveywts_error_dagjk_no_reference"
+    class = "surveywts_error_jackknife_no_reference"
   )
   expect_snapshot(
     error = TRUE,
@@ -1177,7 +1177,7 @@ test_that("create_group_jackknife_weights() requires_nonprob snapshot does NOT m
     create_group_jackknife_weights(td),
     error = function(e) e
   )
-  expect_s3_class(err, "surveywts_error_dagjk_requires_nonprob")
+  expect_s3_class(err, "surveywts_error_unsupported_class")
   # The error message should NOT contain "IPW weighting history"
   msg <- conditionMessage(err)
   expect_false(grepl("IPW weighting history", msg, fixed = TRUE))
@@ -1200,7 +1200,7 @@ test_that("create_group_jackknife_weights() rejects groups = '10' (calib-only)",
   )
   expect_error(
     create_group_jackknife_weights(nps_calib_a, groups = "10"),
-    class = "surveywts_error_dagjk_groups_invalid"
+    class = "surveywts_error_jackknife_replicates_invalid"
   )
 })
 
@@ -1221,7 +1221,7 @@ test_that("create_group_jackknife_weights() rejects groups = 10.5 (calib-only)",
   )
   expect_error(
     create_group_jackknife_weights(nps_calib_a, groups = 10.5),
-    class = "surveywts_error_dagjk_groups_not_whole_number"
+    class = "surveywts_error_replicates_not_whole_number"
   )
 })
 
@@ -1242,7 +1242,7 @@ test_that("create_group_jackknife_weights() rejects groups = 1L (calib-only)", {
   )
   expect_error(
     create_group_jackknife_weights(nps_calib_a, groups = 1L),
-    class = "surveywts_error_dagjk_groups_too_small"
+    class = "surveywts_error_jackknife_replicates_too_small"
   )
 })
 
@@ -1265,7 +1265,7 @@ test_that("create_group_jackknife_weights() groups ceiling uses n_A only for Lev
   )
   expect_error(
     create_group_jackknife_weights(nps_calib_a, groups = 501L),
-    class = "surveywts_error_dagjk_groups_exceeds_n"
+    class = "surveywts_error_jackknife_replicates_exceeds_n"
   )
   expect_snapshot(
     error = TRUE,
@@ -1314,7 +1314,7 @@ test_that("create_group_jackknife_weights() errors when all replicates fail (bad
     suppressWarnings(
       create_group_jackknife_weights(nps_calib, groups = 5L, seed = 1L)
     ),
-    class = "surveywts_error_dagjk_all_replicates_failed"
+    class = "surveywts_error_jackknife_all_replicates_failed"
   )
 })
 
@@ -1629,7 +1629,7 @@ test_that("create_group_jackknife_weights() calibration-only: warns on repweight
   r1 <- create_group_jackknife_weights(nps_calib_a, groups = 10L, seed = 1L)
   expect_warning(
     result <- create_group_jackknife_weights(r1, groups = 10L, seed = 2L),
-    class = "surveywts_warning_dagjk_repweights_overwritten"
+    class = "surveywts_warning_jackknife_repweights_overwritten"
   )
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
 })
@@ -1654,7 +1654,7 @@ test_that("create_group_jackknife_weights() calibration-only: warns for small gr
   suppressWarnings(
     withCallingHandlers(
       create_group_jackknife_weights(nps_calib_a, groups = 499L, seed = 1L),
-      surveywts_warning_dagjk_small_groups = function(w) {
+      surveywts_warning_jackknife_small_groups = function(w) {
         saw_small_groups <<- TRUE
         invokeRestart("muffleWarning")
       }
@@ -1714,7 +1714,7 @@ test_that("create_group_jackknife_weights() calibration-only: warns when replica
   if (!inherits(result, "error")) {
     expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
   } else {
-    expect_s3_class(result, "surveywts_error_dagjk_all_replicates_failed")
+    expect_s3_class(result, "surveywts_error_jackknife_all_replicates_failed")
   }
 })
 

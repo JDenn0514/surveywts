@@ -62,39 +62,39 @@
     Code
       create_group_jackknife_weights(datasets$A, groups = 1L)
     Condition
-      Error in `.validate_groups_arg()`:
-      x `groups` must be >= 2; got 1.
+      Error in `.validate_replicates_dagjk_arg()`:
+      x `replicates` must be >= 2; got 1.
       i The DAGJK formula is degenerate at G = 1 (variance estimate is 0).
-      v Use at least 2 groups. Valliant (2020) recommends `groups = 50`.
+      v Use at least 2 groups. Valliant (2020) recommends `replicates = 50`.
 
 # create_group_jackknife_weights() rejects groups = 50.5 (fractional)
 
     Code
       create_group_jackknife_weights(datasets$A, groups = 50.5)
     Condition
-      Error in `.validate_groups_arg()`:
-      x `groups` must be a whole number, not 50.5.
-      v Use an integer value, e.g. `groups = 50`.
+      Error in `.validate_replicates_dagjk_arg()`:
+      x `replicates` must be a whole number, not 50.5.
+      v Use an integer value, e.g. `replicates = 50`.
 
 # create_group_jackknife_weights() rejects groups = NA
 
     Code
       create_group_jackknife_weights(datasets$A, groups = NA)
     Condition
-      Error in `.validate_groups_arg()`:
-      x `groups` must be a single, non-NA number.
+      Error in `.validate_replicates_dagjk_arg()`:
+      x `replicates` must be a single, non-NA number.
       i Got <logical> of length 1.
-      v Supply a whole number >= 2, e.g. `groups = 50L`.
+      v Supply a whole number >= 2, e.g. `replicates = 50L`.
 
 # create_group_jackknife_weights() rejects groups exceeding combined N
 
     Code
       create_group_jackknife_weights(datasets$A, groups = 581L)
     Condition
-      Error in `.validate_groups_arg()`:
-      x `groups` (581) exceeds the combined NPS + reference row count (580).
+      Error in `.validate_replicates_dagjk_arg()`:
+      x `replicates` (581) exceeds the combined NPS + reference row count (580).
       i Each group must contain at least 1 unit; groups cannot exceed the total number of combined rows.
-      v Reduce `groups` to at most 580 (combined NPS + reference rows).
+      v Reduce `replicates` to at most 580 (combined NPS + reference rows).
 
 # create_group_jackknife_weights() rejects data with no weighting history
 
@@ -129,7 +129,7 @@
     Code
       .pin_ts(withCallingHandlers(create_group_jackknife_weights(datasets$A, groups = 200L,
       seed = 1L), warning = function(w) {
-        if (!inherits(w, "surveywts_warning_dagjk_small_groups")) {
+        if (!inherits(w, "surveywts_warning_jackknife_small_groups")) {
           invokeRestart("muffleWarning")
         }
       }))
@@ -212,8 +212,8 @@
     Code
       create_group_jackknife_weights(nps_calib_a, groups = 501L)
     Condition
-      Error in `.validate_groups_arg()`:
-      x `groups` (501) exceeds the combined NPS + reference row count (500).
+      Error in `.validate_replicates_dagjk_arg()`:
+      x `replicates` (501) exceeds the combined NPS + reference row count (500).
       i Each group must contain at least 1 unit; groups cannot exceed the total number of combined rows.
-      v Reduce `groups` to at most 500 (combined NPS + reference rows).
+      v Reduce `replicates` to at most 500 (combined NPS + reference rows).
 

@@ -24,8 +24,8 @@
     Condition
       Error in `create_group_jackknife_weights()`:
       x `create_group_jackknife_weights()` requires a <survey_nonprob>; got <surveycore::survey_taylor>.
-      i The DAGJK for NPS requires an IPW weighting history attached to a <survey_nonprob> object.
-      v Use `ipw()` to create a <survey_nonprob>, then call `create_group_jackknife_weights()`.
+      i The DAGJK requires a weighting history attached to a <survey_nonprob> object.
+      v Use `ipw()` or a calibration function to create a <survey_nonprob>, then call `create_group_jackknife_weights()`.
 
 # create_group_jackknife_weights() rejects survey_replicate reference_sample
 
@@ -96,15 +96,15 @@
       i Each group must contain at least 1 unit; groups cannot exceed the total number of combined rows.
       v Reduce `groups` to at most 580 (combined NPS + reference rows).
 
-# create_group_jackknife_weights() rejects data with no ipw history
+# create_group_jackknife_weights() rejects data with no weighting history
 
     Code
-      create_group_jackknife_weights(np_no_ipw, groups = 5L)
+      create_group_jackknife_weights(np_no_history, groups = 5L)
     Condition
       Error in `create_group_jackknife_weights()`:
-      x No `ipw()` step found in the weighting history of `data`.
-      i `create_group_jackknife_weights()` requires an `ipw()` step in the weighting history to refit the propensity model per replicate.
-      v Call `ipw()` on the non-probability sample before calling `create_group_jackknife_weights()`.
+      x No IPW or calibration step found in the weighting history of `data`.
+      i `create_group_jackknife_weights()` requires an `ipw()` or calibration step in the weighting history.
+      v Call `ipw()` or a calibration function on the non-probability sample before calling `create_group_jackknife_weights()`.
 
 # create_group_jackknife_weights() warns when repweights already populated
 
@@ -176,4 +176,44 @@
       x All 5 group replicates failed; no replicate weights could be produced.
       i Every replicate produced degenerate propensity scores or calibration divergence.
       v Check `data` for single-level covariates or extreme covariate imbalance with the reference. Consider reducing `groups`.
+
+# create_group_jackknife_weights() rejects survey_nonprob with no history (calib-only)
+
+    Code
+      create_group_jackknife_weights(nps_no_history, groups = 10L)
+    Condition
+      Error in `create_group_jackknife_weights()`:
+      x No IPW or calibration step found in the weighting history of `data`.
+      i `create_group_jackknife_weights()` requires an `ipw()` or calibration step in the weighting history.
+      v Call `ipw()` or a calibration function on the non-probability sample before calling `create_group_jackknife_weights()`.
+
+# create_group_jackknife_weights() rejects data.frame reference_sample (calib-only)
+
+    Code
+      create_group_jackknife_weights(nps_calib_a, reference_sample = data.frame(x = 1))
+    Condition
+      Error in `.validate_reference_sample()`:
+      x `reference_sample` must be a <survey_taylor>, not <data.frame>.
+      i Use `survey::svydesign()` to convert an SRS data frame to a <survey_taylor> object.
+      v Pass a <survey_taylor> created with `surveycore::as_survey()`.
+
+# create_group_jackknife_weights() rejects Level B with no reference (calib-only)
+
+    Code
+      create_group_jackknife_weights(nps_calib_b_raw, groups = 10L)
+    Condition
+      Error in `create_group_jackknife_weights()`:
+      x A reference probability sample is required for `create_group_jackknife_weights()`.
+      i No reference design found in the calibration history entry and `reference_sample` was not supplied.
+      v Supply the reference design via `reference_sample`, or re-run the calibration with a <survey_taylor> reference.
+
+# create_group_jackknife_weights() groups ceiling uses n_A only for Level A (calib-only)
+
+    Code
+      create_group_jackknife_weights(nps_calib_a, groups = 501L)
+    Condition
+      Error in `.validate_groups_arg()`:
+      x `groups` (501) exceeds the combined NPS + reference row count (500).
+      i Each group must contain at least 1 unit; groups cannot exceed the total number of combined rows.
+      v Reduce `groups` to at most 500 (combined NPS + reference rows).
 

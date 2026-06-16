@@ -31,8 +31,8 @@
     Condition
       Error in `create_bootstrap_weights()`:
       x `type = 'quasi-randomization'` requires a <survey_nonprob>; got <surveycore::survey_taylor>.
-      i The quasi-randomization bootstrap is designed for non-probability samples with IPW history.
-      v Use `ipw()` to create a <survey_nonprob>, then call `create_bootstrap_weights()`.
+      i The quasi-randomization bootstrap is designed for non-probability samples.
+      v Use `ipw()` or `calibrate_rake()` to create a <survey_nonprob>, then call `create_bootstrap_weights()`.
 
 # create_bootstrap_weights() rejects weighted_df with quasi-randomization
 
@@ -41,8 +41,8 @@
     Condition
       Error in `create_bootstrap_weights()`:
       x `type = 'quasi-randomization'` requires a <survey_nonprob>; got <weighted_df>.
-      i The quasi-randomization bootstrap is designed for non-probability samples with IPW history.
-      v Use `ipw()` to create a <survey_nonprob>, then call `create_bootstrap_weights()`.
+      i The quasi-randomization bootstrap is designed for non-probability samples.
+      v Use `ipw()` or `calibrate_rake()` to create a <survey_nonprob>, then call `create_bootstrap_weights()`.
 
 # create_bootstrap_weights() rejects survey_taylor with hybrid
 
@@ -54,15 +54,15 @@
       i The hybrid bootstrap is designed for non-probability samples.
       v Use `ipw()` to create a <survey_nonprob>, then call `create_bootstrap_weights()`.
 
-# create_bootstrap_weights() errors when no ipw history present
+# create_bootstrap_weights() errors when no history present
 
     Code
-      create_bootstrap_weights(np_no_ipw, type = "quasi-randomization")
+      create_bootstrap_weights(np_no_history, type = "quasi-randomization")
     Condition
       Error in `.quasi_randomization_bootstrap()`:
-      x No `ipw()` step found in the weighting history of `data`.
-      i The quasi-randomization bootstrap requires an `ipw()` step in the weighting history.
-      v Call `ipw()` on the non-probability sample before calling `create_bootstrap_weights()`.
+      x No `ipw()` or calibration step found in the weighting history of `data`.
+      i The quasi-randomization bootstrap requires either an `ipw()` step or a calibration step (e.g., `calibrate_rake()`, `poststratify()`) in the weighting history.
+      v Call `ipw()` or a calibration function on the non-probability sample before calling `create_bootstrap_weights()`.
 
 # create_bootstrap_weights() errors when no reference available
 

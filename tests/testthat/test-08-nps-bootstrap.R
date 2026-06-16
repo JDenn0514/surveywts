@@ -333,21 +333,21 @@ test_that("create_bootstrap_weights() rejects survey_taylor with hybrid", {
   )
 })
 
-# E4: survey_nonprob with no ipw history
-test_that("create_bootstrap_weights() errors when no ipw history present", {
+# E4: survey_nonprob with no ipw history and no calibration history
+test_that("create_bootstrap_weights() errors when no history present", {
   df <- make_surveywts_data(seed = 1)
-  np_no_ipw <- surveycore::survey_nonprob(
+  np_no_history <- surveycore::survey_nonprob(
     data      = df,
     variables = list(weights = "base_weight"),
     metadata  = surveycore::survey_metadata()
   )
   expect_error(
-    create_bootstrap_weights(np_no_ipw, type = "quasi-randomization"),
-    class = "surveywts_error_qr_bootstrap_no_ipw_history"
+    create_bootstrap_weights(np_no_history, type = "quasi-randomization"),
+    class = "surveywts_error_qr_bootstrap_no_history"
   )
   expect_snapshot(
     error = TRUE,
-    create_bootstrap_weights(np_no_ipw, type = "quasi-randomization")
+    create_bootstrap_weights(np_no_history, type = "quasi-randomization")
   )
 })
 

@@ -292,73 +292,60 @@
 .quasi_randomization_bootstrap <- function(
   data, replicates, reference_sample, mse, seed
 ) {
-  # ---- Prerequisites check ------------------------------------------------
+  history <- data@metadata@weighting_history
 
-  # Find ipw history entry
-  ipw_entry <- Filter(
-    function(e) identical(e$operation, "ipw"),
-    data@metadata@weighting_history
-  )
-  if (length(ipw_entry) == 0L) {
-    cli::cli_abort(
-      c(
-        "x" = paste0(
-          "No {.code ipw()} step found in the weighting history of {.arg data}."
-        ),
-        "i" = paste0(
-          "The quasi-randomization bootstrap requires an {.code ipw()} step ",
-          "in the weighting history."
-        ),
-        "v" = paste0(
-          "Call {.fn ipw} on the non-probability sample before calling ",
-          "{.fn create_bootstrap_weights}."
-        )
-      ),
-      class = "surveywts_error_qr_bootstrap_no_ipw_history"
-    )
-  }
-  ipw_entry <- ipw_entry[[1L]]
-
-  # Resolve reference design: argument takes precedence over stored entry
-  ref_design <- reference_sample %||% ipw_entry$reference_design
-  if (is.null(ref_design)) {
-    cli::cli_abort(
-      c(
-        "x" = paste0(
-          "A reference probability sample is required for ",
-          "{.code type = 'quasi-randomization'}."
-        ),
-        "i" = paste0(
-          "No reference design found in the {.code ipw()} history entry ",
-          "and {.arg reference_sample} was not supplied."
-        ),
-        "v" = paste0(
-          "Supply the reference design via {.arg reference_sample}, or re-run ",
-          "{.fn ipw} with a {.cls survey_taylor} reference."
-        )
-      ),
-      class = "surveywts_error_qr_bootstrap_no_reference"
-    )
-  }
-
-  # Find last calibration history entry (rake or calibrate, old or new API)
-  calib_entry <- Filter(
-    function(e) e$operation %in% c(
-      "raking", "calibration",
-      "calibrate_rake", "calibrate_greg"
-    ),
-    data@metadata@weighting_history
-  )
-  calib_entry <- if (length(calib_entry) > 0L) {
-    calib_entry[[length(calib_entry)]]
+  # ---- Prerequisites check: routing by history content --------------------
+  # Find the last IPW entry
+  ipw_entries <- Filter(function(e) identical(e$operation, "ipw"), history)
+  ipw_entry <- if (length(ipw_entries) > 0L) {
+    ipw_entries[[length(ipw_entries)]]
   } else {
     NULL
   }
 
+  # Calibration operations that qualify as a "calibration entry"
+  .calib_ops <- c(
+    "calibrate_rake", "calibrate_linear", "calibrate_logit",
+    "poststratify", "raking"
+  )
+
+  # Find the last calibration entry
+  calib_entries <- Filter(
+    function(e) e$operation %in% .calib_ops,
+    history
+  )
+  calib_entry <- if (length(calib_entries) > 0L) {
+    calib_entries[[length(calib_entries)]]
+  } else {
+    NULL
+  }
+
+  # If neither IPW nor calibration entry found, error
+  if (is.null(ipw_entry) && is.null(calib_entry)) {
+    cli::cli_abort(
+      c(
+        "x" = paste0(
+          "No {.fn ipw} or calibration step found in the weighting history ",
+          "of {.arg data}."
+        ),
+        "i" = paste0(
+          "The quasi-randomization bootstrap requires either an {.fn ipw} step ",
+          "or a calibration step (e.g., {.fn calibrate_rake}, {.fn poststratify}) ",
+          "in the weighting history."
+        ),
+        "v" = paste0(
+          "Call {.fn ipw} or a calibration function on the non-probability ",
+          "sample before calling {.fn create_bootstrap_weights}."
+        )
+      ),
+      class = "surveywts_error_qr_bootstrap_no_history"
+    )
+  }
+
   # ---- Level A / Level B detection ----------------------------------------
-  # Level B fires only when rake()/calibrate() was called with reference_design=,
-  # which sets parameters$targets_from_reference = TRUE in the history entry.
-  # isTRUE(NULL) = FALSE, so ipw-only and Level A workflows get use_level_b = FALSE.
+  # Level B fires when the calibration entry was called with reference_design=,
+  # which stores targets_from_reference = TRUE in the history entry.
+  # isTRUE(NULL) = FALSE, so IPW-only and Level A get use_level_b = FALSE.
   use_level_b <- isTRUE(calib_entry$parameters$targets_from_reference)
 
   # ---- Second-call overwrite check ----------------------------------------
@@ -370,132 +357,195 @@
 
   B <- replicates
 
-  # ---- Seed and reference size setup ----------------------------------------
-  if (!is.null(seed)) set.seed(seed)
-  n_ref <- if (use_level_b) nrow(ref_design@data) else 0L
+  # ---- Route to the appropriate path ----------------------------------------
+  if (!is.null(ipw_entry)) {
+    # ---- IPW path (doubly-robust or IPW-only) --------------------------------
+    # Resolve reference design: argument takes precedence over stored entry
+    ref_design <- reference_sample %||% ipw_entry$reference_design
+    if (is.null(ref_design)) {
+      cli::cli_abort(
+        c(
+          "x" = paste0(
+            "A reference probability sample is required for ",
+            "{.code type = 'quasi-randomization'}."
+          ),
+          "i" = paste0(
+            "No reference design found in the {.fn ipw} history entry ",
+            "and {.arg reference_sample} was not supplied."
+          ),
+          "v" = paste0(
+            "Supply the reference design via {.arg reference_sample}, or re-run ",
+            "{.fn ipw} with a {.cls survey_taylor} reference."
+          )
+        ),
+        class = "surveywts_error_qr_bootstrap_no_reference"
+      )
+    }
 
-  # ---- Main loop ----------------------------------------------------------
-  n_A         <- nrow(data@data)
-  failed_draws <- 0L
-  repwt_list  <- list()
+    if (!is.null(seed)) set.seed(seed)
+    n_ref <- if (use_level_b) nrow(ref_design@data) else 0L
+    n_A   <- nrow(data@data)
+    failed_draws <- 0L
+    repwt_list  <- list()
 
-  for (b in seq_len(B)) {
-    draw_ok <- tryCatch({
-      # Step 1: SRSWR resample of NPS rows
-      idx    <- sample(n_A, size = n_A, replace = TRUE)
-      S_A_b  <- data@data[idx, , drop = FALSE]
+    for (b in seq_len(B)) {
+      draw_ok <- tryCatch({
+        # Step 1: SRSWR resample of NPS rows
+        idx   <- sample(n_A, size = n_A, replace = TRUE)
+        S_A_b <- data@data[idx, , drop = FALSE]
 
-      # Drop weight column so ipw() doesn't find it
-      S_A_b  <- S_A_b[
-        , setdiff(names(S_A_b), data@variables$weights),
-        drop = FALSE
-      ]
+        # Drop weight column so ipw() doesn't find it
+        S_A_b <- S_A_b[
+          , setdiff(names(S_A_b), data@variables$weights),
+          drop = FALSE
+        ]
 
-      # Revert "(Missing)" if missing_method = "separate"
-      if (identical(ipw_entry$missing_method, "separate")) {
-        sel_vars <- all.vars(ipw_entry$formula)
-        for (var in sel_vars) {
-          col <- S_A_b[[var]]
-          if (is.factor(col) && "(Missing)" %in% levels(col)) {
-            char_col <- as.character(col)
-            char_col[char_col == "(Missing)"] <- NA_character_
-            existing_levels <- sort(
-              unique(char_col[!is.na(char_col)])
-            )
-            S_A_b[[var]] <- factor(char_col, levels = existing_levels)
+        # Revert "(Missing)" if missing_method = "separate"
+        if (identical(ipw_entry$missing_method, "separate")) {
+          sel_vars <- all.vars(ipw_entry$formula)
+          for (var in sel_vars) {
+            col <- S_A_b[[var]]
+            if (is.factor(col) && "(Missing)" %in% levels(col)) {
+              char_col <- as.character(col)
+              char_col[char_col == "(Missing)"] <- NA_character_
+              existing_levels <- sort(unique(char_col[!is.na(char_col)]))
+              S_A_b[[var]] <- factor(char_col, levels = existing_levels)
+            }
           }
         }
-      }
 
-      # Step 2 (Level B): SRSWR resample of reference rows.
-      # Avoids zero-weight issues (survey_taylor requires all weights > 0).
-      # The resampled reference carries original design weights for the
-      # selected rows; margins are re-estimated from these resampled weights.
-      if (use_level_b) {
-        idx_ref    <- sample(n_ref, size = n_ref, replace = TRUE)
-        ref_data_b <- ref_design@data[idx_ref, , drop = FALSE]
-        ref_b      <- surveycore::survey_taylor(
-          data      = ref_data_b,
-          variables = ref_design@variables
-        )
-      } else {
-        ref_b      <- ref_design  # fixed reference for Level A
-        ref_data_b <- NULL        # unused for Level A
-      }
-
-      # Step 3: re-run ipw()
-      ipw_result_b <- surveywts::ipw(
-        data             = S_A_b,
-        reference        = ref_b,
-        selection        = ipw_entry$formula,
-        method           = ipw_entry$method,
-        estimating_eq    = ipw_entry$estimating_eq,
-        missing_method   = ipw_entry$missing_method,
-        adjust_reference = ipw_entry$adjust_reference,
-        trim             = ipw_entry$trim,
-        wt_name          = data@variables$weights
-      )
-
-      # Step 4: re-run calibration (if in history)
-      if (!is.null(calib_entry)) {
-        if (calib_entry$operation %in% c("raking", "calibrate_rake")) {
-          if (use_level_b) {
-            # Re-estimate targets from the SRSWR-resampled reference data.
-            # ref_data_b carries original design weights for selected rows.
-            targets_b <- .reestimate_margins_from_reference(
-              calib_entry = calib_entry,
-              ref_design  = ref_design,
-              ref_data_b  = ref_data_b
-            )
-          } else {
-            # Old "raking" entries stored targets as `margins`; new ones as `targets`.
-            targets_b <- calib_entry$parameters$targets %||%
-              calib_entry$parameters$margins
-          }
-          calib_result_b <- surveywts::calibrate_rake(
-            data      = ipw_result_b,
-            targets   = targets_b,
-            type      = calib_entry$parameters$type,
-            algorithm = calib_entry$parameters$algorithm %||%
-              calib_entry$parameters$method,
-            cap       = calib_entry$parameters$cap,
-            control   = calib_entry$parameters$control
+        # Step 2 (Level B): SRSWR resample of reference rows.
+        if (use_level_b) {
+          idx_ref    <- sample(n_ref, size = n_ref, replace = TRUE)
+          ref_data_b <- ref_design@data[idx_ref, , drop = FALSE]
+          ref_b      <- surveycore::survey_taylor(
+            data      = ref_data_b,
+            variables = ref_design@variables
           )
         } else {
-          # operation "calibration" (old), "calibrate_greg" (legacy), or
-          # "calibrate_linear" / "calibrate_logit" (current)
-          # Old entries stored population + variables; new entries store targets.
-          greg_targets <- calib_entry$parameters$targets %||%
-            calib_entry$parameters$population
-          greg_model <- calib_entry$parameters$model %||%
-            calib_entry$parameters$method
-          calib_fn <- if (identical(calib_entry$operation, "calibrate_logit") ||
-            identical(greg_model, "logit")) {
-            surveywts::calibrate_logit
-          } else {
-            surveywts::calibrate_linear
-          }
-          calib_result_b <- calib_fn(
-            data    = ipw_result_b,
-            targets = greg_targets,
-            type    = calib_entry$parameters$type,
-            control = calib_entry$parameters$control
-          )
+          ref_b      <- ref_design
+          ref_data_b <- NULL
         }
-        repwt_list[[length(repwt_list) + 1L]] <-
-          calib_result_b@data[[data@variables$weights]]
-      } else {
-        repwt_list[[length(repwt_list) + 1L]] <-
-          ipw_result_b@data[[data@variables$weights]]
+
+        # Step 3: re-run ipw()
+        ipw_result_b <- surveywts::ipw(
+          data             = S_A_b,
+          reference        = ref_b,
+          selection        = ipw_entry$formula,
+          method           = ipw_entry$method,
+          estimating_eq    = ipw_entry$estimating_eq,
+          missing_method   = ipw_entry$missing_method,
+          adjust_reference = ipw_entry$adjust_reference,
+          trim             = ipw_entry$trim,
+          wt_name          = data@variables$weights
+        )
+
+        # Step 4: re-run calibration (if calibration entry present)
+        if (!is.null(calib_entry)) {
+          calib_result_b <- .dispatch_calibration_replay(
+            data         = ipw_result_b,
+            calib_entry  = calib_entry,
+            ref_design   = ref_design,
+            ref_data_b   = ref_data_b,
+            use_level_b  = use_level_b
+          )
+          w_b <- .extract_weight_vec(calib_result_b, data@variables$weights)
+        } else {
+          w_b <- ipw_result_b@data[[data@variables$weights]]
+        }
+
+        repwt_list[[length(repwt_list) + 1L]] <- w_b
+        TRUE
+      }, error = function(e) FALSE)
+
+      if (!isTRUE(draw_ok)) failed_draws <- failed_draws + 1L
+    }
+  } else {
+    # ---- Calibration-only path (no IPW entry) --------------------------------
+
+    # Reference resolution (only needed for Level B)
+    if (use_level_b) {
+      ref_design <- reference_sample %||%
+        calib_entry$parameters$reference_design
+      if (is.null(ref_design)) {
+        cli::cli_abort(
+          c(
+            "x" = paste0(
+              "A reference probability sample is required for ",
+              "{.code type = 'quasi-randomization'} with Level B calibration."
+            ),
+            "i" = paste0(
+              "The calibration history entry has ",
+              "{.code targets_from_reference = TRUE} but no reference design ",
+              "was found in the entry and {.arg reference_sample} was not supplied."
+            ),
+            "v" = paste0(
+              "Supply the reference design via {.arg reference_sample}, or ",
+              "re-run the calibration with a {.cls survey_taylor} reference."
+            )
+          ),
+          class = "surveywts_error_qr_bootstrap_no_reference"
+        )
       }
+      n_ref <- nrow(ref_design@data)
+    } else {
+      ref_design <- NULL
+      n_ref      <- 0L
+    }
 
-      TRUE  # draw succeeded
-    }, error = function(e) {
-      FALSE  # draw failed
-    })
+    if (!is.null(seed)) set.seed(seed)
+    n_A          <- nrow(data@data)
+    wt_col       <- data@variables$weights
+    failed_draws <- 0L
+    repwt_list   <- list()
 
-    if (!isTRUE(draw_ok)) {
-      failed_draws <- failed_draws + 1L
+    for (b in seq_len(B)) {
+      draw_ok <- tryCatch({
+        # Step 1: SRSWR resample of NPS rows
+        idx   <- sample(n_A, size = n_A, replace = TRUE)
+        S_A_b <- data@data[idx, , drop = FALSE]
+
+        # Step 3 (calibration-only): assign equal initial weight = 1.
+        # SRSWR gives each NPS unit equal selection probability per replicate;
+        # carrying forward the original calibrated weights would double-count.
+        S_A_b[[wt_col]] <- 1
+
+        # Wrap as survey_nonprob for dispatch
+        nps_b <- surveycore::survey_nonprob(
+          data      = S_A_b,
+          variables = list(weights = wt_col),
+          metadata  = surveycore::survey_metadata()
+        )
+
+        # Level B: SRSWR resample of reference rows
+        ref_data_b <- if (use_level_b) {
+          idx_ref <- sample(n_ref, size = n_ref, replace = TRUE)
+          ref_design@data[idx_ref, , drop = FALSE]
+        } else {
+          NULL
+        }
+
+        # Step 4: calibration replay
+        calib_result_b <- .dispatch_calibration_replay(
+          data        = nps_b,
+          calib_entry = calib_entry,
+          ref_design  = ref_design,
+          ref_data_b  = ref_data_b,
+          use_level_b = use_level_b
+        )
+
+        w_b <- .extract_weight_vec(calib_result_b, wt_col)
+
+        # A draw fails if any calibrated weight is <= 0 (e.g., calibrate_linear
+        # with bounds = NULL can produce negative weights that pass the engine
+        # but violate the survey_nonprob validator)
+        if (any(w_b <= 0, na.rm = TRUE)) stop("non-positive calibrated weight")
+
+        repwt_list[[length(repwt_list) + 1L]] <- w_b
+        TRUE
+      }, error = function(e) FALSE)
+
+      if (!isTRUE(draw_ok)) failed_draws <- failed_draws + 1L
     }
   }
 
@@ -507,8 +557,8 @@
           "{failed_draws} of {B} bootstrap draws failed and were skipped."
         ),
         "i" = paste0(
-          "A draw fails when {.fn ipw} or calibration does not converge ",
-          "(e.g., degenerate propensity scores in the resampled data)."
+          "A draw fails when calibration or IPW re-estimation does not ",
+          "converge (e.g., degenerate inputs in the resampled data)."
         ),
         "v" = paste0(
           "Increase {.arg replicates} to compensate, or inspect the data for ",
@@ -565,6 +615,141 @@
   data@metadata <- meta
 
   data
+}
+
+# ============================================================================
+# .dispatch_calibration_replay()
+# ============================================================================
+
+# Dispatch table for calibration replay in the QR bootstrap and DAGJK
+# calibration-only paths. Selects the correct calibration function based on
+# calib_entry$operation and forwards the stored parameters.
+#
+# Arguments:
+#   data        : survey_nonprob or data.frame with the weight column already set
+#   calib_entry : the calibration history entry from @metadata@weighting_history
+#   ref_design  : survey_taylor or NULL (needed for Level B reference resolution)
+#   ref_data_b  : data.frame of SRSWR-resampled reference rows (Level B only);
+#                 NULL for Level A
+#   use_level_b : logical; TRUE = re-estimate targets from ref_data_b
+#
+# Returns: a weighted_df or survey_nonprob with calibrated weights
+.dispatch_calibration_replay <- function(
+  data, calib_entry, ref_design, ref_data_b, use_level_b
+) {
+  op <- calib_entry$operation
+  p  <- calib_entry$parameters
+
+  if (op %in% c("calibrate_rake", "raking")) {
+    if (use_level_b) {
+      targets_b <- .reestimate_margins_from_reference(
+        calib_entry = calib_entry,
+        ref_design  = ref_design,
+        ref_data_b  = ref_data_b
+      )
+    } else {
+      # "raking" legacy entries stored targets as `margins`; new as `targets`
+      targets_b <- p$targets %||% p$margins
+    }
+    surveywts::calibrate_rake(
+      data      = data,
+      targets   = targets_b,
+      type      = p$type,
+      algorithm = p$algorithm %||% p$method,
+      cap       = p$cap,
+      control   = p$control
+    )
+  } else if (op == "calibrate_linear") {
+    if (use_level_b) {
+      targets_b <- .reestimate_margins_from_reference(
+        calib_entry = calib_entry,
+        ref_design  = ref_design,
+        ref_data_b  = ref_data_b
+      )
+    } else {
+      targets_b <- p$targets
+    }
+    # bounds_scale stored as NULL when bounds = NULL (function default applies).
+    # Do not pass NULL to arg_match — omit the arg and let the default be used.
+    args_linear <- list(
+      data       = data,
+      targets    = targets_b,
+      type       = p$type,
+      bounds     = p$bounds,
+      unit_scale = p$unit_scale,
+      control    = p$control
+    )
+    if (!is.null(p$bounds_scale)) {
+      args_linear$bounds_scale <- p$bounds_scale
+    }
+    do.call(surveywts::calibrate_linear, args_linear)
+  } else if (op == "calibrate_logit") {
+    if (use_level_b) {
+      targets_b <- .reestimate_margins_from_reference(
+        calib_entry = calib_entry,
+        ref_design  = ref_design,
+        ref_data_b  = ref_data_b
+      )
+    } else {
+      targets_b <- p$targets
+    }
+    # bounds_scale stored as NULL when bounds defaults applied — same pattern.
+    args_logit <- list(
+      data       = data,
+      targets    = targets_b,
+      type       = p$type,
+      bounds     = p$bounds,
+      unit_scale = p$unit_scale,
+      control    = p$control
+    )
+    if (!is.null(p$bounds_scale)) {
+      args_logit$bounds_scale <- p$bounds_scale
+    }
+    do.call(surveywts::calibrate_logit, args_logit)
+  } else if (op == "poststratify") {
+    # poststratify does not accept algorithm, cap, control, or bounds
+    surveywts::poststratify(
+      data    = data,
+      targets = p$targets,
+      type    = p$type
+    )
+  } else {
+    cli::cli_abort(
+      c(
+        "x" = paste0(
+          "Unsupported calibration operation {.val {op}} in weighting history."
+        ),
+        "i" = paste0(
+          "The quasi-randomization bootstrap supports replay of ",
+          "{.val calibrate_rake}, {.val calibrate_linear}, ",
+          "{.val calibrate_logit}, and {.val poststratify} only."
+        )
+      ),
+      class = "surveywts_error_unsupported_calibration_op"
+    )
+  }
+}
+
+# ============================================================================
+# .extract_weight_vec()
+# ============================================================================
+
+# Extract the weight column from a calibration result, which may be a
+# survey_nonprob, weighted_df, or data.frame.
+#
+# Arguments:
+#   result  : the output of a calibration function call
+#   wt_col  : character(1) — name of the weight column
+#
+# Returns: numeric vector of calibrated weights
+.extract_weight_vec <- function(result, wt_col) {
+  if (S7::S7_inherits(result, surveycore::survey_nonprob)) {
+    result@data[[result@variables$weights]]
+  } else if (inherits(result, "weighted_df")) {
+    result[[attr(result, "weight_col")]]
+  } else {
+    result[[wt_col]]
+  }
 }
 
 # ============================================================================

@@ -121,6 +121,13 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_error_taylor_from_calibrated_replicate` | `as_taylor_design()` | Post-creation weight adjustment in history |
 | `surveywts_error_taylor_from_nonprob_replicate` | `as_taylor_design()` | Source was `survey_nonprob` |
 | `surveywts_error_unsupported_class` | All `create_*_weights()`, `as_taylor_design()` | Input class is not a supported survey design type |
+| ~~`surveywts_error_qr_bootstrap_no_ipw_history`~~ | ~~`.quasi_randomization_bootstrap()`~~ | **RETIRED** — replaced by `surveywts_error_qr_bootstrap_no_history` |
+| `surveywts_error_qr_bootstrap_no_history` | `.quasi_randomization_bootstrap()` | Weighting history contains neither an IPW entry nor a supported calibration entry |
+| `surveywts_error_qr_bootstrap_no_reference` | `.quasi_randomization_bootstrap()` | Calibration-only Level B (or IPW path) and no reference design available |
+| `surveywts_error_qr_bootstrap_requires_nonprob` | `create_bootstrap_weights()` | `data` is not `survey_nonprob` when `type = "quasi-randomization"` |
+| `surveywts_error_reference_sample_class` | `create_bootstrap_weights()`, `create_group_jackknife_weights()` | `reference_sample` is non-NULL and not `survey_taylor` |
+| `surveywts_error_bootstrap_all_draws_failed` | `.quasi_randomization_bootstrap()` | All B bootstrap draws failed |
+| `surveywts_error_unsupported_calibration_op` | `.dispatch_calibration_replay()` | Unsupported calibration operation in history entry |
 
 ### Internal / Utility
 

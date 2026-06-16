@@ -1143,3 +1143,578 @@ test_that("bootstrap overwrite warning message text is unchanged after refactor"
     )
   )
 })
+
+# calibration-only QR bootstrap — error paths --------------------------------
+
+# Fixtures used in this section (constructed inline per test when needed;
+# shared fixtures defined here are referenced by multiple blocks):
+#   nps_calib_a  — survey_nonprob calibrated via calibrate_rake(), no IPW
+#   nps_calib_b  — survey_nonprob calibrated via calibrate_rake() with
+#                  reference_design, no IPW (Level B)
+#   nps_no_history — survey_nonprob with empty weighting history (no IPW,
+#                    no calibration)
+#   ref_data     — survey_taylor reference design
+
+test_that("create_bootstrap_weights() errors on survey_nonprob with no history", {
+  skip_if_not_installed("svrep")
+
+  df <- make_surveywts_data(n = 200L, seed = 7L)
+  nps_no_history <- surveycore::survey_nonprob(
+    data      = df,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+
+  expect_error(
+    create_bootstrap_weights(nps_no_history, type = "quasi-randomization"),
+    class = "surveywts_error_qr_bootstrap_no_history"
+  )
+  expect_snapshot(
+    error = TRUE,
+    create_bootstrap_weights(nps_no_history, type = "quasi-randomization")
+  )
+})
+
+test_that("create_bootstrap_weights() error for bad reference_sample class with calib-only NPS", {
+  skip_if_not_installed("svrep")
+
+  df <- make_surveywts_data(n = 200L, seed = 7L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = df,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_calib_a <- calibrate_rake(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+  )
+
+  expect_error(
+    create_bootstrap_weights(
+      nps_calib_a,
+      type             = "quasi-randomization",
+      reference_sample = data.frame(x = 1)
+    ),
+    class = "surveywts_error_reference_sample_class"
+  )
+  expect_snapshot(
+    error = TRUE,
+    create_bootstrap_weights(
+      nps_calib_a,
+      type             = "quasi-randomization",
+      reference_sample = data.frame(x = 1)
+    )
+  )
+})
+
+test_that("surveywts_error_qr_bootstrap_requires_nonprob message does not say 'IPW history'", {
+  skip_if_not_installed("svrep")
+
+  td <- make_nps_ref(seed = 42L)
+
+  # Snapshot verifies "with IPW history" is NOT present in the error message.
+  expect_snapshot(
+    error = TRUE,
+    create_bootstrap_weights(td, type = "quasi-randomization")
+  )
+})
+
+test_that("create_bootstrap_weights() errors on calibration-only Level B with no reference", {
+  skip_if_not_installed("svrep")
+
+  df <- make_surveywts_data(n = 200L, seed = 7L)
+  ref_data <- make_nps_ref(seed = 99L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = df,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_calib_b <- calibrate_rake(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type             = "prop",
+    reference_design = ref_data
+  )
+
+  # Clear reference_design from the history entry to force the error
+  meta <- nps_calib_b@metadata
+  last_idx <- length(meta@weighting_history)
+  meta@weighting_history[[last_idx]]$parameters$reference_design <- NULL
+  nps_calib_b@metadata <- meta
+
+  expect_error(
+    create_bootstrap_weights(nps_calib_b, type = "quasi-randomization"),
+    class = "surveywts_error_qr_bootstrap_no_reference"
+  )
+  expect_snapshot(
+    error = TRUE,
+    create_bootstrap_weights(nps_calib_b, type = "quasi-randomization")
+  )
+})
+
+# calibration-only QR bootstrap — Level A happy path -------------------------
+
+test_that("calibration-only QR bootstrap (Level A) returns survey_nonprob with correct repweights", {
+  skip_if_not_installed("svrep")
+
+  df <- make_surveywts_data(n = 200L, seed = 7L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = df,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_calib_a <- calibrate_rake(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+  )
+
+  result <- create_bootstrap_weights(
+    nps_calib_a,
+    replicates = 20L,
+    type       = "quasi-randomization",
+    seed       = 1L
+  )
+
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  expect_length(result@variables$repweights, 20L)
+})
+
+test_that("calibration-only QR bootstrap (Level A) history entry has operation and level A", {
+  skip_if_not_installed("svrep")
+
+  df <- make_surveywts_data(n = 200L, seed = 7L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = df,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_calib_a <- calibrate_rake(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+  )
+
+  result <- create_bootstrap_weights(
+    nps_calib_a,
+    replicates = 20L,
+    type       = "quasi-randomization",
+    seed       = 1L
+  )
+
+  history <- result@metadata@weighting_history
+  last_entry <- history[[length(history)]]
+  expect_identical(last_entry$operation, "bootstrap_weights")
+  expect_identical(last_entry$level, "A")
+})
+
+test_that("calibration-only QR bootstrap (Level A) repwt columns are named repwt_1 to repwt_20", {
+  skip_if_not_installed("svrep")
+
+  df <- make_surveywts_data(n = 200L, seed = 7L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = df,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_calib_a <- calibrate_rake(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+  )
+
+  result <- create_bootstrap_weights(
+    nps_calib_a,
+    replicates = 20L,
+    type       = "quasi-randomization",
+    seed       = 1L
+  )
+
+  expect_identical(
+    result@variables$repweights,
+    paste0("repwt_", seq_len(20L))
+  )
+})
+
+test_that("calibration-only QR bootstrap (Level A) original columns are unchanged", {
+  skip_if_not_installed("svrep")
+
+  df <- make_surveywts_data(n = 200L, seed = 7L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = df,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_calib_a <- calibrate_rake(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+  )
+
+  original_cols <- names(nps_calib_a@data)
+
+  result <- create_bootstrap_weights(
+    nps_calib_a,
+    replicates = 20L,
+    type       = "quasi-randomization",
+    seed       = 1L
+  )
+
+  # Original columns are all still present in result
+  expect_true(all(original_cols %in% names(result@data)))
+})
+
+test_that("calibration-only QR bootstrap (Level A) is reproducible with same seed", {
+  skip_if_not_installed("svrep")
+
+  df <- make_surveywts_data(n = 200L, seed = 7L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = df,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_calib_a <- calibrate_rake(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+  )
+
+  r1 <- create_bootstrap_weights(
+    nps_calib_a,
+    replicates = 10L,
+    type       = "quasi-randomization",
+    seed       = 42L
+  )
+  r2 <- create_bootstrap_weights(
+    nps_calib_a,
+    replicates = 10L,
+    type       = "quasi-randomization",
+    seed       = 42L
+  )
+
+  expect_equal(r1@data$repwt_1, r2@data$repwt_1, tolerance = 1e-10)
+})
+
+test_that("calibration-only QR bootstrap (Level A): reference_sample accepted but unused", {
+  skip_if_not_installed("svrep")
+
+  df <- make_surveywts_data(n = 200L, seed = 7L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = df,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_calib_a <- calibrate_rake(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+  )
+  ref_data <- make_nps_ref(seed = 99L)
+
+  # Should not error — Level A does not require or use the reference
+  expect_no_error(
+    create_bootstrap_weights(
+      nps_calib_a,
+      replicates       = 10L,
+      type             = "quasi-randomization",
+      seed             = 1L,
+      reference_sample = ref_data
+    )
+  )
+})
+
+# calibration-only QR bootstrap — dispatch coverage (Level A) ----------------
+
+test_that("calibration-only QR bootstrap dispatches to calibrate_linear", {
+  skip_if_not_installed("svrep")
+
+  df <- make_surveywts_data(n = 200L, seed = 7L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = df,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_linear <- calibrate_linear(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+  )
+
+  result <- create_bootstrap_weights(
+    nps_linear,
+    replicates = 10L,
+    type       = "quasi-randomization",
+    seed       = 1L
+  )
+
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  expect_length(result@variables$repweights, 10L)
+})
+
+test_that("calibration-only QR bootstrap dispatches to calibrate_logit", {
+  skip_if_not_installed("svrep")
+
+  df <- make_surveywts_data(n = 200L, seed = 7L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = df,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_logit <- calibrate_logit(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+  )
+
+  result <- create_bootstrap_weights(
+    nps_logit,
+    replicates = 10L,
+    type       = "quasi-randomization",
+    seed       = 1L
+  )
+
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  expect_length(result@variables$repweights, 10L)
+})
+
+test_that("calibration-only QR bootstrap dispatches to poststratify", {
+  skip_if_not_installed("svrep")
+
+  df <- make_surveywts_data(n = 200L, seed = 7L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = df,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+
+  # poststratify requires a data.frame with strata columns + "target" column
+  pop_cells <- data.frame(
+    age_group = c("18-34", "35-54", "55+", "18-34", "35-54", "55+"),
+    sex       = c("M", "M", "M", "F", "F", "F"),
+    target    = c(
+      0.35 * 0.49, 0.40 * 0.49, 0.25 * 0.49,
+      0.35 * 0.51, 0.40 * 0.51, 0.25 * 0.51
+    ),
+    stringsAsFactors = FALSE
+  )
+
+  nps_ps <- poststratify(
+    nps_base,
+    targets = pop_cells,
+    type    = "prop"
+  )
+
+  result <- create_bootstrap_weights(
+    nps_ps,
+    replicates = 10L,
+    type       = "quasi-randomization",
+    seed       = 1L
+  )
+
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  expect_length(result@variables$repweights, 10L)
+})
+
+# calibration-only QR bootstrap — Level B ------------------------------------
+
+test_that("calibration-only QR bootstrap (Level B) returns survey_nonprob with repweights", {
+  skip_if_not_installed("svrep")
+
+  df <- make_surveywts_data(n = 200L, seed = 7L)
+  ref_data <- make_nps_ref(seed = 99L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = df,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_calib_b <- calibrate_rake(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type             = "prop",
+    reference_design = ref_data
+  )
+
+  result <- create_bootstrap_weights(
+    nps_calib_b,
+    replicates       = 20L,
+    type             = "quasi-randomization",
+    seed             = 2L,
+    reference_sample = ref_data
+  )
+
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  expect_length(result@variables$repweights, 20L)
+
+  history <- result@metadata@weighting_history
+  last_entry <- history[[length(history)]]
+  expect_identical(last_entry$operation, "bootstrap_weights")
+  expect_identical(last_entry$level, "B")
+})
+
+# calibration-only QR bootstrap — warning paths ------------------------------
+
+test_that("calibration-only QR bootstrap warns on repweights overwrite", {
+  skip_if_not_installed("svrep")
+
+  df <- make_surveywts_data(n = 200L, seed = 7L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = df,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_calib_a <- calibrate_rake(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+  )
+
+  # First call: no warning
+  r1 <- create_bootstrap_weights(
+    nps_calib_a,
+    replicates = 10L,
+    type       = "quasi-randomization",
+    seed       = 1L
+  )
+
+  # Second call: overwrite warning
+  expect_warning(
+    create_bootstrap_weights(
+      r1,
+      replicates = 10L,
+      type       = "quasi-randomization",
+      seed       = 2L
+    ),
+    class = "surveywts_warning_repweights_overwritten"
+  )
+})
+
+test_that("calibration-only QR bootstrap errors when all draws fail", {
+  skip_if_not_installed("svrep")
+
+  df <- make_surveywts_data(n = 200L, seed = 7L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = df,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_calib_a <- calibrate_rake(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+  )
+
+  # Force both targets and margins to NULL so every draw fails
+  meta <- nps_calib_a@metadata
+  last_idx <- length(meta@weighting_history)
+  meta@weighting_history[[last_idx]]$parameters$targets <- NULL
+  meta@weighting_history[[last_idx]]$parameters$margins <- NULL
+  nps_calib_a@metadata <- meta
+
+  expect_error(
+    suppressWarnings(
+      create_bootstrap_weights(
+        nps_calib_a,
+        replicates = 5L,
+        type       = "quasi-randomization",
+        seed       = 1L
+      )
+    ),
+    class = "surveywts_error_bootstrap_all_draws_failed"
+  )
+})
+
+# calibration-only QR bootstrap — regression tests (existing paths) ----------
+
+test_that("IPW-only path still works after routing refactor", {
+  skip_if_not_installed("svrep")
+
+  nps <- suppressWarnings(make_nonprob_no_repweights(n = 200L, seed = 1L))
+  ref <- make_nps_ref(seed = 42L)
+
+  result <- create_bootstrap_weights(
+    nps,
+    replicates       = 10L,
+    type             = "quasi-randomization",
+    seed             = 1L,
+    reference_sample = ref
+  )
+
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  expect_true(length(result@variables$repweights) > 0L)
+})
+
+test_that("doubly-robust Level A path still works after routing refactor", {
+  skip_if_not_installed("svrep")
+
+  nps <- suppressWarnings(make_nps_level_a(seed = 1L, n = 200L))
+
+  result <- create_bootstrap_weights(
+    nps,
+    replicates = 10L,
+    type       = "quasi-randomization",
+    seed       = 1L
+  )
+
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  expect_true(length(result@variables$repweights) > 0L)
+})
+
+test_that("doubly-robust Level B path still works after routing refactor", {
+  skip_if_not_installed("svrep")
+
+  nps <- suppressWarnings(make_nps_level_b(seed = 2L, n = 200L))
+  ref <- make_nps_ref(seed = 102L)
+
+  result <- create_bootstrap_weights(
+    nps,
+    replicates       = 10L,
+    type             = "quasi-randomization",
+    seed             = 2L,
+    reference_sample = ref
+  )
+
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  expect_true(length(result@variables$repweights) > 0L)
+})

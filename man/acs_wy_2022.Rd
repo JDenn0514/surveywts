@@ -139,7 +139,7 @@ An object of class \code{surveycore::survey_replicate} (inherits from \code{surv
 }
 \source{
 Derived from \code{surveycore::acs_pums_wy}.
-See \code{data-raw/npors-acs-ipw.R} for the construction script.
+See \verb{data-raw/acs-wy-2022.R} for the construction script.
 }
 \usage{
 acs_wy_2022

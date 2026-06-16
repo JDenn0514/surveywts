@@ -4,7 +4,7 @@
 ##   ns_wave1     — full surveycore::ns_wave1 with derived demographic cols
 ##                  + 8 Nationscape raking recode columns (ns_*)
 ##   ns_wave1_svy — survey_nonprob raked to Nationscape ACS 2017 targets
-##                  + 200 quasi-randomization bootstrap replicate weights
+##                  (raked + 5th/95th percentile trimmed; no replicate weights)
 ##
 ## Run from the package root: source("data-raw/ns-wave1.R")
 
@@ -348,14 +348,6 @@ ns_wave1_svy <- trim_weights(
   wt_name = "weight"
 )
 
-# Step 3: Quasi-randomization bootstrap (200 replicates; calibration-only path
-# replays the rake on each resample). Seed fixed for reproducibility.
-ns_wave1_svy <- create_bootstrap_weights(
-  ns_wave1_svy,
-  type = "quasi-randomization",
-  seed = 2025L
-)
-
 rm(.income_na_rate, .income_scale, .ns_targets)
 
 usethis::use_data(ns_wave1, ns_wave1_svy, overwrite = TRUE)
@@ -365,5 +357,5 @@ message(
   " rows x ",
   ncol(ns_wave1),
   " cols) and ns_wave1_svy ",
-  "(raked + 200 bootstrap replicate weights)"
+  "(raked + trimmed; no replicate weights)"
 )

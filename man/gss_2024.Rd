@@ -64,7 +64,7 @@ An object of class \code{surveycore::survey_taylor} (inherits from \code{surveyc
 }
 \source{
 Derived from \code{surveycore::gss_2024}.
-See \code{data-raw/ns-gss-ipw.R} for the construction script.
+See \verb{data-raw/gss-2024.R} for the construction script.
 }
 \usage{
 gss_2024

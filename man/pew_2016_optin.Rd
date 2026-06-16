@@ -174,18 +174,21 @@ Central, \code{3} = Middle Atlantic, \code{4} = Mountain, \code{5} = New England
 }
 \subsection{\code{pew_2016_optin_svy}}{
 
-A \code{survey_nonprob} object wrapping \code{pew_2016_optin}. Constructed with
-equal weights (\code{1L}) since no weight column exists in the raw opt-in data.
-Represents the raw panel before any weighting. The \code{equal_wt} helper
-column is NOT stored in the \code{pew_2016_optin} tibble -- it was used only
-during construction.
+A \code{survey_nonprob} object wrapping \code{pew_2016_optin}. The \code{weight} column
+contains calibrated weights produced by raking to \link{pew_2016_synth_pop}
+targets (Newton-Raphson, 7 margins: gender, agecat6, racethn, educcat5,
+division, partyscale5, ideo3; 5th/95th percentile trim). Carries 200
+quasi-randomization bootstrap replicate weights (\code{repwt_1}–\code{repwt_200} in
+\verb{@data}; \verb{@variables$repweights} populated). The \code{weight} column exists
+only in the object's \verb{@data} — it is not stored in the \code{pew_2016_optin}
+tibble.
 }
 
 An object of class \code{surveycore::survey_nonprob} (inherits from \code{surveycore::survey_base}, \code{S7_object}) of length 1.
 }
 \source{
 Derived from the Pew Research Center 2016 opt-in sample SPSS file.
-See \verb{data-raw/pew-2016.R} for the preparation script.
+See \code{data-raw/pew-2016-optin.R} for the preparation script.
 }
 \usage{
 pew_2016_optin
@@ -204,10 +207,14 @@ Value labels are preserved as named numeric attributes on each column
 (accessible via \code{attr(pew_2016_optin$gender, "labels")}). Variable labels
 are stored in the \code{"label"} attribute of each column.
 
-\code{pew_2016_optin_svy} is a \code{survey_nonprob} object. The raw opt-in data
-has no weight column. Equal weights (\code{1L}) are assigned for each
-respondent, representing the raw panel before any weighting. Apply
-\code{ipw()} or \code{calibrate()} to add real weights.
+\code{pew_2016_optin_svy} is a \code{survey_nonprob} object whose \code{weight} column
+is produced by raking to targets computed as unweighted proportions from
+\link{pew_2016_synth_pop} (Newton-Raphson algorithm, 7 marginal dimensions:
+gender, age group, race/ethnicity, education, census division, party ID,
+and ideology; 5th/95th percentile trim). It carries 200
+quasi-randomization bootstrap replicate weights (\code{repwt_1}–\code{repwt_200}).
+The \code{weight} column is stored in the object's \verb{@data} slot only; it is
+not present in the \code{pew_2016_optin} tibble.
 }
 \details{
 Pew 2016 ATP opt-in sample

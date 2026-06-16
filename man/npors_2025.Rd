@@ -112,7 +112,7 @@ An object of class \code{surveycore::survey_taylor} (inherits from \code{surveyc
 }
 \source{
 Derived from \code{surveycore::pew_npors_2025}.
-See \code{data-raw/npors-acs-ipw.R} for the construction script.
+See \verb{data-raw/npors-2025.R} for the construction script.
 }
 \usage{
 npors_2025

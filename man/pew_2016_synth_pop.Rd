@@ -82,7 +82,7 @@ An object of class \code{surveycore::survey_taylor} (inherits from \code{surveyc
 }
 \source{
 Derived from the Pew Research Center 2016 ATP synthetic population
-SPSS file. See \verb{data-raw/pew-2016.R} for the preparation script.
+SPSS file. See \code{data-raw/pew-2016-synth-pop.R} for the preparation script.
 }
 \usage{
 pew_2016_synth_pop

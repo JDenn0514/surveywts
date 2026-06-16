@@ -411,6 +411,11 @@ test_that("ns_wave1_svy uses weight as weight column", {
   expect_identical(ns_wave1_svy@variables$weights, "weight")
 })
 
+test_that("ns_wave1_svy has no replicate weights", {
+  data(ns_wave1_svy)
+  expect_null(ns_wave1_svy@variables$repweights)
+})
+
 # ============================================================================
 # Integration tests — ipw() with new datasets
 # ============================================================================

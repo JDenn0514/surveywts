@@ -16,36 +16,37 @@
 #' @param data A `survey_taylor` or `survey_nonprob` design.
 #' @param method `character(1)`. One of `"bootstrap"`, `"jackknife"`, `"brr"`,
 #'   `"generalized-bootstrap"`, `"generalized-replicate"`,
-#'   `"successive-difference"`, `"group-jackknife"`.
+#'   `"successive-difference"`. For delete-a-group jackknife on a
+#'   `survey_nonprob`, use `method = "jackknife"` with `type = "grouped"`.
 #' @param ... Passed as-is to the dispatched function. Invalid arguments for
 #'   the selected method produce R's native "unused argument" error.
 #'
-#' @return
-#'   - For most methods: a `survey_replicate`.
-#'   - For `method = "group-jackknife"`: a `survey_nonprob` with DAGJK replicate
-#'     weight columns, consistent with
-#'     `create_bootstrap_weights(type = "quasi-randomization")`.
+#' @returns A `survey_replicate` for most methods, or a `survey_nonprob`
+#'   when `method = "jackknife"` and `type = "grouped"` is passed via `...`
+#'   for DAGJK on a non-probability sample.
 #'
 #' @family replicate-weights
+#' @seealso [create_bootstrap_weights()], [create_jackknife_weights()],
+#'   [create_brr_weights()], [create_gen_boot_weights()],
+#'   [create_gen_rep_weights()], [create_sdr_weights()]
 #' @export
 create_replicate_weights <- function(
   data,
   method = c(
     "bootstrap", "jackknife", "brr",
     "generalized-bootstrap", "generalized-replicate",
-    "successive-difference", "group-jackknife"
+    "successive-difference"
   ),
   ...
 ) {
   method <- rlang::arg_match(method)
   switch(
     method,
-    bootstrap                = create_bootstrap_weights(data, ...),
-    jackknife                = create_jackknife_weights(data, ...),
-    brr                      = create_brr_weights(data, ...),
-    "generalized-bootstrap"  = create_gen_boot_weights(data, ...),
-    "generalized-replicate"  = create_gen_rep_weights(data, ...),
-    "successive-difference"  = create_sdr_weights(data, ...),
-    "group-jackknife"        = create_group_jackknife_weights(data, ...)
+    bootstrap               = create_bootstrap_weights(data, ...),
+    jackknife               = create_jackknife_weights(data, ...),
+    brr                     = create_brr_weights(data, ...),
+    "generalized-bootstrap" = create_gen_boot_weights(data, ...),
+    "generalized-replicate" = create_gen_rep_weights(data, ...),
+    "successive-difference" = create_sdr_weights(data, ...)
   )
 }

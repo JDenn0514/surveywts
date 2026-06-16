@@ -37,7 +37,7 @@ only what is specific to surveywts.
 | `R/create_replicate_weights.R`, `R/as_taylor_design.R` | `tests/testthat/test-replicate-dispatch.R` |
 | `R/methods-print.R` | `tests/testthat/test-replicate-print.R` |
 | `R/ipw.R` | `tests/testthat/test-nonprob-ipw.R` |
-| `R/create_group_jackknife_weights.R` | `tests/testthat/test-nps-group-jackknife.R` |
+| `R/jackknife-dagjk-utils.R` | `tests/testthat/test-nps-jackknife.R` |
 | `R/utils.R` | (tested indirectly via all test files) |
 
 ---

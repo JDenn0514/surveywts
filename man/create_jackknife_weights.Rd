@@ -2,51 +2,313 @@
 % Please edit documentation in R/create_jackknife_weights.R
 \name{create_jackknife_weights}
 \alias{create_jackknife_weights}
-\title{Create jackknife replicate weights}
+\title{Construct jackknife replicate weights}
 \usage{
 create_jackknife_weights(
   data,
   replicates = NULL,
   ...,
-  type = c("delete-1", "random-groups"),
+  type = c("jkn", "jk1", "grouped"),
   mse = TRUE,
+  var_strat = NULL,
+  var_strat_frac = NULL,
+  sort_var = NULL,
+  adj_method = c("variance-stratum-psus", "variance-units"),
+  scale_method = c("variance-stratum-psus", "variance-units"),
+  reference_sample = NULL,
   seed = NULL
 )
 }
 \arguments{
-\item{data}{A \code{survey_taylor} or \code{survey_nonprob} design. \code{survey_nonprob}
-supports \code{type = "delete-1"} only.}
+\item{data}{A \code{survey_taylor} or \code{survey_nonprob}. \code{survey_nonprob} is only
+valid with \code{type = "grouped"}. \code{data.frame}, \code{weighted_df}, and
+\code{survey_replicate} inputs all error.}
 
-\item{replicates}{\code{integer(1)} or \code{NULL}. Number of random groups when
-\code{type = "random-groups"}. Required for random-groups; ignored for
-delete-1.}
+\item{replicates}{\code{integer(1)} or \code{NULL}. Number of random deletion groups
+for \code{type = "grouped"}. Required when \code{type = "grouped"} for both
+\code{survey_taylor} and \code{survey_nonprob} inputs; errors if \code{NULL}. Silently
+ignored for \code{type = "jkn"} and \code{type = "jk1"} (those types are
+deterministic). For \code{survey_nonprob} (DAGJK path), must be a whole number
+(value >= 2); whole-number doubles (e.g., \code{50.0}) are coerced to integer. Must
+not exceed the combined NPS + reference row count. Documentation advises
+\code{G >= 50} as a practical starting point for CV(SE) <= 10\% (Valliant,
+Dever & Kreuter 2018 Table 15.2). No default is provided by design —
+callers must always supply a value when \code{type = "grouped"}.}
 
-\item{...}{Must be empty.}
+\item{...}{Must be empty. Forces all remaining arguments to be named.}
 
-\item{type}{\code{character(1)}. \code{"delete-1"} (default): one replicate per PSU,
-auto-selecting JK1 (unstratified) or JKn (stratified). \code{"random-groups"}:
-PSUs randomly divided into \code{replicates} groups.}
+\item{type}{\code{character(1)}. \code{"jkn"} (the default): stratified delete-one
+jackknife, one replicate per PSU across all strata. \code{"jk1"}: unstratified
+delete-one jackknife ignoring stratification — will generally overestimate
+variance on multi-stratum designs. \code{"grouped"}: random-group jackknife
+for probability samples (via \code{svrep}) or DAGJK for non-probability samples.
+\code{"jkn"} and \code{"jk1"} are valid only for \code{survey_taylor}.}
 
-\item{mse}{\code{logical(1)}, default \code{TRUE}.}
+\item{mse}{\code{logical(1)}, default \code{TRUE}. Centers each replicate deviation on
+the full-sample estimate (\code{mse = TRUE}, Wolter 2007 v_4 form; conservative)
+or on the within-stratum mean of replicate estimates (\code{mse = FALSE}, v_1
+form). For \code{type = "grouped"} with \code{survey_nonprob} (DAGJK), \code{mse = TRUE}
+is hardcoded — see the \strong{Algorithm} section. Supplying \code{mse = FALSE} on
+that path emits a warning and is overridden.}
 
-\item{seed}{\code{integer(1)} or \code{NULL}. RNG seed for random-group assignment
-(ignored for delete-1).}
+\item{var_strat}{\code{character(1)} or \code{NULL}. Variance stratification variable;
+passed to \code{svrep::as_random_group_jackknife_design()} for \code{type = "grouped"}
+with \code{survey_taylor}. Silently ignored for \code{"jkn"} and \code{"jk1"}. Emits a
+warning and is ignored for \code{survey_nonprob} (DAGJK does not support svrep
+variance stratification).}
+
+\item{var_strat_frac}{\code{numeric(1)} or \code{NULL}. Variance stratification
+fraction for \code{svrep}. Same applicability and ignored-path behavior as
+\code{var_strat}.}
+
+\item{sort_var}{\code{character(1)} or \code{NULL}. Sort variable for systematic group
+assignment in \code{svrep}. Same applicability and ignored-path behavior as
+\code{var_strat}. Not applicable to DAGJK because DAGJK uses its own
+\code{sample()} engine across the combined NPS + reference dataset.}
+
+\item{adj_method}{\code{character(1)}. \code{"variance-stratum-psus"} (the default,
+matching the svrep default) or \code{"variance-units"}. Passed to
+\code{svrep::as_random_group_jackknife_design()} for \code{type = "grouped"} with
+\code{survey_taylor}. Silently ignored for \code{"jkn"} and \code{"jk1"}. Emits a warning
+when non-default and \code{data} is \code{survey_nonprob}.}
+
+\item{scale_method}{\code{character(1)}. \code{"variance-stratum-psus"} (the default)
+or \code{"variance-units"}. Same applicability and ignored-path behavior as
+\code{adj_method}.}
+
+\item{reference_sample}{\code{survey_taylor} or \code{NULL}. Reference probability
+sample for the DAGJK path (\code{type = "grouped"} with \code{survey_nonprob}).
+When non-\code{NULL}, overrides any reference design stored in the \code{ipw()}
+history entry. When non-\code{NULL} and not a \code{survey_taylor}, errors with
+\code{surveywts_error_reference_sample_class}. Silently ignored when \code{type} is
+\code{"jkn"}, \code{"jk1"}, or \code{"grouped"} with \code{survey_taylor} (documented as
+DAGJK-only; no runtime warning emitted on non-DAGJK paths).}
+
+\item{seed}{\code{integer(1)} or \code{NULL}. RNG seed for reproducible random group
+assignment. For \code{type = "grouped"} with \code{survey_taylor}, passed to
+\code{.convert_and_call()} which calls \code{withr::local_seed()}. For DAGJK,
+\code{set.seed(seed)} is called once before group assignment; the global RNG
+state is not restored. Silently ignored for \code{"jkn"} and \code{"jk1"}
+(deterministic).}
 }
 \value{
-A \code{survey_replicate} with \verb{@variables$type} of \code{"JK1"} or \code{"JKn"}.
+\strong{\code{type = "jkn"}, \code{type = "jk1"}, or \code{type = "grouped"} with
+\code{survey_taylor}:} A \code{survey_replicate} with replicate weight columns in
+\verb{@data} named \code{rep_1}, \code{rep_2}, ..., \code{rep_R}; \verb{@variables$repweights}
+populated; \verb{@variables$type} set to \code{"JKn"}, \code{"JK1"}, or \code{"random-group"}
+respectively; \verb{@variables$scale}, \verb{@variables$rscales}, and
+\verb{@variables$mse} populated from the backend. A new entry with
+\code{operation = "replicate_creation"} and \code{method = "jackknife"} is appended
+to the weighting history.
+
+\strong{\code{type = "grouped"} with \code{survey_nonprob}:} A \code{survey_nonprob} with
+\code{G_success} replicate weight columns named \code{repwt_1} through
+\verb{repwt_\{G_success\}}; \verb{@variables$type} set to \code{"group-jackknife"};
+\verb{@variables$scale} set to \code{(G_success - 1) / G_success};
+\verb{@variables$rscales} set to \code{rep(1, G_success)}; \verb{@variables$mse} set to
+\code{TRUE}. A new entry with \code{operation = "jackknife_weights"} is appended to
+the weighting history.
 }
 \description{
-Generates jackknife replicate weights via \code{\link[survey:as.svrepdesign]{survey::as.svrepdesign()}} (for
-delete-1) or \code{\link[svrep:as_random_group_jackknife_design]{svrep::as_random_group_jackknife_design()}} (for random-groups).
+Generates jackknife replicate weights for probability samples via the
+\code{survey} or \code{svrep} package, and for non-probability samples via the
+delete-a-group jackknife (DAGJK) engine. The \code{type} argument selects the
+jackknife variant; \code{survey_nonprob} inputs are restricted to
+\code{type = "grouped"}.
+}
+\section{Algorithm}{
+
+
+\strong{JKn (stratified delete-one jackknife)}
+
+Drops PSU \code{i} from stratum \code{h} in turn. Retained units in stratum \code{h} are
+scaled by \code{n_h / (n_h - 1)}; units in other strata are unchanged:
+
+\deqn{
+  w_{k(hi)} = \begin{cases}
+    0 & \text{if unit } k \text{ is in PSU } i \text{ of stratum } h \\
+    \dfrac{n_h}{n_h - 1}\, w_k & \text{if unit } k \text{ is in stratum } h,\; k \neq i \\
+    w_k & \text{if unit } k \text{ is not in stratum } h
+  \end{cases}
+}
+
+The \code{mse = TRUE} variance estimator (Wolter 2007 eq. 4.6.4a):
+
+\deqn{
+  v_J(\hat{\theta}) = \sum_{h=1}^{H} \frac{n_h - 1}{n_h}
+    \sum_{i=1}^{n_h} \left( \hat{\theta}_{(hi)} - \hat{\theta} \right)^2
+}
+
+Total replicates = \eqn{\sum_h n_h} (one per PSU across all strata).
+Delegated to \code{survey::as.svrepdesign(type = "JKn", mse = mse)}.
+
+\strong{JK1 (unstratified delete-one jackknife)}
+
+Special case of JKn treating all PSUs as a single stratum (Valliant, Dever &
+Kreuter 2018 §15.4.1 "Special Cases"). Scale factor is \code{(n-1)/n}; total
+replicates = \code{n}. JK1 ignores the design stratification and generally
+overestimates variance when applied to a multi-stratum design. Delegated to
+\code{survey::as.svrepdesign(type = "JK1", mse = mse)}.
+
+\strong{Grouped jackknife (probability samples)}
+
+PSUs are randomly divided into \code{replicates} groups. Each replicate drops one
+group and rescales the remaining units' weights. Scale factor =
+\code{(G - 1) / G} for equal-sized groups. Delegated to
+\code{svrep::as_random_group_jackknife_design()} which handles unequal groups and
+variance stratification via \code{var_strat}, \code{var_strat_frac}, \code{sort_var},
+\code{adj_method}, and \code{scale_method}.
+
+\strong{Delete-a-group jackknife for non-probability samples (DAGJK)}
+
+Randomly partitions the combined NPS + reference dataset into \code{replicates}
+groups, then refits the full estimation pipeline (IPW and/or calibration) on
+the leave-one-group-out subsample for each replicate. The variance estimator
+(Kott 2001 eq. 1; Valliant 2020 eq. 3):
+
+\deqn{
+  v_J(\hat{\theta}) = \frac{G - 1}{G}
+    \sum_{g=1}^{G} \left( \hat{\theta}_{(g)} - \hat{\theta} \right)^2
+}
+
+Centering is always on the full-sample estimate \eqn{\hat{\theta}} (\code{mse = TRUE}); \code{mse = FALSE} is not valid for this formula.
+
+The standard per-stratum weight adjustment (Kott 2001 §1):
+
+\deqn{
+  w_{k(g)} = \begin{cases}
+    0 & \text{if PSU } j \text{ is in group } g \\
+    \dfrac{n_h}{n_h - n_{hg}}\, w_k & \text{otherwise}
+  \end{cases}
+}
+
+When any NPS stratum has \eqn{n_h < G}, the extended formula (Kott 2001 §3
+eq. 2) is applied per stratum:
+
+\deqn{
+  Z = \sqrt{\frac{G}{(G-1)\, n_h\, (n_h - 1)}}
+}
+\deqn{
+  w_{k(g)}^{(E)} = \begin{cases}
+    w_k & \text{if no PSU from stratum } h \text{ is in group } g \\
+    w_k \bigl(1 - (n_h - 1)\, Z\bigr) & \text{if PSU containing } k
+      \text{ is in group } g \\
+    w_k (1 + Z) & \text{if PSU is in stratum } h \text{ but not in group } g
+  \end{cases}
+}
+
+When \eqn{n_h = 2}, the deleted-PSU multiplier \eqn{1 - Z =
+1 - \sqrt{G/(G-1)} < 0} for all finite \eqn{G}; the resulting negative
+replicate weights are retained and reported via a warning (see \strong{Warnings}).
+}
+
+\section{Limitations}{
+
+
+\strong{Jackknife is not consistent for quantile variance.} The jackknife
+underestimates variance for quantiles and other non-smooth statistics (Elliott
+& Valliant 2017 §4.1; Valliant, Dever & Kreuter 2018 §15.4.1; Wolter 2007
+§4.2.4). Use \code{create_bootstrap_weights()} for quantile variance.
+
+\strong{No formal consistency proof for DAGJK on non-probability samples.}
+Consistency is claimed by analogy to Krewski & Rao (1981); no proof exists
+for the non-probability sample case (Valliant 2020 §2.4). Variance estimates
+are asymptotically justified approximations.
+
+\strong{DAGJK captures only sample-based estimation variance.} The nonsample
+variance component (uncertainty about unobserved population units) is not
+captured. No finite-population correction is applied.
+
+\strong{DAGJK standard errors are slightly conservative for doubly-robust
+estimators.} When the pipeline applies both IPW and downstream calibration,
+DAGJK standard error estimates are positively biased by approximately 3-5\%
+at n = 500 (Valliant 2020 Table 8). This bias does not vanish as n grows.
+
+\strong{JK1 ignores stratification.} Applying \code{type = "jk1"} to a multi-stratum
+design treats all PSUs as coming from one stratum and generally overestimates
+variance. Use \code{type = "jkn"} for stratified designs.
+}
+
+\section{Warnings}{
+
+
+If existing replicate weight columns are detected on a \code{survey_nonprob} input
+(DAGJK path), they are cleared and a warning is emitted before proceeding.
+
+If the average DAGJK group size is fewer than 5 units, a warning is emitted.
+Very small groups cause the propensity model to fail in some replicates.
+Reduce \code{replicates} or use a larger combined NPS + reference dataset.
+
+If one or more DAGJK replicate weight values are negative after calibration
+(which can occur with the extended formula when \eqn{n_h = 2}, or with
+extreme calibration targets), a warning is emitted. Variance estimates
+using negative replicate weights should be interpreted cautiously.
+}
+
+\examples{
+# JKn (stratified delete-one) on a probability sample --------------------
+data(gss_2024_svy)
+jkn_design <- create_jackknife_weights(gss_2024_svy, type = "jkn")
+
+# Grouped jackknife on a probability sample -------------------------------
+grouped_design <- create_jackknife_weights(
+  gss_2024_svy,
+  replicates = 50L,
+  type = "grouped",
+  seed = 42L
+)
+
+# DAGJK on a non-probability sample (Level A calibration-only) -----------
+# ns_wave1_svy has a calibrate_rake history entry with targets_from_reference
+# = FALSE, so no reference sample is needed.
+data(ns_wave1_svy)
+dagjk_design <- create_jackknife_weights(
+  ns_wave1_svy,
+  replicates = 50L,
+  type = "grouped",
+  seed = 42L
+)
+
+}
+\references{
+Elliott, M.R. and Valliant, R. (2017). Inference for nonprobability
+samples. \emph{Statistical Science} \strong{32}(2), 249--264.
+\doi{10.1214/16-STS598}
+
+Kott, P.S. (2001). The delete-a-group jackknife.
+\emph{Journal of Official Statistics} \strong{17}(4), 521--526.
+
+Valliant, R. (2020). Comparing alternatives for estimation from
+nonprobability samples. \emph{Journal of Survey Statistics and Methodology}
+\strong{8}, 231--263. \doi{10.1093/jssam/smz003}
+
+Valliant, R., Brick, J.M. and Dever, J.A. (2008). Weight adjustments
+for the grouped jackknife variance estimator.
+\emph{Journal of Official Statistics} \strong{24}(3), 469--488.
+
+Valliant, R., Dever, J.A. and Kreuter, F. (2018).
+\emph{Practical Tools for Designing and Weighting Survey Samples} (2nd ed.).
+Springer.
+
+Wolter, K.M. (2007). \emph{Introduction to Variance Estimation} (2nd ed.).
+Springer.
 }
 \seealso{
+\code{\link[=create_bootstrap_weights]{create_bootstrap_weights()}} for bootstrap replicate weights;
+\code{\link[=create_brr_weights]{create_brr_weights()}} for balanced repeated replication;
+\code{\link[=create_gen_boot_weights]{create_gen_boot_weights()}} for generalized bootstrap;
+\code{\link[=create_gen_rep_weights]{create_gen_rep_weights()}} for generalized replication;
+\code{\link[=create_sdr_weights]{create_sdr_weights()}} for successive difference replication;
+\code{\link[=create_replicate_weights]{create_replicate_weights()}} for the method-dispatch wrapper;
+\code{\link[=as_taylor_design]{as_taylor_design()}} to recover the Taylor-linearization design from
+replicate-weight history.
+
 Other replicate-weights: 
 \code{\link{as_taylor_design}()},
 \code{\link{create_bootstrap_weights}()},
 \code{\link{create_brr_weights}()},
 \code{\link{create_gen_boot_weights}()},
 \code{\link{create_gen_rep_weights}()},
-\code{\link{create_group_jackknife_weights}()},
 \code{\link{create_replicate_weights}()},
 \code{\link{create_sdr_weights}()}
 }

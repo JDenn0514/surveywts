@@ -7,7 +7,7 @@
 create_replicate_weights(
   data,
   method = c("bootstrap", "jackknife", "brr", "generalized-bootstrap",
-    "generalized-replicate", "successive-difference", "group-jackknife"),
+    "generalized-replicate", "successive-difference"),
   ...
 )
 }
@@ -16,18 +16,16 @@ create_replicate_weights(
 
 \item{method}{\code{character(1)}. One of \code{"bootstrap"}, \code{"jackknife"}, \code{"brr"},
 \code{"generalized-bootstrap"}, \code{"generalized-replicate"},
-\code{"successive-difference"}, \code{"group-jackknife"}.}
+\code{"successive-difference"}. For delete-a-group jackknife on a
+\code{survey_nonprob}, use \code{method = "jackknife"} with \code{type = "grouped"}.}
 
 \item{...}{Passed as-is to the dispatched function. Invalid arguments for
 the selected method produce R's native "unused argument" error.}
 }
 \value{
-\itemize{
-\item For most methods: a \code{survey_replicate}.
-\item For \code{method = "group-jackknife"}: a \code{survey_nonprob} with DAGJK replicate
-weight columns, consistent with
-\code{create_bootstrap_weights(type = "quasi-randomization")}.
-}
+A \code{survey_replicate} for most methods, or a \code{survey_nonprob}
+when \code{method = "jackknife"} and \code{type = "grouped"} is passed via \code{...}
+for DAGJK on a non-probability sample.
 }
 \description{
 Dispatches to the appropriate \verb{create_*_weights()} function based on
@@ -35,13 +33,16 @@ Dispatches to the appropriate \verb{create_*_weights()} function based on
 dispatched function; this function only resolves the method name.
 }
 \seealso{
+\code{\link[=create_bootstrap_weights]{create_bootstrap_weights()}}, \code{\link[=create_jackknife_weights]{create_jackknife_weights()}},
+\code{\link[=create_brr_weights]{create_brr_weights()}}, \code{\link[=create_gen_boot_weights]{create_gen_boot_weights()}},
+\code{\link[=create_gen_rep_weights]{create_gen_rep_weights()}}, \code{\link[=create_sdr_weights]{create_sdr_weights()}}
+
 Other replicate-weights: 
 \code{\link{as_taylor_design}()},
 \code{\link{create_bootstrap_weights}()},
 \code{\link{create_brr_weights}()},
 \code{\link{create_gen_boot_weights}()},
 \code{\link{create_gen_rep_weights}()},
-\code{\link{create_group_jackknife_weights}()},
 \code{\link{create_jackknife_weights}()},
 \code{\link{create_sdr_weights}()}
 }

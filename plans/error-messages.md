@@ -114,6 +114,8 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_error_brr_rho_invalid` | `create_brr_weights()` | `rho < 0` or `rho >= 1` |
 | `surveywts_error_replicates_required_for_jkn` | `create_jackknife_weights()` | `type = "random-groups"` but `replicates` is `NULL` |
 | `surveywts_error_jackknife_type_unsupported_for_nonprob` | `create_jackknife_weights()` | `data` is `survey_nonprob` and `type = "random-groups"` |
+| `surveywts_error_jackknife_type_nonprob_only` | `create_jackknife_weights()` | `data` is `survey_nonprob` and `type = "jkn"` or `type = "jk1"` |
+| `surveywts_error_jackknife_replicates_required` | `create_jackknife_weights()` | `type = "grouped"` and `replicates = NULL` (both `survey_taylor` and `survey_nonprob` inputs) |
 | `surveywts_error_nonprob_requires_probability_design` | `create_gen_boot_weights()`, `create_gen_rep_weights()`, `create_sdr_weights()` | `data` is `survey_nonprob` |
 | `surveywts_error_sort_var_has_na` | `create_sdr_weights()` | `sort_var` column contains `NA` |
 | `surveywts_error_variance_estimator_requires_aux` | `create_gen_boot_weights()`, `create_gen_rep_weights()` | `variance_estimator = "Deville-Tille"` but `aux_var_names = NULL` |
@@ -178,6 +180,8 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_warning_jackknife_small_groups` | `create_group_jackknife_weights()` | Average group size is fewer than 5 units |
 | `surveywts_warning_jackknife_replicates_failed` | `create_group_jackknife_weights()` | More than 10% of group replicates failed and were skipped |
 | `surveywts_warning_jackknife_negative_replicate_weights` | `create_group_jackknife_weights()` | One or more replicate weight values are negative after calibration |
+| `surveywts_warning_jackknife_mse_overridden` | `create_jackknife_weights()` | `mse = FALSE` with `type = "grouped"` and `survey_nonprob`; overridden to `TRUE` |
+| `surveywts_warning_jackknife_svrep_args_ignored` | `create_jackknife_weights()` | Any non-default svrep arg (`var_strat`, `var_strat_frac`, `sort_var`, `adj_method`, `scale_method`) passed with `survey_nonprob` input; emitted once for all non-default args collectively |
 
 ## Messages
 

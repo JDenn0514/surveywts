@@ -29,7 +29,6 @@ Other replicate-weights:
 \code{\link{create_brr_weights}()},
 \code{\link{create_gen_boot_weights}()},
 \code{\link{create_gen_rep_weights}()},
-\code{\link{create_group_jackknife_weights}()},
 \code{\link{create_jackknife_weights}()},
 \code{\link{create_replicate_weights}()},
 \code{\link{create_sdr_weights}()}

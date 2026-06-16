@@ -40,7 +40,7 @@
         CV:     0.40
       
       Weighting history:
-        #   Step 1 [2025-01-15]: replicate_creation (method = "jackknife", type = "JKn")
+        #   Step 1 [2025-01-15]: replicate_creation (method = "jackknife", type = "jkn")
 
 # print(survey_replicate) BRR snapshot
 

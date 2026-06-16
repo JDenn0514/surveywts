@@ -91,12 +91,16 @@
 #   use_level_b     : logical -- TRUE if targets_from_reference
 #   ref_design      : survey_taylor -- original reference design
 #   wt_col          : character(1) -- name of the weight column in the NPS output
+#   strata_var      : character(1) or NULL -- NPS @variables$strata column name,
+#                     used for per-stratum extended formula dispatch (Kott 2001 §3)
+#   G               : integer -- total number of groups (for extended formula check)
 #
 # Returns: numeric vector of length n_nps -- replicate pseudo-weights.
 #   Entries for group-g NPS units are 0 (assigned by the caller after return).
 .dagjk_single_replicate <- function(
   g, group_assign, nps_data, ref_data, ref_wt_col, ipw_entry,
-  calib_entry, n_nps, n_ref, use_level_b, ref_design, wt_col
+  calib_entry, n_nps, n_ref, use_level_b, ref_design, wt_col,
+  strata_var = NULL, G = 0L
 ) {
   # Indices into the combined sequence: 1..n_nps = NPS, (n_nps+1)..(n_nps+n_ref) = ref
   nps_in_g <- which(group_assign[seq_len(n_nps)] == g)
@@ -196,21 +200,64 @@
   # Extract propensity weights (already 1/pi_hat from ipw())
   w_g <- ipw_result_g@data[[wt_col]]
 
-  # Validate: no NA, no non-positive values
+  # Validate: no NA, no non-finite, no non-positive values
   # nocov start
   # Defensive: ipw() validates its own output; this fires only if ipw() produces
-  # NA/non-positive weights despite passing its own internal checks -- not reachable
-  # through the public API in practice.
-  if (any(is.na(w_g)) || any(w_g <= 0)) {
+  # NA/non-finite/non-positive weights despite passing its own internal checks --
+  # not reachable through the public API in practice.
+  if (any(is.na(w_g)) || any(!is.finite(w_g)) || any(w_g <= 0)) {
     cli::cli_abort(
-      c("x" = "Replicate {g}: degenerate pseudo-weights (NA or <= 0)."),
+      c("x" = "Replicate {g}: degenerate pseudo-weights (NA, non-finite, or <= 0)."),
       class = "surveywts_error_jackknife_degenerate_replicate"
     )
   }
   # nocov end
 
-  # Scale replicate weights to N_hat_g
-  w_g <- w_g * (N_hat_g / sum(w_g))
+  # Scale replicate weights per stratum (Kott 2001 §1 standard; §3 eq. 2 extended)
+  # When the NPS has an explicit strata variable, apply per-stratum scaling.
+  # For each stratum h: n_h = total NPS rows in h; n_hg = rows in group g.
+  #   n_hg == 0        : weights unchanged (stratum h has no units in group g)
+  #   n_h >= G (std)   : scale factor = n_h / (n_h - n_hg)  (standard formula)
+  #   n_h < G (extd)   : Z = sqrt(G / ((G-1)*n_h*(n_h-1))); deleted = 1-(n_h-1)*Z;
+  #                       retained stratum-h = 1+Z  (Kott 2001 §3 eq. 2)
+  # Note: the kept rows in nps_keep_idx align 1-to-1 with w_g from ipw().
+  if (!is.null(strata_var) && strata_var %in% names(nps_data) && G > 0L) {
+    # nps_data has ALL rows; nps_keep_idx are the retained (non-group-g) rows
+    nps_strata_all <- nps_data[[strata_var]]
+    nps_strata_kept <- nps_strata_all[nps_keep_idx]
+    nps_strata_g    <- nps_strata_all[nps_in_g]
+    strata_levels   <- unique(nps_strata_all)
+    scale_vec       <- rep(1, length(w_g))  # default: no scaling
+
+    for (h in strata_levels) {
+      h_total     <- sum(nps_strata_all == h)    # n_h total NPS rows in stratum h
+      h_in_g      <- sum(nps_strata_g == h)      # n_hg: group-g NPS rows in stratum h
+      h_kept_idx  <- which(nps_strata_kept == h) # positions in kept-rows vector
+
+      if (h_in_g == 0L) {
+        # No group-g units from this stratum: weights unchanged
+        next
+      } else if (h_total >= G) {
+        # Standard formula: n_h / (n_h - n_hg)
+        scale_vec[h_kept_idx] <- h_total / (h_total - h_in_g)
+      } else {
+        # Extended formula (Kott 2001 §3 eq. 2): n_h < G
+        # Note: n_h = 1 produces Inf (single-PSU stratum); this path should not
+        # be reached for n_h = 1 because replicates_exceeds_n guards against
+        # G > combined_n, but if a stratum has exactly 1 row and G > 1, Inf
+        # propagates and is caught by the degenerate check below.
+        Z                     <- sqrt(G / ((G - 1L) * h_total * (h_total - 1L)))
+        # Deleted units (in group g): these rows are NOT in nps_keep_idx,
+        # so they are not in w_g. The caller assigns 0 for deleted units.
+        # Retained units in stratum h: apply (1 + Z) factor
+        scale_vec[h_kept_idx] <- 1 + Z
+      }
+    }
+    w_g <- w_g * scale_vec
+  } else {
+    # No strata variable: uniform scaling to N_hat_g (single-stratum treatment)
+    w_g <- w_g * (N_hat_g / sum(w_g))
+  }
 
   # Apply trimming if ipw_entry recorded a trim_threshold
   trim_threshold <- ipw_entry$trim_threshold
@@ -390,13 +437,13 @@
   # Extract calibrated weight vector
   w_g <- .extract_weight_vec(calib_result_g, wt_col)
 
-  # Validate: no NA, no non-positive values among retained units
+  # Validate: no NA, no non-finite, no non-positive values among retained units
   # nocov start
   # Defensive: dispatched calibration functions validate their own output.
-  # This fires only if they return NA/non-positive despite passing internal checks.
-  if (any(is.na(w_g)) || any(w_g <= 0)) {
+  # This fires only if they return NA/non-finite/non-positive despite internal checks.
+  if (any(is.na(w_g)) || any(!is.finite(w_g)) || any(w_g <= 0)) {
     cli::cli_abort(
-      c("x" = "Replicate {g}: degenerate calibration weights (NA or <= 0)."),
+      c("x" = "Replicate {g}: degenerate calibration weights (NA, non-finite, or <= 0)."),
       class = "surveywts_error_jackknife_degenerate_replicate"
     )
   }

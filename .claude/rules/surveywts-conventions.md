@@ -80,7 +80,8 @@ Use `@family calibration`, `@family sample-calibration`, `@family nonresponse`, 
 |------|--------------------|
 | `diagnostics-utils.R` | `effective_sample_size()`, `weight_variability()`, `summarize_weights()` |
 | `nonresponse-utils.R` | `adjust_nonresponse()`, `redistribute_weights()` |
-| `replicate-utils.R` | All `create_*_weights()` functions + `as_taylor_design()` + `create_group_jackknife_weights()` |
+| `replicate-utils.R` | All `create_*_weights()` functions + `as_taylor_design()` |
+| `jackknife-dagjk-utils.R` | DAGJK engine internals for `create_jackknife_weights()` |
 | `weight-utils.R` | `trim_weights()`, `stabilize_weights()` |
 
 ### File mapping (R/ → export)
@@ -101,8 +102,8 @@ Use `@family calibration`, `@family sample-calibration`, `@family nonresponse`, 
 | `create_brr_weights.R` | `create_brr_weights()` |
 | `create_gen_boot_weights.R` | `create_gen_boot_weights()` |
 | `create_gen_rep_weights.R` | `create_gen_rep_weights()` |
-| `create_group_jackknife_weights.R` | `create_group_jackknife_weights()` |
 | `create_jackknife_weights.R` | `create_jackknife_weights()` |
+| `jackknife-dagjk-utils.R` | DAGJK engine internals (internal helpers only) |
 | `create_replicate_weights.R` | `create_replicate_weights()` |
 | `create_sdr_weights.R` | `create_sdr_weights()` |
 | `effective_sample_size.R` | `effective_sample_size()` |

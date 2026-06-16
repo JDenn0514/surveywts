@@ -209,55 +209,42 @@ test_that("create_bootstrap_weights() rejects NA replicates", {
 
 # ---- Jackknife happy path (4a–4d) ------------------------------------------
 
-test_that("create_jackknife_weights() delete-1 unstratified -> JK1", {
+test_that("create_jackknife_weights() type='jk1' unstratified -> JK1", {
   skip_if_not_installed("survey")
   # SRS design (no strata)
   df <- make_surveywts_data(n = 20L, seed = 2L)
   td <- surveycore::as_survey(df, ids = id, weights = base_weight)
-  result <- create_jackknife_weights(td)
+  result <- create_jackknife_weights(td, type = "jk1")
   test_invariants(result)
   expect_identical(result@variables$type, "JK1")
 })
 
-test_that("create_jackknife_weights() delete-1 stratified -> JKn", {
+test_that("create_jackknife_weights() type='jkn' default stratified -> JKn", {
   skip_if_not_installed("survey")
   td     <- make_taylor_design(seed = 2L)
-  result <- create_jackknife_weights(td)
+  result <- create_jackknife_weights(td, type = "jkn")
   test_invariants(result)
   expect_identical(result@variables$type, "JKn")
 })
 
-test_that("create_jackknife_weights() random-groups produces JKn with correct rep count", {
+test_that("create_jackknife_weights() type='grouped' produces correct rep count", {
   skip_if_not_installed("svrep")
   # replicates must not exceed psus_per_stratum (svrep requirement)
   td     <- make_taylor_design(n = 200L, n_strata = 4L, psus_per_stratum = 10L, seed = 3L)
-  result <- create_jackknife_weights(td, replicates = 8L, type = "random-groups", seed = 5L)
+  result <- create_jackknife_weights(td, replicates = 8L, type = "grouped", seed = 5L)
   test_invariants(result)
-  expect_identical(result@variables$type, "Random-groups jackknife")
   expect_identical(length(result@variables$repweights), 8L)
-})
-
-test_that("create_jackknife_weights() accepts survey_nonprob with delete-1", {
-  skip_if_not_installed("survey")
-  df <- make_surveywts_data(n = 30L, seed = 4L)
-  np <- surveycore::survey_nonprob(
-    data      = df,
-    variables = list(weights = "base_weight"),
-    metadata  = surveycore::survey_metadata()
-  )
-  result <- create_jackknife_weights(np)
-  test_invariants(result)
 })
 
 # ---- Jackknife errors (5a–5e) -----------------------------------------------
 
-test_that("create_jackknife_weights() errors when random-groups needs replicates", {
+test_that("create_jackknife_weights() errors when grouped needs replicates", {
   td <- make_taylor_design(seed = 1)
   expect_error(
-    create_jackknife_weights(td, type = "random-groups"),
-    class = "surveywts_error_replicates_required_for_jkn"
+    create_jackknife_weights(td, type = "grouped"),
+    class = "surveywts_error_jackknife_replicates_required"
   )
-  expect_snapshot(error = TRUE, create_jackknife_weights(td, type = "random-groups"))
+  expect_snapshot(error = TRUE, create_jackknife_weights(td, type = "grouped"))
 })
 
 # ---- Shared input-class errors (13a–13d) ------------------------------------
@@ -301,31 +288,31 @@ test_that("create_jackknife_weights() rejects unsupported class", {
   expect_snapshot(error = TRUE, create_jackknife_weights(list(x = 1)))
 })
 
-test_that("create_jackknife_weights() rejects fractional replicates for random-groups", {
+test_that("create_jackknife_weights() rejects fractional replicates for grouped", {
   td <- make_taylor_design(seed = 1)
   expect_error(
-    create_jackknife_weights(td, replicates = 1.5, type = "random-groups"),
+    create_jackknife_weights(td, replicates = 1.5, type = "grouped"),
     class = "surveywts_error_replicates_not_whole_number"
   )
   expect_snapshot(
     error = TRUE,
-    create_jackknife_weights(td, replicates = 1.5, type = "random-groups")
+    create_jackknife_weights(td, replicates = 1.5, type = "grouped")
   )
 })
 
-test_that("create_jackknife_weights() rejects replicates = 1 for random-groups", {
+test_that("create_jackknife_weights() rejects replicates = 1 for grouped", {
   td <- make_taylor_design(seed = 1)
   expect_error(
-    create_jackknife_weights(td, replicates = 1L, type = "random-groups"),
+    create_jackknife_weights(td, replicates = 1L, type = "grouped"),
     class = "surveywts_error_replicates_not_positive"
   )
   expect_snapshot(
     error = TRUE,
-    create_jackknife_weights(td, replicates = 1L, type = "random-groups")
+    create_jackknife_weights(td, replicates = 1L, type = "grouped")
   )
 })
 
-test_that("create_jackknife_weights() rejects survey_nonprob + random-groups", {
+test_that("create_jackknife_weights() rejects survey_nonprob + jkn", {
   df <- make_surveywts_data(n = 30L, seed = 1L)
   np <- surveycore::survey_nonprob(
     data      = df,
@@ -333,24 +320,24 @@ test_that("create_jackknife_weights() rejects survey_nonprob + random-groups", {
     metadata  = surveycore::survey_metadata()
   )
   expect_error(
-    create_jackknife_weights(np, replicates = 10L, type = "random-groups"),
-    class = "surveywts_error_jackknife_type_unsupported_for_nonprob"
+    create_jackknife_weights(np, type = "jkn"),
+    class = "surveywts_error_jackknife_type_nonprob_only"
   )
   expect_snapshot(
     error = TRUE,
-    create_jackknife_weights(np, replicates = 10L, type = "random-groups")
+    create_jackknife_weights(np, type = "jkn")
   )
 })
 
 # ---- Jackknife equivalence (4Ea–4Ec) ----------------------------------------
 
-test_that("create_jackknife_weights() delete-1 matches survey::as.svrepdesign(JK1)", {
+test_that("create_jackknife_weights() jk1 matches survey::as.svrepdesign(JK1)", {
   skip_if_not_installed("survey")
   df <- make_surveywts_data(n = 20L, seed = 5L)
   td <- surveycore::as_survey(df, ids = id, weights = base_weight)
 
   direct   <- survey::as.svrepdesign(surveycore::as_svydesign(td), type = "JK1", mse = TRUE)
-  result   <- create_jackknife_weights(td, type = "delete-1")
+  result   <- create_jackknife_weights(td, type = "jk1")
   test_invariants(result)
   expected <- unname(as.matrix(direct$repweights))
   actual   <- unname(as.matrix(result@data[, result@variables$repweights]))
@@ -358,13 +345,13 @@ test_that("create_jackknife_weights() delete-1 matches survey::as.svrepdesign(JK
   expect_equal(actual, expected, tolerance = 1e-10)
 })
 
-test_that("create_jackknife_weights() JKn delete-1 matches survey::as.svrepdesign(JKn)", {
+test_that("create_jackknife_weights() jkn matches survey::as.svrepdesign(JKn)", {
   skip_if_not_installed("survey")
   df <- make_surveywts_data(n = 40L, seed = 5L)
   td <- surveycore::as_survey(df, ids = id, strata = age_group, weights = base_weight)
 
   direct   <- survey::as.svrepdesign(surveycore::as_svydesign(td), type = "JKn", mse = TRUE)
-  result   <- create_jackknife_weights(td, type = "delete-1")
+  result   <- create_jackknife_weights(td, type = "jkn")
   test_invariants(result)
   expected <- unname(as.matrix(direct$repweights))
   actual   <- unname(as.matrix(result@data[, result@variables$repweights]))
@@ -372,7 +359,7 @@ test_that("create_jackknife_weights() JKn delete-1 matches survey::as.svrepdesig
   expect_equal(actual, expected, tolerance = 1e-10)
 })
 
-test_that("create_jackknife_weights() random-groups matches svrep::as_random_group_jackknife_design()", {
+test_that("create_jackknife_weights() grouped matches svrep::as_random_group_jackknife_design()", {
   skip_if_not_installed("svrep")
   df <- make_surveywts_data(n = 60L, seed = 3L)
   td <- surveycore::as_survey(df, ids = id, weights = base_weight)
@@ -383,7 +370,7 @@ test_that("create_jackknife_weights() random-groups matches svrep::as_random_gro
     replicates = 20L,
     mse        = TRUE
   )
-  result <- create_jackknife_weights(td, type = "random-groups", replicates = 20L, seed = 77L)
+  result <- create_jackknife_weights(td, type = "grouped", replicates = 20L, seed = 77L)
   test_invariants(result)
 
   expected <- unname(as.matrix(direct$repweights))
@@ -393,20 +380,20 @@ test_that("create_jackknife_weights() random-groups matches svrep::as_random_gro
 
 # ---- Spec §XIII 19b: edge cases ----------------------------------------------
 
-test_that("create_jackknife_weights() delete-1 single-PSU propagates backend error", {
+test_that("create_jackknife_weights() jk1 single-PSU propagates backend error", {
   # 2 rows with the same PSU id = 1 unique PSU; surveycore requires >= 2 rows
   # but survey::as.svrepdesign() errors when it cannot compute leave-one-out
   df <- data.frame(id = c(1L, 1L), base_weight = c(1, 1), age_group = c("18-34", "18-34"))
   td <- surveycore::as_survey(df, ids = id, weights = base_weight)
-  expect_error(create_jackknife_weights(td, type = "delete-1"))
+  expect_error(create_jackknife_weights(td, type = "jk1"))
 })
 
-test_that("create_jackknife_weights() random-groups replicates > PSU count propagates backend error", {
+test_that("create_jackknife_weights() grouped replicates > PSU count propagates backend error", {
   skip_if_not_installed("svrep")
   df <- make_surveywts_data(n = 5L, seed = 1L)
   td <- surveycore::as_survey(df, ids = id, weights = base_weight)
   expect_error(
-    create_jackknife_weights(td, type = "random-groups", replicates = 100L, seed = 1L)
+    create_jackknife_weights(td, type = "grouped", replicates = 100L, seed = 1L)
   )
 })
 
@@ -414,8 +401,9 @@ test_that("create_jackknife_weights() all-equal base weights succeeds", {
   skip_if_not_installed("survey")
   df             <- make_surveywts_data(n = 20L, seed = 1L)
   df$base_weight <- rep(1, nrow(df))
+  # SRS design (no strata) — use jk1
   td     <- surveycore::as_survey(df, ids = id, weights = base_weight)
-  result <- create_jackknife_weights(td, type = "delete-1")
+  result <- create_jackknife_weights(td, type = "jk1")
   test_invariants(result)
 })
 
@@ -1778,4 +1766,237 @@ test_that("doubly-robust Level B path still works after routing refactor", {
 
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
   expect_true(length(result@variables$repweights) > 0L)
+})
+
+# ============================================================================
+# New unified jackknife API (PR 2 — type = "jkn" | "jk1" | "grouped")
+# ============================================================================
+
+# ---- Happy paths -----------------------------------------------------------
+
+test_that("create_jackknife_weights() type = 'jkn' returns survey_replicate with @variables$type == 'JKn'", {
+  skip_if_not_installed("survey")
+  result <- create_jackknife_weights(gss_2024_svy, type = "jkn")
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
+  expect_identical(result@variables$type, "JKn")
+})
+
+test_that("create_jackknife_weights() type = 'jk1' returns survey_replicate with @variables$type == 'JK1'", {
+  skip_if_not_installed("survey")
+  # JK1 requires an unstratified design; use a simple SRS
+  df_srs <- make_surveywts_data(n = 40L, seed = 10L)
+  td_srs  <- surveycore::as_survey(df_srs, ids = id, weights = base_weight)
+  result <- create_jackknife_weights(td_srs, type = "jk1")
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
+  expect_identical(result@variables$type, "JK1")
+})
+
+test_that("create_jackknife_weights() type = 'grouped' returns survey_replicate with correct type string", {
+  skip_if_not_installed("svrep")
+  # Use a design with more PSUs per stratum so svrep can form 4 groups
+  td_grp <- make_taylor_design(n = 200L, n_strata = 4L, psus_per_stratum = 10L, seed = 1L)
+  result <- create_jackknife_weights(
+    td_grp, type = "grouped", replicates = 4L, seed = 1L
+  )
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
+  # svrep sets type to "Random-groups jackknife" (the raw svrep type string)
+  expect_true(grepl("jackknife|random", result@variables$type, ignore.case = TRUE))
+  expect_identical(length(result@variables$repweights), 4L)
+})
+
+# ---- Numerical oracles -----------------------------------------------------
+
+test_that("create_jackknife_weights() jkn replicate count matches survey::as.svrepdesign oracle", {
+  skip_if_not_installed("survey")
+  direct <- survey::as.svrepdesign(
+    surveycore::as_svydesign(gss_2024_svy), type = "JKn", mse = TRUE
+  )
+  result <- create_jackknife_weights(gss_2024_svy, type = "jkn")
+  expect_identical(
+    length(result@variables$repweights),
+    ncol(as.matrix(direct$repweights))
+  )
+})
+
+test_that("create_jackknife_weights() jk1 replicate count matches survey::as.svrepdesign oracle", {
+  skip_if_not_installed("survey")
+  # JK1 requires an unstratified design
+  df_srs <- make_surveywts_data(n = 30L, seed = 20L)
+  td_srs  <- surveycore::as_survey(df_srs, ids = id, weights = base_weight)
+  direct <- survey::as.svrepdesign(
+    surveycore::as_svydesign(td_srs), type = "JK1", mse = TRUE
+  )
+  result <- create_jackknife_weights(td_srs, type = "jk1")
+  expect_identical(
+    length(result@variables$repweights),
+    ncol(as.matrix(direct$repweights))
+  )
+})
+
+test_that("create_jackknife_weights() jkn scale factor matches survey::as.svrepdesign oracle", {
+  skip_if_not_installed("survey")
+  direct <- survey::as.svrepdesign(
+    surveycore::as_svydesign(gss_2024_svy), type = "JKn", mse = TRUE
+  )
+  result <- create_jackknife_weights(gss_2024_svy, type = "jkn")
+  expect_equal(result@variables$scale, direct$scale, tolerance = 1e-10)
+})
+
+# ---- History entry structure -----------------------------------------------
+
+test_that("create_jackknife_weights() jkn history entry has operation='replicate_creation', method='jackknife', parameters$type='jkn'", {
+  skip_if_not_installed("survey")
+  result <- create_jackknife_weights(gss_2024_svy, type = "jkn")
+  history <- result@metadata@weighting_history
+  entry <- history[[length(history)]]
+  expect_identical(entry$operation, "replicate_creation")
+  expect_identical(entry$method, "jackknife")
+  expect_identical(entry$parameters$type, "jkn")
+  expect_true(isTRUE(entry$parameters$mse))
+})
+
+test_that("create_jackknife_weights() jk1 history entry has parameters$type='jk1', parameters$mse", {
+  skip_if_not_installed("survey")
+  # JK1 requires an unstratified design
+  df_srs <- make_surveywts_data(n = 30L, seed = 30L)
+  td_srs  <- surveycore::as_survey(df_srs, ids = id, weights = base_weight)
+  result <- create_jackknife_weights(td_srs, type = "jk1")
+  history <- result@metadata@weighting_history
+  entry <- history[[length(history)]]
+  expect_identical(entry$operation, "replicate_creation")
+  expect_identical(entry$method, "jackknife")
+  expect_identical(entry$parameters$type, "jk1")
+  expect_true(isTRUE(entry$parameters$mse))
+})
+
+test_that("create_jackknife_weights() grouped+taylor history entry has parameters$type='grouped', parameters$replicates==4L, parameters$mse", {
+  skip_if_not_installed("svrep")
+  td_grp <- make_taylor_design(n = 200L, n_strata = 4L, psus_per_stratum = 10L, seed = 1L)
+  result <- create_jackknife_weights(
+    td_grp, type = "grouped", replicates = 4L, seed = 1L
+  )
+  history <- result@metadata@weighting_history
+  entry <- history[[length(history)]]
+  expect_identical(entry$operation, "replicate_creation")
+  expect_identical(entry$method, "jackknife")
+  expect_identical(entry$parameters$type, "grouped")
+  expect_identical(entry$parameters$replicates, 4L)
+  expect_true(isTRUE(entry$parameters$mse))
+})
+
+# ---- Edge cases (probability paths) ----------------------------------------
+
+test_that("create_jackknife_weights() type = 'jkn' fails on unstratified survey_taylor (backend error)", {
+  skip_if_not_installed("survey")
+  # survey::as.svrepdesign() requires strata for JKn
+  df <- make_surveywts_data(n = 20L, seed = 2L)
+  td <- surveycore::as_survey(df, ids = id, weights = base_weight)
+  expect_error(create_jackknife_weights(td, type = "jkn"))
+})
+
+# ---- Argument behavior (ignored args) --------------------------------------
+
+test_that("replicates is silently ignored for type = 'jkn'", {
+  skip_if_not_installed("survey")
+  result <- create_jackknife_weights(gss_2024_svy, type = "jkn", replicates = 99L)
+  expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
+  expect_true(length(result@variables$repweights) != 99L)
+})
+
+test_that("replicates is silently ignored for type = 'jk1'", {
+  skip_if_not_installed("survey")
+  # JK1 requires unstratified design; gss_2024_svy is stratified
+  df_srs <- make_surveywts_data(n = 30L, seed = 11L)
+  td_srs  <- surveycore::as_survey(df_srs, ids = id, weights = base_weight)
+  result <- create_jackknife_weights(td_srs, type = "jk1", replicates = 99L)
+  expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
+  expect_true(length(result@variables$repweights) != 99L)
+})
+
+test_that("seed is silently ignored for type = 'jkn'", {
+  skip_if_not_installed("survey")
+  expect_no_error(
+    create_jackknife_weights(gss_2024_svy, type = "jkn", seed = 42L)
+  )
+})
+
+test_that("reference_sample is silently ignored for type = 'jkn'", {
+  skip_if_not_installed("survey")
+  ref <- make_nps_reference(n = 100L, seed = 1L)
+  expect_no_error(
+    create_jackknife_weights(gss_2024_svy, type = "jkn", reference_sample = ref)
+  )
+})
+
+# ---- Error paths (new API) -------------------------------------------------
+
+test_that("create_jackknife_weights() rejects data.frame input (new API)", {
+  df <- data.frame(x = 1:5, w = 1)
+  expect_error(
+    create_jackknife_weights(df, type = "jkn"),
+    class = "surveywts_error_not_survey_design"
+  )
+  expect_snapshot(error = TRUE, create_jackknife_weights(df, type = "jkn"))
+})
+
+test_that("create_jackknife_weights() rejects list input (new API)", {
+  expect_error(
+    create_jackknife_weights(list(x = 1:5, w = 1), type = "jkn"),
+    class = "surveywts_error_unsupported_class"
+  )
+  expect_snapshot(error = TRUE, create_jackknife_weights(list(x = 1:5, w = 1), type = "jkn"))
+})
+
+test_that("create_jackknife_weights() rejects survey_nonprob with type = 'jkn'", {
+  df <- make_surveywts_data(n = 30L, seed = 1L)
+  np <- surveycore::survey_nonprob(
+    data      = df,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  expect_error(
+    create_jackknife_weights(np, type = "jkn"),
+    class = "surveywts_error_jackknife_type_nonprob_only"
+  )
+  expect_snapshot(error = TRUE, create_jackknife_weights(np, type = "jkn"))
+})
+
+test_that("create_jackknife_weights() rejects survey_nonprob with type = 'jk1'", {
+  df <- make_surveywts_data(n = 30L, seed = 1L)
+  np <- surveycore::survey_nonprob(
+    data      = df,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  expect_error(
+    create_jackknife_weights(np, type = "jk1"),
+    class = "surveywts_error_jackknife_type_nonprob_only"
+  )
+  expect_snapshot(error = TRUE, create_jackknife_weights(np, type = "jk1"))
+})
+
+test_that("create_jackknife_weights() errors when type = 'grouped' and replicates = NULL, survey_taylor input", {
+  expect_error(
+    create_jackknife_weights(gss_2024_svy, type = "grouped"),
+    class = "surveywts_error_jackknife_replicates_required"
+  )
+  expect_snapshot(error = TRUE, create_jackknife_weights(gss_2024_svy, type = "grouped"))
+})
+
+test_that("create_jackknife_weights() errors when type = 'grouped' and replicates = NULL, survey_nonprob input", {
+  nps <- make_dagjk_datasets()$A
+  expect_error(
+    create_jackknife_weights(nps, type = "grouped"),
+    class = "surveywts_error_jackknife_replicates_required"
+  )
+  expect_snapshot(error = TRUE, create_jackknife_weights(nps, type = "grouped"))
+})
+
+test_that("create_jackknife_weights() errors when ... is non-empty", {
+  expect_error(
+    create_jackknife_weights(gss_2024_svy, type = "jkn", extra = 1)
+  )
 })

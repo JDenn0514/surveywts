@@ -68,14 +68,14 @@
       Error in `.validate_replicates_arg()`:
       x `replicates` must be a single number.
 
-# create_jackknife_weights() errors when random-groups needs replicates
+# create_jackknife_weights() errors when grouped needs replicates
 
     Code
-      create_jackknife_weights(td, type = "random-groups")
+      create_jackknife_weights(td, type = "grouped")
     Condition
       Error in `create_jackknife_weights()`:
-      x `replicates` is required when `type = "random-groups"`.
-      v Supply an integer, e.g. `replicates = 20L`.
+      x `replicates` is required when `type = "grouped"`.
+      v Supply an integer, e.g. `replicates = 50L`.
 
 # create_jackknife_weights() rejects data.frame input
 
@@ -116,32 +116,32 @@
       i Supported classes: <survey_taylor> and <survey_nonprob>.
       v Use `surveycore::as_survey()` or `surveycore::survey_nonprob()`.
 
-# create_jackknife_weights() rejects fractional replicates for random-groups
+# create_jackknife_weights() rejects fractional replicates for grouped
 
     Code
-      create_jackknife_weights(td, replicates = 1.5, type = "random-groups")
+      create_jackknife_weights(td, replicates = 1.5, type = "grouped")
     Condition
       Error in `.validate_replicates_arg()`:
       x `replicates` must be a whole number, not 1.5.
       v Use an integer value, e.g. `replicates = 2`.
 
-# create_jackknife_weights() rejects replicates = 1 for random-groups
+# create_jackknife_weights() rejects replicates = 1 for grouped
 
     Code
-      create_jackknife_weights(td, replicates = 1L, type = "random-groups")
+      create_jackknife_weights(td, replicates = 1L, type = "grouped")
     Condition
       Error in `.validate_replicates_arg()`:
       x `replicates` must be at least 2, got 1.
 
-# create_jackknife_weights() rejects survey_nonprob + random-groups
+# create_jackknife_weights() rejects survey_nonprob + jkn
 
     Code
-      create_jackknife_weights(np, replicates = 10L, type = "random-groups")
+      create_jackknife_weights(np, type = "jkn")
     Condition
       Error in `create_jackknife_weights()`:
-      x <survey_nonprob> input is not supported with `type = "random-groups"`.
-      i Only `type = "delete-1"` is supported for non-probability designs.
-      v Use `type = "delete-1"` or convert to <survey_taylor>.
+      x <survey_nonprob> input is not supported with `type = "jkn"`.
+      i Only `type = "grouped"` is supported for non-probability designs.
+      v Use `type = "grouped"` with `replicates`, or convert to <survey_taylor>.
 
 # create_brr_weights() rejects data.frame input
 
@@ -543,4 +543,62 @@
       x A reference probability sample is required for `type = 'quasi-randomization'` with Level B calibration.
       i The calibration history entry has `targets_from_reference = TRUE` but no reference design was found in the entry and `reference_sample` was not supplied.
       v Supply the reference design via `reference_sample`, or re-run the calibration with a <survey_taylor> reference.
+
+# create_jackknife_weights() rejects data.frame input (new API)
+
+    Code
+      create_jackknife_weights(df, type = "jkn")
+    Condition
+      Error in `.validate_replicate_input()`:
+      x `data` is a <data.frame>, not a survey design.
+      i This function requires a <survey_taylor> or <survey_nonprob> object.
+      v Convert with `surveycore::as_survey()`.
+
+# create_jackknife_weights() rejects list input (new API)
+
+    Code
+      create_jackknife_weights(list(x = 1:5, w = 1), type = "jkn")
+    Condition
+      Error in `.validate_replicate_input()`:
+      x `data` is <list>, which is not a supported input class.
+      i Supported classes: <survey_taylor> and <survey_nonprob>.
+      v Use `surveycore::as_survey()` or `surveycore::survey_nonprob()`.
+
+# create_jackknife_weights() rejects survey_nonprob with type = 'jkn'
+
+    Code
+      create_jackknife_weights(np, type = "jkn")
+    Condition
+      Error in `create_jackknife_weights()`:
+      x <survey_nonprob> input is not supported with `type = "jkn"`.
+      i Only `type = "grouped"` is supported for non-probability designs.
+      v Use `type = "grouped"` with `replicates`, or convert to <survey_taylor>.
+
+# create_jackknife_weights() rejects survey_nonprob with type = 'jk1'
+
+    Code
+      create_jackknife_weights(np, type = "jk1")
+    Condition
+      Error in `create_jackknife_weights()`:
+      x <survey_nonprob> input is not supported with `type = "jk1"`.
+      i Only `type = "grouped"` is supported for non-probability designs.
+      v Use `type = "grouped"` with `replicates`, or convert to <survey_taylor>.
+
+# create_jackknife_weights() errors when type = 'grouped' and replicates = NULL, survey_taylor input
+
+    Code
+      create_jackknife_weights(gss_2024_svy, type = "grouped")
+    Condition
+      Error in `create_jackknife_weights()`:
+      x `replicates` is required when `type = "grouped"`.
+      v Supply an integer, e.g. `replicates = 50L`.
+
+# create_jackknife_weights() errors when type = 'grouped' and replicates = NULL, survey_nonprob input
+
+    Code
+      create_jackknife_weights(nps, type = "grouped")
+    Condition
+      Error in `create_jackknife_weights()`:
+      x `replicates` is required when `type = "grouped"`.
+      v Supply an integer, e.g. `replicates = 50L`.
 

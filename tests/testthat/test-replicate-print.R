@@ -14,7 +14,7 @@ test_that("print(survey_replicate) bootstrap snapshot", {
 test_that("print(survey_replicate) JKn stratified delete-1 snapshot", {
   skip_if_not_installed("survey")
   td     <- make_taylor_design(n = 100L, seed = 42L)
-  result <- create_jackknife_weights(td, type = "delete-1")
+  result <- create_jackknife_weights(td, type = "jkn")
   # Pin timestamp for a stable snapshot (Sys.time() varies by run date)
   meta <- result@metadata
   meta@weighting_history[[1]]$timestamp <- as.POSIXct("2025-01-15 10:00:00", tz = "UTC")

@@ -106,6 +106,17 @@ create_jackknife_weights <- function(
 
 ---
 
+## Examples
+
+| Example | Dataset | Notes |
+|---------|---------|-------|
+| `type = "jkn"` | `gss_2024_svy` | Stratified multi-stage design (`vstrat`/`vpsu`) — correct for JKn |
+| `type = "jk1"` | — | Not demonstrated; JKn example covers the `survey_taylor` path |
+| `type = "grouped"` + `survey_taylor` | `gss_2024_svy` | Same dataset as JKn example |
+| `type = "grouped"` + `survey_nonprob` | `ns_wave1_svy` | Has `calibrate_rake` history with `targets_from_reference = FALSE` → routes to calibration-only Level A; no reference sample or `ipw()` call needed in the example |
+
+---
+
 ## History Entry
 
 - `operation = "jackknife_weights"` for all types

@@ -82,7 +82,7 @@
 #' to construct a separate Taylor design (see `@description`).
 #'
 #' @source Derived from `surveycore::gss_2024`.
-#'   See `data-raw/ns-gss-ipw.R` for the construction script.
+#'   See `data-raw/gss-2024.R` for the construction script.
 #' @seealso [gss_2024_svy], [ns_wave1]
 #' @keywords datasets
 "gss_2024"
@@ -220,7 +220,7 @@
 #' reference design from `npors_2025_clean` using `wt_pop`.
 #'
 #' @source Derived from `surveycore::pew_npors_2025`.
-#'   See `data-raw/npors-acs-ipw.R` for the construction script.
+#'   See `data-raw/npors-2025.R` for the construction script.
 #' @seealso [npors_2025_svy], [npors_2025_clean], [ns_wave1]
 #' @keywords datasets
 "npors_2025"
@@ -338,7 +338,7 @@
 #' `weights = weight`. For IPW workflows, use `wt_pop` from the tibble.
 #'
 #' @source Derived from [npors_2025].
-#'   See `data-raw/npors-acs-ipw.R` for the construction script.
+#'   See `data-raw/npors-2025.R` for the construction script.
 #' @seealso [npors_2025_clean_svy], [npors_2025], [ns_wave1]
 #' @keywords datasets
 "npors_2025_clean"
@@ -505,7 +505,7 @@
 #' `@description` for IPW workflows.
 #'
 #' @source Derived from `surveycore::acs_pums_wy`.
-#'   See `data-raw/npors-acs-ipw.R` for the construction script.
+#'   See `data-raw/acs-wy-2022.R` for the construction script.
 #' @seealso [acs_wy_2022_svy], [ns_wave1]
 #' @keywords datasets
 "acs_wy_2022"
@@ -532,10 +532,14 @@
 #'   (accessible via `attr(pew_2016_optin$gender, "labels")`). Variable labels
 #'   are stored in the `"label"` attribute of each column.
 #'
-#'   `pew_2016_optin_svy` is a `survey_nonprob` object. The raw opt-in data
-#'   has no weight column. Equal weights (`1L`) are assigned for each
-#'   respondent, representing the raw panel before any weighting. Apply
-#'   `ipw()` or `calibrate()` to add real weights.
+#'   `pew_2016_optin_svy` is a `survey_nonprob` object whose `weight` column
+#'   is produced by raking to targets computed as unweighted proportions from
+#'   [pew_2016_synth_pop] (Newton-Raphson algorithm, 7 marginal dimensions:
+#'   gender, age group, race/ethnicity, education, census division, party ID,
+#'   and ideology; 5th/95th percentile trim). It carries 200
+#'   quasi-randomization bootstrap replicate weights (`repwt_1`–`repwt_200`).
+#'   The `weight` column is stored in the object's `@data` slot only; it is
+#'   not present in the `pew_2016_optin` tibble.
 #'
 #' @format A data frame with 31,863 rows and 99 columns:
 #' \describe{
@@ -705,14 +709,17 @@
 #' }
 #'
 #' ## `pew_2016_optin_svy`
-#' A `survey_nonprob` object wrapping `pew_2016_optin`. Constructed with
-#' equal weights (`1L`) since no weight column exists in the raw opt-in data.
-#' Represents the raw panel before any weighting. The `equal_wt` helper
-#' column is NOT stored in the `pew_2016_optin` tibble -- it was used only
-#' during construction.
+#' A `survey_nonprob` object wrapping `pew_2016_optin`. The `weight` column
+#' contains calibrated weights produced by raking to [pew_2016_synth_pop]
+#' targets (Newton-Raphson, 7 margins: gender, agecat6, racethn, educcat5,
+#' division, partyscale5, ideo3; 5th/95th percentile trim). Carries 200
+#' quasi-randomization bootstrap replicate weights (`repwt_1`–`repwt_200` in
+#' `@data`; `@variables$repweights` populated). The `weight` column exists
+#' only in the object's `@data` — it is not stored in the `pew_2016_optin`
+#' tibble.
 #'
 #' @source Derived from the Pew Research Center 2016 opt-in sample SPSS file.
-#'   See `data-raw/pew-2016.R` for the preparation script.
+#'   See `data-raw/pew-2016-optin.R` for the preparation script.
 #' @seealso [pew_2016_optin_svy], [pew_2016_synth_pop]
 #' @keywords datasets
 "pew_2016_optin"
@@ -818,7 +825,7 @@
 #' equal weights (`1L`) as a simple random sample of the synthetic population.
 #'
 #' @source Derived from the Pew Research Center 2016 ATP synthetic population
-#'   SPSS file. See `data-raw/pew-2016.R` for the preparation script.
+#'   SPSS file. See `data-raw/pew-2016-synth-pop.R` for the preparation script.
 #' @seealso [pew_2016_synth_pop_svy], [pew_2016_optin]
 #' @keywords datasets
 "pew_2016_synth_pop"
@@ -836,26 +843,32 @@
 #' @description
 #' The National Survey Wave 1 dataset, obtained from `surveycore::ns_wave1`.
 #' All 6,422 respondents and 171 original columns are retained. The `gender`
-#' column is converted from integer to factor in-place. Three new derived
-#' columns are added: `age_group` (factor from `age`), `race_ethn` (factor from
-#' `race_ethnicity` and `hispanic`), and `educ` (factor from `education`).
-#' Original source columns (`age`, `race_ethnicity`, `hispanic`, `education`)
-#' are kept unchanged.
+#' column is converted from integer to factor in-place. Three general-purpose
+#' derived columns are added: `age_group` (factor from `age`), `race_ethn`
+#' (factor from `race_ethnicity` and `hispanic`), and `educ` (factor from
+#' `education`). Eight Nationscape raking recode columns (`ns_*`) are also
+#' added as calibration variables used to replicate Nationscape's weighting
+#' procedure. Original source columns are kept unchanged.
 #'
-#' `ns_wave1_svy` is a `survey_nonprob` object using `weight` as the weight
-#' column with 200 quasi-randomization bootstrap replicate weights
-#' (`repwt_1`–`repwt_200`). It represents the raw weighted non-probability
-#' sample before IPW adjustment.
+#' `ns_wave1_svy` is a `survey_nonprob` object whose `weight` column replicates
+#' Nationscape's published survey weights via raking to ACS 2017 targets
+#' (Newton-Raphson algorithm, 10 marginal dimensions, 5th/95th percentile
+#' trimming; Pearson r = 0.996 vs. published weights). It carries 200
+#' quasi-randomization bootstrap replicate weights (`repwt_1`–`repwt_200`),
+#' generated by resampling respondents with replacement and re-raking each
+#' replicate to the same ACS targets.
 #'
 #' Some respondents have `NA` in `race_ethn` (those who reported "some other
 #' race" with no Hispanic origin, which cannot be mapped to a standard category).
 #'
 #' @format
 #' ## `ns_wave1`
-#' A data frame with 6,422 rows and 174 columns. All 171 original columns from
+#' A data frame with 6,422 rows and 182 columns. All 171 original columns from
 #' `surveycore::ns_wave1` are retained. `gender` is converted from integer to
-#' factor in-place; three new columns are appended (`age_group`, `race_ethn`,
-#' `educ`):
+#' factor in-place; eleven new columns are appended: three general-purpose
+#' derived columns (`age_group`, `race_ethn`, `educ`) and eight Nationscape
+#' raking recode columns (`ns_region`, `ns_hispanic`, `ns_race`, `ns_age`,
+#' `ns_language`, `ns_foreign_born`, `ns_income`, `ns_vote_2016`):
 #' \describe{
 #'   \item{response_id}{Character. Respondent identifier.}
 #'   \item{start_date}{Character. Survey start date.}
@@ -1046,16 +1059,47 @@
 #'   \item{educ}{Factor. Derived from `education`: `1:3` = `"Less than HS"`,
 #'     `4:7` = `"HS/Some college"`, `8:11` = `"College+"`. Levels:
 #'     `c("Less than HS", "HS/Some college", "College+")`. No `NA` values.}
+#'   \item{ns_region}{Factor. Census region derived from `census_region`.
+#'     Levels: `c("Northeast", "Midwest", "South", "West")`. No `NA` values.}
+#'   \item{ns_hispanic}{Factor. Three-category Hispanic ethnicity derived from
+#'     `hispanic`: `1` = `"Not Hispanic"`, `2` = `"Mexican"`, `3:15` =
+#'     `"Other Hispanic"`. Levels: `c("Not Hispanic", "Mexican", "Other
+#'     Hispanic")`. No `NA` values.}
+#'   \item{ns_race}{Factor. Four-category race derived from `race_ethnicity`:
+#'     `1` = `"White"`, `2` = `"Black"`, `4:14` = `"Asian/Pacific"`,
+#'     `c(3, 15)` = `"Other"`. Levels: `c("White", "Black", "Asian/Pacific",
+#'     "Other")`. No `NA` values.}
+#'   \item{ns_age}{Factor. Seven Nationscape age groups derived from `age`.
+#'     Levels: `c("18-23", "24-29", "30-39", "40-49", "50-59", "60-69",
+#'     "70+")`. No `NA` values.}
+#'   \item{ns_language}{Factor. Household language derived from `language`:
+#'     `3` = `"English only"`, `1` = `"Spanish"`, `2` = `"Other"`. Levels:
+#'     `c("English only", "Spanish", "Other")`. No `NA` values.}
+#'   \item{ns_foreign_born}{Factor. Country of birth derived from
+#'     `foreign_born`: `1` = `"United States"`, `2` = `"Other"`. Levels:
+#'     `c("United States", "Other")`. No `NA` values.}
+#'   \item{ns_income}{Factor. Nine household income brackets derived from
+#'     `household_income` (codes `1`–`24`), plus `"No answer"` for `NA`
+#'     responses. Levels: `c("<$20k", "$20-35k", "$35-50k", "$50-65k",
+#'     "$65-80k", "$80-100k", "$100-125k", "$125-200k", "≥$200k",
+#'     "No answer")`. No `NA` values.}
+#'   \item{ns_vote_2016}{Factor. 2016 presidential vote derived from
+#'     `vote_2016`: `1` = `"Trump"`, `2` = `"Clinton"`, `3:5` = `"Other"`,
+#'     `6:8` = `"No vote"` (includes ineligible and don't recall). Levels:
+#'     `c("Trump", "Clinton", "Other", "No vote")`. No `NA` values.}
 #' }
 #'
 #' ## `ns_wave1_svy`
-#' A `survey_nonprob` object wrapping `ns_wave1`. Constructed with
-#' `weights = weight` and 200 quasi-randomization bootstrap replicate weights
-#' (`repwt_1`–`repwt_200` in `@data`; `@variables$repweights` populated).
-#' Represents the raw weighted non-probability sample before IPW adjustment.
+#' A `survey_nonprob` object wrapping `ns_wave1`. The `weight` column contains
+#' replicated Nationscape survey weights produced by raking to ACS 2017 targets
+#' (Newton-Raphson, 10 marginal dimensions, 5th/95th percentile trim). Carries
+#' 200 quasi-randomization bootstrap replicate weights (`repwt_1`–`repwt_200`
+#' in `@data`; `@variables$repweights` populated) generated by resampling with
+#' replacement and re-raking each replicate to the same targets. Weighting
+#' history: `calibrate_rake` → `trim_weights` → `bootstrap_weights`.
 #'
 #' @source Derived from `surveycore::ns_wave1`.
-#'   See `data-raw/ns-gss-ipw.R` for the construction script.
+#'   See `data-raw/ns-wave1.R` for the construction script.
 #' @seealso [ns_wave1_svy], [gss_2024], [npors_2025_clean], [acs_wy_2022]
 #' @keywords datasets
 "ns_wave1"

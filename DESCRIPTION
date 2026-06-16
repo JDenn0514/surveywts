@@ -1,6 +1,6 @@
 Package: surveywts
 Title: Tools for Survey Weighting and Calibration
-Version: 0.2.0
+Version: 0.2.0.9000
 Authors@R:
     person(
         "Jacob", "Dennen",
@@ -8,38 +8,48 @@ Authors@R:
         role = c("aut", "cre", "cph"),
         comment = c(ORCID = "0000-0003-3006-7364")
     )
-Description: Provides tools for calibrating survey weights to known population
-    totals using GREG, raking (iterative proportional fitting), and
-    post-stratification. Supports nonresponse adjustment via the
-    weighting-class method, effective sample size diagnostics, and full
-    weighting history tracking for reproducible survey analysis workflows.
+Description: Part of the surveyverse, a tidy and reproducible framework for
+    survey analysis, surveywts provides the full weight adjustment workflow.
+    Working with survey objects from the surveyverse ecosystem, analysts can
+    handle unit nonresponse through weighting-class or propensity-based
+    adjustment, calibrate to census or survey-based benchmarks using raking,
+    GREG, logit-bounded, or post-stratification estimators, and generate
+    variance estimation weights via bootstrap, jackknife, BRR, and related
+    replicate-weight schemes. For non-probability samples, implements inverse
+    probability weighting via logistic regression with an optional calibration
+    GEE that guarantees exact covariate balance. Diagnostic functions report
+    effective sample size, weight variability, and full distributional
+    profiles, and every adjustment is recorded in a structured history
+    attached to the result object.
 License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Depends:
     R (>= 4.3.0)
 Imports:
-    anesrake (>= 0.80),
     cli (>= 3.6.0),
     dplyr (>= 1.1.0),
     rlang (>= 1.1.0),
     S7 (>= 0.2.0),
     survey (>= 4.2-1),
-    surveycore (>= 0.8.0),
+    surveycore (>= 1.0.0),
+    svrep (>= 0.9.1),
     tibble (>= 3.2.0),
     tidyselect (>= 1.2.0)
 Suggests:
+    anesrake,
     covr,
     knitr,
+    mice,
+    nonprobsvy,
     rmarkdown,
-    svrep (>= 0.6.0),
     testthat (>= 3.2.0),
     withr (>= 2.5.0)
-Remotes:
-    JDenn0514/surveycore
 VignetteBuilder: knitr
 Config/testthat/edition: 3
 URL: https://github.com/JDenn0514/surveywts, https://jdenn0514.github.io/surveywts/
 BugReports: https://github.com/JDenn0514/surveywts/issues
 X-schema.org-keywords: survey, statistics, weights, calibration, tidyverse
 RoxygenNote: 7.3.3
+LazyData: true
+LazyDataCompression: xz

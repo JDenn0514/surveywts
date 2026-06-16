@@ -27,7 +27,7 @@ with surveywts-specific examples and detailed guidance.
 
 | Category | Pattern | Example |
 |----------|---------|---------|
-| User-facing calibration functions | verb | `calibrate()`, `rake()`, `poststratify()` |
+| User-facing calibration functions | verb | `calibrate()`, `calibrate_rake()`, `poststratify()` |
 | User-facing nonresponse function | verb + noun | `adjust_nonresponse()` |
 | User-facing diagnostic functions | noun phrase | `effective_sample_size()`, `weight_variability()`, `summarize_weights()` |
 | Internal constructor | `.new_` prefix | `.new_survey_nonprob()` |
@@ -43,16 +43,80 @@ with surveywts-specific examples and detailed guidance.
 
 | Family tag | Functions |
 |------------|-----------|
-| `calibration` | `calibrate()`, `rake()`, `poststratify()` |
-| `nonresponse` | `adjust_nonresponse()` |
+| `calibration` | `calibrate()`, `calibrate_linear()`, `calibrate_logit()`, `calibrate_rake()`, `poststratify()` |
+| `sample-calibration` | `calibrate_to_survey()`, `calibrate_to_estimate()` |
+| `nonresponse` | `adjust_nonresponse()`, `redistribute_weights()` |
 | `diagnostics` | `effective_sample_size()`, `weight_variability()`, `summarize_weights()` |
 | `replicate-weights` | `create_bootstrap_weights()`, `create_jackknife_weights()`, `create_brr_weights()`, `create_gen_boot_weights()`, `create_gen_rep_weights()`, `create_sdr_weights()`, `create_replicate_weights()`, `as_taylor_design()` |
+| `utilities` | `trim_weights()`, `stabilize_weights()` |
+| `propensity` | `ipw()` |
 
-Use `@family calibration`, `@family nonresponse`, `@family diagnostics`, `@family replicate-weights` in roxygen2.
+Use `@family calibration`, `@family sample-calibration`, `@family nonresponse`, `@family diagnostics`, `@family replicate-weights`, `@family utilities`, `@family propensity` in roxygen2.
 
 ---
 
-## 3. Return Value Visibility
+## 3. File Organization
+
+### Rules
+1. Every exported function lives in a `.R` file named identically to it (matching its `.Rd` filename without the extension).
+2. The exported function appears at the **top** of its file; helpers used only by that function appear **below** it.
+3. Helpers shared by 2+ functions in the same family go to `{family}-utils.R`.
+4. Helpers used across different families stay in `utils.R`.
+5. Structural/role-based files are exempt from rule 1.
+
+### Exempt structural files
+
+| File | Purpose |
+|------|---------|
+| `utils.R` | Cross-family internal helpers |
+| `methods-print.R` | All S7 and S3 print methods |
+| `zzz.R` | `.onLoad()` / `.onAttach()` hooks |
+| `data.R` | `@docType data` documentation stubs |
+| `surveywts-package.R` | Package-level documentation |
+
+### Family utils files
+
+| File | Shared helpers for |
+|------|--------------------|
+| `diagnostics-utils.R` | `effective_sample_size()`, `weight_variability()`, `summarize_weights()` |
+| `nonresponse-utils.R` | `adjust_nonresponse()`, `redistribute_weights()` |
+| `replicate-utils.R` | All `create_*_weights()` functions + `as_taylor_design()` + `create_group_jackknife_weights()` |
+| `weight-utils.R` | `trim_weights()`, `stabilize_weights()` |
+
+### File mapping (R/ → export)
+
+| File | Export |
+|------|--------|
+| `adjust_nonresponse.R` | `adjust_nonresponse()` |
+| `as_taylor_design.R` | `as_taylor_design()` |
+| `calibrate.R` | `calibrate()` — thin dispatcher |
+| `calibrate-utils.R` | (internal helpers — not exported) |
+| `calibrate_linear.R` | `calibrate_linear()` |
+| `calibrate_logit.R` | `calibrate_logit()` |
+| `calibrate_rake.R` | `calibrate_rake()` |
+| `poststratify.R` | `poststratify()` |
+| `calibrate_to_estimate.R` | `calibrate_to_estimate()` |
+| `calibrate_to_survey.R` | `calibrate_to_survey()` |
+| `create_bootstrap_weights.R` | `create_bootstrap_weights()` |
+| `create_brr_weights.R` | `create_brr_weights()` |
+| `create_gen_boot_weights.R` | `create_gen_boot_weights()` |
+| `create_gen_rep_weights.R` | `create_gen_rep_weights()` |
+| `create_group_jackknife_weights.R` | `create_group_jackknife_weights()` |
+| `create_jackknife_weights.R` | `create_jackknife_weights()` |
+| `create_replicate_weights.R` | `create_replicate_weights()` |
+| `create_sdr_weights.R` | `create_sdr_weights()` |
+| `effective_sample_size.R` | `effective_sample_size()` |
+| `ipw.R` | `ipw()` |
+| `redistribute_weights.R` | `redistribute_weights()` |
+| `stabilize_weights.R` | `stabilize_weights()` |
+| `summarize_weights.R` | `summarize_weights()` |
+| `trim_weights.R` | `trim_weights()` |
+| `weight_variability.R` | `weight_variability()` |
+| `weighted-df-dplyr.R` | dplyr methods for `weighted_df` |
+
+---
+
+## 4. Return Value Visibility
 
 | Function type | Return |
 |---------------|--------|
@@ -64,10 +128,10 @@ Use `@family calibration`, `@family nonresponse`, `@family diagnostics`, `@famil
 
 ---
 
-## 4. Export Policy
+## 5. Export Policy
 
 ### What to export
-- All user-facing functions: `calibrate()`, `rake()`, `poststratify()`,
+- All user-facing functions: `calibrate()`, `calibrate_rake()`, `poststratify()`,
   `adjust_nonresponse()`, `effective_sample_size()`, `weight_variability()`,
   `summarize_weights()`
 - `survey_nonprob` S7 class object (part of the public API)
@@ -82,7 +146,7 @@ Use `@family calibration`, `@family nonresponse`, `@family diagnostics`, `@famil
 
 ---
 
-## 5. S7 Classes
+## 6. S7 Classes
 
 ### `survey_nonprob`
 
@@ -136,21 +200,30 @@ the weight column is removed.
 
 ---
 
-## 6. Argument Order (Calibration Functions)
+## 7. Argument Order
 
 | Function | Argument order |
 |----------|----------------|
-| `calibrate()` | `data, variables, population, weights = NULL, method = "linear", type = "prop", control = list()` |
-| `rake()` | `data, margins, weights = NULL, type = "prop", method = "anesrake", cap = NULL, control = list()` |
-| `poststratify()` | `data, strata, population, weights = NULL, type = "prop"` |
-| `adjust_nonresponse()` | `data, response_status, weights = NULL, by = NULL, method = "weighting_class", control = list()` |
+| `calibrate()` | `data, targets, weights = NULL, wt_name = "wts", type = c("prop", "count"), reference_design = NULL, ..., method = c("rake", "linear", "logit")` |
+| `calibrate_linear()` | `data, targets, weights = NULL, wt_name = "wts", bounds = NULL, bounds_scale = c("multiplicative", "absolute"), unit_scale = NULL, type = c("prop", "count"), control = list(), reference_design = NULL` |
+| `calibrate_logit()` | `data, targets, weights = NULL, wt_name = "wts", bounds = c(1e-6, 1e6), bounds_scale = c("multiplicative", "absolute"), unit_scale = NULL, type = c("prop", "count"), control = list(), reference_design = NULL` |
+| `calibrate_rake()` | `data, targets, weights = NULL, wt_name = "wts", type = c("prop", "count"), algorithm = c("classic_ipf", "nr"), cap = NULL, control = list(), reference_design = NULL` |
+| `poststratify()` | `data, targets, weights = NULL, wt_name = "wts", type = c("prop", "count"), reference_design = NULL` |
+| `adjust_nonresponse()` | `data, response_status, weights = NULL, by = NULL, wt_name = "wts", method = c("weighting-class", "propensity-cell", "propensity"), formula = NULL, control = list(min_cell = 20, max_adjust = 2.0, n_cells = 5)` |
+| `redistribute_weights()` | `data, reduce_if, increase_if, weights = NULL, by = NULL, wt_name = "wts", control = list()` |
+| `trim_weights()` | `data, weights = NULL, lower = NULL, upper = NULL, k = 5, type = c("absolute", "percentile"), strict = FALSE, wt_name = "wts"` |
+| `stabilize_weights()` | `data, weights = NULL, by = NULL, wt_name = "wts"` |
+| `calibrate_to_survey()` | `primary_design, control_design, variables, method = c("rake", "linear", "logit"), bounds = c(-Inf, Inf), unit_scale = NULL, reference_design = NULL, control = list()` |
+| `calibrate_to_estimate()` | `design, targets, vcov_estimate, method = c("rake", "linear", "logit"), bounds = c(-Inf, Inf), unit_scale = NULL, reference_design = NULL, control = list()` |
 | `effective_sample_size()` | `x, weights = NULL` |
 | `weight_variability()` | `x, weights = NULL` |
 | `summarize_weights()` | `x, weights = NULL, by = NULL` |
+| `as_taylor_design()` | `data` |
+| `ipw()` | `data, reference, selection = NULL, predictors = NULL, missing_method = c("omit", "separate", "impute"), mice_args = list(), method = "logit", estimating_eq = c("mle", "gee"), maxit = 25L, epsilon = 1e-8, adjust_reference = TRUE, trim = FALSE, population_size = NULL, wt_name = "ipw_weight"` |
 
 ---
 
-## 7. Documentation Checklist
+## 8. Documentation Checklist
 
 Before committing any roxygen2 changes:
 

@@ -132,16 +132,23 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_error_qr_bootstrap_no_reference` | `create_bootstrap_weights()` | Calibration-only Level B path: no reference design found in calibration history entry and `reference_sample` not supplied; also fired on the IPW path when no reference is available |
 | `surveywts_error_bootstrap_all_draws_failed` | `.quasi_randomization_bootstrap()` | All B bootstrap draws failed |
 | `surveywts_error_unsupported_calibration_op` | `.dispatch_calibration_replay()` | Unsupported calibration operation in history entry |
-| `surveywts_error_dagjk_requires_nonprob` | `create_group_jackknife_weights()` | `data` is not `survey_nonprob` |
+| ~~`surveywts_error_dagjk_requires_nonprob`~~ | ~~`create_group_jackknife_weights()`~~ | **RETIRED** — replaced by `surveywts_error_unsupported_class`; class renaming in PR 1 of jackknife-merge |
 | ~~`surveywts_error_dagjk_no_ipw_history`~~ | ~~`create_group_jackknife_weights()`~~ | **RETIRED** — replaced by `surveywts_error_dagjk_no_history`; the old error required IPW specifically; the new error covers any missing weighting history |
-| `surveywts_error_dagjk_no_history` | `create_group_jackknife_weights()` | `survey_nonprob` has no IPW or calibration entry in weighting history |
-| `surveywts_error_dagjk_no_reference` | `create_group_jackknife_weights()` | IPW path or calibration-only Level B path: no reference design found and `reference_sample` not supplied |
-| `surveywts_error_dagjk_groups_invalid` | `create_group_jackknife_weights()` | `groups` is not a single non-NA numeric value |
-| `surveywts_error_dagjk_groups_not_whole_number` | `create_group_jackknife_weights()` | `groups` has a non-zero fractional part |
-| `surveywts_error_dagjk_groups_too_small` | `create_group_jackknife_weights()` | `groups < 2` |
-| `surveywts_error_dagjk_groups_exceeds_n` | `create_group_jackknife_weights()` | `groups` exceeds the combined NPS + reference row count |
-| `surveywts_error_dagjk_degenerate_replicate` | `create_group_jackknife_weights()` | A group replicate produced non-positive or NA weights, or the reduced dataset contains no NPS or reference units |
-| `surveywts_error_dagjk_all_replicates_failed` | `create_group_jackknife_weights()` | All G group replicates failed; no replicate weights could be produced |
+| ~~`surveywts_error_dagjk_no_history`~~ | ~~`create_group_jackknife_weights()`~~ | **RETIRED** — replaced by `surveywts_error_jackknife_no_history`; class renaming in PR 1 of jackknife-merge |
+| ~~`surveywts_error_dagjk_no_reference`~~ | ~~`create_group_jackknife_weights()`~~ | **RETIRED** — replaced by `surveywts_error_jackknife_no_reference`; class renaming in PR 1 of jackknife-merge |
+| ~~`surveywts_error_dagjk_groups_invalid`~~ | ~~`create_group_jackknife_weights()`~~ | **RETIRED** — replaced by `surveywts_error_jackknife_replicates_invalid`; class renaming in PR 1 of jackknife-merge |
+| ~~`surveywts_error_dagjk_groups_not_whole_number`~~ | ~~`create_group_jackknife_weights()`~~ | **RETIRED** — replaced by `surveywts_error_replicates_not_whole_number` (existing); class renaming in PR 1 of jackknife-merge |
+| ~~`surveywts_error_dagjk_groups_too_small`~~ | ~~`create_group_jackknife_weights()`~~ | **RETIRED** — replaced by `surveywts_error_jackknife_replicates_too_small`; class renaming in PR 1 of jackknife-merge |
+| ~~`surveywts_error_dagjk_groups_exceeds_n`~~ | ~~`create_group_jackknife_weights()`~~ | **RETIRED** — replaced by `surveywts_error_jackknife_replicates_exceeds_n`; class renaming in PR 1 of jackknife-merge |
+| ~~`surveywts_error_dagjk_degenerate_replicate`~~ | ~~`create_group_jackknife_weights()`~~ | **RETIRED** — replaced by `surveywts_error_jackknife_degenerate_replicate`; class renaming in PR 1 of jackknife-merge |
+| ~~`surveywts_error_dagjk_all_replicates_failed`~~ | ~~`create_group_jackknife_weights()`~~ | **RETIRED** — replaced by `surveywts_error_jackknife_all_replicates_failed`; class renaming in PR 1 of jackknife-merge |
+| `surveywts_error_jackknife_replicates_invalid` | `create_group_jackknife_weights()` | `groups` (or `replicates`) is not a single non-NA numeric value |
+| `surveywts_error_jackknife_replicates_too_small` | `create_group_jackknife_weights()` | `groups` (or `replicates`) < 2 |
+| `surveywts_error_jackknife_replicates_exceeds_n` | `create_group_jackknife_weights()` | `groups` (or `replicates`) exceeds the combined NPS + reference row count |
+| `surveywts_error_jackknife_degenerate_replicate` | `create_group_jackknife_weights()` | A group replicate produced non-positive, non-finite, or NA weights, or the reduced dataset contains no NPS or reference units |
+| `surveywts_error_jackknife_no_history` | `create_group_jackknife_weights()` | `survey_nonprob` has no IPW or calibration entry in weighting history |
+| `surveywts_error_jackknife_no_reference` | `create_group_jackknife_weights()` | IPW path or calibration-only Level B path: no reference design found and `reference_sample` not supplied |
+| `surveywts_error_jackknife_all_replicates_failed` | `create_group_jackknife_weights()` | All G group replicates failed; no replicate weights could be produced |
 
 ### Internal / Utility
 
@@ -163,10 +170,14 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_warning_repweights_overwritten` | `create_bootstrap_weights()` | A previous call already created replicate weight columns; they are overwritten |
 | `surveywts_warning_bootstrap_draws_failed` | `create_bootstrap_weights()` | More than 10% of bootstrap draws failed and were skipped |
 | `surveywts_warning_reference_sample_ignored` | `create_bootstrap_weights()` | `reference_sample` supplied but ignored for probability-sample bootstrap types |
-| `surveywts_warning_dagjk_repweights_overwritten` | `create_group_jackknife_weights()` | A previous call already created replicate weight columns; they are overwritten |
-| `surveywts_warning_dagjk_small_groups` | `create_group_jackknife_weights()` | Average group size is fewer than 5 units |
-| `surveywts_warning_dagjk_replicates_failed` | `create_group_jackknife_weights()` | More than 10% of group replicates failed and were skipped |
-| `surveywts_warning_dagjk_negative_replicate_weights` | `create_group_jackknife_weights()` | One or more replicate weight values are negative after calibration |
+| ~~`surveywts_warning_dagjk_repweights_overwritten`~~ | ~~`create_group_jackknife_weights()`~~ | **RETIRED** — replaced by `surveywts_warning_jackknife_repweights_overwritten`; class renaming in PR 1 of jackknife-merge |
+| ~~`surveywts_warning_dagjk_small_groups`~~ | ~~`create_group_jackknife_weights()`~~ | **RETIRED** — replaced by `surveywts_warning_jackknife_small_groups`; class renaming in PR 1 of jackknife-merge |
+| ~~`surveywts_warning_dagjk_replicates_failed`~~ | ~~`create_group_jackknife_weights()`~~ | **RETIRED** — replaced by `surveywts_warning_jackknife_replicates_failed`; class renaming in PR 1 of jackknife-merge |
+| ~~`surveywts_warning_dagjk_negative_replicate_weights`~~ | ~~`create_group_jackknife_weights()`~~ | **RETIRED** — replaced by `surveywts_warning_jackknife_negative_replicate_weights`; class renaming in PR 1 of jackknife-merge |
+| `surveywts_warning_jackknife_repweights_overwritten` | `create_group_jackknife_weights()` | A previous call already created replicate weight columns; they are overwritten |
+| `surveywts_warning_jackknife_small_groups` | `create_group_jackknife_weights()` | Average group size is fewer than 5 units |
+| `surveywts_warning_jackknife_replicates_failed` | `create_group_jackknife_weights()` | More than 10% of group replicates failed and were skipped |
+| `surveywts_warning_jackknife_negative_replicate_weights` | `create_group_jackknife_weights()` | One or more replicate weight values are negative after calibration |
 
 ## Messages
 

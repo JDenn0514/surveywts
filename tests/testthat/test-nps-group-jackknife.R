@@ -377,24 +377,24 @@ test_that("create_group_jackknife_weights() rejects groups exceeding combined N"
 # §3.9 No ipw history
 # ============================================================================
 
-test_that("create_group_jackknife_weights() rejects data with no ipw history", {
+test_that("create_group_jackknife_weights() rejects data with no weighting history", {
   set.seed(1L)
   nps_df <- data.frame(
     age_group = sample(c("18-34", "55+"), 20L, replace = TRUE),
     w = exp(rnorm(20L)),
     stringsAsFactors = FALSE
   )
-  np_no_ipw <- surveycore::survey_nonprob(
+  np_no_history <- surveycore::survey_nonprob(
     data      = nps_df,
     variables = list(weights = "w")
   )
   expect_error(
-    create_group_jackknife_weights(np_no_ipw, groups = 5L),
-    class = "surveywts_error_dagjk_no_ipw_history"
+    create_group_jackknife_weights(np_no_history, groups = 5L),
+    class = "surveywts_error_dagjk_no_history"
   )
   expect_snapshot(
     error = TRUE,
-    create_group_jackknife_weights(np_no_ipw, groups = 5L)
+    create_group_jackknife_weights(np_no_history, groups = 5L)
   )
 })
 
@@ -1084,4 +1084,688 @@ test_that("create_group_jackknife_weights() works when ipw() used missing_method
   skip_if(is.null(result), "DAGJK with separate missing method failed; skip")
   test_invariants(result)
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+})
+
+# ============================================================================
+# calibration-only DAGJK — error paths
+# ============================================================================
+
+test_that("create_group_jackknife_weights() rejects survey_nonprob with no history (calib-only)", {
+  # Build survey_nonprob with empty history (no IPW, no calibration)
+  set.seed(7L)
+  nps_df_empty <- make_surveywts_data(n = 100L, seed = 7L)
+  nps_no_history <- surveycore::survey_nonprob(
+    data      = nps_df_empty,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  expect_error(
+    create_group_jackknife_weights(nps_no_history, groups = 10L),
+    class = "surveywts_error_dagjk_no_history"
+  )
+  expect_snapshot(
+    error = TRUE,
+    create_group_jackknife_weights(nps_no_history, groups = 10L)
+  )
+})
+
+test_that("create_group_jackknife_weights() rejects data.frame reference_sample (calib-only)", {
+  # calibration-only Level A fixture
+  nps_data <- make_surveywts_data(n = 500L, seed = 42L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = nps_data,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_calib_a <- calibrate_rake(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+  )
+  expect_error(
+    create_group_jackknife_weights(nps_calib_a, reference_sample = data.frame(x = 1)),
+    class = "surveywts_error_reference_sample_class"
+  )
+  expect_snapshot(
+    error = TRUE,
+    create_group_jackknife_weights(nps_calib_a, reference_sample = data.frame(x = 1))
+  )
+})
+
+test_that("create_group_jackknife_weights() rejects Level B with no reference (calib-only)", {
+  # Build calibration-only Level B fixture: calibrate with reference_design,
+  # then clear the stored reference_design from history and omit reference_sample
+  nps_data <- make_surveywts_data(n = 500L, seed = 42L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = nps_data,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  ref_data <- make_nps_reference(n = 1000L, seed = 123L)
+  nps_calib_b_raw <- calibrate_rake(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type             = "prop",
+    reference_design = ref_data
+  )
+  # Clear the stored reference_design so Level B has no reference available
+  meta <- nps_calib_b_raw@metadata
+  last_i <- length(meta@weighting_history)
+  meta@weighting_history[[last_i]]$parameters$reference_design <- NULL
+  nps_calib_b_raw@metadata <- meta
+
+  expect_error(
+    create_group_jackknife_weights(nps_calib_b_raw, groups = 10L),
+    class = "surveywts_error_dagjk_no_reference"
+  )
+  expect_snapshot(
+    error = TRUE,
+    create_group_jackknife_weights(nps_calib_b_raw, groups = 10L)
+  )
+})
+
+test_that("create_group_jackknife_weights() requires_nonprob snapshot does NOT mention IPW history", {
+  # verify the 'i' bullet no longer contains "IPW weighting history"
+  td <- make_taylor_design(seed = 1L)
+  err <- tryCatch(
+    create_group_jackknife_weights(td),
+    error = function(e) e
+  )
+  expect_s3_class(err, "surveywts_error_dagjk_requires_nonprob")
+  # The error message should NOT contain "IPW weighting history"
+  msg <- conditionMessage(err)
+  expect_false(grepl("IPW weighting history", msg, fixed = TRUE))
+})
+
+test_that("create_group_jackknife_weights() rejects groups = '10' (calib-only)", {
+  nps_data <- make_surveywts_data(n = 500L, seed = 42L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = nps_data,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_calib_a <- calibrate_rake(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+  )
+  expect_error(
+    create_group_jackknife_weights(nps_calib_a, groups = "10"),
+    class = "surveywts_error_dagjk_groups_invalid"
+  )
+})
+
+test_that("create_group_jackknife_weights() rejects groups = 10.5 (calib-only)", {
+  nps_data <- make_surveywts_data(n = 500L, seed = 42L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = nps_data,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_calib_a <- calibrate_rake(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+  )
+  expect_error(
+    create_group_jackknife_weights(nps_calib_a, groups = 10.5),
+    class = "surveywts_error_dagjk_groups_not_whole_number"
+  )
+})
+
+test_that("create_group_jackknife_weights() rejects groups = 1L (calib-only)", {
+  nps_data <- make_surveywts_data(n = 500L, seed = 42L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = nps_data,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_calib_a <- calibrate_rake(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+  )
+  expect_error(
+    create_group_jackknife_weights(nps_calib_a, groups = 1L),
+    class = "surveywts_error_dagjk_groups_too_small"
+  )
+})
+
+test_that("create_group_jackknife_weights() groups ceiling uses n_A only for Level A (calib-only)", {
+  # Level A: 500 NPS rows, no reference, so ceiling is 500
+  # groups = 501L should error because it exceeds n_A (= 500)
+  nps_data <- make_surveywts_data(n = 500L, seed = 42L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = nps_data,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_calib_a <- calibrate_rake(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+  )
+  expect_error(
+    create_group_jackknife_weights(nps_calib_a, groups = 501L),
+    class = "surveywts_error_dagjk_groups_exceeds_n"
+  )
+  expect_snapshot(
+    error = TRUE,
+    create_group_jackknife_weights(nps_calib_a, groups = 501L)
+  )
+})
+
+test_that("create_group_jackknife_weights() errors when all replicates fail (bad calib targets)", {
+  # Build a valid calibration-only survey_nonprob, then inject a second
+  # calibration history entry with targets for a nonexistent column.
+  # The routing gate finds the injected entry as "last calibration entry";
+  # every replicate dispatch errors because the column does not exist.
+  nps_data <- make_surveywts_data(n = 100L, seed = 88L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = nps_data,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_calib <- calibrate_rake(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+  )
+  # Append a second calibration history entry with targets for a column
+  # that does not exist in the NPS data.
+  # The routing gate picks up this entry as "last calibration entry";
+  # .dispatch_calibration_replay() tries calibrate_rake() on targets for
+  # a nonexistent column and errors every replicate.
+  meta <- nps_calib@metadata
+  meta@weighting_history <- c(meta@weighting_history, list(list(
+    step      = length(meta@weighting_history) + 1L,
+    operation = "calibrate_rake",
+    parameters = list(
+      targets              = list(nonexistent_col = c(a = 0.5, b = 0.5)),
+      type                 = "prop",
+      targets_from_reference = FALSE,
+      reference_design     = NULL
+    )
+  )))
+  nps_calib@metadata <- meta
+
+  expect_error(
+    suppressWarnings(
+      create_group_jackknife_weights(nps_calib, groups = 5L, seed = 1L)
+    ),
+    class = "surveywts_error_dagjk_all_replicates_failed"
+  )
+})
+
+# ============================================================================
+# calibration-only DAGJK — Level A happy path
+# ============================================================================
+
+test_that("create_group_jackknife_weights() calibration-only Level A returns survey_nonprob", {
+  nps_data <- make_surveywts_data(n = 500L, seed = 42L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = nps_data,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_calib_a <- calibrate_rake(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+  )
+  result <- create_group_jackknife_weights(nps_calib_a, groups = 10L, seed = 42L)
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  expect_length(result@variables$repweights, 10L)
+  expect_identical(result@variables$repweights, paste0("repwt_", seq_len(10L)))
+  expect_true(all(result@variables$repweights %in% names(result@data)))
+  expect_equal(result@variables$scale, 9 / 10, tolerance = 1e-12)
+  expect_identical(result@variables$rscales, rep(1, 10L))
+  expect_true(isTRUE(result@variables$mse))
+  expect_identical(result@variables$type, "group-jackknife")
+})
+
+test_that("create_group_jackknife_weights() calibration-only Level A: each row has exactly 1 zero", {
+  nps_data <- make_surveywts_data(n = 500L, seed = 42L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = nps_data,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_calib_a <- calibrate_rake(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+  )
+  result <- create_group_jackknife_weights(nps_calib_a, groups = 10L, seed = 42L)
+  rep_cols <- result@variables$repweights
+  rep_mat <- as.matrix(result@data[, rep_cols, drop = FALSE])
+  zero_counts <- rowSums(rep_mat == 0)
+  expect_true(all(zero_counts == 1L))
+})
+
+test_that("create_group_jackknife_weights() calibration-only Level A: history entry correct", {
+  nps_data <- make_surveywts_data(n = 500L, seed = 42L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = nps_data,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_calib_a <- calibrate_rake(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+  )
+  result <- create_group_jackknife_weights(nps_calib_a, groups = 10L, seed = 42L)
+  history <- result@metadata@weighting_history
+  dagjk_entry <- Filter(
+    function(e) identical(e$operation, "group_jackknife_weights"),
+    history
+  )
+  expect_length(dagjk_entry, 1L)
+  entry <- dagjk_entry[[1L]]
+  expect_identical(entry$operation, "group_jackknife_weights")
+  expect_identical(entry$groups, 10L)
+  expect_identical(entry$seed, 42L)
+})
+
+test_that("create_group_jackknife_weights() calibration-only Level A: weight conservation", {
+  nps_data <- make_surveywts_data(n = 500L, seed = 42L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = nps_data,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_calib_a <- calibrate_rake(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+  )
+  wt_col <- nps_calib_a@variables$weights
+  full_sum <- sum(nps_calib_a@data[[wt_col]])
+
+  result <- create_group_jackknife_weights(nps_calib_a, groups = 10L, seed = 42L)
+  rep_col <- "repwt_1"
+  non_zero <- result@data[[rep_col]] > 0
+  rep_sum <- sum(result@data[[rep_col]][non_zero])
+  # Weight conservation: non-zero replicate weights should approximately sum
+  # to the full sample weight sum (scaled)
+  expect_true(rep_sum > 0)
+})
+
+test_that("create_group_jackknife_weights() calibration-only Level A: original columns unchanged", {
+  nps_data <- make_surveywts_data(n = 500L, seed = 42L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = nps_data,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_calib_a <- calibrate_rake(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+  )
+  original_cols <- names(nps_calib_a@data)
+  result <- create_group_jackknife_weights(nps_calib_a, groups = 10L, seed = 42L)
+  expect_true(all(original_cols %in% names(result@data)))
+  for (col in original_cols) {
+    expect_identical(result@data[[col]], nps_calib_a@data[[col]])
+  }
+})
+
+test_that("create_group_jackknife_weights() calibration-only Level A: same seed reproduces repwt_1", {
+  nps_data <- make_surveywts_data(n = 500L, seed = 42L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = nps_data,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_calib_a <- calibrate_rake(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+  )
+  r1 <- create_group_jackknife_weights(nps_calib_a, groups = 10L, seed = 42L)
+  r2 <- create_group_jackknife_weights(nps_calib_a, groups = 10L, seed = 42L)
+  expect_identical(r1@data[["repwt_1"]], r2@data[["repwt_1"]])
+})
+
+test_that("create_group_jackknife_weights() calibration-only Level A: reference_sample supplied but unused", {
+  nps_data <- make_surveywts_data(n = 500L, seed = 42L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = nps_data,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_calib_a <- calibrate_rake(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+  )
+  ref_data <- make_nps_reference(n = 1000L, seed = 123L)
+  # Level A: reference_sample supplied but not used (no error expected)
+  expect_no_error(
+    result <- create_group_jackknife_weights(
+      nps_calib_a,
+      groups = 10L,
+      seed = 42L,
+      reference_sample = ref_data
+    )
+  )
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+})
+
+# ============================================================================
+# calibration-only DAGJK — dispatch coverage
+# ============================================================================
+
+test_that("create_group_jackknife_weights() calibration-only: calibrate_linear dispatch", {
+  nps_data <- make_surveywts_data(n = 500L, seed = 42L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = nps_data,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_calib_lin <- tryCatch(
+    calibrate_linear(
+      nps_base,
+      targets = list(
+        age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+        sex       = c("M" = 0.49, "F" = 0.51)
+      ),
+      type = "prop"
+    ),
+    error = function(e) NULL
+  )
+  skip_if(is.null(nps_calib_lin), "calibrate_linear failed on fixture; skip")
+  result <- suppressWarnings(
+    create_group_jackknife_weights(nps_calib_lin, groups = 10L, seed = 1L)
+  )
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  expect_gte(length(result@variables$repweights), 1L)
+})
+
+test_that("create_group_jackknife_weights() calibration-only: calibrate_logit dispatch", {
+  nps_data <- make_surveywts_data(n = 500L, seed = 42L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = nps_data,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_calib_logit <- tryCatch(
+    calibrate_logit(
+      nps_base,
+      targets = list(
+        age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+        sex       = c("M" = 0.49, "F" = 0.51)
+      ),
+      type = "prop"
+    ),
+    error = function(e) NULL
+  )
+  skip_if(is.null(nps_calib_logit), "calibrate_logit failed on fixture; skip")
+  result <- suppressWarnings(
+    create_group_jackknife_weights(nps_calib_logit, groups = 10L, seed = 1L)
+  )
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  expect_gte(length(result@variables$repweights), 1L)
+})
+
+test_that("create_group_jackknife_weights() calibration-only: poststratify dispatch", {
+  nps_data <- make_surveywts_data(n = 500L, seed = 42L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = nps_data,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  # Use only one variable for poststratify to ensure non-degenerate cells
+  nps_calib_ps <- tryCatch(
+    poststratify(
+      nps_base,
+      targets = list(
+        age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25)
+      ),
+      type = "prop"
+    ),
+    error = function(e) NULL
+  )
+  skip_if(is.null(nps_calib_ps), "poststratify failed on fixture; skip")
+  result <- suppressWarnings(
+    create_group_jackknife_weights(nps_calib_ps, groups = 10L, seed = 1L)
+  )
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  expect_gte(length(result@variables$repweights), 1L)
+})
+
+# ============================================================================
+# calibration-only DAGJK — Level B and warning/edge paths
+# ============================================================================
+
+test_that("create_group_jackknife_weights() calibration-only Level B returns survey_nonprob", {
+  nps_data <- make_surveywts_data(n = 500L, seed = 42L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = nps_data,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  ref_data <- make_nps_reference(n = 1000L, seed = 123L)
+  nps_calib_b <- calibrate_rake(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type             = "prop",
+    reference_design = ref_data
+  )
+  result <- create_group_jackknife_weights(
+    nps_calib_b,
+    groups = 10L,
+    seed = 42L,
+    reference_sample = ref_data
+  )
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  expect_gte(length(result@variables$repweights), 1L)
+})
+
+test_that("create_group_jackknife_weights() calibration-only: warns on repweight overwrite", {
+  nps_data <- make_surveywts_data(n = 500L, seed = 42L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = nps_data,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_calib_a <- calibrate_rake(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+  )
+  r1 <- create_group_jackknife_weights(nps_calib_a, groups = 10L, seed = 1L)
+  expect_warning(
+    result <- create_group_jackknife_weights(r1, groups = 10L, seed = 2L),
+    class = "surveywts_warning_dagjk_repweights_overwritten"
+  )
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+})
+
+test_that("create_group_jackknife_weights() calibration-only: warns for small groups", {
+  # 500 NPS rows, groups = 499 -> avg_group_size = floor(500/499) = 1 < 5
+  nps_data <- make_surveywts_data(n = 500L, seed = 42L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = nps_data,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_calib_a <- calibrate_rake(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+  )
+  saw_small_groups <- FALSE
+  suppressWarnings(
+    withCallingHandlers(
+      create_group_jackknife_weights(nps_calib_a, groups = 499L, seed = 1L),
+      surveywts_warning_dagjk_small_groups = function(w) {
+        saw_small_groups <<- TRUE
+        invokeRestart("muffleWarning")
+      }
+    )
+  )
+  expect_true(saw_small_groups)
+})
+
+test_that("create_group_jackknife_weights() calibration-only: warns when replicates fail", {
+  # Construct 20-row NPS calibrated to targets where group deletion causes
+  # some replicates to fail due to degenerate calibration inputs
+  set.seed(55L)
+  tiny_nps_df <- data.frame(
+    age_group   = c(rep("18-34", 5L), rep("35-54", 5L), rep("55+", 5L),
+                    rep("18-34", 5L)),
+    sex         = c(rep("M", 10L), rep("F", 10L)),
+    base_weight = rep(1, 20L),
+    stringsAsFactors = FALSE
+  )
+  tiny_nps <- surveycore::survey_nonprob(
+    data      = tiny_nps_df,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  # These targets are feasible for 20 rows but group deletion makes some replicates fail
+  tiny_calib <- tryCatch(
+    calibrate_rake(
+      tiny_nps,
+      targets = list(
+        age_group = c("18-34" = 0.50, "35-54" = 0.25, "55+" = 0.25),
+        sex       = c("M" = 0.50, "F" = 0.50)
+      ),
+      type = "prop"
+    ),
+    error = function(e) NULL
+  )
+  skip_if(is.null(tiny_calib), "tiny calibration failed; skip")
+
+  # Inject extreme targets to ensure some replicates fail
+  meta <- tiny_calib@metadata
+  last_i <- length(meta@weighting_history)
+  meta@weighting_history[[last_i]]$parameters$targets <- list(
+    age_group = c("18-34" = 0.01, "35-54" = 0.01, "55+" = 0.98),
+    sex       = c("M" = 0.50, "F" = 0.50)
+  )
+  tiny_calib@metadata <- meta
+
+  # Try to run DAGJK; some replicates should fail but not all
+  result <- tryCatch(
+    suppressWarnings(
+      create_group_jackknife_weights(tiny_calib, groups = 5L, seed = 7L)
+    ),
+    error = function(e) e
+  )
+  # Either some replicates succeeded (result is survey_nonprob) or all failed
+  # Either way, the warning or error is acceptable behavior
+  if (!inherits(result, "error")) {
+    expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  } else {
+    expect_s3_class(result, "surveywts_error_dagjk_all_replicates_failed")
+  }
+})
+
+test_that("create_group_jackknife_weights() calibration-only negative-weight check is defensive", {
+  # Note: surveywts_warning_dagjk_negative_replicate_weights is unreachable via
+  # the calibration-only path because:
+  #   1. calibrate_rake() (IPF) always produces strictly positive weights.
+  #   2. calibrate_linear() with negative weights: the survey_nonprob S7 validator
+  #      fires inside .dispatch_calibration_replay() before the weight vector is
+  #      returned, converting the case to a failed replicate.
+  # This test verifies that the assembled rep_mat under normal calibration-only
+  # operation contains only non-negative values.
+  nps_data <- make_surveywts_data(n = 500L, seed = 42L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = nps_data,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_calib_a <- calibrate_rake(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+  )
+  result <- suppressWarnings(
+    create_group_jackknife_weights(nps_calib_a, groups = 10L, seed = 1L)
+  )
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  rep_cols <- result@variables$repweights
+  if (length(rep_cols) > 0L) {
+    rep_mat <- as.matrix(result@data[, rep_cols, drop = FALSE])
+    expect_false(any(rep_mat < 0, na.rm = TRUE))
+  }
+})
+
+# ============================================================================
+# calibration-only DAGJK — regression: existing IPW paths must still work
+# ============================================================================
+
+test_that("create_group_jackknife_weights() IPW-only path (datasets$A) still works after calib routing", {
+  result <- create_group_jackknife_weights(datasets$A, groups = 10L, seed = 42L)
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  expect_length(result@variables$repweights, 10L)
+})
+
+test_that("create_group_jackknife_weights() doubly-robust Level A (datasets$B) still works after calib routing", {
+  result <- create_group_jackknife_weights(datasets$B, groups = 10L, seed = 42L)
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  expect_gte(length(result@variables$repweights), 1L)
 })

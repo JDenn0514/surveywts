@@ -292,6 +292,124 @@
 }
 
 # ============================================================================
+# .dagjk_single_replicate_calib()
+# ============================================================================
+
+# Internal engine for one DAGJK calibration-only replicate.
+# Must be called inside tryCatch(). Throws
+# surveywts_error_dagjk_degenerate_replicate on any failure condition.
+#
+# Algorithm (spec §3.4, "Calibration-only DAGJK algorithm"):
+#   1. Find NPS row indices in group g (and reference row indices if Level B).
+#   2. Form reduced NPS: S_A_minus_g = NPS rows NOT in group g.
+#   3. Scale factor: a_g = n_A / (n_A - n_Ag)
+#   4. Apply: w_i_adj = w_i * a_g (CURRENT weights, NOT equal weights).
+#   5. Dispatch calibration replay via .dispatch_calibration_replay().
+#   6. Extract replicate weight vector; zeros inserted for group-g NPS units.
+#
+# Arguments:
+#   g               : integer -- the group index being deleted (1..G)
+#   group_assign    : integer vector of length combined_n -- group membership.
+#                     For Level A: length n_nps. For Level B: length n_nps+n_ref.
+#   nps_data        : data.frame -- the NPS @data
+#   ref_data        : data.frame or NULL -- the reference @data (NULL for Level A)
+#   ref_wt_col      : character(1) or NULL -- weight column in ref_data
+#   calib_entry     : list -- the last calibration history entry
+#   n_nps           : integer -- total NPS row count
+#   n_ref           : integer -- total reference row count (0 for Level A)
+#   use_level_b     : logical -- TRUE if targets_from_reference
+#   ref_design      : survey_taylor or NULL
+#   wt_col          : character(1) -- weight column name in nps_data
+#
+# Returns: numeric vector of length n_nps -- replicate pseudo-weights.
+#   Entries for group-g NPS units are 0 (inserted by this function).
+.dagjk_single_replicate_calib <- function(
+  g, group_assign, nps_data, ref_data, ref_wt_col,
+  calib_entry, n_nps, n_ref, use_level_b, ref_design, wt_col
+) {
+  # Indices into the group assignment vector (length combined_n = n_nps [+ n_ref])
+  nps_in_g <- which(group_assign[seq_len(n_nps)] == g)
+
+  nps_keep_idx <- setdiff(seq_len(n_nps), nps_in_g)
+  n_Ag         <- length(nps_in_g)
+
+  if (length(nps_keep_idx) == 0L) {
+    cli::cli_abort(
+      c("x" = "Replicate {g}: no NPS units remain after group deletion."),
+      class = "surveywts_error_dagjk_degenerate_replicate"
+    )
+  }
+
+  # Scale factor: a_g = n_A / (n_A - n_Ag)
+  a_g <- n_nps / (n_nps - n_Ag)
+
+  # Reduced NPS data with scaled current weights
+  nps_g      <- nps_data[nps_keep_idx, , drop = FALSE]
+  nps_g[[wt_col]] <- nps_g[[wt_col]] * a_g
+
+  # Build survey_nonprob from reduced NPS for dispatch function
+  nps_g_obj <- surveycore::survey_nonprob(
+    data      = nps_g,
+    variables = list(weights = wt_col),
+    metadata  = surveycore::survey_metadata()
+  )
+
+  # Level B: form reduced reference data
+  ref_data_b <- NULL
+  if (use_level_b && !is.null(ref_data)) {
+    ref_in_g     <- which(
+      group_assign[(n_nps + 1L):(n_nps + n_ref)] == g
+    )
+    ref_keep_idx <- setdiff(seq_len(n_ref), ref_in_g)
+    if (length(ref_keep_idx) == 0L) {
+      cli::cli_abort(
+        c("x" = "Replicate {g}: no reference units remain after group deletion."),
+        class = "surveywts_error_dagjk_degenerate_replicate"
+      )
+    }
+    ref_data_b <- ref_data[ref_keep_idx, , drop = FALSE]
+  }
+
+  # Dispatch calibration replay
+  calib_result_g <- tryCatch(
+    .dispatch_calibration_replay(
+      data        = nps_g_obj,
+      calib_entry = calib_entry,
+      ref_design  = ref_design,
+      ref_data_b  = ref_data_b,
+      use_level_b = use_level_b
+    ),
+    error = function(e) {
+      cli::cli_abort(
+        c("x" = "Replicate {g}: calibration failed -- {conditionMessage(e)}"),
+        class = "surveywts_error_dagjk_degenerate_replicate"
+      )
+    }
+  )
+
+  # Extract calibrated weight vector
+  w_g <- .extract_weight_vec(calib_result_g, wt_col)
+
+  # Validate: no NA, no non-positive values among retained units
+  # nocov start
+  # Defensive: dispatched calibration functions validate their own output.
+  # This fires only if they return NA/non-positive despite passing internal checks.
+  if (any(is.na(w_g)) || any(w_g <= 0)) {
+    cli::cli_abort(
+      c("x" = "Replicate {g}: degenerate calibration weights (NA or <= 0)."),
+      class = "surveywts_error_dagjk_degenerate_replicate"
+    )
+  }
+  # nocov end
+
+  # Construct full-length output: 0 for group-g units, calibrated weights for rest
+  w_full <- numeric(n_nps)
+  w_full[nps_keep_idx] <- w_g
+
+  w_full
+}
+
+# ============================================================================
 # create_group_jackknife_weights()
 # ============================================================================
 
@@ -451,11 +569,12 @@ create_group_jackknife_weights <- function(
           "{.cls survey_nonprob}; got {.cls {cls}}."
         ),
         "i" = paste0(
-          "The DAGJK for NPS requires an IPW weighting history attached to a ",
+          "The DAGJK requires a weighting history attached to a ",
           "{.cls survey_nonprob} object."
         ),
         "v" = paste0(
-          "Use {.fn ipw} to create a {.cls survey_nonprob}, then call ",
+          "Use {.fn ipw} or a calibration function to create a ",
+          "{.cls survey_nonprob}, then call ",
           "{.fn create_group_jackknife_weights}."
         )
       ),
@@ -472,74 +591,112 @@ create_group_jackknife_weights <- function(
   #    reference resolution when we know combined_n)
   groups <- .validate_groups_arg(groups, combined_n = Inf)
 
-  # 4. ipw history presence
-  ipw_entry <- Filter(
+  # 4. History routing: find IPW entry and last calibration entry
+  ipw_entries <- Filter(
     function(e) identical(e$operation, "ipw"),
     data@metadata@weighting_history
   )
-  if (length(ipw_entry) == 0L) {
-    cli::cli_abort(
-      c(
-        "x" = paste0(
-          "No {.code ipw()} step found in the weighting history of {.arg data}."
-        ),
-        "i" = paste0(
-          "{.fn create_group_jackknife_weights} requires an {.code ipw()} step ",
-          "in the weighting history to refit the propensity model per replicate."
-        ),
-        "v" = paste0(
-          "Call {.fn ipw} on the non-probability sample before calling ",
-          "{.fn create_group_jackknife_weights}."
-        )
-      ),
-      class = "surveywts_error_dagjk_no_ipw_history"
-    )
-  }
-  ipw_entry <- ipw_entry[[1L]]
+  ipw_entry <- if (length(ipw_entries) > 0L) ipw_entries[[length(ipw_entries)]] else NULL
 
-  # 5. Reference resolution: argument takes precedence over stored entry
-  ref_design <- reference_sample %||% ipw_entry$reference_design
-  if (is.null(ref_design)) {
-    cli::cli_abort(
-      c(
-        "x" = paste0(
-          "A reference probability sample is required for ",
-          "{.fn create_group_jackknife_weights}."
-        ),
-        "i" = paste0(
-          "No reference design found in the {.code ipw()} history entry ",
-          "and {.arg reference_sample} was not supplied."
-        ),
-        "v" = paste0(
-          "Supply the reference design via {.arg reference_sample}, or re-run ",
-          "{.fn ipw} with a {.cls survey_taylor} reference."
-        )
-      ),
-      class = "surveywts_error_dagjk_no_reference"
-    )
-  }
-
-  # 5b. Ceiling check (now that we have ref_design)
-  n_nps      <- nrow(data@data)
-  n_ref      <- nrow(ref_design@data)
-  combined_n <- n_nps + n_ref
-  .validate_groups_arg(groups, combined_n = combined_n)
-
-  # Find last calibration history entry (rake or calibrate, old or new API)
-  calib_entry <- Filter(
+  calib_entries <- Filter(
     function(e) e$operation %in% c(
-      "raking", "calibration",
-      "calibrate_rake", "calibrate_greg"
+      "calibrate_rake", "calibrate_linear", "calibrate_logit",
+      "poststratify", "raking",
+      # Legacy operation names from pre-v0.4 history entries:
+      "calibration", "calibrate_greg"
     ),
     data@metadata@weighting_history
   )
-  calib_entry <- if (length(calib_entry) > 0L) {
-    calib_entry[[length(calib_entry)]]
+  calib_entry <- if (length(calib_entries) > 0L) {
+    calib_entries[[length(calib_entries)]]
   } else {
     NULL
   }
 
+  # If neither IPW nor calibration entry: error
+  if (is.null(ipw_entry) && is.null(calib_entry)) {
+    cli::cli_abort(
+      c(
+        "x" = paste0(
+          "No IPW or calibration step found in the weighting history of ",
+          "{.arg data}."
+        ),
+        "i" = paste0(
+          "{.fn create_group_jackknife_weights} requires an {.fn ipw} or ",
+          "calibration step in the weighting history."
+        ),
+        "v" = paste0(
+          "Call {.fn ipw} or a calibration function on the non-probability ",
+          "sample before calling {.fn create_group_jackknife_weights}."
+        )
+      ),
+      class = "surveywts_error_dagjk_no_history"
+    )
+  }
+
   use_level_b <- isTRUE(calib_entry$parameters$targets_from_reference)
+
+  # 5. Reference resolution: conditional on path and level
+  n_nps <- nrow(data@data)
+
+  if (!is.null(ipw_entry)) {
+    # IPW path: reference always required
+    ref_design <- reference_sample %||% ipw_entry$reference_design
+    if (is.null(ref_design)) {
+      cli::cli_abort(
+        c(
+          "x" = paste0(
+            "A reference probability sample is required for ",
+            "{.fn create_group_jackknife_weights}."
+          ),
+          "i" = paste0(
+            "No reference design found in the {.code ipw()} history entry ",
+            "and {.arg reference_sample} was not supplied."
+          ),
+          "v" = paste0(
+            "Supply the reference design via {.arg reference_sample}, or re-run ",
+            "{.fn ipw} with a {.cls survey_taylor} reference."
+          )
+        ),
+        class = "surveywts_error_dagjk_no_reference"
+      )
+    }
+    n_ref      <- nrow(ref_design@data)
+    combined_n <- n_nps + n_ref
+  } else if (use_level_b) {
+    # Calibration-only Level B: reference required
+    ref_design <- reference_sample %||%
+      calib_entry$parameters$reference_design
+    if (is.null(ref_design)) {
+      cli::cli_abort(
+        c(
+          "x" = paste0(
+            "A reference probability sample is required for ",
+            "{.fn create_group_jackknife_weights}."
+          ),
+          "i" = paste0(
+            "No reference design found in the calibration history entry ",
+            "and {.arg reference_sample} was not supplied."
+          ),
+          "v" = paste0(
+            "Supply the reference design via {.arg reference_sample}, or ",
+            "re-run the calibration with a {.cls survey_taylor} reference."
+          )
+        ),
+        class = "surveywts_error_dagjk_no_reference"
+      )
+    }
+    n_ref      <- nrow(ref_design@data)
+    combined_n <- n_nps + n_ref
+  } else {
+    # Calibration-only Level A: no reference needed
+    ref_design <- NULL
+    n_ref      <- 0L
+    combined_n <- n_nps
+  }
+
+  # 5b. Ceiling check (now that combined_n is known)
+  .validate_groups_arg(groups, combined_n = combined_n)
 
   # ---- Second-call overwrite check ----------------------------------------
   data <- .handle_repweights_overwrite(
@@ -571,36 +728,58 @@ create_group_jackknife_weights <- function(
   }
 
   # ---- Group assignment ---------------------------------------------------
+  # For Level A calibration-only: assign only n_A rows (no reference)
+  # For all other paths: assign n_A + n_ref rows
   if (!is.null(seed)) set.seed(seed)
   group_assign <- sample(
     rep(seq_len(groups), length.out = combined_n)
   )
 
   # ---- Main loop ----------------------------------------------------------
-  wt_col    <- data@variables$weights
-  ref_data  <- ref_design@data
-  ref_wt_col <- ref_design@variables$weights
-  nps_data  <- data@data
+  wt_col   <- data@variables$weights
+  nps_data <- data@data
+
+  # Only set ref_data / ref_wt_col for paths that have a reference
+  ref_data   <- if (!is.null(ref_design)) ref_design@data else NULL
+  ref_wt_col <- if (!is.null(ref_design)) ref_design@variables$weights else NULL
 
   failed_reps <- 0L
   repwt_list  <- list()
 
   for (g in seq_len(groups)) {
     rep_ok <- tryCatch({
-      w_rep <- .dagjk_single_replicate(
-        g            = g,
-        group_assign = group_assign,
-        nps_data     = nps_data,
-        ref_data     = ref_data,
-        ref_wt_col   = ref_wt_col,
-        ipw_entry    = ipw_entry,
-        calib_entry  = calib_entry,
-        n_nps        = n_nps,
-        n_ref        = n_ref,
-        use_level_b  = use_level_b,
-        ref_design   = ref_design,
-        wt_col       = wt_col
-      )
+      if (!is.null(ipw_entry)) {
+        # IPW path (and doubly-robust)
+        w_rep <- .dagjk_single_replicate(
+          g            = g,
+          group_assign = group_assign,
+          nps_data     = nps_data,
+          ref_data     = ref_data,
+          ref_wt_col   = ref_wt_col,
+          ipw_entry    = ipw_entry,
+          calib_entry  = calib_entry,
+          n_nps        = n_nps,
+          n_ref        = n_ref,
+          use_level_b  = use_level_b,
+          ref_design   = ref_design,
+          wt_col       = wt_col
+        )
+      } else {
+        # Calibration-only path
+        w_rep <- .dagjk_single_replicate_calib(
+          g            = g,
+          group_assign = group_assign,
+          nps_data     = nps_data,
+          ref_data     = ref_data,
+          ref_wt_col   = ref_wt_col,
+          calib_entry  = calib_entry,
+          n_nps        = n_nps,
+          n_ref        = n_ref,
+          use_level_b  = use_level_b,
+          ref_design   = ref_design,
+          wt_col       = wt_col
+        )
+      }
       repwt_list[[length(repwt_list) + 1L]] <- w_rep
       TRUE
     }, error = function(e) {
@@ -697,7 +876,7 @@ create_group_jackknife_weights <- function(
       groups_failed    = as.integer(failed_reps),
       seed             = seed,
       scale            = (G_success - 1L) / G_success,
-      reference_design = ref_design,
+      reference_design = ref_design,   # NULL for calibration-only Level A
       source_design    = .snapshot_variables_for_history(data)
     ))
   )

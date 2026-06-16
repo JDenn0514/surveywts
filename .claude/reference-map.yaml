@@ -1,0 +1,155 @@
+# surveywts reference map
+# Maps each exported function to its source papers in the knowledge base.
+#
+# Each entry:
+#   citation: Full academic citation (verbatim from @references block)
+#   file:     Absolute path to the .md file in the knowledge base, or ~ if not present
+#
+# citation: ~ means the function should have @references but currently has none.
+# file: ~    means the paper is not yet in the knowledge base.
+
+calibrate:
+  - citation: ~
+    file: ~
+
+calibrate_linear:
+  - citation: "Deville, J.-C. and Sarndal, C.-E. (1992). Calibration estimators in survey sampling. Journal of the American Statistical Association, 87(418), 376-382."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/deville_sarndal_1992_calibration_estimators.md
+  - citation: "Deville, J.-C., Sarndal, C.-E. and Sautory, O. (1993). Generalized raking procedures in survey sampling. Journal of the American Statistical Association, 88(423), 1013-1020."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/deville_1993_generalized_raking.md
+
+calibrate_logit:
+  - citation: "Deville, J.-C. and Sarndal, C.-E. (1992). Calibration estimators in survey sampling. Journal of the American Statistical Association, 87(418), 376-382."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/deville_sarndal_1992_calibration_estimators.md
+  - citation: "Deville, J.-C., Sarndal, C.-E. and Sautory, O. (1993). Generalized raking procedures in survey sampling. Journal of the American Statistical Association, 88(423), 1013-1020."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/deville_1993_generalized_raking.md
+
+calibrate_rake:
+  - citation: "DeBell, M. and Krosnick, J.A. (2009). Computing Weights for American National Election Study Survey Data. ANES Technical Report series, no. nes012427. Ann Arbor, MI, and Palo Alto, CA: American National Election Studies."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/codebooks/debell_krosnick_2009_anes_weights.md
+  - citation: "Deville, J.-C. and Sarndal, C.-E. (1992). Calibration estimators in survey sampling. Journal of the American Statistical Association, 87(418), 376-382."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/deville_sarndal_1992_calibration_estimators.md
+  - citation: "Deville, J.-C., Sarndal, C.-E. and Sautory, O. (1993). Generalized raking procedures in survey sampling. Journal of the American Statistical Association, 88(423), 1013-1020."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/deville_1993_generalized_raking.md
+  - citation: "Kott, P.S. (2003). An overview of calibration weighting. 2003 Joint Statistical Meetings — Section on Survey Research Methods."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/kott_2003_overview_calibration_weighting.md
+
+calibrate_to_survey:
+  - citation: "Fuller, W.A. (1998). Replication variance estimation for two-phase samples. Statistica Sinica, 8, 1153-1164."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/fuller_2004_replication_variance_two_phase.md  # filename mislabeled as 2004
+  - citation: "Opsomer, J.D. and Erciulescu, A. (2021). Replication variance estimation after sample-based calibration. Survey Methodology, 47, 265-277."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/opsomer_erciulescu_2022_replication_variance_calibration.md  # filename shows 2022 (published year vs. cited year)
+
+calibrate_to_estimate:
+  - citation: "Fuller, W.A. (1998). Replication variance estimation for two-phase samples. Statistica Sinica, 8, 1153-1164."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/fuller_2004_replication_variance_two_phase.md  # filename mislabeled as 2004
+  - citation: "Opsomer, J.D. and Erciulescu, A. (2021). Replication variance estimation after sample-based calibration. Survey Methodology, 47, 265-277."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/opsomer_erciulescu_2022_replication_variance_calibration.md  # filename shows 2022 (published year vs. cited year)
+
+poststratify:
+  - citation: "Valliant, R. (1993). Poststratification and conditional variance estimation. Journal of the American Statistical Association, 88(421), 89-96."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/valliant_1993_poststratification_conditional_variance.md
+  - citation: "Deville, J.-C. and Sarndal, C.-E. (1992). Calibration estimators in survey sampling. Journal of the American Statistical Association, 87(418), 376-382."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/deville_sarndal_1992_calibration_estimators.md
+  - citation: "Rao, J.N.K., Yung, W. and Hidiroglou, M.A. (2002). Estimating equations for the analysis of survey data using poststratification information. Sankhya, 64(2), 364-378."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/rao_yung_hidiroglou_2002_poststratification_estimating_equations.md
+  - citation: "Deville, J.-C., Sarndal, C.-E. and Sautory, O. (1993). Generalized raking procedures in survey sampling. Journal of the American Statistical Association, 88(423), 1013-1020."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/deville_1993_generalized_raking.md
+  - citation: "Rao, J.N.K., Wu, C.F.J. and Yue, K. (1992). Some recent work on resampling methods for complex surveys. Survey Methodology, 18(2), 209-217."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/rao_wu_yue_1992_resampling_complex_surveys.md
+
+adjust_nonresponse:
+  - citation: "Chang, T. and Kott, P.S. (2008). Using calibration weighting to adjust for nonresponse under a plausible model. Biometrika, 95(3), 555-571."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/chang_kott_2008_calibration_nonresponse.md
+  - citation: "Valliant, R., Dever, J., Kreuter, F. (2018). Practical Tools for Designing and Weighting Survey Samples, 2nd edition. New York: Springer."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/valliant_dever_kreuter_2018_ch13_basic_weighting.md
+
+redistribute_weights:
+  - citation: "Valliant, R., Dever, J., Kreuter, F. (2018). Practical Tools for Designing and Weighting Survey Samples, 2nd edition. New York: Springer."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/valliant_dever_kreuter_2018_ch13_basic_weighting.md
+
+effective_sample_size:
+  - citation: "Kish, L. (1965). Survey Sampling. New York: John Wiley & Sons."
+    file: ~
+
+trim_weights:
+  - citation: ~
+    file: ~
+
+ipw:
+  - citation: "Elliott, M.R. and Valliant, R. (2017). Inference for nonprobability samples. Statistical Science 32(2), 249-264."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/elliott_valliant_2017_inference_nonprobability.md
+  - citation: "Chen, Y., Li, P. and Wu, C. (2020). Doubly robust inference with nonprobability survey samples. Journal of the American Statistical Association 115(532), 2011-2021."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/chen_2020_doubly_robust_inference.md
+  - citation: "Lenau, S., Marchetti, S., Munnich, R., Pratesi, M., Salvati, N., Shlomo, N., Schirripa Spagnolo, F. and Zhang, L.-C. (2021). Methods for sampling and inference with non-probability samples. Deliverable D11.8, InGRID-2 project 730998 -- H2020."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/gray-literature/lenau_2021_sampling_inference_nonprobability.md
+  - citation: "Valliant, R. and Dever, J.A. (2011). Estimating propensity adjustments for volunteer web surveys. Sociological Methods & Research 40(1), 105-137."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/valliant_dever_2011_propensity_web_surveys.md
+  - citation: "Valliant, R. (2020). Comparing alternatives for estimation from nonprobability samples. Survey Methods: Insights from the Field 16(1)."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/valliant_2020_comparing_alternatives_nonprobability.md
+  - citation: "Yang, S., Kim, J.K. and Song, R. (2020). Doubly robust inference when combining probability and non-probability samples with high dimensional data. Journal of the Royal Statistical Society: Series B 82(2), 445-465."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/yang_2020_doubly_robust_inference.md
+  - citation: "Beresewicz, M., Szymkowiak, M. and Chlebicki, P. (2025). Quantile balancing inverse probability weighting for non-probability samples. arXiv preprint arXiv:2403.09028."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/beresewicz_2025_quantile_balancing_ipw_nonprobability.md
+
+create_replicate_weights:
+  - citation: ~
+    file: ~
+
+create_bootstrap_weights:
+  - citation: "Elliott, M.R. and Valliant, R. (2017). Inference for nonprobability samples. Statistical Science 32(2), 249-264."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/elliott_valliant_2017_inference_nonprobability.md
+  - citation: "Wu, C. (2022). Statistical inference with non-probability survey samples. Survey Methodology 48(2), 283-311."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/wu_2022_inference_nonprobability_samples.md
+  - citation: "Chrostowski, M.J., Guzman, C.A. and Malm, L. (2025). Variance estimation for non-probability surveys. Journal of Survey Statistics and Methodology (forthcoming)."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/chrostowski_2025_nonprobsvy.md
+  - citation: "Kolenikov, S. (2014). Calibrating variance estimation with proxy variables. Survey Methodology 40(1), 21-38."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/kolenikov_2014_raking.md
+
+create_jackknife_weights:
+  - citation: "Valliant, R., Dever, J., Kreuter, F. (2018). Practical Tools for Designing and Weighting Survey Samples, 2nd edition. New York: Springer. Section 15.5."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/valliant_dever_kreuter_2018_ch15_variance_estimation.md
+  - citation: "Valliant, R., Brick, M. and Dever, J. (2008). Weight adjustments for the grouped jackknife variance estimator. Journal of Official Statistics, 24, 469-488."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/valliant_brick_dever_2008_grouped_jackknife.md
+  - citation: "Wolter, K. (2007). Introduction to Variance Estimation. New York: Springer."
+    file: ~
+
+create_brr_weights:
+  - citation: "Fay, R.E. (1984). Some properties of estimates of variance based on replication methods. Proceedings of the American Statistical Association, 495-500."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/fay_1984_replication_variance_properties.md
+  - citation: "Fay, R.E. (1989). Theory and application of replicate weighting for variance calculations. Proceedings of the American Statistical Association, 495-500."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/fay_1989_replicate_weighting.md
+  - citation: "Dippo, C., Fay, R.E. and Morganstein, D. (1984). Computing variances from complex samples with replicate weights. Proceedings of the American Statistical Association, 489-494."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/dippo_fay_morganstein_1984_replicate_weights.md
+
+create_sdr_weights:
+  - citation: "Ash, S. (2014). Using successive difference replication for estimating variances. Survey Methodology, Statistics Canada, 40(1), 47-59."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/gray-literature/ash_2014_successive_difference_replication.md
+  - citation: "Fay, R.E. and Train, G.F. (1995). Aspects of survey and model-based postcensal estimation of income and poverty characteristics for states and counties. Joint Statistical Meetings, Proceedings of the Section on Government Statistics, 154-159."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/gray-literature/fay_train_1995_postcensal_income_poverty.md
+
+create_gen_boot_weights:
+  - citation: "Beaumont, J.-F. and Patak, Z. (2012). On the generalized bootstrap for sample surveys with special attention to Poisson sampling. International Statistical Review, 80(1), 127-148."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/beaumont_patak_2012_generalized_bootstrap.md
+  - citation: "Fay, R.E. (1984). Some properties of estimates of variance based on replication methods. Proceedings of the American Statistical Association, 495-500."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/fay_1984_replication_variance_properties.md
+  - citation: "Dippo, C., Fay, R.E. and Morganstein, D. (1984). Computing variances from complex samples with replicate weights. Proceedings of the American Statistical Association, 489-494."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/dippo_fay_morganstein_1984_replicate_weights.md
+  - citation: "Bellhouse, D.R. (1985). Computing methods for variance estimation in complex surveys. Journal of Official Statistics, 1(3)."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/bellhouse_1985_variance_estimation_computing.md
+
+create_gen_rep_weights:
+  - citation: "Fay, R.E. (1984). Some properties of estimates of variance based on replication methods. Proceedings of the American Statistical Association, 495-500."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/fay_1984_replication_variance_properties.md
+  - citation: "Fay, R.E. (1989). Theory and application of replicate weighting for variance calculations. Proceedings of the American Statistical Association, 495-500."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/fay_1989_replicate_weighting.md
+  - citation: "Dippo, C., Fay, R.E. and Morganstein, D. (1984). Computing variances from complex samples with replicate weights. Proceedings of the American Statistical Association, 489-494."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/dippo_fay_morganstein_1984_replicate_weights.md
+
+create_group_jackknife_weights:
+  - citation: "Elliott, M.R. and Valliant, R. (2017). Inference for nonprobability samples. Statistical Science 32(2), 249-264."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/elliott_valliant_2017_inference_nonprobability.md
+  - citation: "Valliant, R. (2020). Comparing alternatives for estimation from nonprobability samples. Journal of Survey Statistics and Methodology 8, 231-263."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/valliant_2020_comparing_alternatives_nonprobability.md
+  - citation: "Valliant, R. (2009). Model-based prediction of finite population totals. In Pfeffermann, D. and Rao, C.R. (Eds.), Handbook of Statistics, Sample Surveys: Inference and Analysis (Vol. 29B). Elsevier."
+    file: /Users/jacobdennen/analysis-sops/knowledge/raw/papers/valliant_2009_model_based_prediction_totals.md

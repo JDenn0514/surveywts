@@ -208,8 +208,9 @@ Some \code{NA} values (respondents with "some other race", non-Hispanic).}
 \subsection{\code{ns_wave1_svy}}{
 
 A \code{survey_nonprob} object wrapping \code{ns_wave1}. Constructed with
-\code{weights = weight}. Represents the raw weighted non-probability sample
-before IPW adjustment.
+\code{weights = weight} and 200 quasi-randomization bootstrap replicate weights
+(\code{repwt_1}–\code{repwt_200} in \verb{@data}; \verb{@variables$repweights} populated).
+Represents the raw weighted non-probability sample before IPW adjustment.
 }
 
 An object of class \code{surveycore::survey_nonprob} (inherits from \code{surveycore::survey_base}, \code{S7_object}) of length 1.
@@ -233,8 +234,9 @@ Original source columns (\code{age}, \code{race_ethnicity}, \code{hispanic}, \co
 are kept unchanged.
 
 \code{ns_wave1_svy} is a \code{survey_nonprob} object using \code{weight} as the weight
-column. It represents the raw weighted non-probability sample before
-IPW adjustment.
+column with 200 quasi-randomization bootstrap replicate weights
+(\code{repwt_1}–\code{repwt_200}). It represents the raw weighted non-probability
+sample before IPW adjustment.
 
 Some respondents have \code{NA} in \code{race_ethn} (those who reported "some other
 race" with no Hispanic origin, which cannot be mapped to a standard category).

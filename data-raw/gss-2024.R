@@ -25,8 +25,11 @@ gss_2024 <- as.data.frame(surveycore::gss_2024, stringsAsFactors = FALSE)
 
 # gender: sex == 1 -> Male, sex == 2 -> Female, other -> NA
 gss_2024$gender <- factor(
-  ifelse(gss_2024$sex == 1L, "Male",
-  ifelse(gss_2024$sex == 2L, "Female", NA_character_)),
+  ifelse(
+    gss_2024$sex == 1L,
+    "Male",
+    ifelse(gss_2024$sex == 2L, "Female", NA_character_)
+  ),
   levels = c("Male", "Female")
 )
 
@@ -35,7 +38,7 @@ gss_2024$age_group <- cut(
   gss_2024$age,
   breaks = age_bins,
   labels = age_labs,
-  right  = FALSE
+  right = FALSE
 )
 
 # wt_pop: population-scaled weight for IPW use
@@ -63,13 +66,16 @@ stopifnot(is.numeric(gss_2024$wt_pop))
 gss_2024_svy <- surveycore::as_survey(
   gss_2024,
   weights = wtssps,
-  strata  = vstrat,
-  ids     = vpsu,
-  nest    = TRUE
+  strata = vstrat,
+  ids = vpsu,
+  nest = TRUE
 )
 
 usethis::use_data(gss_2024, gss_2024_svy, overwrite = TRUE)
 message(
   "Saved gss_2024 (",
-  nrow(gss_2024), " rows x ", ncol(gss_2024), " cols) and gss_2024_svy"
+  nrow(gss_2024),
+  " rows x ",
+  ncol(gss_2024),
+  " cols) and gss_2024_svy"
 )

@@ -18,13 +18,17 @@ library(janitor)
 library(surveycore)
 
 POP_FILE <- file.path(
-  here::here(), "data-raw", "pew_2016",
+  here::here(),
+  "data-raw",
+  "pew_2016",
   "pew_2016_synth_pop.sav"
 )
 
 if (!file.exists(POP_FILE)) {
   stop(
-    "Raw file not found: ", POP_FILE, "\n",
+    "Raw file not found: ",
+    POP_FILE,
+    "\n",
     "Place the SAV file in data-raw/pew_2016/ and re-run.\n",
     "Source: Pew Research Center (contact prc.info@pewresearch.org)"
   )
@@ -44,12 +48,18 @@ message("Read ", nrow(pop_raw), " rows x ", ncol(pop_raw), " cols")
 
 as_plain <- function(df) {
   df[] <- lapply(df, function(x) {
-    if (!inherits(x, "haven_labelled")) return(x)
-    raw  <- as.vector(x)
-    lbl  <- attr(x, "label",  exact = TRUE)
+    if (!inherits(x, "haven_labelled")) {
+      return(x)
+    }
+    raw <- as.vector(x)
+    lbl <- attr(x, "label", exact = TRUE)
     lbvl <- attr(x, "labels", exact = TRUE)
-    if (!is.null(lbl))  attr(raw, "label")  <- lbl
-    if (!is.null(lbvl)) attr(raw, "labels") <- lbvl
+    if (!is.null(lbl)) {
+      attr(raw, "label") <- lbl
+    }
+    if (!is.null(lbvl)) {
+      attr(raw, "labels") <- lbvl
+    }
     raw
   })
   df
@@ -68,36 +78,50 @@ pew_2016_synth_pop <- clean_names(pew_2016_synth_pop)
 ## response as 1 (1 = No / 1 = Did not vote). The yes_code arguments below
 ## handle this reversal so both datasets end up on the same 0/1 scale.
 
-make_binary <- function(x, yes_code, refused_codes = integer(0),
-                        yes_label = "Yes", no_label = "No") {
+make_binary <- function(
+  x,
+  yes_code,
+  refused_codes = integer(0),
+  yes_label = "Yes",
+  no_label = "No"
+) {
   lbl <- attr(x, "label", exact = TRUE)
-  out <- ifelse(x == yes_code, 1L,
-                ifelse(x %in% refused_codes, NA_integer_, 0L))
-  attr(out, "label")  <- lbl
+  out <- ifelse(
+    x == yes_code,
+    1L,
+    ifelse(x %in% refused_codes, NA_integer_, 0L)
+  )
+  attr(out, "label") <- lbl
   attr(out, "labels") <- c(0L, 1L)
   names(attr(out, "labels")) <- c(no_label, yes_label)
   out
 }
 
 synth_specs <- list(
-  registered  = list(yes = 2L, yes_label = "Yes",           no_label = "No"),
-  vote14      = list(yes = 2L, yes_label = "Voted",         no_label = "Did not vote"),
-  comgrp_cps  = list(yes = 1L, yes_label = "Yes",           no_label = "No"),
-  pub_off_cps = list(yes = 1L, yes_label = "Yes",           no_label = "No"),
-  volsum      = list(yes = 1L, yes_label = "Volunteered",   no_label = "Did not volunteer"),
-  tablet_cps  = list(yes = 1L, yes_label = "Yes",           no_label = "No"),
-  textim_cps  = list(yes = 1L, yes_label = "Yes",           no_label = "No"),
-  social_cps  = list(yes = 1L, yes_label = "Yes",           no_label = "No"),
-  fdstmp_cps  = list(yes = 1L, yes_label = "Yes",           no_label = "No"),
-  owngun_gss  = list(yes = 1L, yes_label = "Yes",           no_label = "No")
+  registered = list(yes = 2L, yes_label = "Yes", no_label = "No"),
+  vote14 = list(yes = 2L, yes_label = "Voted", no_label = "Did not vote"),
+  comgrp_cps = list(yes = 1L, yes_label = "Yes", no_label = "No"),
+  pub_off_cps = list(yes = 1L, yes_label = "Yes", no_label = "No"),
+  volsum = list(
+    yes = 1L,
+    yes_label = "Volunteered",
+    no_label = "Did not volunteer"
+  ),
+  tablet_cps = list(yes = 1L, yes_label = "Yes", no_label = "No"),
+  textim_cps = list(yes = 1L, yes_label = "Yes", no_label = "No"),
+  social_cps = list(yes = 1L, yes_label = "Yes", no_label = "No"),
+  fdstmp_cps = list(yes = 1L, yes_label = "Yes", no_label = "No"),
+  owngun_gss = list(yes = 1L, yes_label = "Yes", no_label = "No")
 )
 
 for (v in names(synth_specs)) {
   s <- synth_specs[[v]]
   pew_2016_synth_pop[[v]] <- make_binary(
     pew_2016_synth_pop[[v]],
-    yes_code = s$yes, refused_codes = integer(0),
-    yes_label = s$yes_label, no_label = s$no_label
+    yes_code = s$yes,
+    refused_codes = integer(0),
+    yes_label = s$yes_label,
+    no_label = s$no_label
   )
 }
 
@@ -106,7 +130,10 @@ for (v in names(synth_specs)) {
 usethis::use_data(pew_2016_synth_pop, overwrite = TRUE)
 message(
   "Saved pew_2016_synth_pop: ",
-  nrow(pew_2016_synth_pop), " rows x ", ncol(pew_2016_synth_pop), " cols"
+  nrow(pew_2016_synth_pop),
+  " rows x ",
+  ncol(pew_2016_synth_pop),
+  " cols"
 )
 
 ## ---- 6. Build survey_taylor companion ----

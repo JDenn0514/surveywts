@@ -1418,6 +1418,67 @@ test_that("calibration-only QR bootstrap (Level A) is reproducible with same see
   expect_equal(r1@data$repwt_1, r2@data$repwt_1, tolerance = 1e-10)
 })
 
+test_that("calibration-only QR bootstrap (Level A) weight conservation: repwt_1 sums to main weight sum", {
+  skip_if_not_installed("svrep")
+
+  df <- make_surveywts_data(n = 200L, seed = 7L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = df,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_calib_a <- calibrate_rake(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+  )
+
+  result <- create_bootstrap_weights(
+    nps_calib_a,
+    replicates = 20L,
+    type       = "quasi-randomization",
+    seed       = 1L
+  )
+
+  wt_col <- nps_calib_a@variables$weights
+  main_sum <- sum(nps_calib_a@data[[wt_col]])
+  repwt1_sum <- sum(result@data[["repwt_1"]])
+
+  expect_equal(repwt1_sum, main_sum, tolerance = 1e-6)
+})
+
+test_that("calibration-only QR bootstrap (Level A): replicates = 2L (minimum) returns 2 repweights", {
+  skip_if_not_installed("svrep")
+
+  df <- make_surveywts_data(n = 200L, seed = 7L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = df,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_calib_a <- calibrate_rake(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+  )
+
+  result <- create_bootstrap_weights(
+    nps_calib_a,
+    replicates = 2L,
+    type       = "quasi-randomization",
+    seed       = 1L
+  )
+
+  test_invariants(result)
+  expect_length(result@variables$repweights, 2L)
+})
+
 test_that("calibration-only QR bootstrap (Level A): reference_sample accepted but unused", {
   skip_if_not_installed("svrep")
 

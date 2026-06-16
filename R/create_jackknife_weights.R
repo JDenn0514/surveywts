@@ -258,7 +258,7 @@
 #' # Grouped jackknife on a probability sample -------------------------------
 #' grouped_design <- create_jackknife_weights(
 #'   gss_2024_svy,
-#'   replicates = 50L,
+#'   replicates = 2L,
 #'   type = "grouped",
 #'   seed = 42L
 #' )

@@ -596,7 +596,7 @@ create_group_jackknife_weights <- function(
     function(e) identical(e$operation, "ipw"),
     data@metadata@weighting_history
   )
-  ipw_entry <- if (length(ipw_entries) > 0L) ipw_entries[[1L]] else NULL
+  ipw_entry <- if (length(ipw_entries) > 0L) ipw_entries[[length(ipw_entries)]] else NULL
 
   calib_entries <- Filter(
     function(e) e$operation %in% c(

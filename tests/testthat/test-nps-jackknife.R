@@ -707,6 +707,13 @@ test_that("create_jackknife_weights() type='grouped' warns when > 10% of replica
     class = "surveywts_warning_jackknife_replicates_failed"
   )
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  expect_true(length(result@variables$repweights) < 5L)
+  g_success <- length(result@variables$repweights)
+  expect_equal(
+    result@variables$scale,
+    (g_success - 1) / g_success,
+    tolerance = 1e-12
+  )
   expect_snapshot(
     .pin_ts(
       create_jackknife_weights(tiny_ipw2, replicates = 5L, type = "grouped", seed = 7L)
@@ -731,6 +738,43 @@ test_that("create_jackknife_weights() type='grouped' svrep args warning fires on
       var_strat = "some_var"
     ),
     class = "surveywts_warning_jackknife_svrep_args_ignored"
+  )
+})
+
+test_that("create_jackknife_weights() warns when adj_method overridden for DAGJK", {
+  data(ns_wave1_svy)
+  expect_warning(
+    create_jackknife_weights(
+      ns_wave1_svy, replicates = 5L, type = "grouped",
+      adj_method = "variance-units"
+    ),
+    class = "surveywts_warning_jackknife_svrep_args_ignored"
+  )
+})
+
+test_that("multiple non-default svrep args together emit exactly one warning for DAGJK", {
+  data(ns_wave1_svy)
+  n_warnings <- 0L
+  withCallingHandlers(
+    create_jackknife_weights(
+      ns_wave1_svy,
+      replicates   = 5L,
+      type         = "grouped",
+      adj_method   = "variance-units",
+      scale_method = "variance-units"
+    ),
+    warning = function(w) {
+      n_warnings <<- n_warnings + 1L
+      invokeRestart("muffleWarning")
+    }
+  )
+  expect_identical(n_warnings, 1L)
+})
+
+test_that("create_jackknife_weights() does not warn for svrep args when all at default for DAGJK", {
+  data(ns_wave1_svy)
+  expect_no_warning(
+    create_jackknife_weights(ns_wave1_svy, replicates = 5L, type = "grouped")
   )
 })
 

@@ -26,7 +26,7 @@ dispatcher, and ships full Tier 3 documentation with three runnable
 ## PR Map
 
 - [x] PR 1: `feature/jackknife-dagjk-engine` — Migrate DAGJK engine helpers to `jackknife-dagjk-utils.R`; rename and update all error/warning class strings from `dagjk_*` to `jackknife_*`; no public API change
-- [ ] PR 2: `feature/jackknife-merge` — Replace `create_jackknife_weights()` with unified merged implementation; extend helpers with Inf check and extended formula; delete `create_group_jackknife_weights.R`; remove `"group-jackknife"` from dispatcher
+- [x] PR 2: `feature/jackknife-merge` — Replace `create_jackknife_weights()` with unified merged implementation; extend helpers with Inf check and extended formula; delete `create_group_jackknife_weights.R`; remove `"group-jackknife"` from dispatcher
 
 ---
 

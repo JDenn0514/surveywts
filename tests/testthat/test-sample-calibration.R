@@ -1936,3 +1936,634 @@ test_that(
     )
   }
 )
+
+# ===========================================================================
+# 18. PR 1 — new signature: type and algorithm arg_match tests
+# ===========================================================================
+
+test_that(
+  "calibrate_to_survey() accepts type = 'prop' with targets = NULL (no error)",
+  {
+    skip_if_not_installed("svrep")
+    primary <- make_replicate_design(n = 100L, seed = 1L)
+    control <- make_replicate_design(n = 100L, seed = 2L)
+
+    expect_no_error(
+      calibrate_to_survey(
+        primary_design = primary,
+        control_design = control,
+        variables      = c(sex),
+        targets        = NULL,
+        type           = "prop"
+      )
+    )
+  }
+)
+
+test_that(
+  "calibrate_to_survey() accepts algorithm = 'nr' with method = 'linear' (no error)",
+  {
+    skip_if_not_installed("svrep")
+    primary <- make_replicate_design(n = 100L, seed = 1L)
+    control <- make_replicate_design(n = 100L, seed = 2L)
+
+    expect_no_error(
+      calibrate_to_survey(
+        primary_design = primary,
+        control_design = control,
+        variables      = c(sex),
+        method         = "linear",
+        algorithm      = "nr"
+      )
+    )
+  }
+)
+
+# ===========================================================================
+# 19. PR 1 — surveywts_error_scale_not_found
+# ===========================================================================
+
+test_that(
+  "calibrate_to_survey() fires scale_not_found when primary@variables$scale is NULL (targets = NULL)",
+  {
+    primary <- make_replicate_design(n = 100L, seed = 1L)
+    control <- make_replicate_design(n = 100L, seed = 2L)
+
+    # Remove scale from primary
+    vars_p <- primary@variables
+    vars_p$scale <- NULL
+    primary@variables <- vars_p
+
+    expect_error(
+      calibrate_to_survey(
+        primary_design = primary,
+        control_design = control,
+        variables      = c(sex),
+        targets        = NULL
+      ),
+      class = "surveywts_error_scale_not_found"
+    )
+    expect_snapshot(
+      error = TRUE,
+      {
+        p2 <- make_replicate_design(n = 100L, seed = 1L)
+        v2 <- p2@variables
+        v2$scale <- NULL
+        p2@variables <- v2
+        calibrate_to_survey(p2, make_replicate_design(n = 100L, seed = 2L),
+                            variables = c(sex), targets = NULL)
+      }
+    )
+  }
+)
+
+test_that(
+  "calibrate_to_survey() fires scale_not_found when primary@variables$scale is NULL (targets non-NULL)",
+  {
+    primary <- make_replicate_design(n = 100L, seed = 1L)
+    control <- make_replicate_design(n = 100L, seed = 2L)
+
+    vars_p <- primary@variables
+    vars_p$scale <- NULL
+    primary@variables <- vars_p
+
+    tgts <- list(sex = c("M" = 0.48, "F" = 0.52))
+
+    expect_error(
+      calibrate_to_survey(
+        primary_design = primary,
+        control_design = control,
+        variables      = c(age_group),
+        targets        = tgts,
+        type           = "prop"
+      ),
+      class = "surveywts_error_scale_not_found"
+    )
+  }
+)
+
+test_that(
+  "calibrate_to_survey() fires scale_not_found when control@variables$scale is NULL (targets = NULL)",
+  {
+    primary <- make_replicate_design(n = 100L, seed = 1L)
+    control <- make_replicate_design(n = 100L, seed = 2L)
+
+    vars_c <- control@variables
+    vars_c$scale <- NULL
+    control@variables <- vars_c
+
+    expect_error(
+      calibrate_to_survey(
+        primary_design = primary,
+        control_design = control,
+        variables      = c(sex),
+        targets        = NULL
+      ),
+      class = "surveywts_error_scale_not_found"
+    )
+    expect_snapshot(
+      error = TRUE,
+      {
+        p3 <- make_replicate_design(n = 100L, seed = 1L)
+        c3 <- make_replicate_design(n = 100L, seed = 2L)
+        v3 <- c3@variables
+        v3$scale <- NULL
+        c3@variables <- v3
+        calibrate_to_survey(p3, c3, variables = c(sex), targets = NULL)
+      }
+    )
+  }
+)
+
+# ===========================================================================
+# 20. PR 1 — surveywts_error_control_level_missing
+# ===========================================================================
+
+test_that(
+  "calibrate_to_survey() fires control_level_missing when a level is absent from control (targets = NULL)",
+  {
+    skip_if_not_installed("svrep")
+    primary <- make_replicate_design(n = 100L, seed = 1L)
+
+    # Build a control where sex only has "M" (no "F")
+    df_c <- make_surveywts_data(n = 200L, seed = 77L)
+    df_c_m_only <- df_c[df_c$sex == "M", ]
+    taylor_c <- surveycore::survey_taylor(
+      data      = df_c_m_only,
+      variables = list(weights = "base_weight")
+    )
+    control_m_only <- create_bootstrap_weights(taylor_c, replicates = 50L)
+
+    expect_error(
+      calibrate_to_survey(
+        primary_design = primary,
+        control_design = control_m_only,
+        variables      = c(sex),
+        targets        = NULL
+      ),
+      class = "surveywts_error_control_level_missing"
+    )
+    expect_snapshot(
+      error = TRUE,
+      {
+        df_snap <- make_surveywts_data(n = 200L, seed = 77L)
+        df_snap_m <- df_snap[df_snap$sex == "M", ]
+        t_snap <- surveycore::survey_taylor(
+          data      = df_snap_m,
+          variables = list(weights = "base_weight")
+        )
+        ctrl_snap <- create_bootstrap_weights(t_snap, replicates = 50L)
+        calibrate_to_survey(
+          make_replicate_design(n = 100L, seed = 1L),
+          ctrl_snap,
+          variables = c(sex),
+          targets   = NULL
+        )
+      }
+    )
+  }
+)
+
+test_that(
+  "calibrate_to_survey() fires control_level_missing when a level is absent from control (targets non-NULL)",
+  {
+    skip_if_not_installed("svrep")
+    primary <- make_replicate_design(n = 100L, seed = 1L)
+
+    # Build a control where age_group only has "18-34" and "35-54"
+    df_c <- make_surveywts_data(n = 500L, seed = 88L)
+    df_c_partial <- df_c[df_c$age_group != "55+", ]
+    taylor_c <- surveycore::survey_taylor(
+      data      = df_c_partial,
+      variables = list(weights = "base_weight")
+    )
+    control_partial <- create_bootstrap_weights(taylor_c, replicates = 50L)
+
+    tgts <- list(sex = c("M" = 0.48, "F" = 0.52))
+
+    expect_error(
+      calibrate_to_survey(
+        primary_design = primary,
+        control_design = control_partial,
+        variables      = c(age_group),
+        targets        = tgts,
+        type           = "prop"
+      ),
+      class = "surveywts_error_control_level_missing"
+    )
+  }
+)
+
+# ===========================================================================
+# 21. PR 1 — surveywts_error_targets_not_named_list
+# ===========================================================================
+
+test_that(
+  "calibrate_to_survey() fires targets_not_named_list for unnamed element",
+  {
+    skip_if_not_installed("svrep")
+    primary <- make_replicate_design(n = 100L, seed = 1L)
+    control <- make_replicate_design(n = 100L, seed = 2L)
+
+    expect_error(
+      calibrate_to_survey(
+        primary_design = primary,
+        control_design = control,
+        variables      = c(sex),
+        targets        = list(c(1000, 2000))   # unnamed element
+      ),
+      class = "surveywts_error_targets_not_named_list"
+    )
+    expect_snapshot(
+      error = TRUE,
+      calibrate_to_survey(
+        make_replicate_design(n = 100L, seed = 1L),
+        make_replicate_design(n = 100L, seed = 2L),
+        variables = c(sex),
+        targets   = list(c(1000, 2000))
+      )
+    )
+  }
+)
+
+test_that(
+  "calibrate_to_survey() fires targets_not_named_list for empty list",
+  {
+    skip_if_not_installed("svrep")
+    primary <- make_replicate_design(n = 100L, seed = 1L)
+    control <- make_replicate_design(n = 100L, seed = 2L)
+
+    expect_error(
+      calibrate_to_survey(
+        primary_design = primary,
+        control_design = control,
+        variables      = c(sex),
+        targets        = list()
+      ),
+      class = "surveywts_error_targets_not_named_list"
+    )
+    expect_snapshot(
+      error = TRUE,
+      calibrate_to_survey(
+        make_replicate_design(n = 100L, seed = 1L),
+        make_replicate_design(n = 100L, seed = 2L),
+        variables = c(sex),
+        targets   = list()
+      )
+    )
+  }
+)
+
+test_that(
+  "calibrate_to_survey() fires targets_not_named_list when targets is not a list",
+  {
+    skip_if_not_installed("svrep")
+    primary <- make_replicate_design(n = 100L, seed = 1L)
+    control <- make_replicate_design(n = 100L, seed = 2L)
+
+    expect_error(
+      calibrate_to_survey(
+        primary_design = primary,
+        control_design = control,
+        variables      = c(sex),
+        targets        = c(age = 1000)    # named vector, not a list
+      ),
+      class = "surveywts_error_targets_not_named_list"
+    )
+    expect_snapshot(
+      error = TRUE,
+      calibrate_to_survey(
+        make_replicate_design(n = 100L, seed = 1L),
+        make_replicate_design(n = 100L, seed = 2L),
+        variables = c(sex),
+        targets   = c(age = 1000)
+      )
+    )
+  }
+)
+
+# ===========================================================================
+# 22. PR 1 — surveywts_error_targets_variable_not_found
+# ===========================================================================
+
+test_that(
+  "calibrate_to_survey() fires targets_variable_not_found for nonexistent column",
+  {
+    skip_if_not_installed("svrep")
+    primary <- make_replicate_design(n = 100L, seed = 1L)
+    control <- make_replicate_design(n = 100L, seed = 2L)
+
+    expect_error(
+      calibrate_to_survey(
+        primary_design = primary,
+        control_design = control,
+        variables      = c(sex),
+        targets        = list(nonexistent_col = c(a = 100))
+      ),
+      class = "surveywts_error_targets_variable_not_found"
+    )
+    expect_snapshot(
+      error = TRUE,
+      calibrate_to_survey(
+        make_replicate_design(n = 100L, seed = 1L),
+        make_replicate_design(n = 100L, seed = 2L),
+        variables = c(sex),
+        targets   = list(nonexistent_col = c(a = 100))
+      )
+    )
+  }
+)
+
+# ===========================================================================
+# 23. PR 1 — surveywts_error_targets_element_invalid
+# ===========================================================================
+
+test_that(
+  "calibrate_to_survey() fires targets_element_invalid for string element",
+  {
+    skip_if_not_installed("svrep")
+    primary <- make_replicate_design(n = 100L, seed = 1L)
+    control <- make_replicate_design(n = 100L, seed = 2L)
+
+    expect_error(
+      calibrate_to_survey(
+        primary_design = primary,
+        control_design = control,
+        variables      = c(age_group),
+        targets        = list(sex = "not_a_vector"),
+        type           = "count"
+      ),
+      class = "surveywts_error_targets_element_invalid"
+    )
+    expect_snapshot(
+      error = TRUE,
+      calibrate_to_survey(
+        make_replicate_design(n = 100L, seed = 1L),
+        make_replicate_design(n = 100L, seed = 2L),
+        variables = c(age_group),
+        targets   = list(sex = "not_a_vector"),
+        type      = "count"
+      )
+    )
+  }
+)
+
+test_that(
+  "calibrate_to_survey() fires targets_element_invalid for unnamed numeric vector",
+  {
+    skip_if_not_installed("svrep")
+    primary <- make_replicate_design(n = 100L, seed = 1L)
+    control <- make_replicate_design(n = 100L, seed = 2L)
+
+    expect_error(
+      calibrate_to_survey(
+        primary_design = primary,
+        control_design = control,
+        variables      = c(age_group),
+        targets        = list(sex = c(100, 200)),   # unnamed numeric
+        type           = "count"
+      ),
+      class = "surveywts_error_targets_element_invalid"
+    )
+    expect_snapshot(
+      error = TRUE,
+      calibrate_to_survey(
+        make_replicate_design(n = 100L, seed = 1L),
+        make_replicate_design(n = 100L, seed = 2L),
+        variables = c(age_group),
+        targets   = list(sex = c(100, 200)),
+        type      = "count"
+      )
+    )
+  }
+)
+
+# ===========================================================================
+# 24. PR 1 — surveywts_error_targets_totals_invalid
+# ===========================================================================
+
+test_that(
+  "calibrate_to_survey() fires targets_totals_invalid for count = 0",
+  {
+    skip_if_not_installed("svrep")
+    primary <- make_replicate_design(n = 100L, seed = 1L)
+    control <- make_replicate_design(n = 100L, seed = 2L)
+
+    expect_error(
+      calibrate_to_survey(
+        primary_design = primary,
+        control_design = control,
+        variables      = c(age_group),
+        targets        = list(sex = c("M" = 0, "F" = 200)),
+        type           = "count"
+      ),
+      class = "surveywts_error_targets_totals_invalid"
+    )
+    expect_snapshot(
+      error = TRUE,
+      calibrate_to_survey(
+        make_replicate_design(n = 100L, seed = 1L),
+        make_replicate_design(n = 100L, seed = 2L),
+        variables = c(age_group),
+        targets   = list(sex = c("M" = 0, "F" = 200)),
+        type      = "count"
+      )
+    )
+  }
+)
+
+test_that(
+  "calibrate_to_survey() fires targets_totals_invalid for count < 0",
+  {
+    skip_if_not_installed("svrep")
+    primary <- make_replicate_design(n = 100L, seed = 1L)
+    control <- make_replicate_design(n = 100L, seed = 2L)
+
+    expect_error(
+      calibrate_to_survey(
+        primary_design = primary,
+        control_design = control,
+        variables      = c(age_group),
+        targets        = list(sex = c("M" = -50, "F" = 200)),
+        type           = "count"
+      ),
+      class = "surveywts_error_targets_totals_invalid"
+    )
+  }
+)
+
+test_that(
+  "calibrate_to_survey() fires targets_totals_invalid for count = NA",
+  {
+    skip_if_not_installed("svrep")
+    primary <- make_replicate_design(n = 100L, seed = 1L)
+    control <- make_replicate_design(n = 100L, seed = 2L)
+
+    expect_error(
+      calibrate_to_survey(
+        primary_design = primary,
+        control_design = control,
+        variables      = c(age_group),
+        targets        = list(sex = c("M" = NA_real_, "F" = 200)),
+        type           = "count"
+      ),
+      class = "surveywts_error_targets_totals_invalid"
+    )
+  }
+)
+
+test_that(
+  "calibrate_to_survey() fires targets_totals_invalid when prop sum != 1",
+  {
+    skip_if_not_installed("svrep")
+    primary <- make_replicate_design(n = 100L, seed = 1L)
+    control <- make_replicate_design(n = 100L, seed = 2L)
+
+    expect_error(
+      calibrate_to_survey(
+        primary_design = primary,
+        control_design = control,
+        variables      = c(age_group),
+        targets        = list(sex = c("M" = 0.60, "F" = 0.50)),  # sums to 1.1
+        type           = "prop"
+      ),
+      class = "surveywts_error_targets_totals_invalid"
+    )
+    expect_snapshot(
+      error = TRUE,
+      calibrate_to_survey(
+        make_replicate_design(n = 100L, seed = 1L),
+        make_replicate_design(n = 100L, seed = 2L),
+        variables = c(age_group),
+        targets   = list(sex = c("M" = 0.60, "F" = 0.50)),
+        type      = "prop"
+      )
+    )
+  }
+)
+
+# ===========================================================================
+# 25. PR 1 — Regression guards (no skip_if_not_installed("svrep"))
+# ===========================================================================
+
+test_that(
+  "calibrate_to_survey() rejects non-replicate primary_design [regression guard]",
+  {
+    control <- make_replicate_design(n = 100L, seed = 2L)
+    df      <- make_surveywts_data(n = 100L, seed = 1L)
+    taylor  <- surveycore::survey_taylor(
+      data = df, variables = list(weights = "base_weight")
+    )
+
+    expect_error(
+      calibrate_to_survey(taylor, control,
+                          variables = c(sex), targets = NULL),
+      class = "surveywts_error_primary_not_replicate"
+    )
+  }
+)
+
+test_that(
+  "calibrate_to_survey() rejects nonprob primary with no repweights [regression guard]",
+  {
+    primary_no_rep <- make_nonprob_no_repweights(n = 100L, seed = 1L)
+    control        <- make_replicate_design(n = 100L, seed = 2L)
+
+    expect_error(
+      calibrate_to_survey(
+        primary_design = primary_no_rep,
+        control_design = control,
+        variables      = c(sex),
+        targets        = NULL
+      ),
+      class = "surveywts_error_primary_no_repweights"
+    )
+  }
+)
+
+test_that(
+  "calibrate_to_survey() rejects non-replicate control_design [regression guard]",
+  {
+    primary <- make_replicate_design(n = 100L, seed = 1L)
+    df      <- make_surveywts_data(n = 100L, seed = 2L)
+    taylor  <- surveycore::survey_taylor(
+      data = df, variables = list(weights = "base_weight")
+    )
+
+    expect_error(
+      calibrate_to_survey(primary, taylor,
+                          variables = c(sex), targets = NULL),
+      class = "surveywts_error_control_not_replicate"
+    )
+  }
+)
+
+test_that(
+  "calibrate_to_survey() rejects nonprob control with no repweights [regression guard]",
+  {
+    primary        <- make_nonprob_replicate_design(n = 100L, seed = 1L)
+    control_no_rep <- make_nonprob_no_repweights(n = 100L, seed = 2L)
+
+    expect_error(
+      calibrate_to_survey(
+        primary_design = primary,
+        control_design = control_no_rep,
+        variables      = c(sex),
+        targets        = NULL
+      ),
+      class = "surveywts_error_control_no_repweights"
+    )
+  }
+)
+
+test_that(
+  "calibrate_to_survey() rejects non-taylor reference_design [regression guard]",
+  {
+    skip_if_not_installed("svrep")
+    primary <- make_replicate_design(n = 100L, seed = 1L)
+    control <- make_replicate_design(n = 100L, seed = 2L)
+
+    expect_error(
+      calibrate_to_survey(
+        primary, control,
+        variables        = c(sex),
+        targets          = NULL,
+        reference_design = primary
+      ),
+      class = "surveywts_error_reference_design_not_taylor"
+    )
+  }
+)
+
+test_that(
+  "calibrate_to_survey() rejects invalid unit_scale [regression guard]",
+  {
+    skip_if_not_installed("svrep")
+    primary <- make_replicate_design(n = 100L, seed = 1L)
+    control <- make_replicate_design(n = 100L, seed = 2L)
+
+    expect_error(
+      calibrate_to_survey(
+        primary, control,
+        variables  = c(sex),
+        targets    = NULL,
+        unit_scale = "bad"
+      ),
+      class = "surveywts_error_unit_scale_invalid"
+    )
+  }
+)
+
+test_that(
+  "calibrate_to_survey() rejects variables not in primary_design [regression guard]",
+  {
+    primary <- make_replicate_design(n = 100L, seed = 1L)
+    control <- make_replicate_design(n = 100L, seed = 2L)
+
+    expect_error(
+      calibrate_to_survey(primary, control,
+                          variables = c(nonexistent_var), targets = NULL),
+      class = "surveywts_error_variables_not_found"
+    )
+  }
+)

@@ -161,14 +161,14 @@ make_taylor_design <- function(
 }
 
 # Simple bootstrap replicate design for sample-calibration tests.
-# Returns a survey_replicate with 50 bootstrap replicates.
-make_replicate_design <- function(n = 200L, seed = 42L) {
+# Returns a survey_replicate with R bootstrap replicates (default 50).
+make_replicate_design <- function(n = 200L, R = 50L, seed = 42L) {
   df <- make_surveywts_data(n = n, seed = seed)
   taylor <- surveycore::survey_taylor(
     data = df,
     variables = list(weights = "base_weight")
   )
-  create_bootstrap_weights(taylor, replicates = 50L)
+  create_bootstrap_weights(taylor, replicates = R)
 }
 
 # Paired-PSU design for BRR tests.
@@ -433,19 +433,27 @@ q_all_ones <- rep(1, 500)
 # survey_nonprob with bootstrap replicate weights — for calibrate-nonprob tests.
 # Returns a survey_nonprob that has been through ipw() and then
 # create_bootstrap_weights(), so @variables$repweights is populated.
-make_nonprob_replicate_design <- function(n = 200L, seed = 1L) {
+# R controls the number of bootstrap replicates (default 30L).
+make_nonprob_replicate_design <- function(n = 200L, R = 30L, seed = 1L) {
   set.seed(seed)
   nps_df <- make_surveywts_data(n = n, seed = seed)
   ref_df <- make_surveywts_data(n = n * 5L, seed = seed + 100L)
   ref    <- surveycore::as_survey(ref_df, weights = base_weight)
   nps    <- ipw(data = nps_df, reference = ref,
                 selection = ~sex + age_group)
-  create_bootstrap_weights(
+  result <- create_bootstrap_weights(
     nps,
-    replicates = 50L,
+    replicates = R,
     type       = "quasi-randomization",
     seed       = seed
   )
+  # The quasi-randomization bootstrap path does not populate @variables$scale.
+  # Set it to 1/R (the bootstrap scale constant) so Opsomer-based callers
+  # that require @variables$scale (e.g. calibrate_to_survey()) receive a
+  # valid design. This mirrors the value svrep sets for probability-sample
+  # bootstrap designs.
+  result@variables$scale <- 1 / R
+  result
 }
 
 # survey_nonprob WITHOUT replicate weights — for error path tests.

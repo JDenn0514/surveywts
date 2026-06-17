@@ -8,7 +8,10 @@ calibrate_to_survey(
   primary_design,
   control_design,
   variables,
+  targets = NULL,
+  type = c("prop", "count"),
   method = c("rake", "linear", "logit"),
+  algorithm = c("classic_ipf", "nr"),
   bounds = c(-Inf, Inf),
   unit_scale = NULL,
   reference_design = NULL,
@@ -27,10 +30,28 @@ class of the returned object.}
 
 \item{variables}{<\code{\link[tidyselect:language]{tidy-select}}> Bare names of the
 calibration variables in \code{primary_design@data}. Must be present in both
-\code{primary_design} and \code{control_design}.}
+\code{primary_design} and \code{control_design}. These are the random
+(sample-estimated) margins.}
+
+\item{targets}{\code{NULL} (the default) or a named list of fixed census
+margins. Each element's name is a column in \code{primary_design@data}. Each
+element is a named numeric vector or a tibble with the variable column
+plus \code{"n"} (count) or \code{"prop"} (proportion). When \code{NULL}, the Opsomer
+path runs with no fixed margins and \code{type} is matched but unused.}
+
+\item{type}{\code{"prop"} (the default) or \code{"count"}. Controls interpretation
+of \code{targets} values: \code{"prop"} means proportions summing to 1.0 per
+variable; \code{"count"} means population counts (positive non-NA values).
+Ignored and produces no error when \code{targets = NULL}. Matched with
+\code{\link[rlang:arg_match]{rlang::arg_match()}}.}
 
 \item{method}{Calibration method. One of \code{"rake"} (default), \code{"linear"},
 or \code{"logit"}. Matched with \code{\link[rlang:arg_match]{rlang::arg_match()}}.}
+
+\item{algorithm}{Raking algorithm; used only when \code{method = "rake"}.
+\code{"classic_ipf"} (the default): iterative proportional fitting.
+\code{"nr"}: Newton-Raphson raking. Silently ignored when
+\code{method != "rake"}. Matched with \code{\link[rlang:arg_match]{rlang::arg_match()}}.}
 
 \item{bounds}{Numeric vector of length 2: \code{c(lower, upper)}. Bounds on
 the calibrated-to-starting-weight ratio. Default \code{c(-Inf, Inf)}.

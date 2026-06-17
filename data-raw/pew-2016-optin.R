@@ -1,7 +1,7 @@
 ## data-raw/pew-2016-optin.R
 ##
 ## Produces:
-##   pew_2016_optin     — 31,863 opt-in respondents (3 vendors), 99 variables
+##   pew_2016_optin     — 31,863 opt-in respondents (3 vendors), 104 variables
 ##   pew_2016_optin_svy — survey_nonprob raked to pew_2016_synth_pop targets
 ##                        + 200 quasi-randomization bootstrap replicate weights
 ##
@@ -9,8 +9,8 @@
 ##         "For Weighting Online Opt-In Samples, What Matters Most?")
 ## License: Academic / non-commercial use per Pew Research Center terms.
 ##
-## Calibration: 7 marginal dimensions (gender, agecat6, racethn, educcat5,
-##   division, partyscale5, ideo3). Targets computed from pew_2016_synth_pop
+## Calibration: 7 marginal dimensions (sex, race_f4, edu_f3, pid_f3, age_f3,
+##   division, ideo3). Targets computed from pew_2016_synth_pop
 ##   (unweighted proportions). Refused codes -> NA; NR algorithm;
 ##   5th/95th percentile trim.
 ##
@@ -136,6 +136,89 @@ for (v in names(optin_specs)) {
   )
 }
 
+## ---- 4b. Harmonized demographic factor columns ----
+
+race_f4_levels <- c("White", "Black", "Hispanic", "Other")
+edu_f3_levels  <- c("Less than HS", "HS/Some college", "College+")
+pid_f3_levels  <- c("Republican", "Independent", "Democrat")
+age_f3_labs    <- c("18-34", "35-54", "55+")
+
+# sex: gender 1=Male, 2=Female; 3=Refused -> NA
+pew_2016_optin$sex <- factor(
+  dplyr::recode_values(
+    pew_2016_optin$gender,
+    1 ~ "Male",
+    2 ~ "Female",
+    default = NA_character_
+  ),
+  levels = c("Male", "Female")
+)
+
+# race_f4: racethn 1=White, 2=Black, 3=Hispanic, 4=Asian, 5=Other, 6=Refused->NA
+#   Asian (4) collapsed into Other for 4-level consistency
+pew_2016_optin$race_f4 <- factor(
+  dplyr::recode_values(
+    pew_2016_optin$racethn,
+    1        ~ "White",
+    2        ~ "Black",
+    3        ~ "Hispanic",
+    c(4, 5)  ~ "Other",
+    default = NA_character_
+  ),
+  levels = race_f4_levels
+)
+
+# edu_f3: educcat5 1=<HS, 2=HS, 3=Some college, 4=College, 5=Postgrad, 6=Refused->NA
+pew_2016_optin$edu_f3 <- factor(
+  dplyr::recode_values(
+    pew_2016_optin$educcat5,
+    1        ~ "Less than HS",
+    c(2, 3)  ~ "HS/Some college",
+    c(4, 5)  ~ "College+",
+    default = NA_character_
+  ),
+  levels = edu_f3_levels
+)
+
+# pid_f3: partyscale3 (GSS-style 3-category party preference: 1=Republican,
+#   2=Democrat, 3=Independent/Other/Ref). Note: optin also has partysum
+#   (3-cat recode of partyscale5), but partyscale3 was chosen because it
+#   uses the same question wording as synth_pop's pid_f3 calibration margin.
+#   Refused codes (78 rows) are absorbed into category 3 -> "Independent".
+pew_2016_optin$pid_f3 <- factor(
+  dplyr::recode_values(
+    pew_2016_optin$partyscale3,
+    1 ~ "Republican",
+    2 ~ "Democrat",
+    3 ~ "Independent",
+    default = NA_character_
+  ),
+  levels = pid_f3_levels
+)
+
+# age_f3: agecat6 1-2=18-24/25-34, 3-4=35-44/45-54, 5-6=55-64/65+
+#   104 rows have NA from raw age being NA; these propagate
+pew_2016_optin$age_f3 <- factor(
+  dplyr::recode_values(
+    pew_2016_optin$agecat6,
+    c(1, 2)  ~ "18-34",
+    c(3, 4)  ~ "35-54",
+    c(5, 6)  ~ "55+",
+    default = NA_character_
+  ),
+  levels = age_f3_labs
+)
+
+# Structural assertions
+stopifnot(ncol(pew_2016_optin) == 104L)
+stopifnot(nrow(pew_2016_optin) == 31863L)
+stopifnot(is.factor(pew_2016_optin$sex))
+stopifnot(is.factor(pew_2016_optin$race_f4))
+stopifnot(is.factor(pew_2016_optin$edu_f3))
+stopifnot(is.factor(pew_2016_optin$pid_f3))
+stopifnot(is.factor(pew_2016_optin$age_f3))
+stopifnot(sum(is.na(pew_2016_optin$pid_f3)) == 0L)
+
 ## ---- 5. Save pew_2016_optin tibble (no weight column) ----
 
 usethis::use_data(pew_2016_optin, overwrite = TRUE)
@@ -151,146 +234,65 @@ message(
 
 load("data/pew_2016_synth_pop.rda")
 
-## ---- 7. Build calibration factor variables ----
+## ---- 7. Build calibration variables and targets ----
 ##
-## 7 margins: gender, agecat6, racethn, educcat5, division, partyscale5, ideo3.
-## Refused codes in optin become NA (excluded from each margin automatically).
+## 7 margins: sex, race_f4, edu_f3, pid_f3, age_f3 (from permanent columns),
+##   plus division (9-level) and ideo3 (3-level) built inline.
 ## Targets are unweighted proportions from pew_2016_synth_pop.
+## Refused codes in optin become NA — excluded from each margin automatically.
 
-# Shared factor labels (same in optin and synth_pop)
-.gender_lvls <- c("Male", "Female")
-.agecat6_lvls <- c("18-24", "25-34", "35-44", "45-54", "55-64", "65+")
-.racethn_lvls <- c(
-  "White non-Hisp",
-  "Black non-Hisp",
-  "Hispanic",
-  "Asian",
-  "Other"
-)
-.educ5_lvls <- c(
-  "Less than HS",
-  "HS Grad",
-  "Some college",
-  "College grad",
-  "Postgraduate"
-)
-.div_lvls <- c(
-  "E. North Central",
-  "E. South Central",
-  "Middle Atlantic",
-  "Mountain",
-  "New England",
-  "Pacific",
-  "South Atlantic",
-  "W. North Central",
-  "W. South Central"
-)
-.party5_lvls <- c(
-  "Republican",
-  "Lean Republican",
-  "Ind/No Lean",
-  "Lean Democrat",
-  "Democrat"
-)
-.ideo3_lvls <- c("Liberal", "Moderate", "Conservative")
-
-# Build optin_for_svy with factor calibration cols + equal starting weight
 optin_for_svy <- pew_2016_optin
 
-# gender: 1=Male, 2=Female; 3=Refused -> NA
-optin_for_svy$cal_gender <- factor(
-  optin_for_svy$gender,
-  levels = c(1L, 2L),
-  labels = .gender_lvls
-)
-
-# agecat6: 1=18-24 ... 6=65+; values outside 1-6 -> NA
-optin_for_svy$cal_agecat6 <- factor(
-  optin_for_svy$agecat6,
-  levels = 1L:6L,
-  labels = .agecat6_lvls
-)
-
-# racethn: 1-5 categories; 6=Refused -> NA
-optin_for_svy$cal_racethn <- factor(
-  optin_for_svy$racethn,
-  levels = 1L:5L,
-  labels = .racethn_lvls
-)
-
-# educcat5: 1-5 categories; 6=Refused -> NA
-optin_for_svy$cal_educcat5 <- factor(
-  optin_for_svy$educcat5,
-  levels = 1L:5L,
-  labels = .educ5_lvls
-)
-
-# division: 1-9 (alphabetical coding); no Refused expected
+# division and ideo3 have no harmonized column; build factor inline
 optin_for_svy$cal_division <- factor(
   optin_for_svy$division,
   levels = 1L:9L,
-  labels = .div_lvls
-)
-
-# partyscale5: 1-5; no Refused expected
-optin_for_svy$cal_partyscale5 <- factor(
-  optin_for_svy$partyscale5,
-  levels = 1L:5L,
-  labels = .party5_lvls
+  labels = c(
+    "E. North Central", "E. South Central", "Middle Atlantic",
+    "Mountain", "New England", "Pacific", "South Atlantic",
+    "W. North Central", "W. South Central"
+  )
 )
 
 # ideo3: 1=Liberal, 2=Moderate, 3=Conservative; 4=Refused -> NA
 optin_for_svy$cal_ideo3 <- factor(
   optin_for_svy$ideo3,
   levels = 1L:3L,
-  labels = .ideo3_lvls
+  labels = c("Liberal", "Moderate", "Conservative")
 )
 
-# Initial weight: equal weight used only during svy construction
+# Drop rows with NA in any calibration variable (Refused codes) so
+# calibrate_rake() receives complete cases on all 7 margins.
+.cal_vars <- c("sex", "race_f4", "edu_f3", "pid_f3", "age_f3",
+               "cal_division", "cal_ideo3")
+optin_for_svy <- optin_for_svy[
+  stats::complete.cases(optin_for_svy[.cal_vars]),
+]
+message(
+  "Calibration subsample: ",
+  nrow(optin_for_svy),
+  " of 31,863 rows (complete cases on all 7 margins)"
+)
+
+n_dropped <- nrow(pew_2016_optin) - nrow(optin_for_svy)
+stopifnot(n_dropped < 1000L)
+
 optin_for_svy$weight <- 1L
 
-## ---- 8. Compute calibration targets from synth_pop ----
-##
-## agecat6 is derived from continuous age using the same 6-group breaks as
-## the agecat6 column in pew_2016_optin (1=18-24, 2=25-34, ..., 6=65+).
+## ---- 8. Compute calibration targets from synth_pop permanent columns ----
 
-synth_gender <- factor(
-  pew_2016_synth_pop$gender,
-  levels = c(1L, 2L),
-  labels = .gender_lvls
+.div_lvls  <- c(
+  "E. North Central", "E. South Central", "Middle Atlantic",
+  "Mountain", "New England", "Pacific", "South Atlantic",
+  "W. North Central", "W. South Central"
 )
-
-synth_agecat6 <- cut(
-  pew_2016_synth_pop$age,
-  breaks = c(18, 25, 35, 45, 55, 65, Inf),
-  labels = .agecat6_lvls,
-  right = FALSE
-)
-
-synth_racethn <- factor(
-  pew_2016_synth_pop$racethn,
-  levels = 1L:5L,
-  labels = .racethn_lvls
-)
-
-synth_educcat5 <- factor(
-  pew_2016_synth_pop$educcat5,
-  levels = 1L:5L,
-  labels = .educ5_lvls
-)
+.ideo3_lvls <- c("Liberal", "Moderate", "Conservative")
 
 synth_division <- factor(
   pew_2016_synth_pop$division,
   levels = 1L:9L,
   labels = .div_lvls
 )
-
-synth_party5 <- factor(
-  pew_2016_synth_pop$partyscale5,
-  levels = 1L:5L,
-  labels = .party5_lvls
-)
-
 synth_ideo3 <- factor(
   pew_2016_synth_pop$ideo3,
   levels = 1L:3L,
@@ -298,13 +300,13 @@ synth_ideo3 <- factor(
 )
 
 .pew_targets <- list(
-  cal_gender = c(prop.table(table(synth_gender))),
-  cal_agecat6 = c(prop.table(table(synth_agecat6))),
-  cal_racethn = c(prop.table(table(synth_racethn))),
-  cal_educcat5 = c(prop.table(table(synth_educcat5))),
+  sex          = c(prop.table(table(pew_2016_synth_pop$sex))),
+  race_f4      = c(prop.table(table(pew_2016_synth_pop$race_f4))),
+  edu_f3       = c(prop.table(table(pew_2016_synth_pop$edu_f3))),
+  pid_f3       = c(prop.table(table(pew_2016_synth_pop$pid_f3))),
+  age_f3       = c(prop.table(table(pew_2016_synth_pop$age_f3))),
   cal_division = c(prop.table(table(synth_division))),
-  cal_partyscale5 = c(prop.table(table(synth_party5))),
-  cal_ideo3 = c(prop.table(table(synth_ideo3)))
+  cal_ideo3    = c(prop.table(table(synth_ideo3)))
 )
 
 ## ---- 9. Build survey_nonprob ----
@@ -343,21 +345,12 @@ pew_2016_optin_svy <- create_bootstrap_weights(
 )
 
 rm(
+  .cal_vars,
   .pew_targets,
-  .gender_lvls,
-  .agecat6_lvls,
-  .racethn_lvls,
-  .educ5_lvls,
   .div_lvls,
-  .party5_lvls,
   .ideo3_lvls,
   optin_for_svy,
-  synth_gender,
-  synth_agecat6,
-  synth_racethn,
-  synth_educcat5,
   synth_division,
-  synth_party5,
   synth_ideo3
 )
 

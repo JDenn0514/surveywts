@@ -320,13 +320,13 @@ gss_ref <- surveycore::as_survey(
 )
 
 # Formula interface
-result1 <- ipw(ns_wave1, gss_ref, selection = ~gender + age_group)
+result1 <- ipw(ns_wave1, gss_ref, selection = ~sex + age_f3)
 
 # Programmatic interface — suitable for lapply()
 result2 <- ipw(
   ns_wave1,
   gss_ref,
-  predictors = c("gender", "age_group")
+  predictors = c("sex", "age_f3")
 )
 
 # Inspect weight quality before analysis
@@ -341,21 +341,21 @@ acs_ref <- surveycore::as_survey(acs_wy_2022, weights = pwgtp)
 result_acs <- ipw(
   ns_wave1,
   acs_ref,
-  selection = ~gender + age_group + race_ethn + educ,
+  selection = ~sex + age_f3 + race_f4 + edu_f3,
   missing_method = "omit"
 )
 
 # --- Pew NPORS 2025 as probability reference ---
-# ns_wave1 has ~419 NA values in race_ethn; missing_method controls handling.
+# ns_wave1 has ~491 NA values in race_f4; missing_method controls handling.
 # Use npors_2025_clean to avoid reference-NA listwise-deletion warnings.
 data(npors_2025_clean)
 npors_ref <- surveycore::as_survey(npors_2025_clean, weights = wt_pop)
 
-# missing_method = "omit" (default): rows with NA in race_ethn are dropped
+# missing_method = "omit" (default): rows with NA in race_f4 are dropped
 result_omit <- ipw(
   ns_wave1,
   npors_ref,
-  selection = ~gender + age_group + race_ethn + educ,
+  selection = ~sex + age_f3 + race_f4 + edu_f3,
   missing_method = "omit"
 )
 
@@ -363,7 +363,7 @@ result_omit <- ipw(
 result_sep <- ipw(
   ns_wave1,
   npors_ref,
-  selection = ~gender + age_group + race_ethn + educ,
+  selection = ~sex + age_f3 + race_f4 + edu_f3,
   missing_method = "separate"
 )
 
@@ -372,7 +372,7 @@ if (requireNamespace("mice", quietly = TRUE)) {
   result_imp <- ipw(
     ns_wave1,
     npors_ref,
-    selection = ~gender + age_group + race_ethn + educ,
+    selection = ~sex + age_f3 + race_f4 + edu_f3,
     missing_method = "impute"
   )
 }
@@ -414,7 +414,7 @@ result_gee <- ipw(
 result_known_n <- ipw(
   ns_wave1,
   gss_ref,
-  selection = ~gender + age_group,
+  selection = ~sex + age_f3,
   population_size = 258000000L
 )
 result_known_n@metadata@weighting_history[[1]]$population_size_known

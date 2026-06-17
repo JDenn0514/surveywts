@@ -12,8 +12,10 @@
 #' @description
 #' The 2024 General Social Survey (GSS), obtained from
 #' `surveycore::gss_2024`. All 3,309 respondents are retained, including those
-#' with `NA` in `sex` or `age`. Three derived columns are added: `gender`
-#' (factor from `sex`), `age_group` (factor from `age`), and `wt_pop`
+#' with `NA` in `sex` or `age`. The raw integer `sex` column is overwritten
+#' in-place with a factor. Five derived columns are added: `age_f3` (factor
+#' from `age`), `race_f4` (factor from `race` and `hispanic`), `pid_f3`
+#' (factor from `partyid`), `edu_f3` (factor from `degree`), and `wt_pop`
 #' (population-scaled weight for IPW use).
 #'
 #' `gss_2024_svy` is a `survey_taylor` object constructed with `wtssps`
@@ -26,13 +28,14 @@
 #' ref <- surveycore::as_survey(
 #'   gss_2024, weights = wt_pop, strata = vstrat, ids = vpsu, nest = TRUE
 #' )
-#' ipw(ns_wave1, ref, selection = ~gender + age_group)
+#' ipw(ns_wave1, ref, selection = ~sex + age_f3)
 #' ```
 #'
 #' @format
 #' ## `gss_2024`
-#' A data frame with 3,309 rows and 30 columns. All 27 original columns from
-#' `surveycore::gss_2024` are retained. Three derived columns are added:
+#' A data frame with 3,309 rows and 32 columns. All 27 original columns from
+#' `surveycore::gss_2024` are retained. The `sex` column is overwritten in-place
+#' as a factor; five new derived columns are added:
 #' \describe{
 #'   \item{vpsu}{Numeric. Primary sampling unit identifier for variance estimation.}
 #'   \item{vstrat}{Numeric. Stratum identifier for variance estimation.}
@@ -43,8 +46,9 @@
 #'   \item{year}{Numeric. Survey year (2024).}
 #'   \item{id}{Numeric. Respondent identifier.}
 #'   \item{age}{Numeric. Age in years. Some respondents have `NA`.}
-#'   \item{sex}{Numeric. Biological sex: `1` = Male, `2` = Female. Some
-#'     respondents have `NA`.}
+#'   \item{sex}{Factor. Derived from the original integer `sex` column:
+#'     `1` = `"Male"`, `2` = `"Female"`, `NA` for other values. Levels:
+#'     `c("Male", "Female")`.}
 #'   \item{race}{Numeric. Race: `1` = White, `2` = Black, `3` = Other.}
 #'   \item{hispanic}{Numeric. Hispanic origin indicator.}
 #'   \item{educ}{Numeric. Years of education.}
@@ -64,12 +68,19 @@
 #'   \item{abany}{Numeric. Abortion opinion (any reason).}
 #'   \item{attend}{Numeric. Religious service attendance frequency.}
 #'   \item{relig}{Numeric. Religion.}
-#'   \item{gender}{Factor. Derived from `sex`: `"Male"` (sex == 1),
-#'     `"Female"` (sex == 2), `NA` for other values. Levels:
-#'     `c("Male", "Female")`.}
-#'   \item{age_group}{Factor. Derived from `age` using
+#'   \item{age_f3}{Factor. Derived from `age` using
 #'     `cut(age, breaks = c(18, 35, 55, Inf), right = FALSE)`. Levels:
 #'     `c("18-34", "35-54", "55+")`. `NA` for age < 18 or missing age.}
+#'   \item{race_f4}{Factor. Derived from `race` and `hispanic`: Hispanic
+#'     origin takes precedence (`hispanic > 1` = `"Hispanic"`); `race == 1`
+#'     = `"White"`, `race == 2` = `"Black"`, else `"Other"`. Levels:
+#'     `c("White", "Black", "Hispanic", "Other")`.}
+#'   \item{pid_f3}{Factor. Derived from `partyid`: `0:2` = `"Democrat"`,
+#'     `3` = `"Independent"`, `4:6` = `"Republican"`, `7` = `NA`. Levels:
+#'     `c("Republican", "Independent", "Democrat")`.}
+#'   \item{edu_f3}{Factor. Derived from `degree`: `0` = `"Less than HS"`,
+#'     `1:2` = `"HS/Some college"`, `3:4` = `"College+"`. Levels:
+#'     `c("Less than HS", "HS/Some college", "College+")`.}
 #'   \item{wt_pop}{Numeric. Population-scaled weight: `wtssps * (260000000 /
 #'     nrow(gss_2024))`. Use for IPW reference design construction (sums to
 #'     approximately 260 million, the 2024 US adult population estimate).}
@@ -100,9 +111,9 @@
 #' @description
 #' The 2025 Pew National Public Opinion Reference Survey (NPORS), obtained from
 #' `surveycore::pew_npors_2025`. All 5,022 respondents are retained.
-#' Four derived columns are added: `age_group`, `race_ethn`, `educ`, and
-#' `wt_pop`. The existing `gender` column is converted from integer to factor
-#' in-place.
+#' The original `gender` column is kept as-is (numeric). Six derived columns
+#' are added: `sex` (factor from `gender`), `age_f3`, `race_f4`, `edu_f3`,
+#' `pid_f3`, and `wt_pop`.
 #'
 #' `npors_2025_svy` is a `survey_taylor` object using `weight` as the weight
 #' column (normalized NPORS weight, correct for standard estimation). For IPW
@@ -111,7 +122,7 @@
 #' data(npors_2025_clean)
 #' ref <- surveycore::as_survey(npors_2025_clean, weights = wt_pop)
 #' ipw(ns_wave1, ref,
-#'     selection = ~gender + age_group + race_ethn + educ,
+#'     selection = ~sex + age_f3 + race_f4 + edu_f3,
 #'     missing_method = "omit")
 #' ```
 #' Approximately 0.5% of rows have `NA` in each derived column (from `99` /
@@ -120,10 +131,10 @@
 #'
 #' @format
 #' ## `npors_2025`
-#' A data frame with 5,022 rows and 69 columns. All 65 original columns from
-#' `surveycore::pew_npors_2025` are retained. Four new derived columns are
-#' added (`age_group`, `race_ethn`, `educ`, `wt_pop`); the original `gender`
-#' column is converted from integer to factor in-place:
+#' A data frame with 5,022 rows and 71 columns. All 65 original columns from
+#' `surveycore::pew_npors_2025` are retained, including `gender` as numeric.
+#' Six new derived columns are added (`sex`, `age_f3`, `race_f4`, `edu_f3`,
+#' `pid_f3`, `wt_pop`):
 #' \describe{
 #'   \item{respid}{Character. Respondent identifier.}
 #'   \item{mode}{Numeric. Interview mode.}
@@ -184,10 +195,8 @@
 #'     categories, `99` = Refused.}
 #'   \item{agecat}{Numeric. Age category (alternative grouping).}
 #'   \item{birthplace}{Numeric. Born in the United States.}
-#'   \item{gender}{Factor. Derived from the original integer `gender` column:
-#'     `1` = `"Male"`, `2` = `"Female"`, `3` (Non-binary) and `99` (Refused)
-#'     recoded to `NA`. Levels: `c("Male", "Female")`. Approximately 0.5%
-#'     `NA`.}
+#'   \item{gender}{Numeric. Interview gender: `1` = Male, `2` = Female,
+#'     `3` = Non-binary, `99` = Refused.}
 #'   \item{adults}{Numeric. Number of adults in household.}
 #'   \item{voted2024}{Numeric. Voted in 2024.}
 #'   \item{votegen_post}{Numeric. 2024 vote choice.}
@@ -198,17 +207,24 @@
 #'   \item{weight}{Numeric. Final normalized survey weight (mean approximately
 #'     1). Use for `npors_2025_svy` and standard estimation. For IPW use
 #'     `wt_pop` instead.}
-#'   \item{age_group}{Factor. Derived from `agegrp`: `1:3` = `"18-34"`,
+#'   \item{sex}{Factor. Derived from `gender`: `1` = `"Male"`, `2` =
+#'     `"Female"`, `3` (Non-binary) and `99` (Refused) recoded to `NA`.
+#'     Levels: `c("Male", "Female")`. Approximately 0.5% `NA`.}
+#'   \item{age_f3}{Factor. Derived from `agegrp`: `1:3` = `"18-34"`,
 #'     `4:7` = `"35-54"`, `8:13` = `"55+"`, `99` = `NA`. Levels:
 #'     `c("18-34", "35-54", "55+")`. Approximately 0.5% `NA`.}
-#'   \item{race_ethn}{Factor. Derived from `racethn`: `1` = `"White"`,
-#'     `2` = `"Black"`, `3` = `"Hispanic"`, `5` = `"Asian"`, `4` = `"Other"`,
-#'     `99` = `NA`. Levels: `c("White", "Black", "Hispanic", "Asian",
+#'   \item{race_f4}{Factor. Derived from `racethn`: `1` = `"White"`,
+#'     `2` = `"Black"`, `3` = `"Hispanic"`, `4`/`5` = `"Other"` (Asian
+#'     collapsed), `99` = `NA`. Levels: `c("White", "Black", "Hispanic",
 #'     "Other")`. Approximately 0.5% `NA`.}
-#'   \item{educ}{Factor. Derived from `educcat`: `3` = `"Less than HS"`,
+#'   \item{edu_f3}{Factor. Derived from `educcat`: `3` = `"Less than HS"`,
 #'     `2` = `"HS/Some college"`, `1` = `"College+"`, `99` = `NA`. Levels:
 #'     `c("Less than HS", "HS/Some college", "College+")`. Approximately
 #'     0.5% `NA`.}
+#'   \item{pid_f3}{Factor. Derived from `partysum`: `1` = `"Republican"`,
+#'     `2` = `"Democrat"`, `9` = `"Independent"`, other = `NA`. Levels:
+#'     `c("Republican", "Independent", "Democrat")`. Approximately 0.5%
+#'     `NA`.}
 #'   \item{wt_pop}{Numeric. Population-scaled weight: `weight * (260000000 /
 #'     nrow(npors_2025))`. Use for IPW reference design construction (sums to
 #'     approximately 260 million, the 2024 US adult population estimate).}
@@ -237,9 +253,9 @@
 #'
 #' @description
 #' A filtered version of [npors_2025] with rows removed where any of
-#' `gender`, `age_group`, `race_ethn`, or `educ` is `NA`. Approximately
+#' `sex`, `age_f3`, `race_f4`, `edu_f3`, or `pid_f3` is `NA`. Approximately
 #' 4,814 rows are retained (5,022 minus approximately 208 rows with at least
-#' one `NA` in the four derived columns). Weights are not re-normalized after
+#' one `NA` in the five derived columns). Weights are not re-normalized after
 #' row removal.
 #'
 #' Use this object when passing to `ipw()` to avoid the
@@ -251,9 +267,9 @@
 #'
 #' @format
 #' ## `npors_2025_clean`
-#' A data frame with approximately 4,814 rows and 69 columns (same column
-#' structure as [npors_2025]). No `NA` values in `gender`, `age_group`,
-#' `race_ethn`, or `educ`.
+#' A data frame with approximately 4,814 rows and 71 columns (same column
+#' structure as [npors_2025]). No `NA` values in `sex`, `age_f3`, `race_f4`,
+#' `edu_f3`, or `pid_f3`.
 #' \describe{
 #'   \item{respid}{Character. Respondent identifier.}
 #'   \item{mode}{Numeric. Interview mode.}
@@ -312,8 +328,8 @@
 #'   \item{agegrp}{Numeric. Age group (raw).}
 #'   \item{agecat}{Numeric. Age category (alternative grouping).}
 #'   \item{birthplace}{Numeric. Born in the United States.}
-#'   \item{gender}{Factor. `"Male"` or `"Female"`. No `NA` values. Levels:
-#'     `c("Male", "Female")`.}
+#'   \item{gender}{Numeric. Interview gender: `1` = Male, `2` = Female,
+#'     `3` = Non-binary, `99` = Refused.}
 #'   \item{adults}{Numeric. Number of adults in household.}
 #'   \item{voted2024}{Numeric. Voted in 2024.}
 #'   \item{votegen_post}{Numeric. 2024 vote choice.}
@@ -323,12 +339,16 @@
 #'   \item{basewt}{Numeric. Base weight before calibration.}
 #'   \item{weight}{Numeric. Final normalized survey weight. Use for standard
 #'     estimation. For IPW use `wt_pop` instead.}
-#'   \item{age_group}{Factor. `"18-34"`, `"35-54"`, or `"55+"`. No `NA`
+#'   \item{sex}{Factor. `"Male"` or `"Female"`. No `NA` values. Levels:
+#'     `c("Male", "Female")`.}
+#'   \item{age_f3}{Factor. `"18-34"`, `"35-54"`, or `"55+"`. No `NA`
 #'     values. Levels: `c("18-34", "35-54", "55+")`.}
-#'   \item{race_ethn}{Factor. Race/ethnicity. No `NA` values. Levels:
-#'     `c("White", "Black", "Hispanic", "Asian", "Other")`.}
-#'   \item{educ}{Factor. Education level. No `NA` values. Levels:
+#'   \item{race_f4}{Factor. Race/ethnicity (4-level). No `NA` values. Levels:
+#'     `c("White", "Black", "Hispanic", "Other")`.}
+#'   \item{edu_f3}{Factor. Education level. No `NA` values. Levels:
 #'     `c("Less than HS", "HS/Some college", "College+")`.}
+#'   \item{pid_f3}{Factor. Party identification. No `NA` values. Levels:
+#'     `c("Republican", "Independent", "Democrat")`.}
 #'   \item{wt_pop}{Numeric. Population-scaled weight: `weight * (260000000 /
 #'     5022)`. Weights are not re-normalized after row removal.}
 #' }
@@ -356,10 +376,11 @@
 #' @description
 #' The 2022 American Community Survey (ACS) Public Use Microdata Sample (PUMS)
 #' for Wyoming, obtained from `surveycore::acs_pums_wy` and restricted to
-#' adults (`agep >= 18`). The result has 4,736 rows. Four derived columns are
-#' added: `gender`, `age_group`, `race_ethn`, and `educ`. The main person
-#' weight `pwgtp` is population-scaled by design (ACS PUMS weights sum to the
-#' Wyoming adult population) so no `wt_pop` column is needed.
+#' adults (`agep >= 18`). The result has 4,736 rows. The raw `sex` column is
+#' overwritten in-place as a factor. Three new derived columns are added:
+#' `age_f3`, `race_f4`, and `edu_f3`. The main person weight `pwgtp` is
+#' population-scaled by design (ACS PUMS weights sum to the Wyoming adult
+#' population) so no `wt_pop` column is needed.
 #'
 #' `acs_wy_2022_svy` is a `survey_replicate` object using successive-difference
 #' replication (SDR) with `pwgtp` as the main weight and `pwgtp1`-`pwgtp80`
@@ -371,7 +392,7 @@
 #' acs_ref <- surveycore::as_survey(acs_wy_2022, weights = pwgtp)
 #' result <- ipw(
 #'   ns_wave1, acs_ref,
-#'   selection = ~gender + age_group + race_ethn + educ,
+#'   selection = ~sex + age_f3 + race_f4 + edu_f3,
 #'   missing_method = "omit"
 #' )
 #' ```
@@ -380,8 +401,9 @@
 #'
 #' @format
 #' ## `acs_wy_2022`
-#' A data frame with 4,736 rows and 100 columns. Original ACS PUMS columns
-#' for adult rows plus 4 derived columns:
+#' A data frame with 4,736 rows and 99 columns. Original ACS PUMS columns
+#' for adult rows. The raw `sex` column is overwritten in-place as a factor;
+#' three new derived columns are added (`age_f3`, `race_f4`, `edu_f3`):
 #' \describe{
 #'   \item{puma}{Numeric. Public Use Microdata Area code.}
 #'   \item{st}{Numeric. State FIPS code.}
@@ -468,7 +490,9 @@
 #'   \item{pwgtp79}{Numeric. ACS PUMS successive-difference replicate weight 79.}
 #'   \item{pwgtp80}{Numeric. ACS PUMS successive-difference replicate weight 80.}
 #'   \item{agep}{Numeric. Age in years (all values >= 18).}
-#'   \item{sex}{Numeric. Biological sex: `1` = Male, `2` = Female.}
+#'   \item{sex}{Factor. Derived from the raw `sex` column: `1` = `"Male"`,
+#'     `2` = `"Female"`. No `NA` values for adults. Levels:
+#'     `c("Male", "Female")`.}
 #'   \item{rac1p}{Numeric. Recoded detailed race code (ACS).}
 #'   \item{hisp}{Numeric. Hispanic origin recode (ACS): `1` = not Hispanic,
 #'     `2`-`24` = specific Hispanic origin.}
@@ -481,17 +505,14 @@
 #'   \item{povpip}{Numeric. Income-to-poverty ratio.}
 #'   \item{wkhp}{Numeric. Hours worked per week.}
 #'   \item{adjinc}{Numeric. Income adjustment factor.}
-#'   \item{gender}{Factor. Derived from `sex`: `1` = `"Male"`,
-#'     `2` = `"Female"`. No `NA` values for adults. Levels:
-#'     `c("Male", "Female")`.}
-#'   \item{age_group}{Factor. Derived from `agep` using
+#'   \item{age_f3}{Factor. Derived from `agep` using
 #'     `cut(agep, breaks = c(18, 35, 55, Inf), right = FALSE)`. No `NA`
 #'     values for adults. Levels: `c("18-34", "35-54", "55+")`.}
-#'   \item{race_ethn}{Factor. Derived from `rac1p` and `hisp`: Hispanic
-#'     origin takes precedence; `rac1p %in% 4:6` = Asian; else Other. No
-#'     `NA` values for adults. Levels:
-#'     `c("White", "Black", "Hispanic", "Asian", "Other")`.}
-#'   \item{educ}{Factor. Derived from `schl`: `1:11` = `"Less than HS"`,
+#'   \item{race_f4}{Factor. Derived from `rac1p` and `hisp`: Hispanic
+#'     origin takes precedence; `rac1p %in% 4:6` (Asian) collapsed into
+#'     `"Other"`. No `NA` values for adults. Levels:
+#'     `c("White", "Black", "Hispanic", "Other")`.}
+#'   \item{edu_f3}{Factor. Derived from `schl`: `1:11` = `"Less than HS"`,
 #'     `12:15` = `"HS/Some college"`, `16:24` = `"College+"`. No `NA`
 #'     values for adults. Levels:
 #'     `c("Less than HS", "HS/Some college", "College+")`.}
@@ -535,13 +556,13 @@
 #'   `pew_2016_optin_svy` is a `survey_nonprob` object whose `weight` column
 #'   is produced by raking to targets computed as unweighted proportions from
 #'   [pew_2016_synth_pop] (Newton-Raphson algorithm, 7 marginal dimensions:
-#'   gender, age group, race/ethnicity, education, census division, party ID,
-#'   and ideology; 5th/95th percentile trim). It carries 200
-#'   quasi-randomization bootstrap replicate weights (`repwt_1`–`repwt_200`).
-#'   The `weight` column is stored in the object's `@data` slot only; it is
-#'   not present in the `pew_2016_optin` tibble.
+#'   sex, age_f3, race_f4, edu_f3, division, pid_f3, and ideology;
+#'   5th/95th percentile trim). It carries 200 quasi-randomization bootstrap
+#'   replicate weights (`repwt_1`–`repwt_200`). The `weight` column is stored
+#'   in the object's `@data` slot only; it is not present in the
+#'   `pew_2016_optin` tibble.
 #'
-#' @format A data frame with 31,863 rows and 99 columns:
+#' @format A data frame with 31,863 rows and 104 columns:
 #' \describe{
 #'   \item{rid}{Character. Respondent ID with vendor prefix (e.g., `"V1_7"`).}
 #'   \item{vendor}{Numeric. Opt-in panel vendor: `1` = Vendor 1, `2` = Vendor 2,
@@ -706,13 +727,28 @@
 #'     `3` = South, `4` = West.}
 #'   \item{language}{Numeric. Interview language: `1` = English,
 #'     `2` = Spanish.}
+#'   \item{sex}{Factor. Derived from `gender`: `1` = `"Male"`, `2` =
+#'     `"Female"`, `3` (Refused) = `NA`. Levels: `c("Male", "Female")`.}
+#'   \item{race_f4}{Factor. Derived from `racethn`: `1` = `"White"`,
+#'     `2` = `"Black"`, `3` = `"Hispanic"`, `4`/`5` = `"Other"` (Asian
+#'     collapsed), `6` = `NA`. Levels:
+#'     `c("White", "Black", "Hispanic", "Other")`.}
+#'   \item{edu_f3}{Factor. Derived from `educcat5`: `1` = `"Less than HS"`,
+#'     `2:3` = `"HS/Some college"`, `4:5` = `"College+"`, `6` = `NA`.
+#'     Levels: `c("Less than HS", "HS/Some college", "College+")`.}
+#'   \item{pid_f3}{Factor. Derived from `partyscale3` (GSS-style 3-category
+#'     party): `1` = `"Republican"`, `2` = `"Democrat"`, `3` =
+#'     `"Independent"`. Levels: `c("Republican", "Independent", "Democrat")`.}
+#'   \item{age_f3}{Factor. Derived from `agecat6`: `1:2` = `"18-34"`,
+#'     `3:4` = `"35-54"`, `5:6` = `"55+"`. Levels:
+#'     `c("18-34", "35-54", "55+")`.}
 #' }
 #'
 #' ## `pew_2016_optin_svy`
 #' A `survey_nonprob` object wrapping `pew_2016_optin`. The `weight` column
 #' contains calibrated weights produced by raking to [pew_2016_synth_pop]
-#' targets (Newton-Raphson, 7 margins: gender, agecat6, racethn, educcat5,
-#' division, partyscale5, ideo3; 5th/95th percentile trim). Carries 200
+#' targets (Newton-Raphson, 7 margins: sex, age_f3, race_f4, edu_f3,
+#' division, pid_f3, ideo3; 5th/95th percentile trim). Carries 200
 #' quasi-randomization bootstrap replicate weights (`repwt_1`–`repwt_200` in
 #' `@data`; `@variables$repweights` populated). The `weight` column exists
 #' only in the object's `@data` — it is not stored in the `pew_2016_optin`
@@ -753,7 +789,7 @@
 #'   equal weights (`1L`), representing the synthetic population as a simple
 #'   random sample.
 #'
-#' @format A data frame with 20,000 rows and 38 columns:
+#' @format A data frame with 20,000 rows and 43 columns:
 #' \describe{
 #'   \item{id}{Numeric. Row identifier.}
 #'   \item{gender}{Numeric. `1` = Male, `2` = Female.}
@@ -818,6 +854,20 @@
 #'     `1` = Most of the time, `2` = Some of the time, `3` = Only now and
 #'     then, `4` = Hardly at all.}
 #'   \item{owngun_gss}{Integer. Gun in home: `1` = Yes, `0` = No.}
+#'   \item{sex}{Factor. Derived from `gender`: `1` = `"Male"`, `2` =
+#'     `"Female"`. Levels: `c("Male", "Female")`.}
+#'   \item{race_f4}{Factor. Derived from `racethn`: `1` = `"White"`,
+#'     `2` = `"Black"`, `3` = `"Hispanic"`, `4`/`5` = `"Other"`. Levels:
+#'     `c("White", "Black", "Hispanic", "Other")`.}
+#'   \item{edu_f3}{Factor. Derived from `educcat5`: `1` = `"Less than HS"`,
+#'     `2:3` = `"HS/Some college"`, `4:5` = `"College+"`. Levels:
+#'     `c("Less than HS", "HS/Some college", "College+")`.}
+#'   \item{pid_f3}{Factor. Derived from `partyscale5`: `1:2` =
+#'     `"Republican"`, `3` = `"Independent"`, `4:5` = `"Democrat"`. Levels:
+#'     `c("Republican", "Independent", "Democrat")`.}
+#'   \item{age_f3}{Factor. Derived from `age` using
+#'     `cut(age, breaks = c(18, 35, 55, Inf), right = FALSE)`. Levels:
+#'     `c("18-34", "35-54", "55+")`.}
 #' }
 #'
 #' ## `pew_2016_synth_pop_svy`
@@ -843,12 +893,13 @@
 #' @description
 #' The National Survey Wave 1 dataset, obtained from `surveycore::ns_wave1`.
 #' All 6,422 respondents and 171 original columns are retained. The `gender`
-#' column is converted from integer to factor in-place. Three general-purpose
-#' derived columns are added: `age_group` (factor from `age`), `race_ethn`
-#' (factor from `race_ethnicity` and `hispanic`), and `educ` (factor from
-#' `education`). Eight Nationscape raking recode columns (`ns_*`) are also
-#' added as calibration variables used to replicate Nationscape's weighting
-#' procedure. Original source columns are kept unchanged.
+#' column is kept as numeric. Five general-purpose derived columns are added:
+#' `sex` (factor from `gender`), `age_f3` (factor from `age`), `race_f4`
+#' (factor from `race_ethnicity` and `hispanic`), `edu_f3` (factor from
+#' `education`), and `pid_f3` (factor from `pid3`). Eight Nationscape raking
+#' recode columns (`ns_*`) are also added as calibration variables used to
+#' replicate Nationscape's weighting procedure. Original source columns are
+#' kept unchanged.
 #'
 #' `ns_wave1_svy` is a `survey_nonprob` object whose `weight` column replicates
 #' Nationscape's published survey weights via raking to ACS 2017 targets
@@ -858,16 +909,16 @@
 #' `create_bootstrap_weights()`, `create_jackknife_weights()`, and related
 #' functions.
 #'
-#' Some respondents have `NA` in `race_ethn` (those who reported "some other
+#' Some respondents have `NA` in `race_f4` (those who reported "some other
 #' race" with no Hispanic origin, which cannot be mapped to a standard category).
 #'
 #' @format
 #' ## `ns_wave1`
-#' A data frame with 6,422 rows and 182 columns. All 171 original columns from
-#' `surveycore::ns_wave1` are retained. `gender` is converted from integer to
-#' factor in-place; eleven new columns are appended: three general-purpose
-#' derived columns (`age_group`, `race_ethn`, `educ`) and eight Nationscape
-#' raking recode columns (`ns_region`, `ns_hispanic`, `ns_race`, `ns_age`,
+#' A data frame with 6,422 rows and 184 columns. All 171 original columns from
+#' `surveycore::ns_wave1` are retained, including `gender` as numeric; thirteen
+#' new columns are appended: five general-purpose derived columns (`sex`,
+#' `age_f3`, `race_f4`, `edu_f3`, `pid_f3`) and eight Nationscape raking
+#' recode columns (`ns_region`, `ns_hispanic`, `ns_race`, `ns_age`,
 #' `ns_language`, `ns_foreign_born`, `ns_income`, `ns_vote_2016`):
 #' \describe{
 #'   \item{response_id}{Character. Respondent identifier.}
@@ -1031,34 +1082,38 @@
 #'   \item{ban_assault_rifles}{Numeric. Opinion on banning assault rifles.}
 #'   \item{limit_magazines}{Numeric. Opinion on limiting magazine capacity.}
 #'   \item{age}{Numeric. Age in years (original column retained).}
-#'   \item{gender}{Factor. Derived from the original integer `gender` column:
-#'     `1` = `"Male"`, `2` = `"Female"`. Values outside `{1, 2}` are `NA`.
-#'     Levels: `c("Male", "Female")`. The original integer column is replaced
-#'     in-place.}
+#'   \item{gender}{Numeric. Biological sex: `1` = Male, `2` = Female.
+#'     Original integer column retained.}
 #'   \item{census_region}{Numeric. Census region.}
 #'   \item{hispanic}{Numeric. Hispanic origin (original column retained,
-#'     used to derive `race_ethn`).}
+#'     used to derive `race_f4`).}
 #'   \item{race_ethnicity}{Numeric. Race/ethnicity code (original column
-#'     retained, used to derive `race_ethn`).}
+#'     retained, used to derive `race_f4`).}
 #'   \item{household_income}{Numeric. Household income.}
 #'   \item{education}{Numeric. Education level code (original column retained,
-#'     used to derive `educ`).}
+#'     used to derive `edu_f3`).}
 #'   \item{state}{Character. State of residence.}
 #'   \item{congress_district}{Numeric. Congressional district.}
 #'   \item{weight}{Numeric. Survey weight. Used by `ns_wave1_svy`.}
 #'   \item{wave_id}{Numeric. Wave identifier.}
-#'   \item{age_group}{Factor. Derived from `age` using
+#'   \item{sex}{Factor. Derived from `gender`: `1` = `"Male"`, `2` =
+#'     `"Female"`, other = `NA`. Levels: `c("Male", "Female")`.}
+#'   \item{age_f3}{Factor. Derived from `age` using
 #'     `cut(age, breaks = c(18, 35, 55, Inf), right = FALSE)`. Levels:
 #'     `c("18-34", "35-54", "55+")`. `NA` for age < 18 or missing.}
-#'   \item{race_ethn}{Factor. Derived from `race_ethnicity` and `hispanic`:
-#'     Hispanic origin takes precedence; Asian = `race_ethnicity %in% 4:10`;
-#'     Other = `race_ethnicity %in% c(3, 11:14)`;
-#'     `race_ethnicity == 15` (some other race, non-Hispanic) = `NA`.
-#'     Levels: `c("White", "Black", "Hispanic", "Asian", "Other")`.
-#'     Some `NA` values (respondents with "some other race", non-Hispanic).}
-#'   \item{educ}{Factor. Derived from `education`: `1:3` = `"Less than HS"`,
+#'   \item{race_f4}{Factor. Derived from `race_ethnicity` and `hispanic`:
+#'     Hispanic origin takes precedence; `race_ethnicity %in% 3:14` =
+#'     `"Other"` (collapses Asian); `race_ethnicity == 15` (some other race,
+#'     non-Hispanic) = `NA`. Levels:
+#'     `c("White", "Black", "Hispanic", "Other")`. Some `NA` values
+#'     (respondents with "some other race", non-Hispanic).}
+#'   \item{edu_f3}{Factor. Derived from `education`: `1:3` = `"Less than HS"`,
 #'     `4:7` = `"HS/Some college"`, `8:11` = `"College+"`. Levels:
 #'     `c("Less than HS", "HS/Some college", "College+")`. No `NA` values.}
+#'   \item{pid_f3}{Factor. Derived from `pid3`: `1` = `"Democrat"`, `2` =
+#'     `"Republican"`, `c(3, 4)` = `"Independent"` (code 4 = Other/No
+#'     preference mapped to Independent per Nationscape methodology), other =
+#'     `NA`. Levels: `c("Republican", "Independent", "Democrat")`.}
 #'   \item{ns_region}{Factor. Census region derived from `census_region`.
 #'     Levels: `c("Northeast", "Midwest", "South", "West")`. No `NA` values.}
 #'   \item{ns_hispanic}{Factor. Three-category Hispanic ethnicity derived from

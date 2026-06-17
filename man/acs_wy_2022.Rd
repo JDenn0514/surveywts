@@ -8,8 +8,9 @@
 \format{
 \subsection{\code{acs_wy_2022}}{
 
-A data frame with 4,736 rows and 100 columns. Original ACS PUMS columns
-for adult rows plus 4 derived columns:
+A data frame with 4,736 rows and 99 columns. Original ACS PUMS columns
+for adult rows. The raw \code{sex} column is overwritten in-place as a factor;
+three new derived columns are added (\code{age_f3}, \code{race_f4}, \code{edu_f3}):
 \describe{
 \item{puma}{Numeric. Public Use Microdata Area code.}
 \item{st}{Numeric. State FIPS code.}
@@ -96,7 +97,9 @@ the Wyoming adult population). Use directly for IPW.}
 \item{pwgtp79}{Numeric. ACS PUMS successive-difference replicate weight 79.}
 \item{pwgtp80}{Numeric. ACS PUMS successive-difference replicate weight 80.}
 \item{agep}{Numeric. Age in years (all values >= 18).}
-\item{sex}{Numeric. Biological sex: \code{1} = Male, \code{2} = Female.}
+\item{sex}{Factor. Derived from the raw \code{sex} column: \code{1} = \code{"Male"},
+\code{2} = \code{"Female"}. No \code{NA} values for adults. Levels:
+\code{c("Male", "Female")}.}
 \item{rac1p}{Numeric. Recoded detailed race code (ACS).}
 \item{hisp}{Numeric. Hispanic origin recode (ACS): \code{1} = not Hispanic,
 \code{2}-\code{24} = specific Hispanic origin.}
@@ -109,17 +112,14 @@ the Wyoming adult population). Use directly for IPW.}
 \item{povpip}{Numeric. Income-to-poverty ratio.}
 \item{wkhp}{Numeric. Hours worked per week.}
 \item{adjinc}{Numeric. Income adjustment factor.}
-\item{gender}{Factor. Derived from \code{sex}: \code{1} = \code{"Male"},
-\code{2} = \code{"Female"}. No \code{NA} values for adults. Levels:
-\code{c("Male", "Female")}.}
-\item{age_group}{Factor. Derived from \code{agep} using
+\item{age_f3}{Factor. Derived from \code{agep} using
 \code{cut(agep, breaks = c(18, 35, 55, Inf), right = FALSE)}. No \code{NA}
 values for adults. Levels: \code{c("18-34", "35-54", "55+")}.}
-\item{race_ethn}{Factor. Derived from \code{rac1p} and \code{hisp}: Hispanic
-origin takes precedence; \code{rac1p \%in\% 4:6} = Asian; else Other. No
-\code{NA} values for adults. Levels:
-\code{c("White", "Black", "Hispanic", "Asian", "Other")}.}
-\item{educ}{Factor. Derived from \code{schl}: \code{1:11} = \code{"Less than HS"},
+\item{race_f4}{Factor. Derived from \code{rac1p} and \code{hisp}: Hispanic
+origin takes precedence; \code{rac1p \%in\% 4:6} (Asian) collapsed into
+\code{"Other"}. No \code{NA} values for adults. Levels:
+\code{c("White", "Black", "Hispanic", "Other")}.}
+\item{edu_f3}{Factor. Derived from \code{schl}: \code{1:11} = \code{"Less than HS"},
 \code{12:15} = \code{"HS/Some college"}, \code{16:24} = \code{"College+"}. No \code{NA}
 values for adults. Levels:
 \code{c("Less than HS", "HS/Some college", "College+")}.}
@@ -149,10 +149,11 @@ acs_wy_2022_svy
 \description{
 The 2022 American Community Survey (ACS) Public Use Microdata Sample (PUMS)
 for Wyoming, obtained from \code{surveycore::acs_pums_wy} and restricted to
-adults (\code{agep >= 18}). The result has 4,736 rows. Four derived columns are
-added: \code{gender}, \code{age_group}, \code{race_ethn}, and \code{educ}. The main person
-weight \code{pwgtp} is population-scaled by design (ACS PUMS weights sum to the
-Wyoming adult population) so no \code{wt_pop} column is needed.
+adults (\code{agep >= 18}). The result has 4,736 rows. The raw \code{sex} column is
+overwritten in-place as a factor. Three new derived columns are added:
+\code{age_f3}, \code{race_f4}, and \code{edu_f3}. The main person weight \code{pwgtp} is
+population-scaled by design (ACS PUMS weights sum to the Wyoming adult
+population) so no \code{wt_pop} column is needed.
 
 \code{acs_wy_2022_svy} is a \code{survey_replicate} object using successive-difference
 replication (SDR) with \code{pwgtp} as the main weight and \code{pwgtp1}-\code{pwgtp80}
@@ -164,7 +165,7 @@ for IPW workflows:
 acs_ref <- surveycore::as_survey(acs_wy_2022, weights = pwgtp)
 result <- ipw(
   ns_wave1, acs_ref,
-  selection = ~gender + age_group + race_ethn + educ,
+  selection = ~sex + age_f3 + race_f4 + edu_f3,
   missing_method = "omit"
 )
 }\if{html}{\out{</div>}}

@@ -1,7 +1,7 @@
 ## data-raw/pew-2016-synth-pop.R
 ##
 ## Produces:
-##   pew_2016_synth_pop     — 20,000-row ATP-derived synthetic population, 38 variables
+##   pew_2016_synth_pop     — 20,000-row ATP-derived synthetic population, 43 variables
 ##   pew_2016_synth_pop_svy — survey_taylor companion (equal weights, SRS)
 ##
 ## Source: Pew Research Center (used in Mercer, Lau & Kennedy 2018
@@ -124,6 +124,87 @@ for (v in names(synth_specs)) {
     no_label = s$no_label
   )
 }
+
+## ---- 4b. Harmonized demographic factor columns ----
+##
+## Standard columns shared across all surveywts datasets.
+## synth_pop has no Refused codes, so no NA values expected.
+
+race_f4_levels <- c("White", "Black", "Hispanic", "Other")
+edu_f3_levels  <- c("Less than HS", "HS/Some college", "College+")
+pid_f3_levels  <- c("Republican", "Independent", "Democrat")
+age_f3_labs    <- c("18-34", "35-54", "55+")
+
+# sex: gender 1=Male, 2=Female (no Refused in synth_pop)
+pew_2016_synth_pop$sex <- factor(
+  dplyr::recode_values(
+    pew_2016_synth_pop$gender,
+    1 ~ "Male",
+    2 ~ "Female",
+    default = NA_character_
+  ),
+  levels = c("Male", "Female")
+)
+
+# race_f4: racethn 1=White, 2=Black, 3=Hispanic, 4=Asian, 5=Other
+#   Asian (4) collapsed into Other for 4-level consistency
+pew_2016_synth_pop$race_f4 <- factor(
+  dplyr::recode_values(
+    pew_2016_synth_pop$racethn,
+    1        ~ "White",
+    2        ~ "Black",
+    3        ~ "Hispanic",
+    c(4, 5)  ~ "Other",
+    default = NA_character_
+  ),
+  levels = race_f4_levels
+)
+
+# edu_f3: educcat5 1=<HS, 2=HS, 3=Some college, 4=College, 5=Postgrad
+pew_2016_synth_pop$edu_f3 <- factor(
+  dplyr::recode_values(
+    pew_2016_synth_pop$educcat5,
+    1        ~ "Less than HS",
+    c(2, 3)  ~ "HS/Some college",
+    c(4, 5)  ~ "College+",
+    default = NA_character_
+  ),
+  levels = edu_f3_levels
+)
+
+# pid_f3: partyscale5 1=Rep, 2=Lean Rep, 3=Ind, 4=Lean Dem, 5=Dem
+pew_2016_synth_pop$pid_f3 <- factor(
+  dplyr::recode_values(
+    pew_2016_synth_pop$partyscale5,
+    c(1, 2)  ~ "Republican",
+    3        ~ "Independent",
+    c(4, 5)  ~ "Democrat",
+    default = NA_character_
+  ),
+  levels = pid_f3_levels
+)
+
+# age_f3: from continuous age (85 is ACS top-code; falls into 55+ bucket correctly)
+pew_2016_synth_pop$age_f3 <- cut(
+  pew_2016_synth_pop$age,
+  breaks = c(18, 35, 55, Inf),
+  labels = age_f3_labs,
+  right = FALSE
+)
+
+# Structural assertions
+stopifnot(ncol(pew_2016_synth_pop) == 43L)
+stopifnot(nrow(pew_2016_synth_pop) == 20000L)
+stopifnot(is.factor(pew_2016_synth_pop$sex))
+stopifnot(is.factor(pew_2016_synth_pop$race_f4))
+stopifnot(is.factor(pew_2016_synth_pop$edu_f3))
+stopifnot(is.factor(pew_2016_synth_pop$pid_f3))
+stopifnot(is.factor(pew_2016_synth_pop$age_f3))
+stopifnot(sum(is.na(pew_2016_synth_pop$sex)) == 0L)
+stopifnot(sum(is.na(pew_2016_synth_pop$race_f4)) == 0L)
+stopifnot(sum(is.na(pew_2016_synth_pop$edu_f3)) == 0L)
+stopifnot(sum(is.na(pew_2016_synth_pop$pid_f3)) == 0L)
+stopifnot(sum(is.na(pew_2016_synth_pop$age_f3)) == 0L)
 
 ## ---- 5. Save ----
 

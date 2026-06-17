@@ -8,9 +8,9 @@
 \format{
 \subsection{\code{npors_2025_clean}}{
 
-A data frame with approximately 4,814 rows and 69 columns (same column
-structure as \link{npors_2025}). No \code{NA} values in \code{gender}, \code{age_group},
-\code{race_ethn}, or \code{educ}.
+A data frame with approximately 4,814 rows and 71 columns (same column
+structure as \link{npors_2025}). No \code{NA} values in \code{sex}, \code{age_f3}, \code{race_f4},
+\code{edu_f3}, or \code{pid_f3}.
 \describe{
 \item{respid}{Character. Respondent identifier.}
 \item{mode}{Numeric. Interview mode.}
@@ -69,8 +69,8 @@ structure as \link{npors_2025}). No \code{NA} values in \code{gender}, \code{age
 \item{agegrp}{Numeric. Age group (raw).}
 \item{agecat}{Numeric. Age category (alternative grouping).}
 \item{birthplace}{Numeric. Born in the United States.}
-\item{gender}{Factor. \code{"Male"} or \code{"Female"}. No \code{NA} values. Levels:
-\code{c("Male", "Female")}.}
+\item{gender}{Numeric. Interview gender: \code{1} = Male, \code{2} = Female,
+\code{3} = Non-binary, \code{99} = Refused.}
 \item{adults}{Numeric. Number of adults in household.}
 \item{voted2024}{Numeric. Voted in 2024.}
 \item{votegen_post}{Numeric. 2024 vote choice.}
@@ -80,12 +80,16 @@ structure as \link{npors_2025}). No \code{NA} values in \code{gender}, \code{age
 \item{basewt}{Numeric. Base weight before calibration.}
 \item{weight}{Numeric. Final normalized survey weight. Use for standard
 estimation. For IPW use \code{wt_pop} instead.}
-\item{age_group}{Factor. \code{"18-34"}, \code{"35-54"}, or \code{"55+"}. No \code{NA}
+\item{sex}{Factor. \code{"Male"} or \code{"Female"}. No \code{NA} values. Levels:
+\code{c("Male", "Female")}.}
+\item{age_f3}{Factor. \code{"18-34"}, \code{"35-54"}, or \code{"55+"}. No \code{NA}
 values. Levels: \code{c("18-34", "35-54", "55+")}.}
-\item{race_ethn}{Factor. Race/ethnicity. No \code{NA} values. Levels:
-\code{c("White", "Black", "Hispanic", "Asian", "Other")}.}
-\item{educ}{Factor. Education level. No \code{NA} values. Levels:
+\item{race_f4}{Factor. Race/ethnicity (4-level). No \code{NA} values. Levels:
+\code{c("White", "Black", "Hispanic", "Other")}.}
+\item{edu_f3}{Factor. Education level. No \code{NA} values. Levels:
 \code{c("Less than HS", "HS/Some college", "College+")}.}
+\item{pid_f3}{Factor. Party identification. No \code{NA} values. Levels:
+\code{c("Republican", "Independent", "Democrat")}.}
 \item{wt_pop}{Numeric. Population-scaled weight: \code{weight * (260000000 / 5022)}. Weights are not re-normalized after row removal.}
 }
 }
@@ -109,9 +113,9 @@ npors_2025_clean_svy
 }
 \description{
 A filtered version of \link{npors_2025} with rows removed where any of
-\code{gender}, \code{age_group}, \code{race_ethn}, or \code{educ} is \code{NA}. Approximately
+\code{sex}, \code{age_f3}, \code{race_f4}, \code{edu_f3}, or \code{pid_f3} is \code{NA}. Approximately
 4,814 rows are retained (5,022 minus approximately 208 rows with at least
-one \code{NA} in the four derived columns). Weights are not re-normalized after
+one \code{NA} in the five derived columns). Weights are not re-normalized after
 row removal.
 
 Use this object when passing to \code{ipw()} to avoid the

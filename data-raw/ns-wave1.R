@@ -11,80 +11,85 @@
 library(surveycore)
 pkgload::load_all(quiet = TRUE)
 
-age_bins <- c(18, 35, 55, Inf)
-age_labs <- c("18-34", "35-54", "55+")
+age_f3_bins    <- c(18, 35, 55, Inf)
+age_f3_labs    <- c("18-34", "35-54", "55+")
+race_f4_levels <- c("White", "Black", "Hispanic", "Other")
+edu_f3_levels  <- c("Less than HS", "HS/Some college", "College+")
+pid_f3_levels  <- c("Republican", "Independent", "Democrat")
 
 ## ---- ns_wave1 ---------------------------------------------------------------
 ## Full surveycore::ns_wave1 dataset (171 original columns).
 ## Column changes:
-##   gender:    overwritten in-place (integer -> factor); no new col added
-##   age_group: NEW column derived from age (original age column kept)
-##   race_ethn: NEW column derived from race_ethnicity + hispanic
-##   educ:      NEW column derived from education
-## Total columns: 171 (original) + 3 (new: age_group, race_ethn, educ) = 174
+##   sex:      NEW factor column from gender (gender kept as integer)
+##   age_f3:   NEW factor from age
+##   race_f4:  NEW factor from race_ethnicity + hispanic (4 levels)
+##   edu_f3:   NEW factor from education
+##   pid_f3:   NEW factor from pid3
+## Total columns: 171 + 5 harmonized + 8 ns_* = 184
 
 ns_wave1 <- as.data.frame(surveycore::ns_wave1, stringsAsFactors = FALSE)
 
-# gender: overwrite in-place (integer 1 = Male, 2 = Female -> factor)
-# Any value outside {1, 2} -> NA (implicit in factor coercion)
-ns_wave1$gender <- factor(
-  ns_wave1$gender,
-  levels = c(1L, 2L),
-  labels = c("Male", "Female")
+# sex: NEW column; original gender column (integer 1=Male, 2=Female) is KEPT
+ns_wave1$sex <- factor(
+  dplyr::recode_values(
+    ns_wave1$gender,
+    1 ~ "Male",
+    2 ~ "Female",
+    default = NA_character_
+  ),
+  levels = c("Male", "Female")
 )
 
-# age_group: NEW column; original age column is kept unchanged
-ns_wave1$age_group <- cut(
+# age_f3: NEW column; original age column is kept unchanged
+ns_wave1$age_f3 <- cut(
   ns_wave1$age,
-  breaks = age_bins,
-  labels = age_labs,
+  breaks = age_f3_bins,
+  labels = age_f3_labs,
   right = FALSE
 )
 
-# race_ethn: NEW column derived from race_ethnicity + hispanic
-# Hispanic origin takes precedence; Asian = codes 4-10; Other = codes 3, 11-14
+# race_f4: NEW column derived from race_ethnicity + hispanic
+# Hispanic origin takes precedence; Asian codes 4-10 + Other code 3,11-14 -> "Other"
 # race_ethnicity == 15 (some other race, non-Hispanic) -> NA
 # Original race_ethnicity and hispanic columns are KEPT
 race <- ns_wave1$race_ethnicity
 hisp <- ns_wave1$hispanic
 
-ns_wave1$race_ethn <- factor(
-  ifelse(
-    hisp != 1L,
-    "Hispanic",
-    ifelse(
-      race == 1L,
-      "White",
-      ifelse(
-        race == 2L,
-        "Black",
-        ifelse(
-          race %in% 4L:10L,
-          "Asian",
-          ifelse(race %in% c(3L, 11L:14L), "Other", NA_character_)
-        )
-      )
-    )
+ns_wave1$race_f4 <- factor(
+  dplyr::case_when(
+    hisp != 1L             ~ "Hispanic",
+    race == 1L             ~ "White",
+    race == 2L             ~ "Black",
+    race %in% 3L:14L       ~ "Other",
+    .default = NA_character_   # race_ethnicity == 15 -> NA
   ),
-  levels = c("White", "Black", "Hispanic", "Asian", "Other")
+  levels = race_f4_levels
 )
 
-# educ: NEW column; original education column is KEPT
-ns_wave1$educ <- factor(
-  ifelse(
-    ns_wave1$education %in% 1L:3L,
-    "Less than HS",
-    ifelse(
-      ns_wave1$education %in% 4L:7L,
-      "HS/Some college",
-      ifelse(
-        ns_wave1$education %in% 8L:11L,
-        "College+",
-        NA_character_
-      )
-    )
+# edu_f3: NEW column; original education column is KEPT
+ns_wave1$edu_f3 <- factor(
+  dplyr::recode_values(
+    ns_wave1$education,
+    c(1:3)  ~ "Less than HS",
+    c(4:7)  ~ "HS/Some college",
+    c(8:11) ~ "College+",
+    default = NA_character_
   ),
-  levels = c("Less than HS", "HS/Some college", "College+")
+  levels = edu_f3_levels
+)
+
+# pid_f3: NEW column derived from pid3
+# pid3: 1=Democrat (pid7 1-2), 2=Republican (pid7 6-7), 3=Ind (pid7 3-5), 4=Other/No pref
+# Code 4 mapped to Independent (not NA) to match Nationscape public methodology
+ns_wave1$pid_f3 <- factor(
+  dplyr::recode_values(
+    ns_wave1$pid3,
+    1        ~ "Democrat",
+    2        ~ "Republican",
+    c(3, 4)  ~ "Independent",
+    default = NA_character_
+  ),
+  levels = pid_f3_levels
 )
 
 # ---- Nationscape raking recode columns (ns_*) -------------------------------
@@ -100,121 +105,80 @@ ns_wave1$ns_region <- factor(
 
 # ns_hispanic: 1 = Not Hispanic, 2 = Mexican, 3:15 = Other Hispanic
 ns_wave1$ns_hispanic <- factor(
-  ifelse(
-    ns_wave1$hispanic == 1L,
-    "Not Hispanic",
-    ifelse(ns_wave1$hispanic == 2L, "Mexican", "Other Hispanic")
+  dplyr::recode_values(
+    ns_wave1$hispanic,
+    1 ~ "Not Hispanic",
+    2 ~ "Mexican",
+    default = "Other Hispanic"
   ),
   levels = c("Not Hispanic", "Mexican", "Other Hispanic")
 )
 
-# ns_race: 4-category ACS race (distinct from the 5-category race_ethn col)
-#   1=White, 2=Black, 4:14=Asian/Pacific, 3+15=Other
+# ns_race: 4-category ACS race (distinct from the 4-category race_f4 col)
+#   1=White, 2=Black, 4:14=Asian/Pacific, 3+15=Other; codes 1,2,3,4:14,15 exhaust valid values
 ns_wave1$ns_race <- factor(
-  ifelse(
-    ns_wave1$race_ethnicity == 1L,
-    "White",
-    ifelse(
-      ns_wave1$race_ethnicity == 2L,
-      "Black",
-      ifelse(
-        ns_wave1$race_ethnicity %in% 4L:14L,
-        "Asian/Pacific",
-        ifelse(ns_wave1$race_ethnicity %in% c(3L, 15L), "Other", NA_character_)
-      )
-    )
+  dplyr::recode_values(
+    ns_wave1$race_ethnicity,
+    1        ~ "White",
+    2        ~ "Black",
+    c(4:14)  ~ "Asian/Pacific",
+    c(3, 15) ~ "Other",
+    default  = NA_character_
   ),
   levels = c("White", "Black", "Asian/Pacific", "Other")
 )
 
 # ns_age: 7 Nationscape age groups
 ns_wave1$ns_age <- factor(
-  ifelse(
-    ns_wave1$age %in% 18L:23L,
-    "18-23",
-    ifelse(
-      ns_wave1$age %in% 24L:29L,
-      "24-29",
-      ifelse(
-        ns_wave1$age %in% 30L:39L,
-        "30-39",
-        ifelse(
-          ns_wave1$age %in% 40L:49L,
-          "40-49",
-          ifelse(
-            ns_wave1$age %in% 50L:59L,
-            "50-59",
-            ifelse(
-              ns_wave1$age %in% 60L:69L,
-              "60-69",
-              ifelse(ns_wave1$age >= 70L, "70+", NA_character_)
-            )
-          )
-        )
-      )
-    )
+  dplyr::recode_values(
+    ns_wave1$age,
+    c(18:23) ~ "18-23",
+    c(24:29) ~ "24-29",
+    c(30:39) ~ "30-39",
+    c(40:49) ~ "40-49",
+    c(50:59) ~ "50-59",
+    c(60:69) ~ "60-69",
+    default  = "70+"
   ),
   levels = c("18-23", "24-29", "30-39", "40-49", "50-59", "60-69", "70+")
 )
 
 # ns_language: 1=Spanish, 2=Other non-English, 3=English only
 ns_wave1$ns_language <- factor(
-  ifelse(
-    ns_wave1$language == 3L,
-    "English only",
-    ifelse(ns_wave1$language == 1L, "Spanish", "Other")
+  dplyr::recode_values(
+    ns_wave1$language,
+    3 ~ "English only",
+    1 ~ "Spanish",
+    default = "Other"
   ),
   levels = c("English only", "Spanish", "Other")
 )
 
 # ns_foreign_born: 1=United States, 2=Other
 ns_wave1$ns_foreign_born <- factor(
-  ifelse(ns_wave1$foreign_born == 1L, "United States", "Other"),
+  dplyr::recode_values(
+    ns_wave1$foreign_born,
+    1 ~ "United States",
+    default = "Other"
+  ),
   levels = c("United States", "Other")
 )
 
 # ns_income: 9 ACS brackets + "No answer" for NAs (codes 1-24 -> brackets)
+income <- ns_wave1$household_income
 ns_wave1$ns_income <- factor(
-  ifelse(
-    is.na(ns_wave1$household_income),
-    "No answer",
-    ifelse(
-      ns_wave1$household_income %in% 1L:2L,
-      "<$20k",
-      ifelse(
-        ns_wave1$household_income %in% 3L:5L,
-        "$20-35k",
-        ifelse(
-          ns_wave1$household_income %in% 6L:8L,
-          "$35-50k",
-          ifelse(
-            ns_wave1$household_income %in% 9L:11L,
-            "$50-65k",
-            ifelse(
-              ns_wave1$household_income %in% 12L:14L,
-              "$65-80k",
-              ifelse(
-                ns_wave1$household_income %in% 15L:18L,
-                "$80-100k",
-                ifelse(
-                  ns_wave1$household_income == 19L,
-                  "$100-125k",
-                  ifelse(
-                    ns_wave1$household_income %in% 20L:22L,
-                    "$125-200k",
-                    ifelse(
-                      ns_wave1$household_income %in% 23L:24L,
-                      "≥$200k",
-                      NA_character_
-                    )
-                  )
-                )
-              )
-            )
-          )
-        )
-      )
-    )
+  dplyr::recode_values(
+    income,
+    c(1:2) ~ "<$20k",
+    c(3:5) ~ "$20-35k",
+    c(6:8) ~ "$35-50k",
+    c(9:11) ~ "$50-65k",
+    c(12:14) ~ "$65-80k",
+    c(15:18) ~ "$80-100k",
+    19 ~ "$100-125k",
+    c(20:22) ~ "$125-200k",
+    c(23:34) ~ "≥$200k",
+    default = "No answer"
   ),
   levels = c(
     "<$20k",
@@ -231,26 +195,26 @@ ns_wave1$ns_income <- factor(
 )
 
 # ns_vote_2016: Trump/Clinton/Other/No vote (codes 7-8 -> No vote)
+vote_16 <- ns_wave1$vote_2016
 ns_wave1$ns_vote_2016 <- factor(
-  ifelse(
-    ns_wave1$vote_2016 == 1L,
-    "Trump",
-    ifelse(
-      ns_wave1$vote_2016 == 2L,
-      "Clinton",
-      ifelse(ns_wave1$vote_2016 %in% 3L:5L, "Other", "No vote")
-    )
+  dplyr::recode_values(
+    vote_16,
+    1       ~ "Trump",
+    2       ~ "Clinton",
+    c(3:5)  ~ "Other",
+    default = "No vote"
   ),
   levels = c("Trump", "Clinton", "Other", "No vote")
 )
 
 # Structural assertions
-stopifnot(ncol(ns_wave1) == 182L)
+stopifnot(ncol(ns_wave1) == 184L)
 stopifnot(nrow(ns_wave1) == 6422L)
-stopifnot(is.factor(ns_wave1$gender))
-stopifnot(is.factor(ns_wave1$age_group))
-stopifnot(is.factor(ns_wave1$race_ethn))
-stopifnot(is.factor(ns_wave1$educ))
+stopifnot(is.factor(ns_wave1$sex))
+stopifnot(is.factor(ns_wave1$age_f3))
+stopifnot(is.factor(ns_wave1$race_f4))
+stopifnot(is.factor(ns_wave1$edu_f3))
+stopifnot(is.factor(ns_wave1$pid_f3))
 stopifnot(all(!is.na(ns_wave1$ns_region)))
 stopifnot(all(!is.na(ns_wave1$ns_hispanic)))
 stopifnot(all(!is.na(ns_wave1$ns_race)))
@@ -259,7 +223,7 @@ stopifnot(all(!is.na(ns_wave1$ns_language)))
 stopifnot(all(!is.na(ns_wave1$ns_foreign_born)))
 stopifnot(all(!is.na(ns_wave1$ns_income)))
 stopifnot(all(!is.na(ns_wave1$ns_vote_2016)))
-# ~419 NAs in race_ethn (race_ethnicity == 15); 0 NAs in educ
+# ~491 NAs in race_f4 (race_ethnicity == 15); 0 NAs in edu_f3
 
 ## ---- ns_wave1_svy -----------------------------------------------------------
 
@@ -270,7 +234,7 @@ stopifnot(all(!is.na(ns_wave1$ns_vote_2016)))
 .income_scale <- 1 - .income_na_rate
 
 .ns_targets <- list(
-  gender = c("Male" = 0.483, "Female" = 0.517),
+  sex = c("Male" = 0.483, "Female" = 0.517),
   ns_region = c(
     "Northeast" = 0.176,
     "Midwest" = 0.209,

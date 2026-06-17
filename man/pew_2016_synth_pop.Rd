@@ -6,7 +6,7 @@
 \alias{pew_2016_synth_pop_svy}
 \title{Pew 2016 ATP synthetic population}
 \format{
-A data frame with 20,000 rows and 38 columns:
+A data frame with 20,000 rows and 43 columns:
 \describe{
 \item{id}{Numeric. Row identifier.}
 \item{gender}{Numeric. \code{1} = Male, \code{2} = Female.}
@@ -71,6 +71,20 @@ Recoded from the raw SPSS file (original: \code{1} = Did not vote,
 \code{1} = Most of the time, \code{2} = Some of the time, \code{3} = Only now and
 then, \code{4} = Hardly at all.}
 \item{owngun_gss}{Integer. Gun in home: \code{1} = Yes, \code{0} = No.}
+\item{sex}{Factor. Derived from \code{gender}: \code{1} = \code{"Male"}, \code{2} =
+\code{"Female"}. Levels: \code{c("Male", "Female")}.}
+\item{race_f4}{Factor. Derived from \code{racethn}: \code{1} = \code{"White"},
+\code{2} = \code{"Black"}, \code{3} = \code{"Hispanic"}, \code{4}/\code{5} = \code{"Other"}. Levels:
+\code{c("White", "Black", "Hispanic", "Other")}.}
+\item{edu_f3}{Factor. Derived from \code{educcat5}: \code{1} = \code{"Less than HS"},
+\code{2:3} = \code{"HS/Some college"}, \code{4:5} = \code{"College+"}. Levels:
+\code{c("Less than HS", "HS/Some college", "College+")}.}
+\item{pid_f3}{Factor. Derived from \code{partyscale5}: \code{1:2} =
+\code{"Republican"}, \code{3} = \code{"Independent"}, \code{4:5} = \code{"Democrat"}. Levels:
+\code{c("Republican", "Independent", "Democrat")}.}
+\item{age_f3}{Factor. Derived from \code{age} using
+\code{cut(age, breaks = c(18, 35, 55, Inf), right = FALSE)}. Levels:
+\code{c("18-34", "35-54", "55+")}.}
 }
 \subsection{\code{pew_2016_synth_pop_svy}}{
 

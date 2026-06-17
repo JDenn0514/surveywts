@@ -11,27 +11,25 @@
 library(surveycore)
 library(dplyr)
 
-age_bins <- c(18, 35, 55, Inf)
-age_labs <- c("18-34", "35-54", "55+")
-
-race_ethn_levels <- c("White", "Black", "Hispanic", "Asian", "Other")
-educ_levels <- c("Less than HS", "HS/Some college", "College+")
+age_f3_labs <- c("18-34", "35-54", "55+")
+race_f4_levels <- c("White", "Black", "Hispanic", "Other")
+edu_f3_levels <- c("Less than HS", "HS/Some college", "College+")
+pid_f3_levels <- c("Republican", "Independent", "Democrat")
 
 US_ADULT_POP <- 260000000L
 
 ## ---- npors_2025 -------------------------------------------------------------
 ## Full surveycore::pew_npors_2025 dataset (65 original columns retained).
-## Adds 5 derived columns:
-##   gender:    factor from gender col (1=M, 2=F; 3/99 -> NA)
-##   age_group: factor from agegrp col (1:3->"18-34", 4:7->"35-54", 8:13->"55+")
-##   race_ethn: factor from racethn col (1=White, 2=Black, 3=Hisp, 5=Asian, 4=Other)
-##   educ:      factor from educcat col (1=College+, 2=HS/Some, 3=Less HS)
-##   wt_pop:    numeric; weight * (260000000L / nrow(npors_2025))
-##              population-scaled weight for IPW use
-##              npors_2025_svy uses weight (normalized); IPW users use wt_pop
-## Total columns: 65 + 4 new = 69
-## (gender already exists in source and is overwritten in-place;
-## age_group, race_ethn, educ, wt_pop are the 4 genuinely new columns)
+## Adds 6 derived columns: sex, age_f3, race_f4, edu_f3, pid_f3, wt_pop.
+##   sex:    factor from gender col (1=Male, 2=Female; 3/99 -> NA)
+##   age_f3: factor from agegrp col (1:3->"18-34", 4:7->"35-54", 8:13->"55+")
+##   race_f4: factor from racethn col (1=White, 2=Black, 3=Hisp, 4/5=Other)
+##   edu_f3:  factor from educcat col (1=College+, 2=HS/Some, 3=Less HS)
+##   pid_f3:  factor from partysum (1=Republican, 9=Independent, 2=Democrat)
+##   wt_pop:  numeric; weight * (260000000L / nrow(npors_2025))
+##            population-scaled weight for IPW use
+##            npors_2025_svy uses weight (normalized); IPW users use wt_pop
+## Total columns: 65 + 6 new = 71
 ## Note: ~0.5% NA per derived column from 99-code recoding
 
 npors_raw <- surveycore::pew_npors_2025
@@ -40,48 +38,63 @@ npors_2025 <- as.data.frame(npors_raw, stringsAsFactors = FALSE)
 # gender: 1=Male, 2=Female; 3=Non-binary / 99=Refused -> NA
 gender_raw <- npors_2025$gender
 gender_raw[gender_raw %in% c(3L, 99L)] <- NA_integer_
-npors_2025$gender <- factor(
+npors_2025$sex <- factor(
   gender_raw,
   levels = c(1L, 2L),
   labels = c("Male", "Female")
 )
 
-# age_group: agegrp 1-3 -> "18-34", 4-7 -> "35-54", 8-13 -> "55+"; 99 -> NA
+# age_f3: agegrp 1-3 -> "18-34", 4-7 -> "35-54", 8-13 -> "55+"; 99 -> NA
 agegrp_raw <- npors_2025$agegrp
-agegrp_raw[agegrp_raw == 99L] <- NA_integer_
-npors_2025$age_group <- factor(
-  dplyr::case_when(
-    agegrp_raw %in% 1L:3L ~ "18-34",
-    agegrp_raw %in% 4L:7L ~ "35-54",
-    agegrp_raw %in% 8L:13L ~ "55+"
+npors_2025$age_f3 <- factor(
+  dplyr::recode_values(
+    agegrp_raw,
+    c(1:3) ~ "18-34",
+    c(4:7) ~ "35-54",
+    c(8:13) ~ "55+",
+    default = NA_character_
   ),
-  levels = age_labs
+  levels = age_f3_labs
 )
 
-# race_ethn: 1=White, 2=Black, 3=Hispanic, 5=Asian, 4=Other; 99 -> NA
+# race_f4: 1=White, 2=Black, 3=Hispanic, 4/5=Other (Asian collapsed); 99 -> NA
 racethn_raw <- npors_2025$racethn
-racethn_raw[racethn_raw == 99L] <- NA_integer_
-npors_2025$race_ethn <- factor(
-  dplyr::case_when(
-    racethn_raw == 1L ~ "White",
-    racethn_raw == 2L ~ "Black",
-    racethn_raw == 3L ~ "Hispanic",
-    racethn_raw == 5L ~ "Asian",
-    racethn_raw == 4L ~ "Other"
+npors_2025$race_f4 <- factor(
+  dplyr::recode_values(
+    racethn_raw,
+    1 ~ "White",
+    2 ~ "Black",
+    3 ~ "Hispanic",
+    c(4, 5) ~ "Other",
+    default = NA_character_
   ),
-  levels = race_ethn_levels
+  levels = race_f4_levels
 )
 
-# educ: 1=College+, 2=HS/Some college, 3=Less than HS; 99 -> NA
+# edu_f3: 1=College+, 2=HS/Some college, 3=Less than HS; 99 -> NA
 educcat_raw <- npors_2025$educcat
-educcat_raw[educcat_raw == 99L] <- NA_integer_
-npors_2025$educ <- factor(
-  dplyr::case_when(
-    educcat_raw == 3L ~ "Less than HS",
-    educcat_raw == 2L ~ "HS/Some college",
-    educcat_raw == 1L ~ "College+"
+npors_2025$edu_f3 <- factor(
+  dplyr::recode_values(
+    educcat_raw,
+    3 ~ "Less than HS",
+    2 ~ "HS/Some college",
+    1 ~ "College+",
+    default = NA_character_
   ),
-  levels = educ_levels
+  levels = edu_f3_levels
+)
+
+# pid_f3: partysum 1=Republican, 2=Democrat, 9=Independent; other -> NA
+partysum <- npors_2025$partysum
+npors_2025$pid_f3 <- factor(
+  dplyr::recode_values(
+    partysum,
+    1 ~ "Republican",
+    9 ~ "Independent",
+    2 ~ "Democrat",
+    default = NA_character_
+  ),
+  levels = pid_f3_levels
 )
 
 # wt_pop: population-scaled weight for IPW use
@@ -90,11 +103,12 @@ npors_2025$wt_pop <- npors_2025$weight * (US_ADULT_POP / nrow(npors_2025))
 
 # Structural assertions
 stopifnot(nrow(npors_2025) == 5022L)
-stopifnot(ncol(npors_2025) == 69L)
-stopifnot(is.factor(npors_2025$gender))
-stopifnot(is.factor(npors_2025$age_group))
-stopifnot(is.factor(npors_2025$race_ethn))
-stopifnot(is.factor(npors_2025$educ))
+stopifnot(ncol(npors_2025) == 71L)
+stopifnot(is.factor(npors_2025$sex))
+stopifnot(is.factor(npors_2025$age_f3))
+stopifnot(is.factor(npors_2025$race_f4))
+stopifnot(is.factor(npors_2025$edu_f3))
+stopifnot(is.factor(npors_2025$pid_f3))
 stopifnot(is.numeric(npors_2025$wt_pop))
 
 ## ---- npors_2025_svy ---------------------------------------------------------
@@ -114,23 +128,25 @@ message(
 )
 
 ## ---- npors_2025_clean -------------------------------------------------------
-## Filtered version of npors_2025: rows where gender, age_group, race_ethn,
-## and educ are all non-NA. No re-scaling of weights after row removal.
+## Filtered version of npors_2025: rows where sex, age_f3, race_f4, edu_f3,
+## and pid_f3 are all non-NA. No re-scaling of weights after row removal.
 ## Use this when passing to ipw() to avoid the reference-NA listwise-deletion
 ## warning. Use npors_2025 when downstream code handles missingness itself.
 
 npors_2025_clean <- npors_2025[
-  !is.na(npors_2025$gender) &
-    !is.na(npors_2025$age_group) &
-    !is.na(npors_2025$race_ethn) &
-    !is.na(npors_2025$educ),
+  !is.na(npors_2025$sex) &
+    !is.na(npors_2025$age_f3) &
+    !is.na(npors_2025$race_f4) &
+    !is.na(npors_2025$edu_f3) &
+    !is.na(npors_2025$pid_f3),
 ]
 
 # Structural assertions
-stopifnot(sum(is.na(npors_2025_clean$gender)) == 0L)
-stopifnot(sum(is.na(npors_2025_clean$age_group)) == 0L)
-stopifnot(sum(is.na(npors_2025_clean$race_ethn)) == 0L)
-stopifnot(sum(is.na(npors_2025_clean$educ)) == 0L)
+stopifnot(sum(is.na(npors_2025_clean$sex)) == 0L)
+stopifnot(sum(is.na(npors_2025_clean$age_f3)) == 0L)
+stopifnot(sum(is.na(npors_2025_clean$race_f4)) == 0L)
+stopifnot(sum(is.na(npors_2025_clean$edu_f3)) == 0L)
+stopifnot(sum(is.na(npors_2025_clean$pid_f3)) == 0L)
 stopifnot(nrow(npors_2025_clean) > 4700L)
 
 ## ---- npors_2025_clean_svy ---------------------------------------------------

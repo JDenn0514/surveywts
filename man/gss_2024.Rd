@@ -8,8 +8,9 @@
 \format{
 \subsection{\code{gss_2024}}{
 
-A data frame with 3,309 rows and 30 columns. All 27 original columns from
-\code{surveycore::gss_2024} are retained. Three derived columns are added:
+A data frame with 3,309 rows and 32 columns. All 27 original columns from
+\code{surveycore::gss_2024} are retained. The \code{sex} column is overwritten in-place
+as a factor; five new derived columns are added:
 \describe{
 \item{vpsu}{Numeric. Primary sampling unit identifier for variance estimation.}
 \item{vstrat}{Numeric. Stratum identifier for variance estimation.}
@@ -20,8 +21,9 @@ Use for standard survey estimation. For IPW use \code{wt_pop} instead.}
 \item{year}{Numeric. Survey year (2024).}
 \item{id}{Numeric. Respondent identifier.}
 \item{age}{Numeric. Age in years. Some respondents have \code{NA}.}
-\item{sex}{Numeric. Biological sex: \code{1} = Male, \code{2} = Female. Some
-respondents have \code{NA}.}
+\item{sex}{Factor. Derived from the original integer \code{sex} column:
+\code{1} = \code{"Male"}, \code{2} = \code{"Female"}, \code{NA} for other values. Levels:
+\code{c("Male", "Female")}.}
 \item{race}{Numeric. Race: \code{1} = White, \code{2} = Black, \code{3} = Other.}
 \item{hispanic}{Numeric. Hispanic origin indicator.}
 \item{educ}{Numeric. Years of education.}
@@ -41,12 +43,19 @@ respondents have \code{NA}.}
 \item{abany}{Numeric. Abortion opinion (any reason).}
 \item{attend}{Numeric. Religious service attendance frequency.}
 \item{relig}{Numeric. Religion.}
-\item{gender}{Factor. Derived from \code{sex}: \code{"Male"} (sex == 1),
-\code{"Female"} (sex == 2), \code{NA} for other values. Levels:
-\code{c("Male", "Female")}.}
-\item{age_group}{Factor. Derived from \code{age} using
+\item{age_f3}{Factor. Derived from \code{age} using
 \code{cut(age, breaks = c(18, 35, 55, Inf), right = FALSE)}. Levels:
 \code{c("18-34", "35-54", "55+")}. \code{NA} for age < 18 or missing age.}
+\item{race_f4}{Factor. Derived from \code{race} and \code{hispanic}: Hispanic
+origin takes precedence (\code{hispanic > 1} = \code{"Hispanic"}); \code{race == 1}
+= \code{"White"}, \code{race == 2} = \code{"Black"}, else \code{"Other"}. Levels:
+\code{c("White", "Black", "Hispanic", "Other")}.}
+\item{pid_f3}{Factor. Derived from \code{partyid}: \code{0:2} = \code{"Democrat"},
+\code{3} = \code{"Independent"}, \code{4:6} = \code{"Republican"}, \code{7} = \code{NA}. Levels:
+\code{c("Republican", "Independent", "Democrat")}.}
+\item{edu_f3}{Factor. Derived from \code{degree}: \code{0} = \code{"Less than HS"},
+\code{1:2} = \code{"HS/Some college"}, \code{3:4} = \code{"College+"}. Levels:
+\code{c("Less than HS", "HS/Some college", "College+")}.}
 \item{wt_pop}{Numeric. Population-scaled weight: \code{wtssps * (260000000 / nrow(gss_2024))}. Use for IPW reference design construction (sums to
 approximately 260 million, the 2024 US adult population estimate).}
 }
@@ -74,8 +83,10 @@ gss_2024_svy
 \description{
 The 2024 General Social Survey (GSS), obtained from
 \code{surveycore::gss_2024}. All 3,309 respondents are retained, including those
-with \code{NA} in \code{sex} or \code{age}. Three derived columns are added: \code{gender}
-(factor from \code{sex}), \code{age_group} (factor from \code{age}), and \code{wt_pop}
+with \code{NA} in \code{sex} or \code{age}. The raw integer \code{sex} column is overwritten
+in-place with a factor. Five derived columns are added: \code{age_f3} (factor
+from \code{age}), \code{race_f4} (factor from \code{race} and \code{hispanic}), \code{pid_f3}
+(factor from \code{partyid}), \code{edu_f3} (factor from \code{degree}), and \code{wt_pop}
 (population-scaled weight for IPW use).
 
 \code{gss_2024_svy} is a \code{survey_taylor} object constructed with \code{wtssps}
@@ -88,7 +99,7 @@ the \code{gss_2024} tibble using the \code{wt_pop} column:
 ref <- surveycore::as_survey(
   gss_2024, weights = wt_pop, strata = vstrat, ids = vpsu, nest = TRUE
 )
-ipw(ns_wave1, ref, selection = ~gender + age_group)
+ipw(ns_wave1, ref, selection = ~sex + age_f3)
 }\if{html}{\out{</div>}}
 }
 \seealso{

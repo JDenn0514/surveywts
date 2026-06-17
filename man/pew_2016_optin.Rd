@@ -6,7 +6,7 @@
 \alias{pew_2016_optin_svy}
 \title{Pew 2016 ATP opt-in sample}
 \format{
-A data frame with 31,863 rows and 99 columns:
+A data frame with 31,863 rows and 104 columns:
 \describe{
 \item{rid}{Character. Respondent ID with vendor prefix (e.g., \code{"V1_7"}).}
 \item{vendor}{Numeric. Opt-in panel vendor: \code{1} = Vendor 1, \code{2} = Vendor 2,
@@ -171,13 +171,28 @@ Central, \code{3} = Middle Atlantic, \code{4} = Mountain, \code{5} = New England
 \code{3} = South, \code{4} = West.}
 \item{language}{Numeric. Interview language: \code{1} = English,
 \code{2} = Spanish.}
+\item{sex}{Factor. Derived from \code{gender}: \code{1} = \code{"Male"}, \code{2} =
+\code{"Female"}, \code{3} (Refused) = \code{NA}. Levels: \code{c("Male", "Female")}.}
+\item{race_f4}{Factor. Derived from \code{racethn}: \code{1} = \code{"White"},
+\code{2} = \code{"Black"}, \code{3} = \code{"Hispanic"}, \code{4}/\code{5} = \code{"Other"} (Asian
+collapsed), \code{6} = \code{NA}. Levels:
+\code{c("White", "Black", "Hispanic", "Other")}.}
+\item{edu_f3}{Factor. Derived from \code{educcat5}: \code{1} = \code{"Less than HS"},
+\code{2:3} = \code{"HS/Some college"}, \code{4:5} = \code{"College+"}, \code{6} = \code{NA}.
+Levels: \code{c("Less than HS", "HS/Some college", "College+")}.}
+\item{pid_f3}{Factor. Derived from \code{partyscale3} (GSS-style 3-category
+party): \code{1} = \code{"Republican"}, \code{2} = \code{"Democrat"}, \code{3} =
+\code{"Independent"}. Levels: \code{c("Republican", "Independent", "Democrat")}.}
+\item{age_f3}{Factor. Derived from \code{agecat6}: \code{1:2} = \code{"18-34"},
+\code{3:4} = \code{"35-54"}, \code{5:6} = \code{"55+"}. Levels:
+\code{c("18-34", "35-54", "55+")}.}
 }
 \subsection{\code{pew_2016_optin_svy}}{
 
 A \code{survey_nonprob} object wrapping \code{pew_2016_optin}. The \code{weight} column
 contains calibrated weights produced by raking to \link{pew_2016_synth_pop}
-targets (Newton-Raphson, 7 margins: gender, agecat6, racethn, educcat5,
-division, partyscale5, ideo3; 5th/95th percentile trim). Carries 200
+targets (Newton-Raphson, 7 margins: sex, age_f3, race_f4, edu_f3,
+division, pid_f3, ideo3; 5th/95th percentile trim). Carries 200
 quasi-randomization bootstrap replicate weights (\code{repwt_1}–\code{repwt_200} in
 \verb{@data}; \verb{@variables$repweights} populated). The \code{weight} column exists
 only in the object's \verb{@data} — it is not stored in the \code{pew_2016_optin}
@@ -210,11 +225,11 @@ are stored in the \code{"label"} attribute of each column.
 \code{pew_2016_optin_svy} is a \code{survey_nonprob} object whose \code{weight} column
 is produced by raking to targets computed as unweighted proportions from
 \link{pew_2016_synth_pop} (Newton-Raphson algorithm, 7 marginal dimensions:
-gender, age group, race/ethnicity, education, census division, party ID,
-and ideology; 5th/95th percentile trim). It carries 200
-quasi-randomization bootstrap replicate weights (\code{repwt_1}–\code{repwt_200}).
-The \code{weight} column is stored in the object's \verb{@data} slot only; it is
-not present in the \code{pew_2016_optin} tibble.
+sex, age_f3, race_f4, edu_f3, division, pid_f3, and ideology;
+5th/95th percentile trim). It carries 200 quasi-randomization bootstrap
+replicate weights (\code{repwt_1}–\code{repwt_200}). The \code{weight} column is stored
+in the object's \verb{@data} slot only; it is not present in the
+\code{pew_2016_optin} tibble.
 }
 \details{
 Pew 2016 ATP opt-in sample

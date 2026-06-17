@@ -8,11 +8,11 @@
 \format{
 \subsection{\code{ns_wave1}}{
 
-A data frame with 6,422 rows and 182 columns. All 171 original columns from
-\code{surveycore::ns_wave1} are retained. \code{gender} is converted from integer to
-factor in-place; eleven new columns are appended: three general-purpose
-derived columns (\code{age_group}, \code{race_ethn}, \code{educ}) and eight Nationscape
-raking recode columns (\code{ns_region}, \code{ns_hispanic}, \code{ns_race}, \code{ns_age},
+A data frame with 6,422 rows and 184 columns. All 171 original columns from
+\code{surveycore::ns_wave1} are retained, including \code{gender} as numeric; thirteen
+new columns are appended: five general-purpose derived columns (\code{sex},
+\code{age_f3}, \code{race_f4}, \code{edu_f3}, \code{pid_f3}) and eight Nationscape raking
+recode columns (\code{ns_region}, \code{ns_hispanic}, \code{ns_race}, \code{ns_age},
 \code{ns_language}, \code{ns_foreign_born}, \code{ns_income}, \code{ns_vote_2016}):
 \describe{
 \item{response_id}{Character. Respondent identifier.}
@@ -176,34 +176,38 @@ raking recode columns (\code{ns_region}, \code{ns_hispanic}, \code{ns_race}, \co
 \item{ban_assault_rifles}{Numeric. Opinion on banning assault rifles.}
 \item{limit_magazines}{Numeric. Opinion on limiting magazine capacity.}
 \item{age}{Numeric. Age in years (original column retained).}
-\item{gender}{Factor. Derived from the original integer \code{gender} column:
-\code{1} = \code{"Male"}, \code{2} = \code{"Female"}. Values outside \verb{\{1, 2\}} are \code{NA}.
-Levels: \code{c("Male", "Female")}. The original integer column is replaced
-in-place.}
+\item{gender}{Numeric. Biological sex: \code{1} = Male, \code{2} = Female.
+Original integer column retained.}
 \item{census_region}{Numeric. Census region.}
 \item{hispanic}{Numeric. Hispanic origin (original column retained,
-used to derive \code{race_ethn}).}
+used to derive \code{race_f4}).}
 \item{race_ethnicity}{Numeric. Race/ethnicity code (original column
-retained, used to derive \code{race_ethn}).}
+retained, used to derive \code{race_f4}).}
 \item{household_income}{Numeric. Household income.}
 \item{education}{Numeric. Education level code (original column retained,
-used to derive \code{educ}).}
+used to derive \code{edu_f3}).}
 \item{state}{Character. State of residence.}
 \item{congress_district}{Numeric. Congressional district.}
 \item{weight}{Numeric. Survey weight. Used by \code{ns_wave1_svy}.}
 \item{wave_id}{Numeric. Wave identifier.}
-\item{age_group}{Factor. Derived from \code{age} using
+\item{sex}{Factor. Derived from \code{gender}: \code{1} = \code{"Male"}, \code{2} =
+\code{"Female"}, other = \code{NA}. Levels: \code{c("Male", "Female")}.}
+\item{age_f3}{Factor. Derived from \code{age} using
 \code{cut(age, breaks = c(18, 35, 55, Inf), right = FALSE)}. Levels:
 \code{c("18-34", "35-54", "55+")}. \code{NA} for age < 18 or missing.}
-\item{race_ethn}{Factor. Derived from \code{race_ethnicity} and \code{hispanic}:
-Hispanic origin takes precedence; Asian = \code{race_ethnicity \%in\% 4:10};
-Other = \code{race_ethnicity \%in\% c(3, 11:14)};
-\code{race_ethnicity == 15} (some other race, non-Hispanic) = \code{NA}.
-Levels: \code{c("White", "Black", "Hispanic", "Asian", "Other")}.
-Some \code{NA} values (respondents with "some other race", non-Hispanic).}
-\item{educ}{Factor. Derived from \code{education}: \code{1:3} = \code{"Less than HS"},
+\item{race_f4}{Factor. Derived from \code{race_ethnicity} and \code{hispanic}:
+Hispanic origin takes precedence; \code{race_ethnicity \%in\% 3:14} =
+\code{"Other"} (collapses Asian); \code{race_ethnicity == 15} (some other race,
+non-Hispanic) = \code{NA}. Levels:
+\code{c("White", "Black", "Hispanic", "Other")}. Some \code{NA} values
+(respondents with "some other race", non-Hispanic).}
+\item{edu_f3}{Factor. Derived from \code{education}: \code{1:3} = \code{"Less than HS"},
 \code{4:7} = \code{"HS/Some college"}, \code{8:11} = \code{"College+"}. Levels:
 \code{c("Less than HS", "HS/Some college", "College+")}. No \code{NA} values.}
+\item{pid_f3}{Factor. Derived from \code{pid3}: \code{1} = \code{"Democrat"}, \code{2} =
+\code{"Republican"}, \code{c(3, 4)} = \code{"Independent"} (code 4 = Other/No
+preference mapped to Independent per Nationscape methodology), other =
+\code{NA}. Levels: \code{c("Republican", "Independent", "Democrat")}.}
 \item{ns_region}{Factor. Census region derived from \code{census_region}.
 Levels: \code{c("Northeast", "Midwest", "South", "West")}. No \code{NA} values.}
 \item{ns_hispanic}{Factor. Three-category Hispanic ethnicity derived from
@@ -254,12 +258,13 @@ ns_wave1_svy
 \description{
 The National Survey Wave 1 dataset, obtained from \code{surveycore::ns_wave1}.
 All 6,422 respondents and 171 original columns are retained. The \code{gender}
-column is converted from integer to factor in-place. Three general-purpose
-derived columns are added: \code{age_group} (factor from \code{age}), \code{race_ethn}
-(factor from \code{race_ethnicity} and \code{hispanic}), and \code{educ} (factor from
-\code{education}). Eight Nationscape raking recode columns (\verb{ns_*}) are also
-added as calibration variables used to replicate Nationscape's weighting
-procedure. Original source columns are kept unchanged.
+column is kept as numeric. Five general-purpose derived columns are added:
+\code{sex} (factor from \code{gender}), \code{age_f3} (factor from \code{age}), \code{race_f4}
+(factor from \code{race_ethnicity} and \code{hispanic}), \code{edu_f3} (factor from
+\code{education}), and \code{pid_f3} (factor from \code{pid3}). Eight Nationscape raking
+recode columns (\verb{ns_*}) are also added as calibration variables used to
+replicate Nationscape's weighting procedure. Original source columns are
+kept unchanged.
 
 \code{ns_wave1_svy} is a \code{survey_nonprob} object whose \code{weight} column replicates
 Nationscape's published survey weights via raking to ACS 2017 targets
@@ -269,7 +274,7 @@ weights, making it a ready-made input for demonstrating
 \code{create_bootstrap_weights()}, \code{create_jackknife_weights()}, and related
 functions.
 
-Some respondents have \code{NA} in \code{race_ethn} (those who reported "some other
+Some respondents have \code{NA} in \code{race_f4} (those who reported "some other
 race" with no Hispanic origin, which cannot be mapped to a standard category).
 }
 \seealso{

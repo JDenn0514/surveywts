@@ -8,10 +8,10 @@
 \format{
 \subsection{\code{npors_2025}}{
 
-A data frame with 5,022 rows and 69 columns. All 65 original columns from
-\code{surveycore::pew_npors_2025} are retained. Four new derived columns are
-added (\code{age_group}, \code{race_ethn}, \code{educ}, \code{wt_pop}); the original \code{gender}
-column is converted from integer to factor in-place:
+A data frame with 5,022 rows and 71 columns. All 65 original columns from
+\code{surveycore::pew_npors_2025} are retained, including \code{gender} as numeric.
+Six new derived columns are added (\code{sex}, \code{age_f3}, \code{race_f4}, \code{edu_f3},
+\code{pid_f3}, \code{wt_pop}):
 \describe{
 \item{respid}{Character. Respondent identifier.}
 \item{mode}{Numeric. Interview mode.}
@@ -72,10 +72,8 @@ column is converted from integer to factor in-place:
 categories, \code{99} = Refused.}
 \item{agecat}{Numeric. Age category (alternative grouping).}
 \item{birthplace}{Numeric. Born in the United States.}
-\item{gender}{Factor. Derived from the original integer \code{gender} column:
-\code{1} = \code{"Male"}, \code{2} = \code{"Female"}, \code{3} (Non-binary) and \code{99} (Refused)
-recoded to \code{NA}. Levels: \code{c("Male", "Female")}. Approximately 0.5\%
-\code{NA}.}
+\item{gender}{Numeric. Interview gender: \code{1} = Male, \code{2} = Female,
+\code{3} = Non-binary, \code{99} = Refused.}
 \item{adults}{Numeric. Number of adults in household.}
 \item{voted2024}{Numeric. Voted in 2024.}
 \item{votegen_post}{Numeric. 2024 vote choice.}
@@ -86,16 +84,23 @@ recoded to \code{NA}. Levels: \code{c("Male", "Female")}. Approximately 0.5\%
 \item{weight}{Numeric. Final normalized survey weight (mean approximately
 1). Use for \code{npors_2025_svy} and standard estimation. For IPW use
 \code{wt_pop} instead.}
-\item{age_group}{Factor. Derived from \code{agegrp}: \code{1:3} = \code{"18-34"},
+\item{sex}{Factor. Derived from \code{gender}: \code{1} = \code{"Male"}, \code{2} =
+\code{"Female"}, \code{3} (Non-binary) and \code{99} (Refused) recoded to \code{NA}.
+Levels: \code{c("Male", "Female")}. Approximately 0.5\% \code{NA}.}
+\item{age_f3}{Factor. Derived from \code{agegrp}: \code{1:3} = \code{"18-34"},
 \code{4:7} = \code{"35-54"}, \code{8:13} = \code{"55+"}, \code{99} = \code{NA}. Levels:
 \code{c("18-34", "35-54", "55+")}. Approximately 0.5\% \code{NA}.}
-\item{race_ethn}{Factor. Derived from \code{racethn}: \code{1} = \code{"White"},
-\code{2} = \code{"Black"}, \code{3} = \code{"Hispanic"}, \code{5} = \code{"Asian"}, \code{4} = \code{"Other"},
-\code{99} = \code{NA}. Levels: \code{c("White", "Black", "Hispanic", "Asian", "Other")}. Approximately 0.5\% \code{NA}.}
-\item{educ}{Factor. Derived from \code{educcat}: \code{3} = \code{"Less than HS"},
+\item{race_f4}{Factor. Derived from \code{racethn}: \code{1} = \code{"White"},
+\code{2} = \code{"Black"}, \code{3} = \code{"Hispanic"}, \code{4}/\code{5} = \code{"Other"} (Asian
+collapsed), \code{99} = \code{NA}. Levels: \code{c("White", "Black", "Hispanic", "Other")}. Approximately 0.5\% \code{NA}.}
+\item{edu_f3}{Factor. Derived from \code{educcat}: \code{3} = \code{"Less than HS"},
 \code{2} = \code{"HS/Some college"}, \code{1} = \code{"College+"}, \code{99} = \code{NA}. Levels:
 \code{c("Less than HS", "HS/Some college", "College+")}. Approximately
 0.5\% \code{NA}.}
+\item{pid_f3}{Factor. Derived from \code{partysum}: \code{1} = \code{"Republican"},
+\code{2} = \code{"Democrat"}, \code{9} = \code{"Independent"}, other = \code{NA}. Levels:
+\code{c("Republican", "Independent", "Democrat")}. Approximately 0.5\%
+\code{NA}.}
 \item{wt_pop}{Numeric. Population-scaled weight: \code{weight * (260000000 / nrow(npors_2025))}. Use for IPW reference design construction (sums to
 approximately 260 million, the 2024 US adult population estimate).}
 }
@@ -122,9 +127,9 @@ npors_2025_svy
 \description{
 The 2025 Pew National Public Opinion Reference Survey (NPORS), obtained from
 \code{surveycore::pew_npors_2025}. All 5,022 respondents are retained.
-Four derived columns are added: \code{age_group}, \code{race_ethn}, \code{educ}, and
-\code{wt_pop}. The existing \code{gender} column is converted from integer to factor
-in-place.
+The original \code{gender} column is kept as-is (numeric). Six derived columns
+are added: \code{sex} (factor from \code{gender}), \code{age_f3}, \code{race_f4}, \code{edu_f3},
+\code{pid_f3}, and \code{wt_pop}.
 
 \code{npors_2025_svy} is a \code{survey_taylor} object using \code{weight} as the weight
 column (normalized NPORS weight, correct for standard estimation). For IPW
@@ -133,7 +138,7 @@ use, construct a reference design from the tibble using \code{wt_pop}:
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{data(npors_2025_clean)
 ref <- surveycore::as_survey(npors_2025_clean, weights = wt_pop)
 ipw(ns_wave1, ref,
-    selection = ~gender + age_group + race_ethn + educ,
+    selection = ~sex + age_f3 + race_f4 + edu_f3,
     missing_method = "omit")
 }\if{html}{\out{</div>}}
 

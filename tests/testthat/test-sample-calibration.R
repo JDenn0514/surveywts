@@ -2039,6 +2039,63 @@ test_that(
       ),
       class = "surveywts_error_scale_not_found"
     )
+    expect_snapshot(
+      error = TRUE,
+      {
+        p2a <- make_replicate_design(n = 100L, seed = 1L)
+        c2a <- make_replicate_design(n = 100L, seed = 2L)
+        v2a <- p2a@variables
+        v2a$scale <- NULL
+        p2a@variables <- v2a
+        calibrate_to_survey(
+          p2a, c2a,
+          variables = c(age_group),
+          targets   = list(sex = c("M" = 0.48, "F" = 0.52)),
+          type      = "prop"
+        )
+      }
+    )
+  }
+)
+
+test_that(
+  "calibrate_to_survey() fires scale_not_found when control@variables$scale is NULL (targets non-NULL)",
+  {
+    primary <- make_replicate_design(n = 100L, seed = 1L)
+    control <- make_replicate_design(n = 100L, seed = 2L)
+
+    vars_c2 <- control@variables
+    vars_c2$scale <- NULL
+    control@variables <- vars_c2
+
+    tgts <- list(sex = c("M" = 0.48, "F" = 0.52))
+
+    expect_error(
+      calibrate_to_survey(
+        primary_design = primary,
+        control_design = control,
+        variables      = c(age_group),
+        targets        = tgts,
+        type           = "prop"
+      ),
+      class = "surveywts_error_scale_not_found"
+    )
+    expect_snapshot(
+      error = TRUE,
+      {
+        p2b <- make_replicate_design(n = 100L, seed = 1L)
+        c2b <- make_replicate_design(n = 100L, seed = 2L)
+        v2b <- c2b@variables
+        v2b$scale <- NULL
+        c2b@variables <- v2b
+        calibrate_to_survey(
+          p2b, c2b,
+          variables = c(age_group),
+          targets   = list(sex = c("M" = 0.48, "F" = 0.52)),
+          type      = "prop"
+        )
+      }
+    )
   }
 )
 
@@ -2150,6 +2207,25 @@ test_that(
         type           = "prop"
       ),
       class = "surveywts_error_control_level_missing"
+    )
+    expect_snapshot(
+      error = TRUE,
+      {
+        df_sn2 <- make_surveywts_data(n = 500L, seed = 88L)
+        df_sn2_partial <- df_sn2[df_sn2$age_group != "55+", ]
+        t_sn2 <- surveycore::survey_taylor(
+          data      = df_sn2_partial,
+          variables = list(weights = "base_weight")
+        )
+        ctrl_sn2 <- create_bootstrap_weights(t_sn2, replicates = 50L)
+        calibrate_to_survey(
+          make_replicate_design(n = 100L, seed = 1L),
+          ctrl_sn2,
+          variables = c(age_group),
+          targets   = list(sex = c("M" = 0.48, "F" = 0.52)),
+          type      = "prop"
+        )
+      }
     )
   }
 )
@@ -2389,6 +2465,16 @@ test_that(
       ),
       class = "surveywts_error_targets_totals_invalid"
     )
+    expect_snapshot(
+      error = TRUE,
+      calibrate_to_survey(
+        make_replicate_design(n = 100L, seed = 1L),
+        make_replicate_design(n = 100L, seed = 2L),
+        variables = c(age_group),
+        targets   = list(sex = c("M" = -50, "F" = 200)),
+        type      = "count"
+      )
+    )
   }
 )
 
@@ -2408,6 +2494,16 @@ test_that(
         type           = "count"
       ),
       class = "surveywts_error_targets_totals_invalid"
+    )
+    expect_snapshot(
+      error = TRUE,
+      calibrate_to_survey(
+        make_replicate_design(n = 100L, seed = 1L),
+        make_replicate_design(n = 100L, seed = 2L),
+        variables = c(age_group),
+        targets   = list(sex = c("M" = NA_real_, "F" = 200)),
+        type      = "count"
+      )
     )
   }
 )

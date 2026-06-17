@@ -321,6 +321,38 @@
       i `@variables$scale` must be non-NULL to compute Opsomer `a_r` adjustment constants.
       v Use `create_bootstrap_weights()` to create designs with `@variables$scale` populated.
 
+# calibrate_to_survey() fires scale_not_found when primary@variables$scale is NULL (targets non-NULL)
+
+    Code
+      p2a <- make_replicate_design(n = 100L, seed = 1L)
+      c2a <- make_replicate_design(n = 100L, seed = 2L)
+      v2a <- p2a@variables
+      v2a$scale <- NULL
+      p2a@variables <- v2a
+      calibrate_to_survey(p2a, c2a, variables = c(age_group), targets = list(sex = c(
+        M = 0.48, F = 0.52)), type = "prop")
+    Condition
+      Error in `calibrate_to_survey()`:
+      x Replication scale constant not found in `primary_design`.
+      i `@variables$scale` must be non-NULL to compute Opsomer `a_r` adjustment constants.
+      v Use `create_bootstrap_weights()` to create designs with `@variables$scale` populated.
+
+# calibrate_to_survey() fires scale_not_found when control@variables$scale is NULL (targets non-NULL)
+
+    Code
+      p2b <- make_replicate_design(n = 100L, seed = 1L)
+      c2b <- make_replicate_design(n = 100L, seed = 2L)
+      v2b <- c2b@variables
+      v2b$scale <- NULL
+      c2b@variables <- v2b
+      calibrate_to_survey(p2b, c2b, variables = c(age_group), targets = list(sex = c(
+        M = 0.48, F = 0.52)), type = "prop")
+    Condition
+      Error in `calibrate_to_survey()`:
+      x Replication scale constant not found in `control_design`.
+      i `@variables$scale` must be non-NULL to compute Opsomer `a_r` adjustment constants.
+      v Use `create_bootstrap_weights()` to create designs with `@variables$scale` populated.
+
 # calibrate_to_survey() fires scale_not_found when control@variables$scale is NULL (targets = NULL)
 
     Code
@@ -348,6 +380,22 @@
     Condition
       Error in `.check_control_levels()`:
       x Control survey is missing level(s) of variable sex: "F".
+      i All levels in `primary_design` must also appear in `control_design` to estimate control-survey totals.
+      v Verify that `control_design` covers the same population as `primary_design`.
+
+# calibrate_to_survey() fires control_level_missing when a level is absent from control (targets non-NULL)
+
+    Code
+      df_sn2 <- make_surveywts_data(n = 500L, seed = 88L)
+      df_sn2_partial <- df_sn2[df_sn2$age_group != "55+", ]
+      t_sn2 <- surveycore::survey_taylor(data = df_sn2_partial, variables = list(
+        weights = "base_weight"))
+      ctrl_sn2 <- create_bootstrap_weights(t_sn2, replicates = 50L)
+      calibrate_to_survey(make_replicate_design(n = 100L, seed = 1L), ctrl_sn2,
+      variables = c(age_group), targets = list(sex = c(M = 0.48, F = 0.52)), type = "prop")
+    Condition
+      Error in `.check_control_levels()`:
+      x Control survey is missing level(s) of variable age_group: "55+".
       i All levels in `primary_design` must also appear in `control_design` to estimate control-survey totals.
       v Verify that `control_design` covers the same population as `primary_design`.
 
@@ -427,6 +475,30 @@
       calibrate_to_survey(make_replicate_design(n = 100L, seed = 1L),
       make_replicate_design(n = 100L, seed = 2L), variables = c(age_group), targets = list(
         sex = c(M = 0, F = 200)), type = "count")
+    Condition
+      Error in `.validate_targets_for_opsomer()`:
+      x `targets` element "sex" has invalid count(s).
+      i With `type = "count"`, all values must be positive and non-NA.
+      v Fix the value(s) in `targets[["sex"]]`.
+
+# calibrate_to_survey() fires targets_totals_invalid for count < 0
+
+    Code
+      calibrate_to_survey(make_replicate_design(n = 100L, seed = 1L),
+      make_replicate_design(n = 100L, seed = 2L), variables = c(age_group), targets = list(
+        sex = c(M = -50, F = 200)), type = "count")
+    Condition
+      Error in `.validate_targets_for_opsomer()`:
+      x `targets` element "sex" has invalid count(s).
+      i With `type = "count"`, all values must be positive and non-NA.
+      v Fix the value(s) in `targets[["sex"]]`.
+
+# calibrate_to_survey() fires targets_totals_invalid for count = NA
+
+    Code
+      calibrate_to_survey(make_replicate_design(n = 100L, seed = 1L),
+      make_replicate_design(n = 100L, seed = 2L), variables = c(age_group), targets = list(
+        sex = c(M = NA_real_, F = 200)), type = "count")
     Condition
       Error in `.validate_targets_for_opsomer()`:
       x `targets` element "sex" has invalid count(s).

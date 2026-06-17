@@ -502,7 +502,7 @@
 #' )
 #'
 #' # --- Pew NPORS 2025 as probability reference ---
-#' # ns_wave1 has ~491 NA values in race_f4; missing_method controls handling.
+#' # ns_wave1 has ~120 NA values in race_f4; missing_method controls handling.
 #' # Use npors_2025_clean to avoid reference-NA listwise-deletion warnings.
 #' data(npors_2025_clean)
 #' npors_ref <- surveycore::as_survey(npors_2025_clean, weights = wt_pop)

@@ -226,7 +226,7 @@ Levels: \code{c("18-23", "24-29", "30-39", "40-49", "50-59", "60-69", "70+")}. N
 \code{c("United States", "Other")}. No \code{NA} values.}
 \item{ns_income}{Factor. Nine household income brackets derived from
 \code{household_income} (codes \code{1}–\code{24}), plus \code{"No answer"} for \code{NA}
-responses. Levels: \code{c("<$20k", "$20-35k", "$35-50k", "$50-65k", "$65-80k", "$80-100k", "$100-125k", "$125-200k", "≥$200k", "No answer")}. No \code{NA} values.}
+responses. Levels: \code{c("<$20k", "$20-35k", "$35-50k", "$50-65k", "$65-80k", "$80-100k", "$100-125k", "$125-200k", ">=$200k", "No answer")}. No \code{NA} values.}
 \item{ns_vote_2016}{Factor. 2016 presidential vote derived from
 \code{vote_2016}: \code{1} = \code{"Trump"}, \code{2} = \code{"Clinton"}, \code{3:5} = \code{"Other"},
 \code{6:8} = \code{"No vote"} (includes ineligible and don't recall). Levels:
@@ -241,7 +241,7 @@ replicated Nationscape survey weights produced by raking to ACS 2017 targets
 (Newton-Raphson, 10 marginal dimensions, 5th/95th percentile trim). Carries
 no replicate weights — intended as a starting point for demonstrating
 \code{create_bootstrap_weights()}, \code{create_jackknife_weights()}, and related
-functions. Weighting history: \code{calibrate_rake} → \code{trim_weights}.
+functions. Weighting history: \code{calibrate_rake} -> \code{trim_weights}.
 }
 
 An object of class \code{surveycore::survey_nonprob} (inherits from \code{surveycore::survey_base}, \code{S7_object}) of length 1.

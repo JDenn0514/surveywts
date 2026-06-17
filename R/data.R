@@ -1136,7 +1136,7 @@
 #'   \item{ns_income}{Factor. Nine household income brackets derived from
 #'     `household_income` (codes `1`–`24`), plus `"No answer"` for `NA`
 #'     responses. Levels: `c("<$20k", "$20-35k", "$35-50k", "$50-65k",
-#'     "$65-80k", "$80-100k", "$100-125k", "$125-200k", "≥$200k",
+#'     "$65-80k", "$80-100k", "$100-125k", "$125-200k", ">=$200k",
 #'     "No answer")`. No `NA` values.}
 #'   \item{ns_vote_2016}{Factor. 2016 presidential vote derived from
 #'     `vote_2016`: `1` = `"Trump"`, `2` = `"Clinton"`, `3:5` = `"Other"`,
@@ -1150,7 +1150,7 @@
 #' (Newton-Raphson, 10 marginal dimensions, 5th/95th percentile trim). Carries
 #' no replicate weights — intended as a starting point for demonstrating
 #' `create_bootstrap_weights()`, `create_jackknife_weights()`, and related
-#' functions. Weighting history: `calibrate_rake` → `trim_weights`.
+#' functions. Weighting history: `calibrate_rake` -> `trim_weights`.
 #'
 #' @source Derived from `surveycore::ns_wave1`.
 #'   See `data-raw/ns-wave1.R` for the construction script.

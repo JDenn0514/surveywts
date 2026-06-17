@@ -21,9 +21,24 @@
 #'   class of the returned object.
 #' @param variables <[`tidy-select`][tidyselect::language]> Bare names of the
 #'   calibration variables in `primary_design@data`. Must be present in both
-#'   `primary_design` and `control_design`.
+#'   `primary_design` and `control_design`. These are the random
+#'   (sample-estimated) margins.
+#' @param targets `NULL` (the default) or a named list of fixed census
+#'   margins. Each element's name is a column in `primary_design@data`. Each
+#'   element is a named numeric vector or a tibble with the variable column
+#'   plus `"n"` (count) or `"prop"` (proportion). When `NULL`, the Opsomer
+#'   path runs with no fixed margins and `type` is matched but unused.
+#' @param type `"prop"` (the default) or `"count"`. Controls interpretation
+#'   of `targets` values: `"prop"` means proportions summing to 1.0 per
+#'   variable; `"count"` means population counts (positive non-NA values).
+#'   Ignored and produces no error when `targets = NULL`. Matched with
+#'   [rlang::arg_match()].
 #' @param method Calibration method. One of `"rake"` (default), `"linear"`,
 #'   or `"logit"`. Matched with [rlang::arg_match()].
+#' @param algorithm Raking algorithm; used only when `method = "rake"`.
+#'   `"classic_ipf"` (the default): iterative proportional fitting.
+#'   `"nr"`: Newton-Raphson raking. Silently ignored when
+#'   `method != "rake"`. Matched with [rlang::arg_match()].
 #' @param bounds Numeric vector of length 2: `c(lower, upper)`. Bounds on
 #'   the calibrated-to-starting-weight ratio. Default `c(-Inf, Inf)`.
 #'   Note: per-unit `bounds_scale` is not supported; use scalar bounds only.
@@ -129,14 +144,19 @@ calibrate_to_survey <- function(
   primary_design,
   control_design,
   variables,
-  method = c("rake", "linear", "logit"),
-  bounds = c(-Inf, Inf),
+  targets   = NULL,
+  type      = c("prop", "count"),
+  method    = c("rake", "linear", "logit"),
+  algorithm = c("classic_ipf", "nr"),
+  bounds    = c(-Inf, Inf),
   unit_scale = NULL,
   reference_design = NULL,
   control = list()
 ) {
-  call_str <- paste0(deparse(match.call()), collapse = " ")
-  method   <- rlang::arg_match(method)
+  call_str  <- paste0(deparse(match.call()), collapse = " ")
+  type      <- rlang::arg_match(type)
+  method    <- rlang::arg_match(method)
+  algorithm <- rlang::arg_match(algorithm)
 
   # ---- 1. primary_design class check ----------------------------------------
   is_nonprob_primary <- S7::S7_inherits(
@@ -329,7 +349,41 @@ calibrate_to_survey <- function(
     )
   }
 
-  # ---- 8. Convert to svrep objects and call calibrate_to_sample() -----------
+  # ---- 8. Scale constant check (step 10) ------------------------------------
+  A   <- primary_design@variables$scale
+  A_C <- control_design@variables$scale
+  if (is.null(A) || is.null(A_C)) {
+    which_missing <- character(0)
+    if (is.null(A))   which_missing <- c(which_missing, "primary_design")
+    if (is.null(A_C)) which_missing <- c(which_missing, "control_design")
+    cli::cli_abort(
+      c(
+        "x" = paste0(
+          "Replication scale constant not found in ",
+          "{.and {.arg {which_missing}}}."
+        ),
+        "i" = paste0(
+          "`@variables$scale` must be non-NULL to compute ",
+          "Opsomer `a_r` adjustment constants."
+        ),
+        "v" = paste0(
+          "Use {.fn create_bootstrap_weights} to create designs ",
+          "with `@variables$scale` populated."
+        )
+      ),
+      class = "surveywts_error_scale_not_found"
+    )
+  }
+
+  # ---- 9. Control level check (step 11) -------------------------------------
+  .check_control_levels(primary_design, control_design, var_names)
+
+  # ---- 10. Targets validation (step 12, only when targets non-NULL) ----------
+  if (!is.null(targets)) {
+    .validate_targets_for_opsomer(targets, type, primary_design)
+  }
+
+  # ---- 11. Convert to svrep objects and call calibrate_to_sample() ----------
   primary_svyrep  <- .to_svyrep(primary_design)
   control_svyrep  <- .to_svyrep(control_design)
 
@@ -492,6 +546,190 @@ calibrate_to_survey <- function(
   result@metadata        <- meta
 
   result
+}
+
+# ---------------------------------------------------------------------------
+# PR 1 validation helpers (temporary — superseded by .compute_control_totals()
+# in PR 2)
+# ---------------------------------------------------------------------------
+
+# Check that all levels of each variable in var_names that appear in
+# primary@data also appear in control@data. Raises
+# surveywts_error_control_level_missing if any are missing.
+.check_control_levels <- function(primary, control, var_names) {
+  for (v in var_names) {
+    p_levels <- unique(as.character(primary@data[[v]]))
+    c_levels <- unique(as.character(control@data[[v]]))
+    missing  <- setdiff(p_levels, c_levels)
+    if (length(missing) > 0L) {
+      cli::cli_abort(
+        c(
+          "x" = paste0(
+            "Control survey is missing level(s) of variable {.field {v}}: ",
+            "{.and {.val {missing}}}."
+          ),
+          "i" = paste0(
+            "All levels in {.arg primary_design} must also appear in ",
+            "{.arg control_design} to estimate control-survey totals."
+          ),
+          "v" = paste0(
+            "Verify that {.arg control_design} covers the same population ",
+            "as {.arg primary_design}."
+          )
+        ),
+        class = "surveywts_error_control_level_missing"
+      )
+    }
+  }
+  invisible(TRUE)
+}
+
+# Validate the targets argument for the Opsomer path.
+# Steps 12a-12d from the spec validation order.
+.validate_targets_for_opsomer <- function(targets, type, primary_design) {
+  # Step 12a: named non-empty list check
+  if (!is.list(targets)) {
+    cli::cli_abort(
+      c(
+        "x" = paste0(
+          "{.arg targets} must be a named list, got ",
+          "{.cls {class(targets)[[1L]]}}."
+        ),
+        "i" = "Each element name is a variable in {.arg primary_design}.",
+        "v" = paste0(
+          "Pass a named list, e.g. ",
+          "{.code list(age_group = c('18-34' = 0.30, ...))}."
+        )
+      ),
+      class = "surveywts_error_targets_not_named_list"
+    )
+  }
+  if (length(targets) == 0L) {
+    cli::cli_abort(
+      c(
+        "x" = "{.arg targets} is an empty list.",
+        "i" = "Every element of {.arg targets} must be named with a variable name.",
+        "v" = paste0(
+          "Pass a named list, e.g. ",
+          "{.code list(age_group = c('18-34' = 0.30, ...))}."
+        )
+      ),
+      class = "surveywts_error_targets_not_named_list"
+    )
+  }
+  tgt_names_raw <- names(targets)
+  if (is.null(tgt_names_raw) || !all(nzchar(tgt_names_raw))) {
+    cli::cli_abort(
+      c(
+        "x" = "{.arg targets} has unnamed element(s).",
+        "i" = "Every element of {.arg targets} must be named with a variable name.",
+        "v" = paste0(
+          "Pass a named list, e.g. ",
+          "{.code list(age_group = c('18-34' = 0.30, ...))}."
+        )
+      ),
+      class = "surveywts_error_targets_not_named_list"
+    )
+  }
+
+  target_names <- names(targets)
+
+  # Step 12b: variable names exist in primary_design@data
+  for (nm in target_names) {
+    if (!nm %in% names(primary_design@data)) {
+      cli::cli_abort(
+        c(
+          "x" = paste0(
+            "{.arg targets} element {.val {nm}} is not a column in ",
+            "{.arg primary_design}."
+          ),
+          "i" = paste0(
+            "Available columns: ",
+            "{.and {.field {names(primary_design@data)}}}."
+          )
+        ),
+        class = "surveywts_error_targets_variable_not_found"
+      )
+    }
+  }
+
+  # Step 12c: element format check
+  for (nm in target_names) {
+    elem <- targets[[nm]]
+    valid_vector <- is.numeric(elem) &&
+      !is.null(names(elem)) &&
+      all(nzchar(names(elem)))
+    valid_tibble <- is.data.frame(elem) &&
+      nm %in% names(elem) &&
+      any(c("n", "prop") %in% names(elem))
+    if (!valid_vector && !valid_tibble) {
+      cli::cli_abort(
+        c(
+          "x" = "{.arg targets} element {.val {nm}} is not a valid format.",
+          "i" = paste0(
+            "Expected a named numeric vector or a tibble with a ",
+            "{.field {nm}} column plus {.field n} or {.field prop}."
+          ),
+          "v" = paste0(
+            "E.g. {.code c('18-34' = 0.30, '35-54' = 0.40)} ",
+            "or {.code tibble({nm} = ..., prop = ...)}."
+          )
+        ),
+        class = "surveywts_error_targets_element_invalid"
+      )
+    }
+  }
+
+  # Step 12d: totals valid
+  for (nm in target_names) {
+    elem <- targets[[nm]]
+    # Normalize to named numeric vector for validation
+    if (is.data.frame(elem)) {
+      val_col <- if ("n" %in% names(elem)) "n" else "prop"
+      vals <- stats::setNames(elem[[val_col]], as.character(elem[[nm]]))
+    } else {
+      vals <- elem
+    }
+    if (type == "count") {
+      if (any(is.na(vals)) || any(vals <= 0)) {
+        cli::cli_abort(
+          c(
+            "x" = "{.arg targets} element {.val {nm}} has invalid count(s).",
+            "i" = paste0(
+              "With {.code type = \"count\"}, all values must be ",
+              "positive and non-NA."
+            ),
+            "v" = "Fix the value(s) in {.code targets[[{.val {nm}}]]}."
+          ),
+          class = "surveywts_error_targets_totals_invalid"
+        )
+      }
+    } else {
+      # type == "prop"
+      s <- sum(vals, na.rm = FALSE)
+      if (is.na(s) || abs(s - 1.0) > 1e-6) {
+        cli::cli_abort(
+          c(
+            "x" = paste0(
+              "{.arg targets} element {.val {nm}} proportions sum to ",
+              "{round(s, 8)}, not 1."
+            ),
+            "i" = paste0(
+              "With {.code type = \"prop\"}, values must sum to ",
+              "exactly 1 (within 1e-6)."
+            ),
+            "v" = paste0(
+              "Rescale or correct the values in ",
+              "{.code targets[[{.val {nm}}]]}."
+            )
+          ),
+          class = "surveywts_error_targets_totals_invalid"
+        )
+      }
+    }
+  }
+
+  invisible(TRUE)
 }
 
 # ---------------------------------------------------------------------------

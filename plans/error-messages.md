@@ -33,7 +33,7 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_error_reference_design_not_taylor` | `calibrate_to_survey()`, `calibrate_to_estimate()` | `reference_design` is non-NULL but not `survey_taylor` |
 | `surveywts_error_unit_scale_invalid` | `calibrate_to_survey()`, `calibrate_to_estimate()` | `unit_scale` non-NULL and not numeric, wrong length, has NA, or non-positive values |
 | `surveywts_error_variables_not_found` | `calibrate_to_survey()`, `calibrate_to_estimate()` | Variable absent from data, or empty tidy-select result |
-| `surveywts_error_targets_not_named_list` | `calibrate_to_estimate()` | `targets` is not a named list, any element name empty/missing, or empty list |
+| `surveywts_error_targets_not_named_list` | `calibrate_to_estimate()`, `calibrate_to_survey()` | `targets` is not a named list (any element name empty/missing), or `targets` is a non-NULL empty list `list()`; for `calibrate_to_survey()` applies only when `targets` is non-NULL |
 | `surveywts_error_targets_element_not_named` | `calibrate_to_estimate()` | Any element of `targets` is not a named numeric vector |
 | `surveywts_error_targets_element_not_positive` | `calibrate_to_estimate()` | Any value in `targets` is ≤ 0 or `NA` |
 | `surveywts_error_targets_levels_mismatch` | `calibrate_to_estimate()` | Inner names of a `targets` element don't exactly match data levels |
@@ -41,9 +41,14 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_error_vcov_dimension_mismatch` | `calibrate_to_estimate()` | `vcov_estimate` is not `k × k` where `k = length(unlist(targets))` |
 | `surveywts_error_vcov_not_symmetric` | `calibrate_to_estimate()` | `max(\|V - V^T\|) > 1e-8` |
 | `surveywts_error_vcov_cholesky_failed` | `calibrate_to_estimate()` | `chol(vcov_estimate)` fails (not positive definite) |
-| `surveywts_error_calibration_not_converged` | `calibrate_to_survey()`, `calibrate_to_estimate()` | svrep emits a convergence warning |
-| `surveywts_error_calibration_failed` | `calibrate_to_survey()`, `calibrate_to_estimate()` | svrep throws a hard error |
+| `surveywts_error_calibration_not_converged` | `calibrate_to_survey()`, `calibrate_to_estimate()` | svrep or `survey::calibrate()` emits a convergence warning; on the Opsomer path, may occur during per-replicate calibration |
+| `surveywts_error_calibration_failed` | `calibrate_to_survey()`, `calibrate_to_estimate()` | svrep or `survey::calibrate()` throws a hard error; on the Opsomer path, may occur during per-replicate calibration |
 | ~~`surveywts_error_replicate_count_mismatch`~~ | ~~`calibrate_to_survey()`~~ | **RETIRED** — replicate count mismatches no longer raise an error |
+| `surveywts_error_scale_not_found` | `calibrate_to_survey()` | `primary_design@variables$scale` or `control_design@variables$scale` is `NULL`; cannot compute `a_r` constants without the scalar replication constant. Fires on all calls (not only when `targets` is non-NULL). |
+| `surveywts_error_targets_variable_not_found` | `calibrate_to_survey()` | A name from the `targets` list is not a column in `primary_design@data`; applies only when `targets` is non-NULL |
+| `surveywts_error_targets_element_invalid` | `calibrate_to_survey()` | An element of `targets` is not a named numeric vector and not a tibble with the required columns (variable column + `n` or `prop` column); applies only when `targets` is non-NULL |
+| `surveywts_error_targets_totals_invalid` | `calibrate_to_survey()` | `type = "prop"` and a variable's proportions don't sum to 1 (within 1e-6), or `type = "count"` and any total is ≤ 0 or `NA`; applies only when `targets` is non-NULL |
+| `surveywts_error_control_level_missing` | `calibrate_to_survey()` | A level of a `variables` variable that exists in `primary_design@data` is not present in `control_design@data`; the control-survey total for that level cannot be estimated. Fires on all calls whenever a level-alignment mismatch is detected. |
 
 ### `calibrate()`
 

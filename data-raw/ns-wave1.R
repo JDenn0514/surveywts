@@ -79,7 +79,8 @@ ns_wave1$edu_f3 <- factor(
 )
 
 # pid_f3: NEW column derived from pid3
-# pid3: 1=Democrat (pid7 1-2), 2=Republican (pid7 6-7), 3=Ind (pid7 3-5), 4=Other/No pref->Ind
+# pid3: 1=Democrat (pid7 1-2), 2=Republican (pid7 6-7), 3=Ind (pid7 3-5), 4=Other/No pref
+# Code 4 mapped to Independent (not NA) to match Nationscape public methodology
 ns_wave1$pid_f3 <- factor(
   dplyr::recode_values(
     ns_wave1$pid3,
@@ -114,14 +115,15 @@ ns_wave1$ns_hispanic <- factor(
 )
 
 # ns_race: 4-category ACS race (distinct from the 4-category race_f4 col)
-#   1=White, 2=Black, 4:14=Asian/Pacific, 3+15=Other
+#   1=White, 2=Black, 4:14=Asian/Pacific, 3+15=Other; codes 1,2,3,4:14,15 exhaust valid values
 ns_wave1$ns_race <- factor(
   dplyr::recode_values(
     ns_wave1$race_ethnicity,
     1        ~ "White",
     2        ~ "Black",
     c(4:14)  ~ "Asian/Pacific",
-    c(3, 15) ~ "Other"
+    c(3, 15) ~ "Other",
+    default  = NA_character_
   ),
   levels = c("White", "Black", "Asian/Pacific", "Other")
 )

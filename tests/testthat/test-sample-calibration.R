@@ -172,7 +172,7 @@ test_that("calibrate_to_survey() numerical identity with svrep", {
     primary_design = primary,
     control_design = control,
     variables      = c(sex),
-    control        = list(control_col_matches = col_matches)
+    control        = list(control_col_matches = col_matches, epsilon = 1e-7)
   )
 
   # Now reproduce with svrep directly
@@ -2847,7 +2847,7 @@ test_that(
     ctrl_sex  <- control@data$sex
     ctrl_tot  <- tapply(ctrl_wt, ctrl_sex, sum)
 
-    # Check calibrated primary totals match within 1e-4 (raking tolerance)
+    # Check calibrated primary totals match within 1e-6 (constraint tolerance)
     cal_wt    <- result@data[[result@variables$weights]]
     cal_tot   <- tapply(cal_wt, result@data$sex, sum)
 
@@ -2855,7 +2855,7 @@ test_that(
       expect_equal(
         unname(cal_tot[[lv]]),
         unname(ctrl_tot[[lv]]),
-        tolerance = 1e-4
+        tolerance = 1e-6
       )
     }
   }
@@ -3000,7 +3000,7 @@ test_that(
 )
 
 test_that(
-  "calibrate_to_survey() fixed margin constraint satisfied within 1e-4",
+  "calibrate_to_survey() fixed margin constraint satisfied within 1e-6",
   {
     primary  <- make_replicate_design(n = 200L, R = 50L, seed = 42L)
     control  <- make_replicate_design(n = 200L, R = 50L, seed = 99L)
@@ -3021,7 +3021,7 @@ test_that(
       expect_equal(
         unname(cal_tot[[lv]]),
         unname(sex_cnt[[lv]]),
-        tolerance = 1e-4
+        tolerance = 1e-6
       )
     }
   }
@@ -3149,7 +3149,7 @@ test_that(
       expect_equal(
         unname(cal_tot[[lv]]),
         unname(ctrl_tot[[lv]]),
-        tolerance = 1e-4
+        tolerance = 1e-6
       )
     }
   }
@@ -3177,7 +3177,7 @@ test_that(
       expect_equal(
         unname(cal_tot[[lv]]),
         unname(sex_cnt[[lv]]),
-        tolerance = 1e-4
+        tolerance = 1e-6
       )
     }
   }
@@ -3199,12 +3199,109 @@ test_that(
     )
     # N should be preserved (sum of output weights ~= N)
     cal_wt <- result@data[[result@variables$weights]]
-    expect_equal(sum(cal_wt), N, tolerance = 1e-4)
+    expect_equal(sum(cal_wt), N, tolerance = 1e-6)
   }
 )
 
 # ===========================================================================
-# 31. PR 2 — Gotcha coverage
+# 31. PR 2 — Format B and mixed-format targets
+# ===========================================================================
+
+test_that(
+  "calibrate_to_survey() accepts Format B (tibble) targets",
+  {
+    primary <- make_replicate_design(n = 200L, R = 50L, seed = 42L)
+    control <- make_replicate_design(n = 200L, R = 50L, seed = 99L)
+    N       <- sum(primary@data[[primary@variables$weights]])
+
+    # Format B: tibble with variable-named column + "n" column.
+    age_prop <- c("18-34" = 0.35, "35-54" = 0.38, "55+" = 0.27)
+    age_counts <- tibble::tibble(
+      age_group = names(age_prop),
+      n         = age_prop * N
+    )
+    targets_b <- list(age_group = age_counts)
+
+    result <- calibrate_to_survey(
+      primary, control,
+      variables = c(sex),
+      targets   = targets_b,
+      type      = "count"
+    )
+
+    test_invariants(result)
+
+    # Fixed margin must be satisfied within 1e-6
+    cal_wt  <- result@data[[result@variables$weights]]
+    cal_tot <- tapply(cal_wt, result@data$age_group, sum)
+    age_tgt <- age_prop * N
+    names(age_tgt) <- names(age_prop)
+    for (lv in names(age_tgt)) {
+      expect_equal(
+        unname(cal_tot[[lv]]),
+        unname(age_tgt[[lv]]),
+        tolerance = 1e-6
+      )
+    }
+  }
+)
+
+test_that(
+  "calibrate_to_survey() accepts mixed-format targets (Format A + Format B)",
+  {
+    primary <- make_replicate_design(n = 200L, R = 50L, seed = 42L)
+    control <- make_replicate_design(n = 200L, R = 50L, seed = 99L)
+    N       <- sum(primary@data[[primary@variables$weights]])
+
+    # Format A for sex (named numeric vector — proportions * N give counts)
+    sex_prop   <- c("M" = 0.48, "F" = 0.52)
+    sex_counts <- sex_prop * N
+
+    # Format B for age_group (tibble)
+    age_prop   <- c("18-34" = 0.35, "35-54" = 0.38, "55+" = 0.27)
+    age_tibble <- tibble::tibble(
+      age_group = names(age_prop),
+      n         = age_prop * N
+    )
+
+    targets_mixed <- list(sex = sex_counts, age_group = age_tibble)
+
+    result <- calibrate_to_survey(
+      primary, control,
+      variables = c(education),
+      targets   = targets_mixed,
+      type      = "count"
+    )
+
+    test_invariants(result)
+
+    cal_wt <- result@data[[result@variables$weights]]
+
+    # Both fixed margins must be satisfied within 1e-6
+    cal_sex <- tapply(cal_wt, result@data$sex, sum)
+    for (lv in names(sex_counts)) {
+      expect_equal(
+        unname(cal_sex[[lv]]),
+        unname(sex_counts[[lv]]),
+        tolerance = 1e-6
+      )
+    }
+
+    cal_age <- tapply(cal_wt, result@data$age_group, sum)
+    age_tgt <- age_prop * N
+    names(age_tgt) <- names(age_prop)
+    for (lv in names(age_tgt)) {
+      expect_equal(
+        unname(cal_age[[lv]]),
+        unname(age_tgt[[lv]]),
+        tolerance = 1e-6
+      )
+    }
+  }
+)
+
+# ===========================================================================
+# 32. PR 2 — Gotcha coverage
 # ===========================================================================
 
 test_that(

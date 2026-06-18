@@ -56,7 +56,7 @@
 #'   history entry for provenance only; not used in computation.
 #' @param control Named list of calibration control parameters. Known keys:
 #'   - `maxit`: maximum iterations (default `50L`)
-#'   - `epsilon`: convergence tolerance (default `1e-7`)
+#'   - `epsilon`: convergence tolerance (default `1e-10`)
 #'   - `control_col_matches`: integer vector of length at most
 #'     `min(R_eff, R_C)` specifying which control replicate maps to each
 #'     virtual primary replicate. When omitted (the default), a random
@@ -407,7 +407,7 @@ calibrate_to_survey <- function(
   control_col_matches <- control[["control_col_matches"]]
 
   # Build effective control (without control_col_matches)
-  ctrl_defaults <- list(maxit = 50L, epsilon = 1e-7)
+  ctrl_defaults <- list(maxit = 50L, epsilon = 1e-10)
   ctrl_clean    <- control[intersect(names(control), c("maxit", "epsilon"))]
   ctrl          <- utils::modifyList(ctrl_defaults, ctrl_clean)
 

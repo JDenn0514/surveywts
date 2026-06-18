@@ -71,7 +71,7 @@ history entry for provenance only; not used in computation.}
 \item{control}{Named list of calibration control parameters. Known keys:
 \itemize{
 \item \code{maxit}: maximum iterations (default \code{50L})
-\item \code{epsilon}: convergence tolerance (default \code{1e-7})
+\item \code{epsilon}: convergence tolerance (default \code{1e-10})
 \item \code{control_col_matches}: integer vector of length at most
 \code{min(R_eff, R_C)} specifying which control replicate maps to each
 virtual primary replicate. When omitted (the default), a random

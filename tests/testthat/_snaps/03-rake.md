@@ -93,7 +93,7 @@
       Error in `.parse_margins()`:
       x `targets` must be a named list or a data frame with columns variable, level, and target.
       i Got <numeric>.
-      v See `calibrate_rake()` or `calibrate_greg()` documentation for accepted formats.
+      v See `calibrate_rake()`, `calibrate_linear()`, or `calibrate_logit()` documentation for accepted formats.
 
 # calibrate_rake() rejects Format B data frame missing 'level' column
 
@@ -103,7 +103,7 @@
       Error in `.parse_margins()`:
       x `targets` must be a named list or a data frame with columns variable, level, and target.
       i Got <data.frame> but missing column(s): level.
-      v See `calibrate_rake()` or `calibrate_greg()` documentation for accepted formats.
+      v See `calibrate_rake()`, `calibrate_linear()`, or `calibrate_logit()` documentation for accepted formats.
 
 # calibrate_rake() rejects targets naming absent column
 

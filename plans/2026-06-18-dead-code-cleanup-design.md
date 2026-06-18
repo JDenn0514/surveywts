@@ -128,6 +128,22 @@ internal. Move it with `.anesrake_engine()`.
 - No exports change
 - No roxygen changes needed (all affected functions are internal with `@noRd`)
 
+### Test-safety distinction
+
+**Section 1 (deletions) is guaranteed test-safe.** Every deleted branch is either
+wrapped in `# nocov start/end` (meaning no test exercises it) or is a shadowed
+definition that was never reachable at runtime. Removing these lines cannot change
+any test outcome regardless of how the implementation is executed.
+
+**Section 2 (rename/move) is test-safe only if executed correctly.** `.anesrake_engine()`
+is a live function exercised indirectly by `calibrate_rake(algorithm = "classic_ipf")`
+tests. The rename is behavior-neutral but must be applied consistently: both the
+function definition and both call sites in `calibrate_rake.R` (lines 401 and 589)
+must be updated together. Missing either call site would produce a
+"could not find function '.calibrate_engine'" error in tests. The verification
+checklist grep (`grep -r "calibrate_engine" R/`) is the confirmation that the rename
+is complete.
+
 ---
 
 ## Verification Checklist (post-implementation)

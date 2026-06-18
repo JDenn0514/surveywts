@@ -1,144 +1,251 @@
 # R/calibrate_to_survey.R
 #
-# calibrate_to_survey() - calibrate a replicate-weight design to
-# population totals estimated from a control (reference) survey design.
-# Delegates to svrep::calibrate_to_sample().
+# calibrate_to_survey() — calibrate a replicate-weight design to
+# population totals estimated from a control (reference) survey design,
+# using the Opsomer & Erciulescu (2022) replication variance adjustment.
 
 #' Calibrate replicate weights to a control survey
 #'
 #' Adjusts the full-sample and replicate weights of `primary_design` so that
 #' its estimated totals for `variables` match those estimated from
-#' `control_design`. Variance estimation correctly propagates the sampling
-#' uncertainty of the control survey's estimates into the calibrated primary
-#' design.
+#' `control_design`. Implements the Opsomer & Erciulescu (2022) replication
+#' variance adjustment, which correctly propagates the sampling uncertainty
+#' of the control survey's estimates into the calibrated primary design.
+#' When `targets` is non-NULL, additional fixed census margins are enforced
+#' simultaneously alongside the random margins from the control survey.
 #'
 #' @param primary_design A `survey_replicate` or `survey_nonprob` object with
 #'   replicate weights. The design to be calibrated. Must have replicate
-#'   weights populated.
+#'   weights and a non-NULL `@variables$scale` replication constant.
 #' @param control_design A `survey_replicate` or `survey_nonprob` object with
-#'   replicate weights. The reference survey from which population totals are
-#'   estimated. Must have replicate weights populated. Does not affect the
-#'   class of the returned object.
+#'   replicate weights. The reference survey from which random population
+#'   totals are estimated. Must have replicate weights and a non-NULL
+#'   `@variables$scale`. Does not affect the class of the returned object.
 #' @param variables <[`tidy-select`][tidyselect::language]> Bare names of the
-#'   calibration variables in `primary_design@data`. Must be present in both
-#'   `primary_design` and `control_design`. These are the random
-#'   (sample-estimated) margins.
+#'   random calibration variables in `primary_design@data`. Must be present in
+#'   both designs. These are the variables whose totals are estimated from
+#'   the control survey and vary per replicate in the Opsomer algorithm.
 #' @param targets `NULL` (the default) or a named list of fixed census
-#'   margins. Each element's name is a column in `primary_design@data`. Each
-#'   element is a named numeric vector or a tibble with the variable column
-#'   plus `"n"` (count) or `"prop"` (proportion). When `NULL`, the Opsomer
-#'   path runs with no fixed margins and `type` is matched but unused.
+#'   margins. Each element's name is a column in `primary_design@data`.
+#'   Each element is either a named numeric vector (names are level labels)
+#'   or a tibble with the variable column plus `"n"` (count) or `"prop"`
+#'   (proportion). Format A (named numeric vector) and Format B (tibble) may
+#'   be mixed within the same list. When `NULL`, the Opsomer path runs with
+#'   no fixed margins; `type` is matched but unused.
 #' @param type `"prop"` (the default) or `"count"`. Controls interpretation
-#'   of `targets` values: `"prop"` means proportions summing to 1.0 per
-#'   variable; `"count"` means population counts (positive non-NA values).
-#'   Ignored and produces no error when `targets = NULL`. Matched with
-#'   [rlang::arg_match()].
-#' @param method Calibration method. One of `"rake"` (default), `"linear"`,
-#'   or `"logit"`. Matched with [rlang::arg_match()].
+#'   of `targets` values. `"prop"` means proportions summing to 1.0 per
+#'   variable (each element must sum to 1.0 within 1e-6); `"count"` means
+#'   population counts (positive non-NA values). Ignored when `targets =
+#'   NULL`. Matched with [rlang::arg_match()].
+#' @param method Calibration method: `"rake"` (the default), `"linear"`, or
+#'   `"logit"`. Applied to both the full-sample and per-replicate calibration
+#'   steps. Matched with [rlang::arg_match()].
 #' @param algorithm Raking algorithm; used only when `method = "rake"`.
-#'   `"classic_ipf"` (the default): iterative proportional fitting.
-#'   `"nr"`: Newton-Raphson raking. Silently ignored when
-#'   `method != "rake"`. Matched with [rlang::arg_match()].
+#'   `"classic_ipf"` (the default): iterative proportional fitting (Deming
+#'   & Stephan 1940) — the algorithm used in Opsomer & Erciulescu (2022).
+#'   `"nr"`: Newton-Raphson raking (Deville, Sarndal & Sautory 1993).
+#'   Silently ignored when `method != "rake"`. Matched with
+#'   [rlang::arg_match()].
 #' @param bounds Numeric vector of length 2: `c(lower, upper)`. Bounds on
-#'   the calibrated-to-starting-weight ratio. Default `c(-Inf, Inf)`.
-#'   Note: per-unit `bounds_scale` is not supported; use scalar bounds only.
+#'   the calibrated-to-starting-weight ratio. `c(-Inf, Inf)` (default) means
+#'   no bounds. Passed to `survey::calibrate()`.
 #' @param unit_scale `NULL` or a positive numeric vector of length
-#'   `nrow(primary_design@data)`. Passed to svrep as the `variance` argument
-#'   (per-unit variance scaling). `NULL` means no scaling.
+#'   `nrow(primary_design@data)`. Per-unit variance scaling passed as the
+#'   `variance` argument to `survey::calibrate()`. `NULL` means no scaling.
 #' @param reference_design A `survey_taylor` object or `NULL`. Stored in the
 #'   history entry for provenance only; not used in computation.
 #' @param control Named list of calibration control parameters. Known keys:
 #'   - `maxit`: maximum iterations (default `50L`)
 #'   - `epsilon`: convergence tolerance (default `1e-7`)
-#'   - `control_col_matches`: passed to svrep for reproducible
-#'     primary-to-control replicate matching; not stored in history.
-#'   Unknown keys trigger a `surveywts_warning_control_param_ignored` warning.
+#'   - `control_col_matches`: integer vector of length at most
+#'     `min(R_eff, R_C)` specifying which control replicate maps to each
+#'     virtual primary replicate. When omitted (the default), a random
+#'     permutation is drawn once per call; use `set.seed()` before calling
+#'     to make results reproducible. This key is **not** stored in history.
+#'   Unknown keys trigger a `surveywts_warning_control_param_ignored`
+#'   warning.
 #'
-#' @returns A calibrated design object. The class of the returned object
-#'   matches the class of `primary_design`: a `survey_nonprob` input returns
-#'   a `survey_nonprob`; a `survey_replicate` input returns a
-#'   `survey_replicate`. Updated full-sample and replicate weights are written
-#'   back. A new entry with `operation = "calibrate_to_survey"` is appended
-#'   to the weighting history.
+#' @returns A calibrated design object whose class matches `primary_design`:
+#'   a `survey_nonprob` input returns a `survey_nonprob`; a
+#'   `survey_replicate` input returns a `survey_replicate`. Updated
+#'   full-sample and replicate weights are written back. A new entry with
+#'   `operation = "calibrate_to_survey"` is appended to the weighting
+#'   history. The history entry always includes `a_constants` (the Opsomer
+#'   perturbation constants, length `R_eff = K * R`) and `K` (the expansion
+#'   factor). When `targets` is non-NULL, the entry additionally includes
+#'   `targets` (user-supplied fixed margins), `type`, and `fixed_variables`.
 #'
 #' @details
 #'   Both `primary_design` and `control_design` must carry replicate weights
-#'   — either as `survey_replicate` objects or as `survey_nonprob` objects to
-#'   which replicate weights have been added. Taylor-linearization designs are
-#'   not sufficient for this purpose because replicate weights are required to
-#'   propagate the uncertainty of the control survey's estimated totals into
-#'   the variance of the calibrated design.
+#'   and non-NULL `@variables$scale` replication constants. The scale
+#'   constants are required to compute the Opsomer adjustment constants
+#'   `a_r`. Use `create_bootstrap_weights()` or another `create_*_weights()`
+#'   function to create designs with scale populated.
 #'
-#'   When `method = "logit"`, finite bounds are required by the algorithm;
-#'   the default `c(-Inf, Inf)` is passed through and svrep applies logit
-#'   calibration. When `method = "linear"`, any negative full-sample weights
-#'   are clipped to `.Machine$double.eps` with a warning, but replicate
-#'   weights are not clipped.
+#'   When `method = "linear"`, any negative calibrated full-sample weights
+#'   are clipped to `.Machine$double.eps` with a warning. Replicate weights
+#'   are never clipped.
+#'
+#' @section Algorithm:
+#'   Implements the Opsomer & Erciulescu (2022) replication variance
+#'   adjustment for sample-based calibration. The core idea is to
+#'   calibrate each primary replicate to a *perturbed* version of the
+#'   control-survey totals that incorporates the control survey's replication
+#'   structure.
+#'
+#'   **Notation:**
+#'   - \eqn{R} = number of primary replicate columns
+#'   - \eqn{R_C} = number of control replicate columns
+#'   - \eqn{A} = `primary_design@variables$scale` (scalar replication constant)
+#'   - \eqn{A_C} = `control_design@variables$scale`
+#'   - \eqn{\hat{t}_{Cx}} = control full-sample estimated totals for `variables`
+#'   - \eqn{\hat{t}_{Cx}^{(r)}} = control replicate-\eqn{r} estimated totals
+#'   - \eqn{T_{\text{fixed}}} = fixed population margins from `targets`
+#'     (empty set when `targets = NULL`)
+#'
+#'   **Step 1.** Extract \eqn{A}, \eqn{A_C}, \eqn{R}, \eqn{R_C}.
+#'
+#'   **Step 2.** Compute expansion factor:
+#'   when \eqn{R_C > R}, set \eqn{K = \lceil R_C / R \rceil},
+#'   \eqn{R_{\text{eff}} = K R}, and \eqn{A_{\text{eff}} = A / K};
+#'   otherwise \eqn{K = 1}, \eqn{R_{\text{eff}} = R},
+#'   \eqn{A_{\text{eff}} = A}.
+#'
+#'   **Step 3.** Compute adjustment constants:
+#'   \deqn{a_r = \begin{cases}
+#'     \sqrt{A_C / A_{\text{eff}}} & r = 1, \ldots, \min(R_{\text{eff}}, R_C) \\
+#'     0                           & r > \min(R_{\text{eff}}, R_C)
+#'   \end{cases}}
+#'   When \eqn{K = 1} this reduces to \eqn{\sqrt{A_C / A}}.
+#'
+#'   **Step 4.** Compute full-sample control totals \eqn{\hat{t}_{Cx}} and
+#'   per-replicate control totals \eqn{\hat{t}_{Cx}^{(r)}} for each variable
+#'   in `variables`.
+#'
+#'   **Step 5.** Draw random control column mapping (or use
+#'   `control$control_col_matches`).
+#'
+#'   **Step 6.** Calibrate the full-sample weights of `primary_design` to
+#'   the combined target set \eqn{\{ \hat{t}_{Cx} \}} (random margins) union
+#'   \eqn{T_{\text{fixed}}} (fixed margins). This defines \eqn{w_i^*}.
+#'
+#'   **Step 7.** For each primary replicate \eqn{r = 1, \ldots, R}: for each
+#'   virtual replicate \eqn{s} in the \eqn{K} repetitions of replicate
+#'   \eqn{r}, compute the perturbed control total:
+#'   \deqn{\hat{t}^*_{Cx}(s) =
+#'     \hat{t}_{Cx} + a_s \bigl(\hat{t}^{(c_s)}_{Cx} - \hat{t}_{Cx}\bigr)}
+#'   where \eqn{c_s} is the mapped control replicate for virtual replicate
+#'   \eqn{s}. Calibrate the *original* primary replicate-\eqn{r} weights to
+#'   \eqn{\hat{t}^*_{Cx}(s)} (random margins) union \eqn{T_{\text{fixed}}}
+#'   (fixed margins). When \eqn{K > 1}, average the \eqn{K} calibrated
+#'   weight vectors to obtain output replicate \eqn{r}.
+#'
+#'   **Step 8.** Write calibrated weights back and append history entry.
+#'
+#'   **Calibration method and algorithm:**
+#'   When `method = "rake"`, `algorithm` selects between `"classic_ipf"`
+#'   (iterative proportional fitting, Deming & Stephan 1940 — the algorithm
+#'   used by Opsomer & Erciulescu 2022) and `"nr"` (Newton-Raphson raking,
+#'   Deville, Sarndal & Sautory 1993). For `method = "linear"` or `"logit"`,
+#'   `algorithm` is matched but silently ignored. Note that the default
+#'   `method = "rake"` differs from the prior svrep-based behavior (which
+#'   used linear GREG by default); callers who need the prior behavior
+#'   should supply `method = "linear"` explicitly.
+#'
+#' @section Convergence:
+#'   Convergence failure in any `.calibrate_engine()` or `survey::calibrate()`
+#'   call raises `surveywts_error_calibration_not_converged`. A hard error
+#'   in calibration raises `surveywts_error_calibration_failed`. Users may
+#'   increase `control$maxit` or relax `control$epsilon`. Perturbed margins
+#'   that are inconsistent with fixed margins may not converge; verify that
+#'   `targets` margins are achievable given the data structure.
+#'
+#' @section Warnings:
+#'   **Unknown control parameters.** Keys in `control` other than `maxit`,
+#'   `epsilon`, and `control_col_matches` are silently ignored with a
+#'   warning. Check spelling before assuming a key has an effect.
+#'
+#'   **Replicate scheme mismatch.** When `primary_design` and
+#'   `control_design` have different replicate types (e.g., bootstrap vs.
+#'   jackknife), a warning is emitted. Results are still returned; the
+#'   statistical validity of mixing replicate schemes is the user's
+#'   responsibility.
+#'
+#'   **Negative calibrated weights.** When `method = "linear"` produces
+#'   negative calibrated full-sample weights, those weights are clipped to
+#'   `.Machine$double.eps` and a warning is emitted. Replicate weights are
+#'   never clipped.
+#'
+#' @section Limitations:
+#'   **Independence assumption.** The Opsomer & Erciulescu (2022) consistency
+#'   proof assumes `primary_design` and `control_design` are independent
+#'   samples from non-overlapping draws. Designs that share respondents
+#'   (e.g., panel waves, subsamples of the control, or any linked-sample
+#'   design) violate this assumption. The function cannot detect overlap;
+#'   users are responsible for verifying the independence condition.
+#'   Overlapping samples produce variance estimates that do not account for
+#'   the covariance between the two surveys' totals.
+#'
+#'   **Nonprobability samples.** The Opsomer & Erciulescu (2022) consistency
+#'   proof assumes probability samples with design-based replicate variance.
+#'   When `survey_nonprob` designs are supplied, the method operates
+#'   mechanically but the variance interpretation depends on how the replicate
+#'   weights were constructed.
 #'
 #' @references
+#'   Opsomer, J.D. and Erciulescu, A.L. (2022). Replication variance
+#'   estimation after sample-based calibration. *Survey Methodology*,
+#'   47(2), 265--277.
+#'
 #'   Fuller, W.A. (1998). Replication variance estimation for two-phase
 #'   samples. *Statistica Sinica*, 8, 1153--1164.
 #'
-#'   Opsomer, J.D. and Erciulescu, A. (2021). Replication variance estimation
-#'   after sample-based calibration. *Survey Methodology*, 47, 265--277.
-#'
 #' @examples
-#' data(api, package = "survey")
+#' # calibrate_to_survey() requires two replicate designs.
+#' # acs_wy_2022_svy is a survey_replicate with scale = 0.025 (80 replicates).
+#' # We construct a control design from acs_wy_2022 using bootstrap weights.
 #'
-#' # Build simple designs from apiclus1 and apisrs
+#' # Build a control design from a half-sample of acs_wy_2022 -------
+#' set.seed(42)
+#' n_ctrl <- 500L
+#' ctrl_idx <- sample(nrow(acs_wy_2022), n_ctrl)
+#' ctrl_df  <- acs_wy_2022[ctrl_idx, ]
+#' ctrl_df$wt <- 1.0  # equal weights for illustration
+#' ctrl_taylor <- surveycore::survey_taylor(
+#'   data = ctrl_df,
+#'   variables = list(weights = "wt")
+#' )
+#' control <- create_bootstrap_weights(ctrl_taylor, replicates = 40L, seed = 1L)
+#'
+#' # Rake calibration (default) to control-survey margins for 'sex' -
 #' set.seed(1)
-#' d_primary <- survey::svydesign(id = ~1, weights = ~pw, data = apiclus1)
-#' d_control <- survey::svydesign(id = ~1, weights = ~pw, data = apisrs)
-#'
-#' # Create bootstrap replicate weights
-#' boot_primary <- svrep::as_bootstrap_design(
-#'   d_primary,
-#'   type = "Rao-Wu-Yue-Beaumont",
-#'   replicates = 20
-#' )
-#' boot_control <- svrep::as_bootstrap_design(
-#'   d_control,
-#'   type = "Rao-Wu-Yue-Beaumont",
-#'   replicates = 20
-#' )
-#'
-#' # Convert to surveywts survey_replicate objects
-#' primary <- surveycore::survey_replicate(
-#'   data = cbind(
-#'     as.data.frame(boot_primary$variables),
-#'     as.data.frame(as.matrix(boot_primary$repweights))
-#'   ),
-#'   variables = list(
-#'     weights    = "pw",
-#'     repweights = paste0("V", seq_len(ncol(boot_primary$repweights))),
-#'     type       = boot_primary$type,
-#'     scale      = boot_primary$scale,
-#'     rscales    = boot_primary$rscales,
-#'     mse        = isTRUE(boot_primary$mse)
-#'   )
-#' )
-#' control <- surveycore::survey_replicate(
-#'   data = cbind(
-#'     as.data.frame(boot_control$variables),
-#'     as.data.frame(as.matrix(boot_control$repweights))
-#'   ),
-#'   variables = list(
-#'     weights    = "pw",
-#'     repweights = paste0("V", seq_len(ncol(boot_control$repweights))),
-#'     type       = boot_control$type,
-#'     scale      = boot_control$scale,
-#'     rscales    = boot_control$rscales,
-#'     mse        = isTRUE(boot_control$mse)
-#'   )
-#' )
-#'
-#' result <- surveywts::calibrate_to_survey(
-#'   primary_design = primary,
+#' result <- calibrate_to_survey(
+#'   primary_design = acs_wy_2022_svy,
 #'   control_design = control,
-#'   variables      = c(stype)
+#'   variables      = c(sex)
 #' )
+#'
+#' # With fixed census margins for 'sex' alongside random 'age_f3' margins -
+#' N <- sum(acs_wy_2022_svy@data[[acs_wy_2022_svy@variables$weights]])
+#' sex_levels <- sort(unique(acs_wy_2022_svy@data$sex))
+#' if (length(sex_levels) == 2L) {
+#'   sex_prop <- stats::setNames(
+#'     c(0.49, 0.51)[seq_along(sex_levels)],
+#'     sex_levels
+#'   )
+#'   set.seed(2)
+#'   result2 <- calibrate_to_survey(
+#'     primary_design = acs_wy_2022_svy,
+#'     control_design = control,
+#'     variables      = c(age_f3),
+#'     targets        = list(sex = sex_prop),
+#'     type           = "prop"
+#'   )
+#' }
 #'
 #' @family sample-calibration
+#' @seealso [calibrate_to_estimate()] for calibration to externally supplied
+#'   estimates with a known variance-covariance matrix.
 #' @export
 calibrate_to_survey <- function(
   primary_design,
@@ -349,7 +456,7 @@ calibrate_to_survey <- function(
     )
   }
 
-  # ---- 8. Scale constant check (step 10) ------------------------------------
+  # ---- 8. Scale constant check ----------------------------------------------
   A   <- primary_design@variables$scale
   A_C <- control_design@variables$scale
   if (is.null(A) || is.null(A_C)) {
@@ -375,83 +482,141 @@ calibrate_to_survey <- function(
     )
   }
 
-  # ---- 9. Control level check (step 11) -------------------------------------
+  # ---- 9. Control level check -----------------------------------------------
   .check_control_levels(primary_design, control_design, var_names)
 
-  # ---- 10. Targets validation (step 12, only when targets non-NULL) ----------
+  # ---- 10. Targets validation (only when targets non-NULL) ------------------
   if (!is.null(targets)) {
     .validate_targets_for_opsomer(targets, type, primary_design)
   }
 
-  # ---- 11. Convert to svrep objects and call calibrate_to_sample() ----------
-  primary_svyrep  <- .to_svyrep(primary_design)
-  control_svyrep  <- .to_svyrep(control_design)
+  # ---- 11. Opsomer algorithm ------------------------------------------------
 
-  cal_formula <- stats::reformulate(var_names)
-  calfun      <- .method_to_calfun(method)
-  svrep_bounds <- list(lower = bounds[[1L]], upper = bounds[[2L]])
+  # Extract key dimensions
+  wt_col_name  <- primary_design@variables$weights
+  rep_col_names <- primary_design@variables$repweights
+  R    <- length(rep_col_names)
+  R_C  <- length(control_design@variables$repweights)
 
-  wt_col_name <- primary_design@variables$weights
-  before_weights <- primary_design@data[[wt_col_name]]
-  before_stats   <- .compute_weight_stats(before_weights)
-
-  cal_args <- list(
-    primary_rep_design  = primary_svyrep,
-    control_rep_design  = control_svyrep,
-    cal_formula         = cal_formula,
-    calfun              = calfun,
-    bounds              = svrep_bounds,
-    maxit               = as.integer(ctrl$maxit),
-    epsilon             = ctrl$epsilon,
-    variance            = unit_scale
-  )
-  if (!is.null(control_col_matches)) {
-    cal_args$control_col_matches <- control_col_matches
+  # Step 2: compute expansion factor K and effective parameters
+  if (R_C > R) {
+    K     <- as.integer(ceiling(R_C / R))
+    R_eff <- K * R
+    A_eff <- A / K
+  } else {
+    K     <- 1L
+    R_eff <- R
+    A_eff <- A
   }
 
-  cal_result <- tryCatch(
-    withCallingHandlers(
-      do.call(.svrep_calibrate_to_sample, cal_args),
-      warning = function(w) {
-        msg <- conditionMessage(w)
-        if (grepl("converge", msg, ignore.case = TRUE)) {
-          cli::cli_abort(
-            c(
-              "x" = paste0(
-                "Sample-based calibration did not converge after ",
-                "{ctrl$maxit} iterations."
-              ),
-              "i" = "svrep::calibrate_to_sample() reported: {msg}",
-              "v" = paste0(
-                "Increase {.code control$maxit}, relax ",
-                "{.code control$epsilon}, or verify that the variables ",
-                "are present in both designs."
-              )
-            ),
-            class = "surveywts_error_calibration_not_converged"
-          )
-        }
-        # Muffle non-convergence warnings from svrep (e.g., mse reset)
-        tryInvokeRestart("muffleWarning")
-      }
-    ),
-    error = function(e) {
-      if (inherits(e, "surveywts_error_calibration_not_converged")) {
-        stop(e)
-      }
-      cli::cli_abort(
-        c(
-          "x" = "svrep::calibrate_to_sample() encountered an error.",
-          "i" = "svrep reported: {conditionMessage(e)}"
-        ),
-        class = "surveywts_error_calibration_failed"
-      )
-    }
+  # Step 3: compute a_r constants (length R_eff)
+  a_r <- numeric(R_eff)
+  n_active <- min(R_eff, R_C)
+  if (n_active > 0L) {
+    a_r[seq_len(n_active)] <- sqrt(A_C / A_eff)
+  }
+  # positions n_active+1 .. R_eff stay 0 (already initialised to 0)
+
+  # Step 4: compute control totals (full-sample and per-replicate)
+  ctrl_totals <- .compute_control_totals(
+    control_design, var_names, primary_design
   )
 
-  # ---- 9. Extract new weights and clip negatives (linear only) ---------------
-  new_full_weights <- as.numeric(cal_result$pweights)
+  # Step 4b: if type="prop" and targets non-NULL, convert proportions to counts
+  # Store original targets for history; work with counts internally
+  targets_orig <- targets
+  targets_counts <- NULL
+  if (!is.null(targets)) {
+    # Normalize targets to named numeric vectors
+    targets_norm <- .normalize_targets(targets)
 
+    if (type == "prop") {
+      N <- sum(primary_design@data[[wt_col_name]])
+      targets_counts <- lapply(targets_norm, function(props) props * N)
+    } else {
+      targets_counts <- targets_norm
+    }
+  }
+
+  # Step 5: draw (or use supplied) control column mapping.
+  # ccm[s] = index of the control replicate that maps to virtual primary
+  # replicate s (1-based, length min(R_eff, R_C)).  Virtual primary replicates
+  # beyond min(R_eff, R_C) have a_r = 0 and do not use a control replicate.
+  #
+  # To match svrep::calibrate_to_sample() numerically (same seed), we use
+  # svrep's sampling direction: sample R_eff primary-replicate indices of size
+  # R_C without replacement, then invert.  When R_eff == R_C this reduces to
+  # drawing the same permutation and inverting it.
+  if (!is.null(control_col_matches)) {
+    # User-supplied: interpret as "control replicate c maps to primary replicate r"
+    # (svrep's matched_primary_cols convention).
+    mpc <- as.integer(control_col_matches)
+    # Build ccm as the inverse: ccm[s] = which control replicate maps to s
+    ccm <- integer(R_eff)
+    for (ci in seq_along(mpc)) {
+      if (!is.na(mpc[ci]) && mpc[ci] >= 1L && mpc[ci] <= R_eff) {
+        ccm[mpc[ci]] <- ci
+      }
+    }
+  } else {
+    # Random draw in svrep's direction: for each control replicate i,
+    # which primary (virtual) replicate does it map to?
+    n_match <- min(R_eff, R_C)
+    mpc <- sample(seq_len(R_eff), size = n_match, replace = FALSE)
+    # Invert to get ccm: ccm[primary_r] = control_i
+    ccm <- integer(R_eff)
+    for (ci in seq_len(n_match)) {
+      ccm[mpc[ci]] <- ci
+    }
+  }
+
+  # Step 6: calibrate full-sample weights to combined target set
+  # Build combined targets: random-margin totals from control + fixed totals
+  # When a variable appears in both var_names and targets, fixed takes priority
+  fixed_var_names <- if (!is.null(targets_counts)) names(targets_counts) else character(0)
+  random_var_names <- setdiff(var_names, fixed_var_names)
+
+  # Combined targets for full-sample calibration (Format A named list)
+  fs_combined_targets <- list()
+  for (v in random_var_names) {
+    fs_combined_targets[[v]] <- ctrl_totals[[v]]$full
+  }
+  if (!is.null(targets_counts)) {
+    for (v in names(targets_counts)) {
+      fs_combined_targets[[v]] <- targets_counts[[v]]
+    }
+  }
+
+  all_cal_vars <- names(fs_combined_targets)
+  primary_data <- primary_design@data
+  before_weights <- primary_data[[wt_col_name]]
+  before_stats   <- .compute_weight_stats(before_weights)
+
+  # When fixed margins (targets_counts) are present, force (Intercept) to the
+  # sum of the fixed margin totals.  This ensures that treatment-contrast coding
+  # exactly recovers each fixed-margin cell total rather than being offset by
+  # the difference between the control and primary grand totals.
+  # When no fixed margins exist, pass NULL so .calibrate_opsomer_single() falls
+  # back to the first control variable's grand total (always consistent).
+  fs_intercept_n <- if (!is.null(targets_counts)) {
+    sum(targets_counts[[1L]])
+  } else {
+    NULL
+  }
+
+  new_full_weights <- .calibrate_opsomer_single(
+    data_df        = as.data.frame(primary_data),
+    weights_vec    = before_weights,
+    combined_tgts  = fs_combined_targets,
+    method         = method,
+    algorithm      = algorithm,
+    ctrl           = ctrl,
+    bounds         = bounds,
+    unit_scale     = unit_scale,
+    intercept_n    = fs_intercept_n
+  )
+
+  # Clip negative full-sample weights for linear method
   if (method == "linear") {
     n_neg <- sum(new_full_weights < 0)
     if (n_neg > 0L) {
@@ -476,26 +641,76 @@ calibrate_to_survey <- function(
     }
   }
 
-  # ---- 10. Write weights back, append history --------------------------------
-  rep_matrix  <- as.matrix(cal_result$repweights)
-  n_rep       <- ncol(rep_matrix)
-  rep_names   <- primary_design@variables$repweights
+  # Step 7: per-replicate calibration
+  # Output will have R replicate columns (same as input)
+  out_rep_mat <- matrix(NA_real_, nrow = nrow(primary_data), ncol = R)
 
-  # If svrep changed the number of replicates, rebuild rep names
-  if (n_rep != length(rep_names)) {
-    rep_names <- paste0("rep_", seq_len(n_rep))
+  for (r_idx in seq_len(R)) {
+    # Original primary replicate-r weights (from INPUT, not calibrated)
+    orig_rep_wt <- primary_data[[rep_col_names[[r_idx]]]]
+
+    # Accumulate K calibrated weight vectors for averaging
+    k_cal_weights <- vector("list", K)
+
+    for (k_idx in seq_len(K)) {
+      s_idx <- (r_idx - 1L) * K + k_idx  # virtual replicate index (1-based)
+
+      # Build perturbed totals for random-margin variables
+      rep_combined_tgts <- list()
+
+      for (v in random_var_names) {
+        full_tot <- ctrl_totals[[v]]$full
+        c_s <- if (s_idx <= length(ccm)) ccm[s_idx] else 0L
+        if (a_r[s_idx] != 0 && c_s > 0L) {
+          rep_tot <- ctrl_totals[[v]]$replicates[, c_s]
+          names(rep_tot) <- rownames(ctrl_totals[[v]]$replicates)
+          perturbed <- full_tot + a_r[s_idx] * (rep_tot - full_tot)
+        } else {
+          # a_r = 0 or unmatched virtual replicate: use full-sample total
+          perturbed <- full_tot
+        }
+        rep_combined_tgts[[v]] <- perturbed
+      }
+
+      # Add fixed-margin targets (unchanged across all replicates)
+      if (!is.null(targets_counts)) {
+        for (v in names(targets_counts)) {
+          rep_combined_tgts[[v]] <- targets_counts[[v]]
+        }
+      }
+
+      # Calibrate starting from original (pre-calibration) replicate weights
+      k_cal_weights[[k_idx]] <- .calibrate_opsomer_single(
+        data_df        = as.data.frame(primary_data),
+        weights_vec    = orig_rep_wt,
+        combined_tgts  = rep_combined_tgts,
+        method         = method,
+        algorithm      = algorithm,
+        ctrl           = ctrl,
+        bounds         = bounds,
+        unit_scale     = unit_scale,
+        intercept_n    = fs_intercept_n
+      )
+    }
+
+    # Average K calibrated weight vectors (when K=1 this is just the one vector)
+    out_rep_mat[, r_idx] <- Reduce("+", k_cal_weights) / K
   }
 
+  # Step 8: build new data and output object
   after_stats <- .compute_weight_stats(new_full_weights)
 
+  # History parameters
   history_params <- list(
     variables          = var_names,
     method             = method,
     bounds             = bounds,
     unit_scale         = unit_scale,
-    n_replicates       = length(primary_design@variables$repweights),
+    n_replicates       = R,
     control_design_class = class(control_design)[[1L]],
-    n_replicates_control = length(control_design@variables$repweights),
+    n_replicates_control = R_C,
+    K                  = K,
+    a_constants        = a_r,
     targets_from_reference = !is.null(reference_design),
     reference_design   = if (!is.null(reference_design)) {
       list(class = class(reference_design)[[1L]],
@@ -505,6 +720,15 @@ calibrate_to_survey <- function(
     },
     control            = ctrl
   )
+  if (!is.null(targets)) {
+    history_params$targets        <- targets_orig
+    history_params$type           <- type
+    history_params$fixed_variables <- fixed_var_names
+  } else {
+    history_params$targets        <- NULL
+    history_params$type           <- NULL
+    history_params$fixed_variables <- NULL
+  }
 
   current_history <- primary_design@metadata@weighting_history
   history_entry   <- .make_history_entry(
@@ -517,17 +741,25 @@ calibrate_to_survey <- function(
     after_stats  = after_stats,
     convergence  = NULL
   )
-
-  # Build new data frame: update full-sample weights + replicate weight columns
-  new_data <- primary_design@data
-  new_data[[wt_col_name]] <- new_full_weights
-  rep_df <- as.data.frame(rep_matrix)
-  names(rep_df) <- rep_names
-  for (rn in rep_names) {
-    new_data[[rn]] <- rep_df[[rn]]
+  # Promote K and a_constants to top-level fields for direct access.
+  # These are the primary outputs of the Opsomer algorithm and are
+  # checked by tests and documented in @returns as first-class entry fields.
+  history_entry$K           <- K
+  history_entry$a_constants <- a_r
+  if (!is.null(targets)) {
+    history_entry$targets        <- targets_orig
+    history_entry$type           <- type
+    history_entry$fixed_variables <- fixed_var_names
   }
 
-  # ---- 11. Dispatch on primary_design class for output constructor -----------
+  # Build updated data frame
+  new_data <- primary_data
+  new_data[[wt_col_name]] <- new_full_weights
+  for (r_idx in seq_len(R)) {
+    new_data[[rep_col_names[[r_idx]]]] <- out_rep_mat[, r_idx]
+  }
+
+  # Dispatch on primary_design class for output constructor
   if (S7::S7_inherits(primary_design, surveycore::survey_nonprob)) {
     result <- surveycore::survey_nonprob(
       data      = new_data,
@@ -549,13 +781,84 @@ calibrate_to_survey <- function(
 }
 
 # ---------------------------------------------------------------------------
-# PR 1 validation helpers (temporary — superseded by .compute_control_totals()
-# in PR 2)
+# Internal helpers for calibrate_to_survey()
 # ---------------------------------------------------------------------------
 
-# Check that all levels of each variable in var_names that appear in
-# primary@data also appear in control@data. Raises
-# surveywts_error_control_level_missing if any are missing.
+# Compute full-sample and per-replicate control totals for each variable
+# in var_names. Also checks for level mismatches (control level check).
+#
+# Returns a named list: one entry per variable.
+# Each entry has:
+#   $full:       named numeric vector (total per level, from control
+#                full-sample weights)
+#   $replicates: matrix (n_levels x R_C) of per-replicate totals;
+#                rownames are levels
+#
+# Errors with surveywts_error_control_level_missing if any level in the
+# primary is absent from the control.
+#
+# @keywords internal
+# @noRd
+.compute_control_totals <- function(control_design, var_names, primary_design) {
+  R_C    <- length(control_design@variables$repweights)
+  wt_col <- control_design@variables$weights
+  ctrl_data <- control_design@data
+  ctrl_full_wt <- ctrl_data[[wt_col]]
+
+  result <- list()
+  for (v in var_names) {
+    p_levels <- unique(as.character(primary_design@data[[v]]))
+    c_levels <- unique(as.character(ctrl_data[[v]]))
+
+    missing <- setdiff(p_levels, c_levels)
+    if (length(missing) > 0L) {
+      cli::cli_abort(
+        c(
+          "x" = paste0(
+            "Control survey is missing level(s) of variable {.field {v}}: ",
+            "{.and {.val {missing}}}."
+          ),
+          "i" = paste0(
+            "All levels in {.arg primary_design} must also appear in ",
+            "{.arg control_design} to estimate control-survey totals."
+          ),
+          "v" = paste0(
+            "Verify that {.arg control_design} covers the same population ",
+            "as {.arg primary_design}."
+          )
+        ),
+        class = "surveywts_error_control_level_missing"
+      )
+    }
+
+    lvls <- p_levels
+    c_char <- as.character(ctrl_data[[v]])
+
+    # Full-sample totals
+    full_totals <- vapply(lvls, function(lv) {
+      sum(ctrl_full_wt[c_char == lv])
+    }, numeric(1L))
+    names(full_totals) <- lvls
+
+    # Per-replicate totals (matrix: n_levels x R_C)
+    rep_matrix <- matrix(0, nrow = length(lvls), ncol = R_C)
+    rownames(rep_matrix) <- lvls
+    rep_col_names <- control_design@variables$repweights
+    for (r in seq_len(R_C)) {
+      rep_wt_r <- ctrl_data[[rep_col_names[[r]]]]
+      for (i_lv in seq_along(lvls)) {
+        lv <- lvls[i_lv]
+        rep_matrix[i_lv, r] <- sum(rep_wt_r[c_char == lv])
+      }
+    }
+
+    result[[v]] <- list(full = full_totals, replicates = rep_matrix)
+  }
+  result
+}
+
+# PR 1 validation helper (kept for backward-compat; now also done in
+# .compute_control_totals for the Opsomer path)
 .check_control_levels <- function(primary, control, var_names) {
   for (v in var_names) {
     p_levels <- unique(as.character(primary@data[[v]]))
@@ -732,50 +1035,217 @@ calibrate_to_survey <- function(
   invisible(TRUE)
 }
 
-# ---------------------------------------------------------------------------
-# Internal helpers used by calibrate_to_survey() and calibrate_to_estimate()
-# ---------------------------------------------------------------------------
+# Normalize targets to a named list of named numeric vectors.
+# Handles both Format A (named numeric vector) and Format B (tibble with
+# variable column + "n" or "prop" column).
+#
+# @keywords internal
+# @noRd
+.normalize_targets <- function(targets) {
+  lapply(seq_along(targets), function(i) {
+    nm   <- names(targets)[[i]]
+    elem <- targets[[i]]
+    if (is.data.frame(elem)) {
+      val_col <- if ("n" %in% names(elem)) "n" else "prop"
+      stats::setNames(as.double(elem[[val_col]]), as.character(elem[[nm]]))
+    } else {
+      stats::setNames(as.double(unname(elem)), names(elem))
+    }
+  }) |> stats::setNames(names(targets))
+}
 
-# Convert a survey_replicate or survey_nonprob S7 object to a survey package
-# svyrep.design object that svrep can consume.
-.to_svyrep <- function(design) {
-  wt_col   <- design@variables$weights
-  rep_cols <- design@variables$repweights
-  data_df  <- as.data.frame(design@data)
+# Calibrate a single set of weights to combined targets using the
+# appropriate method (rake/linear/logit via survey::calibrate()).
+#
+# Arguments:
+#   data_df       : data.frame with calibration variable columns
+#   weights_vec   : numeric vector of starting weights
+#   combined_tgts : named list of named numeric vectors (count-scale totals)
+#   method        : "rake", "linear", or "logit"
+#   algorithm     : "classic_ipf" or "nr" (only used when method = "rake")
+#   ctrl          : list with maxit and epsilon
+#   bounds        : numeric length-2 c(lower, upper)
+#   unit_scale    : NULL or numeric vector length nrow(data_df)
+#
+# Returns: numeric vector of calibrated weights
+#
+# Errors:
+#   surveywts_error_calibration_not_converged — convergence failure
+#   surveywts_error_calibration_failed        — hard error
+#
+# @keywords internal
+# @noRd
+.calibrate_opsomer_single <- function(
+  data_df,
+  weights_vec,
+  combined_tgts,
+  method,
+  algorithm,
+  ctrl,
+  bounds,
+  unit_scale,
+  intercept_n = NULL
+) {
+  cal_vars <- names(combined_tgts)
+  if (length(cal_vars) == 0L) {
+    # No calibration variables: return weights unchanged
+    return(weights_vec)
+  }
 
-  pweights <- data_df[[wt_col]]
-  repwts   <- as.matrix(data_df[, rep_cols, drop = FALSE])
+  # All methods (rake, linear, logit) use survey::calibrate() via a temporary
+  # svydesign object.  The Opsomer algorithm requires calibration to absolute
+  # count-scale totals; anesrake normalises to proportions and is therefore
+  # not used here.  When method = "rake", survey::cal.raking (Newton–Raphson
+  # raking) is used — this is the GREG formulation used by svrep internally
+  # and is numerically equivalent for balanced marginal calibration.
+  # The `algorithm` argument is matched but silently ignored in this path.
+  data_df$.opsomer_wt_tmp <- weights_vec
 
-  svy_obj <- survey::svydesign(ids = ~1, weights = ~1, data = data_df)
+  # Convert calibration variables to factors for model.matrix
+  for (v in cal_vars) {
+    lvls <- names(combined_tgts[[v]])
+    data_df[[v]] <- factor(as.character(data_df[[v]]), levels = lvls)
+  }
 
-  # Build a svyrep.design object manually. Suppress the "combined weights"
-  # warning that fires when mean(repweights) << mean(sampling weights) --
-  # this is expected for bootstrap designs with large sampling weights.
-  result <- suppressWarnings(
-    survey::svrepdesign(
-      data       = data_df,
-      repweights = repwts,
-      weights    = pweights,
-      type       = design@variables$type %||% "bootstrap",
-      scale      = design@variables$scale,
-      rscales    = design@variables$rscales,
-      mse        = isTRUE(design@variables$mse)
-    )
+  # Build formula and population totals vector (treatment contrasts)
+  multi_level_vars <- cal_vars[vapply(combined_tgts, function(tgt) {
+    length(tgt) >= 2L
+  }, logical(1L))]
+
+  if (length(multi_level_vars) == 0L) {
+    # All single-level: trivially calibrated — return weights unchanged
+    return(weights_vec)
+  }
+
+  fml    <- stats::as.formula(
+    paste("~", paste(multi_level_vars, collapse = " + "))
   )
-  result
+  mm     <- stats::model.matrix(fml, data = data_df)
+  n_cols <- ncol(mm)
+
+  # Population totals in treatment-contrast parameterization.
+  # Intercept = the common grand total for all calibration constraints.
+  # When intercept_n is supplied (e.g., from the fixed-margin caller, using the
+  # primary's weight sum N), use it directly.  Otherwise default to the sum of
+  # the first variable's marginal totals (all control-only cases are consistent).
+  if (is.null(intercept_n)) {
+    intercept_n <- sum(combined_tgts[[cal_vars[[1L]]]])
+  }
+  pop_totals <- stats::setNames(numeric(n_cols), colnames(mm))
+  pop_totals["(Intercept)"] <- intercept_n
+
+  for (v in cal_vars) {
+    if (length(combined_tgts[[v]]) < 2L) next
+    lvls <- names(combined_tgts[[v]])
+    for (lev in lvls[-1L]) {
+      col_nm <- paste0(v, lev)
+      if (col_nm %in% names(pop_totals)) {
+        pop_totals[col_nm] <- combined_tgts[[v]][[lev]]
+      }
+    }
+  }
+
+  svy_tmp <- survey::svydesign(
+    ids     = ~1,
+    weights = ~.opsomer_wt_tmp,
+    data    = data_df
+  )
+
+  calfun <- .method_to_calfun(method)
+
+  cal_args <- list(
+    design     = svy_tmp,
+    formula    = fml,
+    population = pop_totals,
+    calfun     = calfun,
+    maxit      = as.integer(ctrl$maxit),
+    epsilon    = ctrl$epsilon
+  )
+  if (!is.null(unit_scale)) {
+    cal_args$variance <- unit_scale
+  }
+  # For logit: bounds must be finite; use wide defaults if not specified
+  if (method == "logit") {
+    lower <- if (is.finite(bounds[[1L]])) bounds[[1L]] else 1e-6
+    upper <- if (is.finite(bounds[[2L]])) bounds[[2L]] else 1e6
+    cal_args$bounds <- c(lower, upper)
+  } else if (method == "linear" &&
+             (is.finite(bounds[[1L]]) || is.finite(bounds[[2L]]))) {
+    cal_args$bounds <- bounds
+  }
+
+  # Use a local environment to capture any convergence warning message.
+  # cli::cli_abort() called inside withCallingHandlers(warning=) does not
+  # propagate its class correctly through tryCatch — instead we record the
+  # message and re-signal after the withCallingHandlers block exits.
+  convergence_msg <- NULL
+
+  cal_result <- tryCatch(
+    withCallingHandlers(
+      do.call(survey::calibrate, cal_args),
+      warning = function(w) {
+        msg <- conditionMessage(w)
+        if (grepl("converge", msg, ignore.case = TRUE)) {
+          # Record the convergence message; re-signal as calibration_not_converged
+          # inside the error handler if survey::calibrate() subsequently errors.
+          convergence_msg <<- msg
+          invokeRestart("muffleWarning")
+        } else {
+          tryInvokeRestart("muffleWarning")
+        }
+      }
+    ),
+    error = function(e) {
+      # If we already saw a convergence warning, this error is a downstream
+      # consequence — surface it as not_converged, not calibration_failed.
+      if (!is.null(convergence_msg)) {
+        cli::cli_abort(
+          c(
+            "x" = paste0(
+              "Calibration did not converge after {ctrl$maxit} iterations."
+            ),
+            "i" = "survey::calibrate() reported: {convergence_msg}",
+            "v" = paste0(
+              "Increase {.code control$maxit}, relax ",
+              "{.code control$epsilon}, or verify margin totals."
+            )
+          ),
+          class = "surveywts_error_calibration_not_converged"
+        )
+      }
+      cli::cli_abort(
+        c(
+          "x" = "Calibration failed during Opsomer step.",
+          "i" = "survey::calibrate() reported: {conditionMessage(e)}"
+        ),
+        class = "surveywts_error_calibration_failed"
+      )
+    }
+  )
+
+  # Re-signal convergence failure when survey::calibrate() returned normally
+  # despite not fully converging (some calfun implementations only warn).
+  if (!is.null(convergence_msg)) {
+    cli::cli_abort(
+      c(
+        "x" = paste0(
+          "Calibration did not converge after {ctrl$maxit} iterations."
+        ),
+        "i" = "survey::calibrate() reported: {convergence_msg}",
+        "v" = paste0(
+          "Increase {.code control$maxit}, relax ",
+          "{.code control$epsilon}, or verify margin totals."
+        )
+      ),
+      class = "surveywts_error_calibration_not_converged"
+    )
+  }
+
+  as.numeric(stats::weights(cal_result))
 }
 
 # Thin wrapper around svrep::calibrate_to_sample().
 # Exists as a named function in the surveywts namespace so tests can mock it.
+# (No longer called by calibrate_to_survey(); retained for calibrate_to_estimate()
+# compatibility — do NOT remove.)
 .svrep_calibrate_to_sample <- function(...) svrep::calibrate_to_sample(...)
-
-# Map method string to survey calfun object
-.method_to_calfun <- function(method) {
-  switch(
-    method,
-    "rake"   = survey::cal.raking,
-    "linear" = survey::cal.linear,
-    "logit"  = survey::cal.logit,
-    survey::cal.raking  # default
-  )
-}

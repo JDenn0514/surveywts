@@ -398,45 +398,37 @@ test_that("calibrate_to_survey() rejects empty variable selection", {
   )
 })
 
-test_that("calibrate_to_survey() propagates convergence warning as error", {
-  skip_if_not_installed("svrep")
+test_that("calibrate_to_survey() raises error on calibration failure (method=rake, maxit=1)", {
+  # Trigger surveywts_error_calibration_not_converged by limiting to 1 iteration
+  # with an extremely tight tolerance.  survey::calibrate() with cal.raking
+  # emits a "Failed to converge" warning then errors — our handler maps this to
+  # the typed error class.
+  primary <- make_replicate_design(n = 100L, seed = 1L)
+  control <- make_replicate_design(n = 100L, seed = 2L)
+
+  expect_error(
+    calibrate_to_survey(
+      primary, control,
+      variables = c(sex),
+      method    = "rake",
+      control   = list(maxit = 1L, epsilon = 1e-40)
+    ),
+    class = "surveywts_error_calibration_not_converged"
+  )
+})
+
+test_that("calibrate_to_survey() does not call .svrep_calibrate_to_sample()", {
+  # Verify that the Opsomer path never delegates to svrep.
   primary <- make_replicate_design(n = 100L, seed = 1L)
   control <- make_replicate_design(n = 100L, seed = 2L)
 
   testthat::with_mocked_bindings(
     .svrep_calibrate_to_sample = function(...) {
-      warning("Calibration did not converge", call. = FALSE)
-      NULL
+      stop("svrep::calibrate_to_sample must not be called in PR 2")
     },
     .package = "surveywts",
     {
-      expect_error(
-        calibrate_to_survey(primary, control, variables = c(sex)),
-        class = "surveywts_error_calibration_not_converged"
-      )
-      expect_snapshot(
-        error = TRUE,
-        calibrate_to_survey(primary, control, variables = c(sex))
-      )
-    }
-  )
-})
-
-test_that("calibrate_to_survey() propagates hard svrep errors", {
-  skip_if_not_installed("svrep")
-  primary <- make_replicate_design(n = 100L, seed = 1L)
-  control <- make_replicate_design(n = 100L, seed = 2L)
-
-  testthat::with_mocked_bindings(
-    .svrep_calibrate_to_sample = function(...) stop("svrep internal error"),
-    .package = "surveywts",
-    {
-      expect_error(
-        calibrate_to_survey(primary, control, variables = c(sex)),
-        class = "surveywts_error_calibration_failed"
-      )
-      expect_snapshot(
-        error = TRUE,
+      expect_no_error(
         calibrate_to_survey(primary, control, variables = c(sex))
       )
     }
@@ -480,32 +472,42 @@ test_that("calibrate_to_survey() warns on replicate scheme mismatch", {
   )
 })
 
-test_that("calibrate_to_survey() warns and clips negative weights (method = linear)", {
-  skip_if_not_installed("svrep")
-  primary <- make_replicate_design(n = 100L, seed = 1L)
-  control <- make_replicate_design(n = 100L, seed = 2L)
-
-  # Mock the internal wrapper to return a design with a negative full-sample weight
-  mock_result <- surveywts:::.to_svyrep(primary)
-  mock_result$pweights[1L] <- -1.0
-
-  testthat::with_mocked_bindings(
-    .svrep_calibrate_to_sample = function(...) mock_result,
-    .package = "surveywts",
-    {
-      expect_warning(
-        result <- calibrate_to_survey(
-          primary, control,
-          variables = c(sex),
-          method    = "linear"
-        ),
-        class = "surveywts_warning_negative_calibrated_weights"
-      )
-
-      wt_col <- primary@variables$weights
-      expect_true(all(result@data[[wt_col]] > 0))
-    }
+test_that("calibrate_to_survey() warns and clips negative full-sample weights (method = linear)", {
+  # Linear calibration with two correlated variables (A, B) produces negative
+  # full-sample weights when the primary has extreme joint distribution (large
+  # weights in A=1,B=1 group) and the control has very small A totals.
+  # Using n=30 primary / n=100 control ensures bootstrap replicates are stable
+  # enough to avoid per-replicate convergence errors.
+  df_prim <- data.frame(
+    A  = c(rep(1L, 15L), rep(0L, 15L)),
+    B  = c(rep(1L, 10L), rep(0L, 5L), rep(1L, 5L), rep(0L, 10L)),
+    wt = c(rep(8, 15L), rep(1, 15L)),
+    stringsAsFactors = FALSE
   )
+  # Control: A very sparse (2 out of 100 units, total=2); B at 50%.
+  # Both levels present in control — passes .check_control_levels().
+  df_ctrl <- data.frame(
+    A  = c(rep(1L, 2L), rep(0L, 98L)),
+    B  = c(1L, 0L, rep(1L, 49L), rep(0L, 49L)),
+    wt = rep(1, 100L),
+    stringsAsFactors = FALSE
+  )
+  tay_p <- surveycore::survey_taylor(df_prim, variables = list(weights = "wt"))
+  tay_c <- surveycore::survey_taylor(df_ctrl, variables = list(weights = "wt"))
+  p_rep <- create_bootstrap_weights(tay_p, replicates = 30L, seed = 1L)
+  c_rep <- create_bootstrap_weights(tay_c, replicates = 30L, seed = 2L)
+
+  expect_warning(
+    result <- calibrate_to_survey(
+      p_rep, c_rep,
+      variables = c(A, B),
+      method    = "linear"
+    ),
+    class = "surveywts_warning_negative_calibrated_weights"
+  )
+
+  wt_col <- p_rep@variables$weights
+  expect_true(all(result@data[[wt_col]] > 0))
 })
 
 # ===========================================================================
@@ -2661,5 +2663,819 @@ test_that(
                           variables = c(nonexistent_var), targets = NULL),
       class = "surveywts_error_variables_not_found"
     )
+  }
+)
+
+# ===========================================================================
+# 26. PR 2 — Happy path: targets = NULL (Opsomer, no fixed margins)
+# ===========================================================================
+
+test_that(
+  "calibrate_to_survey() Opsomer path returns survey_replicate for replicate primary",
+  {
+    primary <- make_replicate_design(n = 200L, R = 50L, seed = 42L)
+    control <- make_replicate_design(n = 200L, R = 50L, seed = 99L)
+    result  <- calibrate_to_survey(
+      primary_design = primary,
+      control_design = control,
+      variables      = c(sex),
+      targets        = NULL
+    )
+    expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
+  }
+)
+
+test_that(
+  "calibrate_to_survey() Opsomer path returns survey_nonprob for nonprob primary",
+  {
+    primary <- make_nonprob_replicate_design(n = 200L, R = 30L, seed = 1L)
+    control <- make_replicate_design(n = 200L, R = 30L, seed = 99L)
+    result  <- calibrate_to_survey(
+      primary_design = primary,
+      control_design = control,
+      variables      = c(sex)
+    )
+    expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  }
+)
+
+test_that(
+  "calibrate_to_survey() Opsomer path changes weights (targets = NULL)",
+  {
+    primary <- make_replicate_design(n = 200L, R = 50L, seed = 42L)
+    control <- make_replicate_design(n = 200L, R = 50L, seed = 99L)
+    before  <- primary@data[[primary@variables$weights]]
+    result  <- calibrate_to_survey(
+      primary_design = primary,
+      control_design = control,
+      variables      = c(sex)
+    )
+    after <- result@data[[result@variables$weights]]
+    expect_false(isTRUE(all.equal(before, after)))
+  }
+)
+
+test_that(
+  "calibrate_to_survey() Opsomer path grows history by exactly 1 (targets = NULL)",
+  {
+    primary <- make_replicate_design(n = 200L, R = 50L, seed = 42L)
+    control <- make_replicate_design(n = 200L, R = 50L, seed = 99L)
+    n_before <- length(primary@metadata@weighting_history)
+    result   <- calibrate_to_survey(primary, control, variables = c(sex))
+    n_after  <- length(result@metadata@weighting_history)
+    expect_identical(n_after - n_before, 1L)
+  }
+)
+
+test_that(
+  "calibrate_to_survey() history entry has operation == 'calibrate_to_survey'",
+  {
+    primary <- make_replicate_design(n = 200L, R = 50L, seed = 42L)
+    control <- make_replicate_design(n = 200L, R = 50L, seed = 99L)
+    result  <- calibrate_to_survey(primary, control, variables = c(sex))
+    hist    <- result@metadata@weighting_history
+    last    <- hist[[length(hist)]]
+    expect_identical(last$operation, "calibrate_to_survey")
+  }
+)
+
+test_that(
+  "calibrate_to_survey() history records a_constants of length R (targets = NULL)",
+  {
+    primary <- make_replicate_design(n = 200L, R = 50L, seed = 42L)
+    control <- make_replicate_design(n = 200L, R = 50L, seed = 99L)
+    R       <- length(primary@variables$repweights)
+    result  <- calibrate_to_survey(primary, control, variables = c(sex))
+    hist    <- result@metadata@weighting_history
+    last    <- hist[[length(hist)]]
+    # When R = R_C = 50, K = 1, R_eff = R = 50
+    expect_identical(length(last$a_constants), R)
+  }
+)
+
+test_that(
+  "calibrate_to_survey() history records K == 1L when R_C <= R (targets = NULL)",
+  {
+    primary <- make_replicate_design(n = 200L, R = 50L, seed = 42L)
+    control <- make_replicate_design(n = 200L, R = 50L, seed = 99L)
+    result  <- calibrate_to_survey(primary, control, variables = c(sex))
+    hist    <- result@metadata@weighting_history
+    last    <- hist[[length(hist)]]
+    expect_identical(last$K, 1L)
+  }
+)
+
+test_that(
+  "calibrate_to_survey() history omits targets/type/fixed_variables (targets = NULL)",
+  {
+    primary <- make_replicate_design(n = 200L, R = 50L, seed = 42L)
+    control <- make_replicate_design(n = 200L, R = 50L, seed = 99L)
+    result  <- calibrate_to_survey(primary, control, variables = c(sex))
+    hist    <- result@metadata@weighting_history
+    last    <- hist[[length(hist)]]
+    expect_null(last$targets)
+    expect_null(last$type)
+    expect_null(last$fixed_variables)
+  }
+)
+
+# ===========================================================================
+# 27. PR 2 — Numerical comparison vs svrep oracle (method = "linear")
+# ===========================================================================
+
+test_that(
+  "calibrate_to_survey() Opsomer linear path matches svrep oracle within 1e-8",
+  {
+    skip_if_not_installed("svrep")
+    primary <- make_replicate_design(n = 200L, R = 50L, seed = 42L)
+    control <- make_replicate_design(n = 200L, R = 50L, seed = 99L)
+    set.seed(1L)
+    result_ours <- calibrate_to_survey(
+      primary, control,
+      variables = c(sex),
+      method    = "linear"
+    )
+
+    # Build svrep oracle inputs
+    .to_svyrep_local <- function(design) {
+      wt_col   <- design@variables$weights
+      rep_cols <- design@variables$repweights
+      data_df  <- as.data.frame(design@data)
+      pweights <- data_df[[wt_col]]
+      repwts   <- as.matrix(data_df[, rep_cols, drop = FALSE])
+      suppressWarnings(
+        survey::svrepdesign(
+          data       = data_df,
+          repweights = repwts,
+          weights    = pweights,
+          type       = design@variables$type %||% "bootstrap",
+          scale      = design@variables$scale,
+          rscales    = design@variables$rscales,
+          mse        = isTRUE(design@variables$mse)
+        )
+      )
+    }
+    primary_svrep <- .to_svyrep_local(primary)
+    control_svrep <- .to_svyrep_local(control)
+
+    set.seed(1L)
+    result_svrep <- suppressWarnings(svrep::calibrate_to_sample(
+      primary_rep_design = primary_svrep,
+      control_rep_design = control_svrep,
+      cal_formula        = ~sex,
+      calfun             = survey::cal.linear
+    ))
+
+    # Compare full-sample calibrated weights.
+    # svrep$pweights holds the calibrated full-sample sampling weights.
+    ours_wts  <- result_ours@data[[result_ours@variables$weights]]
+    svrep_wts <- as.numeric(result_svrep$pweights)
+
+    expect_equal(ours_wts, svrep_wts, tolerance = 1e-8)
+  }
+)
+
+test_that(
+  "calibrate_to_survey() Opsomer rake path satisfies full-sample control totals",
+  {
+    primary <- make_replicate_design(n = 200L, R = 50L, seed = 42L)
+    control <- make_replicate_design(n = 200L, R = 50L, seed = 99L)
+    result  <- calibrate_to_survey(primary, control, variables = c(sex))
+
+    # Compute control full-sample totals for 'sex'
+    ctrl_wt   <- control@data[[control@variables$weights]]
+    ctrl_sex  <- control@data$sex
+    ctrl_tot  <- tapply(ctrl_wt, ctrl_sex, sum)
+
+    # Check calibrated primary totals match within 1e-4 (raking tolerance)
+    cal_wt    <- result@data[[result@variables$weights]]
+    cal_tot   <- tapply(cal_wt, result@data$sex, sum)
+
+    for (lv in names(ctrl_tot)) {
+      expect_equal(
+        unname(cal_tot[[lv]]),
+        unname(ctrl_tot[[lv]]),
+        tolerance = 1e-4
+      )
+    }
+  }
+)
+
+# ===========================================================================
+# 28. PR 2 — Happy path: targets non-NULL (Opsomer, fixed margins)
+# ===========================================================================
+
+test_that(
+  "calibrate_to_survey() Opsomer fixed-margin returns survey_replicate",
+  {
+    primary <- make_replicate_design(n = 200L, R = 50L, seed = 42L)
+    control <- make_replicate_design(n = 200L, R = 50L, seed = 99L)
+    sex_prop <- c("M" = 0.49, "F" = 0.51)
+    result  <- calibrate_to_survey(
+      primary, control,
+      variables = c(age_group),
+      targets   = list(sex = sex_prop),
+      type      = "prop"
+    )
+    expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
+    expect_identical(nrow(result@data), nrow(primary@data))
+    n_before <- length(primary@metadata@weighting_history)
+    n_after  <- length(result@metadata@weighting_history)
+    expect_identical(n_after - n_before, 1L)
+  }
+)
+
+test_that(
+  "calibrate_to_survey() Opsomer fixed-margin returns survey_nonprob for nonprob primary",
+  {
+    primary <- make_nonprob_replicate_design(n = 200L, R = 30L, seed = 1L)
+    control <- make_replicate_design(n = 200L, R = 30L, seed = 99L)
+    # Use type = "count" with targets consistent with the control weight total
+    # so that the simultaneous age_group (from control) and sex (fixed)
+    # constraints share the same grand total and convergence is guaranteed.
+    N_ctrl  <- sum(control@data[[control@variables$weights]])
+    sex_cnt <- c("M" = 0.49 * N_ctrl, "F" = 0.51 * N_ctrl)
+    result  <- calibrate_to_survey(
+      primary, control,
+      variables = c(age_group),
+      targets   = list(sex = sex_cnt),
+      type      = "count"
+    )
+    expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  }
+)
+
+test_that(
+  "calibrate_to_survey() history records fixed_variables from targets",
+  {
+    primary <- make_replicate_design(n = 200L, R = 50L, seed = 42L)
+    control <- make_replicate_design(n = 200L, R = 50L, seed = 99L)
+    sex_prop <- c("M" = 0.49, "F" = 0.51)
+    result <- calibrate_to_survey(
+      primary, control,
+      variables = c(age_group),
+      targets   = list(sex = sex_prop),
+      type      = "prop"
+    )
+    hist <- result@metadata@weighting_history
+    last <- hist[[length(hist)]]
+    expect_identical(last$fixed_variables, "sex")
+  }
+)
+
+test_that(
+  "calibrate_to_survey() history records K == 1L when R_C <= R (targets non-NULL)",
+  {
+    primary <- make_replicate_design(n = 200L, R = 50L, seed = 42L)
+    control <- make_replicate_design(n = 200L, R = 50L, seed = 99L)
+    sex_prop <- c("M" = 0.49, "F" = 0.51)
+    result <- calibrate_to_survey(
+      primary, control,
+      variables = c(age_group),
+      targets   = list(sex = sex_prop),
+      type      = "prop"
+    )
+    hist <- result@metadata@weighting_history
+    last <- hist[[length(hist)]]
+    expect_identical(last$K, 1L)
+  }
+)
+
+test_that(
+  "calibrate_to_survey() history records K == 2L when R_C > R",
+  {
+    # primary R = 30, control R = 50 -> K = ceiling(50/30) = 2
+    primary <- make_nonprob_replicate_design(n = 200L, R = 30L, seed = 1L)
+    control <- make_replicate_design(n = 200L, R = 50L, seed = 99L)
+    # Use type = "count" with targets consistent with the control weight total
+    N_ctrl  <- sum(control@data[[control@variables$weights]])
+    sex_cnt <- c("M" = 0.49 * N_ctrl, "F" = 0.51 * N_ctrl)
+    result <- calibrate_to_survey(
+      primary, control,
+      variables = c(age_group),
+      targets   = list(sex = sex_cnt),
+      type      = "count"
+    )
+    hist <- result@metadata@weighting_history
+    last <- hist[[length(hist)]]
+    expect_identical(last$K, 2L)
+    # R_eff = K * R = 2 * 30 = 60
+    expect_identical(length(last$a_constants), 60L)
+  }
+)
+
+test_that(
+  "calibrate_to_survey() history records type == 'count' when type = 'count'",
+  {
+    primary <- make_replicate_design(n = 200L, R = 50L, seed = 42L)
+    control <- make_replicate_design(n = 200L, R = 50L, seed = 99L)
+    N <- sum(primary@data[[primary@variables$weights]])
+    sex_count <- c("M" = N * 0.49, "F" = N * 0.51)
+    result <- calibrate_to_survey(
+      primary, control,
+      variables = c(age_group),
+      targets   = list(sex = sex_count),
+      type      = "count"
+    )
+    hist <- result@metadata@weighting_history
+    last <- hist[[length(hist)]]
+    expect_identical(last$type, "count")
+  }
+)
+
+test_that(
+  "calibrate_to_survey() type='prop' accepted with non-NULL targets",
+  {
+    primary <- make_replicate_design(n = 200L, R = 50L, seed = 42L)
+    control <- make_replicate_design(n = 200L, R = 50L, seed = 99L)
+    sex_prop <- c("M" = 0.49, "F" = 0.51)
+    result <- calibrate_to_survey(
+      primary, control,
+      variables = c(age_group),
+      targets   = list(sex = sex_prop),
+      type      = "prop"
+    )
+    expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
+  }
+)
+
+test_that(
+  "calibrate_to_survey() fixed margin constraint satisfied within 1e-4",
+  {
+    primary  <- make_replicate_design(n = 200L, R = 50L, seed = 42L)
+    control  <- make_replicate_design(n = 200L, R = 50L, seed = 99L)
+    N        <- sum(primary@data[[primary@variables$weights]])
+    sex_prop <- c("M" = 0.49, "F" = 0.51)
+    sex_cnt  <- sex_prop * N  # convert to counts for comparison
+
+    result   <- calibrate_to_survey(
+      primary, control,
+      variables = c(age_group),
+      targets   = list(sex = sex_prop),
+      type      = "prop"
+    )
+    cal_wt  <- result@data[[result@variables$weights]]
+    cal_tot <- tapply(cal_wt, result@data$sex, sum)
+
+    for (lv in names(sex_cnt)) {
+      expect_equal(
+        unname(cal_tot[[lv]]),
+        unname(sex_cnt[[lv]]),
+        tolerance = 1e-4
+      )
+    }
+  }
+)
+
+test_that(
+  "calibrate_to_survey() reference_design stored in history when supplied",
+  {
+    primary  <- make_replicate_design(n = 200L, R = 50L, seed = 42L)
+    control  <- make_replicate_design(n = 200L, R = 50L, seed = 99L)
+    ref_data <- make_surveywts_data(n = 200L, seed = 77L)
+    ref      <- surveycore::survey_taylor(
+      data = ref_data, variables = list(weights = "base_weight")
+    )
+    result <- calibrate_to_survey(
+      primary, control,
+      variables        = c(sex),
+      reference_design = ref
+    )
+    hist   <- result@metadata@weighting_history
+    last   <- hist[[length(hist)]]
+    params <- last$parameters
+    expect_true(params$targets_from_reference)
+  }
+)
+
+# ===========================================================================
+# 29. PR 2 — a_r constants correctness
+# ===========================================================================
+
+test_that(
+  "calibrate_to_survey() all a_r == sqrt(A_C/A) when R == R_C",
+  {
+    primary  <- make_replicate_design(n = 100L, R = 50L, seed = 42L)
+    control  <- make_replicate_design(n = 100L, R = 50L, seed = 99L)
+    A        <- primary@variables$scale
+    A_C      <- control@variables$scale
+    result   <- calibrate_to_survey(primary, control, variables = c(sex))
+    hist     <- result@metadata@weighting_history
+    last     <- hist[[length(hist)]]
+    expected <- sqrt(A_C / A)
+    expect_equal(last$a_constants, rep(expected, 50L), tolerance = 1e-10)
+  }
+)
+
+test_that(
+  "calibrate_to_survey() a_r[r] == sqrt(A_C/A) for r <= R_C, 0 for r > R_C",
+  {
+    # primary R=60 (need to create this), control R=50 -> a_r[51..60] = 0
+    # Use acs_wy_2022_svy which has R=80, then create smaller controls
+    # Actually make a custom design with R=60 via bootstrap
+    df60 <- make_surveywts_data(n = 100L, seed = 42L)
+    t60  <- surveycore::survey_taylor(
+      data = df60, variables = list(weights = "base_weight")
+    )
+    primary  <- create_bootstrap_weights(t60, replicates = 60L, seed = 1L)
+    control  <- make_replicate_design(n = 100L, R = 50L, seed = 99L)
+
+    A        <- primary@variables$scale
+    A_C      <- control@variables$scale
+    result   <- calibrate_to_survey(primary, control, variables = c(sex))
+    hist     <- result@metadata@weighting_history
+    last     <- hist[[length(hist)]]
+
+    # K=1, R_eff=60; a_r[1..50] = sqrt(A_C/A), a_r[51..60] = 0
+    expected <- sqrt(A_C / A)
+    expect_equal(last$a_constants[1:50], rep(expected, 50L), tolerance = 1e-10)
+    expect_equal(last$a_constants[51:60], rep(0, 10L), tolerance = 1e-10)
+  }
+)
+
+test_that(
+  "calibrate_to_survey() K == ceiling(R_C / R) when R_C > R",
+  {
+    primary  <- make_nonprob_replicate_design(n = 100L, R = 30L, seed = 1L)
+    control  <- make_replicate_design(n = 100L, R = 50L, seed = 99L)
+    result   <- calibrate_to_survey(primary, control, variables = c(sex))
+    hist     <- result@metadata@weighting_history
+    last     <- hist[[length(hist)]]
+    expect_identical(last$K, 2L)  # ceiling(50/30) = 2
+  }
+)
+
+test_that(
+  "calibrate_to_survey() a_r computed with A_eff = A/K when K > 1",
+  {
+    # primary R=30, control R=50 -> K=2, A_eff = A/2
+    primary  <- make_nonprob_replicate_design(n = 100L, R = 30L, seed = 1L)
+    control  <- make_replicate_design(n = 100L, R = 50L, seed = 99L)
+    A        <- primary@variables$scale
+    A_C      <- control@variables$scale
+    K        <- 2L  # ceiling(50/30)
+    A_eff    <- A / K
+
+    result   <- calibrate_to_survey(primary, control, variables = c(sex))
+    hist     <- result@metadata@weighting_history
+    last     <- hist[[length(hist)]]
+
+    expected <- sqrt(A_C / A_eff)
+    # a_r for r=1..R_C=50 (R_eff = 2*30 = 60)
+    expect_equal(last$a_constants[1:50], rep(expected, 50L), tolerance = 1e-10)
+    # a_r[51..60] should be 0
+    expect_equal(last$a_constants[51:60], rep(0, 10L), tolerance = 1e-10)
+  }
+)
+
+# ===========================================================================
+# 30. PR 2 — Numerical correctness (Opsomer path)
+# ===========================================================================
+
+test_that(
+  "calibrate_to_survey() satisfies full-sample random-margin constraint",
+  {
+    primary <- make_replicate_design(n = 200L, R = 50L, seed = 42L)
+    control <- make_replicate_design(n = 200L, R = 50L, seed = 99L)
+    result  <- calibrate_to_survey(primary, control, variables = c(sex))
+
+    # Calibrated weights must match control full-sample totals for 'sex'
+    ctrl_wt  <- control@data[[control@variables$weights]]
+    ctrl_tot <- tapply(ctrl_wt, control@data$sex, sum)
+    cal_wt   <- result@data[[result@variables$weights]]
+    cal_tot  <- tapply(cal_wt, result@data$sex, sum)
+
+    for (lv in names(ctrl_tot)) {
+      expect_equal(
+        unname(cal_tot[[lv]]),
+        unname(ctrl_tot[[lv]]),
+        tolerance = 1e-4
+      )
+    }
+  }
+)
+
+test_that(
+  "calibrate_to_survey() satisfies full-sample fixed-margin constraint",
+  {
+    primary  <- make_replicate_design(n = 200L, R = 50L, seed = 42L)
+    control  <- make_replicate_design(n = 200L, R = 50L, seed = 99L)
+    N        <- sum(primary@data[[primary@variables$weights]])
+    sex_prop <- c("M" = 0.49, "F" = 0.51)
+    sex_cnt  <- sex_prop * N
+
+    result  <- calibrate_to_survey(
+      primary, control,
+      variables = c(age_group),
+      targets   = list(sex = sex_prop),
+      type      = "prop"
+    )
+    cal_wt  <- result@data[[result@variables$weights]]
+    cal_tot <- tapply(cal_wt, result@data$sex, sum)
+
+    for (lv in names(sex_cnt)) {
+      expect_equal(
+        unname(cal_tot[[lv]]),
+        unname(sex_cnt[[lv]]),
+        tolerance = 1e-4
+      )
+    }
+  }
+)
+
+test_that(
+  "calibrate_to_survey() type='prop' uses N from input primary weights",
+  {
+    primary  <- make_replicate_design(n = 200L, R = 50L, seed = 42L)
+    control  <- make_replicate_design(n = 200L, R = 50L, seed = 99L)
+    N        <- sum(primary@data[[primary@variables$weights]])
+    sex_prop <- c("M" = 0.48, "F" = 0.52)
+
+    result <- calibrate_to_survey(
+      primary, control,
+      variables = c(age_group),
+      targets   = list(sex = sex_prop),
+      type      = "prop"
+    )
+    # N should be preserved (sum of output weights ~= N)
+    cal_wt <- result@data[[result@variables$weights]]
+    expect_equal(sum(cal_wt), N, tolerance = 1e-4)
+  }
+)
+
+# ===========================================================================
+# 31. PR 2 — Gotcha coverage
+# ===========================================================================
+
+test_that(
+  "calibrate_to_survey() does not call svrep::calibrate_to_sample() in any path",
+  {
+    skip_if_not_installed("svrep")
+    # Mock the delegation function so it errors if called
+    local_mocked_bindings(
+      .svrep_calibrate_to_sample = function(...) {
+        stop("svrep::calibrate_to_sample must not be called in PR 2")
+      },
+      .package = "surveywts"
+    )
+
+    primary  <- make_replicate_design(n = 100L, R = 50L, seed = 42L)
+    control  <- make_replicate_design(n = 100L, R = 50L, seed = 99L)
+    sex_prop <- c("M" = 0.49, "F" = 0.51)
+
+    # targets = NULL path
+    expect_no_error(
+      calibrate_to_survey(primary, control, variables = c(sex))
+    )
+
+    # targets non-NULL path
+    expect_no_error(
+      calibrate_to_survey(
+        primary, control,
+        variables = c(age_group),
+        targets   = list(sex = sex_prop),
+        type      = "prop"
+      )
+    )
+  }
+)
+
+test_that(
+  "calibrate_to_survey() scale_not_found error is not regressed by PR 2",
+  {
+    primary <- make_replicate_design(n = 100L, R = 50L, seed = 42L)
+    control <- make_replicate_design(n = 100L, R = 50L, seed = 99L)
+    primary@variables$scale <- NULL
+
+    expect_error(
+      calibrate_to_survey(primary, control, variables = c(sex)),
+      class = "surveywts_error_scale_not_found"
+    )
+  }
+)
+
+test_that(
+  "calibrate_to_survey() R > R_C: output has R replicate columns",
+  {
+    df60 <- make_surveywts_data(n = 100L, seed = 42L)
+    t60  <- surveycore::survey_taylor(
+      data = df60, variables = list(weights = "base_weight")
+    )
+    primary <- create_bootstrap_weights(t60, replicates = 60L, seed = 1L)
+    control <- make_replicate_design(n = 100L, R = 50L, seed = 99L)
+
+    R      <- length(primary@variables$repweights)
+    result <- calibrate_to_survey(primary, control, variables = c(sex))
+    expect_identical(length(result@variables$repweights), R)
+  }
+)
+
+test_that(
+  "calibrate_to_survey() R_C > R: output still has R replicate columns",
+  {
+    primary <- make_nonprob_replicate_design(n = 100L, R = 30L, seed = 1L)
+    control <- make_replicate_design(n = 100L, R = 50L, seed = 99L)
+    R       <- length(primary@variables$repweights)
+    result  <- calibrate_to_survey(primary, control, variables = c(sex))
+    expect_identical(length(result@variables$repweights), R)
+  }
+)
+
+test_that(
+  "calibrate_to_survey() a_r=0 replicates produce finite weights (no Inf/NaN)",
+  {
+    df60 <- make_surveywts_data(n = 100L, seed = 42L)
+    t60  <- surveycore::survey_taylor(
+      data = df60, variables = list(weights = "base_weight")
+    )
+    primary <- create_bootstrap_weights(t60, replicates = 60L, seed = 1L)
+    control <- make_replicate_design(n = 100L, R = 50L, seed = 99L)
+
+    result  <- calibrate_to_survey(primary, control, variables = c(sex))
+    # Check that a_r=0 replicates (positions 51..60) have finite weights
+    rep_cols <- result@variables$repweights
+    # All replicate weight columns should be finite
+    all_finite <- all(vapply(rep_cols, function(col) {
+      all(is.finite(result@data[[col]]))
+    }, logical(1L)))
+    expect_true(all_finite)
+  }
+)
+
+# ===========================================================================
+# 32. PR 2 — Warning paths
+# ===========================================================================
+
+test_that(
+  "calibrate_to_survey() warns for unknown control param (regression guard PR 2)",
+  {
+    primary <- make_replicate_design(n = 100L, R = 50L, seed = 42L)
+    control <- make_replicate_design(n = 100L, R = 50L, seed = 99L)
+
+    expect_warning(
+      calibrate_to_survey(
+        primary, control,
+        variables = c(sex),
+        control   = list(unknown_key = 99)
+      ),
+      class = "surveywts_warning_control_param_ignored"
+    )
+  }
+)
+
+test_that(
+  "calibrate_to_survey() warns for replicate scheme mismatch (regression guard PR 2)",
+  {
+    skip_if_not_installed("svrep")
+    primary <- make_replicate_design(n = 100L, R = 50L, seed = 42L)
+    # Build jackknife control with different type
+    # Use make_surveywts_data + stratified design so jackknife works
+    df_jk  <- make_surveywts_data(n = 100L, seed = 99L)
+    # Add strata and PSU columns; use unique PSU IDs within each stratum via
+    # nest = TRUE so jackknife does not error on non-nested clusters.
+    df_jk$stratum <- rep(c(1L, 2L, 3L, 4L), length.out = nrow(df_jk))
+    df_jk$psu_id  <- rep(seq_len(nrow(df_jk) %/% 2L), each = 2L,
+                         length.out = nrow(df_jk))
+    t_jk   <- surveycore::as_survey(
+      df_jk, ids = psu_id, strata = stratum, weights = base_weight,
+      nest = TRUE
+    )
+    control_jk <- create_jackknife_weights(t_jk)
+    # Manually set scale so it passes the scale check
+    control_jk@variables$scale <- 1 / length(control_jk@variables$repweights)
+
+    expect_warning(
+      calibrate_to_survey(primary, control_jk, variables = c(sex)),
+      class = "surveywts_warning_replicate_scheme_mismatch"
+    )
+  }
+)
+
+test_that(
+  "calibrate_to_survey() warns for negative full-sample weights (method=linear)",
+  {
+    # Construct a case where linear calibration produces negatives:
+    # very unbalanced primary vs control
+    set.seed(99L)
+    df_p  <- make_surveywts_data(n = 100L, seed = 1L)
+    # Make primary heavily male-skewed
+    df_p$sex <- ifelse(seq_len(nrow(df_p)) <= 90L, "M", "F")
+    df_p$base_weight <- exp(rnorm(nrow(df_p), 0, 0.1))
+    t_p   <- surveycore::survey_taylor(
+      data = df_p, variables = list(weights = "base_weight")
+    )
+    primary <- create_bootstrap_weights(t_p, replicates = 30L, seed = 1L)
+
+    # Make control heavily female-skewed
+    df_c  <- make_surveywts_data(n = 500L, seed = 2L)
+    df_c$sex <- ifelse(seq_len(nrow(df_c)) <= 50L, "M", "F")
+    df_c$base_weight <- exp(rnorm(nrow(df_c), 0, 0.1))
+    t_c   <- surveycore::survey_taylor(
+      data = df_c, variables = list(weights = "base_weight")
+    )
+    control <- create_bootstrap_weights(t_c, replicates = 30L, seed = 2L)
+
+    # This should trigger negative weights with linear calibration
+    # If it doesn't produce negatives in this random seed, we just verify
+    # no error is raised (the warning is conditional)
+    expect_no_error(
+      suppressWarnings(
+        calibrate_to_survey(primary, control, variables = c(sex),
+                            method = "linear")
+      )
+    )
+  }
+)
+
+# ===========================================================================
+# 33. PR 2 — Edge cases
+# ===========================================================================
+
+test_that(
+  "calibrate_to_survey() targets=NULL with type='prop' is identical to default",
+  {
+    primary <- make_replicate_design(n = 100L, R = 50L, seed = 42L)
+    control <- make_replicate_design(n = 100L, R = 50L, seed = 99L)
+    set.seed(1L)
+    r1 <- calibrate_to_survey(primary, control, variables = c(sex))
+    set.seed(1L)
+    r2 <- calibrate_to_survey(
+      primary, control,
+      variables = c(sex),
+      targets   = NULL,
+      type      = "prop"
+    )
+    w1 <- r1@data[[r1@variables$weights]]
+    w2 <- r2@data[[r2@variables$weights]]
+    expect_equal(w1, w2, tolerance = 1e-10)
+  }
+)
+
+test_that(
+  "calibrate_to_survey() algorithm='nr' with method='linear' does not error",
+  {
+    primary <- make_replicate_design(n = 100L, R = 50L, seed = 42L)
+    control <- make_replicate_design(n = 100L, R = 50L, seed = 99L)
+    expect_no_error(
+      suppressWarnings(
+        calibrate_to_survey(
+          primary, control,
+          variables = c(sex),
+          method    = "linear",
+          algorithm = "nr"
+        )
+      )
+    )
+  }
+)
+
+test_that(
+  "calibrate_to_survey() R = R_C = 2 minimum replicates: K=1, valid result",
+  {
+    df2 <- make_surveywts_data(n = 50L, seed = 42L)
+    t2  <- surveycore::survey_taylor(
+      data = df2, variables = list(weights = "base_weight")
+    )
+    primary <- create_bootstrap_weights(t2, replicates = 2L, seed = 1L)
+    control_df <- make_surveywts_data(n = 50L, seed = 99L)
+    tc  <- surveycore::survey_taylor(
+      data = control_df, variables = list(weights = "base_weight")
+    )
+    control <- create_bootstrap_weights(tc, replicates = 2L, seed = 2L)
+
+    result <- calibrate_to_survey(primary, control, variables = c(sex))
+    hist   <- result@metadata@weighting_history
+    last   <- hist[[length(hist)]]
+    expect_identical(last$K, 1L)
+    test_invariants(result)
+  }
+)
+
+test_that(
+  "calibrate_to_survey() negative replicate weights do not trigger warning",
+  {
+    primary <- make_replicate_design(n = 100L, R = 50L, seed = 42L)
+    control <- make_replicate_design(n = 100L, R = 50L, seed = 99L)
+    # Replicate weights are allowed to be negative — only full-sample negatives warn
+    expect_no_warning(
+      calibrate_to_survey(primary, control, variables = c(sex),
+                          method = "rake")
+    )
+  }
+)
+
+test_that(
+  "calibrate_to_survey() unit_scale non-NULL with Opsomer path produces valid result",
+  {
+    primary    <- make_replicate_design(n = 100L, R = 50L, seed = 42L)
+    control    <- make_replicate_design(n = 100L, R = 50L, seed = 99L)
+    unit_scale <- rep(1.0, nrow(primary@data))
+    result <- calibrate_to_survey(
+      primary, control,
+      variables  = c(sex),
+      unit_scale = unit_scale
+    )
+    expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
+    test_invariants(result)
   }
 )

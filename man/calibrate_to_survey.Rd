@@ -21,45 +21,49 @@ calibrate_to_survey(
 \arguments{
 \item{primary_design}{A \code{survey_replicate} or \code{survey_nonprob} object with
 replicate weights. The design to be calibrated. Must have replicate
-weights populated.}
+weights and a non-NULL \verb{@variables$scale} replication constant.}
 
 \item{control_design}{A \code{survey_replicate} or \code{survey_nonprob} object with
-replicate weights. The reference survey from which population totals are
-estimated. Must have replicate weights populated. Does not affect the
-class of the returned object.}
+replicate weights. The reference survey from which random population
+totals are estimated. Must have replicate weights and a non-NULL
+\verb{@variables$scale}. Does not affect the class of the returned object.}
 
 \item{variables}{<\code{\link[tidyselect:language]{tidy-select}}> Bare names of the
-calibration variables in \code{primary_design@data}. Must be present in both
-\code{primary_design} and \code{control_design}. These are the random
-(sample-estimated) margins.}
+random calibration variables in \code{primary_design@data}. Must be present in
+both designs. These are the variables whose totals are estimated from
+the control survey and vary per replicate in the Opsomer algorithm.}
 
 \item{targets}{\code{NULL} (the default) or a named list of fixed census
-margins. Each element's name is a column in \code{primary_design@data}. Each
-element is a named numeric vector or a tibble with the variable column
-plus \code{"n"} (count) or \code{"prop"} (proportion). When \code{NULL}, the Opsomer
-path runs with no fixed margins and \code{type} is matched but unused.}
+margins. Each element's name is a column in \code{primary_design@data}.
+Each element is either a named numeric vector (names are level labels)
+or a tibble with the variable column plus \code{"n"} (count) or \code{"prop"}
+(proportion). Format A (named numeric vector) and Format B (tibble) may
+be mixed within the same list. When \code{NULL}, the Opsomer path runs with
+no fixed margins; \code{type} is matched but unused.}
 
 \item{type}{\code{"prop"} (the default) or \code{"count"}. Controls interpretation
-of \code{targets} values: \code{"prop"} means proportions summing to 1.0 per
-variable; \code{"count"} means population counts (positive non-NA values).
-Ignored and produces no error when \code{targets = NULL}. Matched with
-\code{\link[rlang:arg_match]{rlang::arg_match()}}.}
+of \code{targets} values. \code{"prop"} means proportions summing to 1.0 per
+variable (each element must sum to 1.0 within 1e-6); \code{"count"} means
+population counts (positive non-NA values). Ignored when \code{targets = NULL}. Matched with \code{\link[rlang:arg_match]{rlang::arg_match()}}.}
 
-\item{method}{Calibration method. One of \code{"rake"} (default), \code{"linear"},
-or \code{"logit"}. Matched with \code{\link[rlang:arg_match]{rlang::arg_match()}}.}
+\item{method}{Calibration method: \code{"rake"} (the default), \code{"linear"}, or
+\code{"logit"}. Applied to both the full-sample and per-replicate calibration
+steps. Matched with \code{\link[rlang:arg_match]{rlang::arg_match()}}.}
 
 \item{algorithm}{Raking algorithm; used only when \code{method = "rake"}.
-\code{"classic_ipf"} (the default): iterative proportional fitting.
-\code{"nr"}: Newton-Raphson raking. Silently ignored when
-\code{method != "rake"}. Matched with \code{\link[rlang:arg_match]{rlang::arg_match()}}.}
+\code{"classic_ipf"} (the default): iterative proportional fitting (Deming
+& Stephan 1940) — the algorithm used in Opsomer & Erciulescu (2022).
+\code{"nr"}: Newton-Raphson raking (Deville, Sarndal & Sautory 1993).
+Silently ignored when \code{method != "rake"}. Matched with
+\code{\link[rlang:arg_match]{rlang::arg_match()}}.}
 
 \item{bounds}{Numeric vector of length 2: \code{c(lower, upper)}. Bounds on
-the calibrated-to-starting-weight ratio. Default \code{c(-Inf, Inf)}.
-Note: per-unit \code{bounds_scale} is not supported; use scalar bounds only.}
+the calibrated-to-starting-weight ratio. \code{c(-Inf, Inf)} (default) means
+no bounds. Passed to \code{survey::calibrate()}.}
 
 \item{unit_scale}{\code{NULL} or a positive numeric vector of length
-\code{nrow(primary_design@data)}. Passed to svrep as the \code{variance} argument
-(per-unit variance scaling). \code{NULL} means no scaling.}
+\code{nrow(primary_design@data)}. Per-unit variance scaling passed as the
+\code{variance} argument to \code{survey::calibrate()}. \code{NULL} means no scaling.}
 
 \item{reference_design}{A \code{survey_taylor} object or \code{NULL}. Stored in the
 history entry for provenance only; not used in computation.}
@@ -68,105 +72,218 @@ history entry for provenance only; not used in computation.}
 \itemize{
 \item \code{maxit}: maximum iterations (default \code{50L})
 \item \code{epsilon}: convergence tolerance (default \code{1e-7})
-\item \code{control_col_matches}: passed to svrep for reproducible
-primary-to-control replicate matching; not stored in history.
-Unknown keys trigger a \code{surveywts_warning_control_param_ignored} warning.
+\item \code{control_col_matches}: integer vector of length at most
+\code{min(R_eff, R_C)} specifying which control replicate maps to each
+virtual primary replicate. When omitted (the default), a random
+permutation is drawn once per call; use \code{set.seed()} before calling
+to make results reproducible. This key is \strong{not} stored in history.
+Unknown keys trigger a \code{surveywts_warning_control_param_ignored}
+warning.
 }}
 }
 \value{
-A calibrated design object. The class of the returned object
-matches the class of \code{primary_design}: a \code{survey_nonprob} input returns
-a \code{survey_nonprob}; a \code{survey_replicate} input returns a
-\code{survey_replicate}. Updated full-sample and replicate weights are written
-back. A new entry with \code{operation = "calibrate_to_survey"} is appended
-to the weighting history.
+A calibrated design object whose class matches \code{primary_design}:
+a \code{survey_nonprob} input returns a \code{survey_nonprob}; a
+\code{survey_replicate} input returns a \code{survey_replicate}. Updated
+full-sample and replicate weights are written back. A new entry with
+\code{operation = "calibrate_to_survey"} is appended to the weighting
+history. The history entry always includes \code{a_constants} (the Opsomer
+perturbation constants, length \code{R_eff = K * R}) and \code{K} (the expansion
+factor). When \code{targets} is non-NULL, the entry additionally includes
+\code{targets} (user-supplied fixed margins), \code{type}, and \code{fixed_variables}.
 }
 \description{
 Adjusts the full-sample and replicate weights of \code{primary_design} so that
 its estimated totals for \code{variables} match those estimated from
-\code{control_design}. Variance estimation correctly propagates the sampling
-uncertainty of the control survey's estimates into the calibrated primary
-design.
+\code{control_design}. Implements the Opsomer & Erciulescu (2022) replication
+variance adjustment, which correctly propagates the sampling uncertainty
+of the control survey's estimates into the calibrated primary design.
+When \code{targets} is non-NULL, additional fixed census margins are enforced
+simultaneously alongside the random margins from the control survey.
 }
 \details{
 Both \code{primary_design} and \code{control_design} must carry replicate weights
-— either as \code{survey_replicate} objects or as \code{survey_nonprob} objects to
-which replicate weights have been added. Taylor-linearization designs are
-not sufficient for this purpose because replicate weights are required to
-propagate the uncertainty of the control survey's estimated totals into
-the variance of the calibrated design.
+and non-NULL \verb{@variables$scale} replication constants. The scale
+constants are required to compute the Opsomer adjustment constants
+\code{a_r}. Use \code{create_bootstrap_weights()} or another \verb{create_*_weights()}
+function to create designs with scale populated.
 
-When \code{method = "logit"}, finite bounds are required by the algorithm;
-the default \code{c(-Inf, Inf)} is passed through and svrep applies logit
-calibration. When \code{method = "linear"}, any negative full-sample weights
-are clipped to \code{.Machine$double.eps} with a warning, but replicate
-weights are not clipped.
+When \code{method = "linear"}, any negative calibrated full-sample weights
+are clipped to \code{.Machine$double.eps} with a warning. Replicate weights
+are never clipped.
 }
+\section{Algorithm}{
+
+Implements the Opsomer & Erciulescu (2022) replication variance
+adjustment for sample-based calibration. The core idea is to
+calibrate each primary replicate to a \emph{perturbed} version of the
+control-survey totals that incorporates the control survey's replication
+structure.
+
+\strong{Notation:}
+\itemize{
+\item \eqn{R} = number of primary replicate columns
+\item \eqn{R_C} = number of control replicate columns
+\item \eqn{A} = \code{primary_design@variables$scale} (scalar replication constant)
+\item \eqn{A_C} = \code{control_design@variables$scale}
+\item \eqn{\hat{t}_{Cx}} = control full-sample estimated totals for \code{variables}
+\item \eqn{\hat{t}_{Cx}^{(r)}} = control replicate-\eqn{r} estimated totals
+\item \eqn{T_{\text{fixed}}} = fixed population margins from \code{targets}
+(empty set when \code{targets = NULL})
+}
+
+\strong{Step 1.} Extract \eqn{A}, \eqn{A_C}, \eqn{R}, \eqn{R_C}.
+
+\strong{Step 2.} Compute expansion factor:
+when \eqn{R_C > R}, set \eqn{K = \lceil R_C / R \rceil},
+\eqn{R_{\text{eff}} = K R}, and \eqn{A_{\text{eff}} = A / K};
+otherwise \eqn{K = 1}, \eqn{R_{\text{eff}} = R},
+\eqn{A_{\text{eff}} = A}.
+
+\strong{Step 3.} Compute adjustment constants:
+\deqn{a_r = \begin{cases}
+    \sqrt{A_C / A_{\text{eff}}} & r = 1, \ldots, \min(R_{\text{eff}}, R_C) \\
+    0                           & r > \min(R_{\text{eff}}, R_C)
+  \end{cases}}
+When \eqn{K = 1} this reduces to \eqn{\sqrt{A_C / A}}.
+
+\strong{Step 4.} Compute full-sample control totals \eqn{\hat{t}_{Cx}} and
+per-replicate control totals \eqn{\hat{t}_{Cx}^{(r)}} for each variable
+in \code{variables}.
+
+\strong{Step 5.} Draw random control column mapping (or use
+\code{control$control_col_matches}).
+
+\strong{Step 6.} Calibrate the full-sample weights of \code{primary_design} to
+the combined target set \eqn{\{ \hat{t}_{Cx} \}} (random margins) union
+\eqn{T_{\text{fixed}}} (fixed margins). This defines \eqn{w_i^*}.
+
+\strong{Step 7.} For each primary replicate \eqn{r = 1, \ldots, R}: for each
+virtual replicate \eqn{s} in the \eqn{K} repetitions of replicate
+\eqn{r}, compute the perturbed control total:
+\deqn{\hat{t}^*_{Cx}(s) =
+    \hat{t}_{Cx} + a_s \bigl(\hat{t}^{(c_s)}_{Cx} - \hat{t}_{Cx}\bigr)}
+where \eqn{c_s} is the mapped control replicate for virtual replicate
+\eqn{s}. Calibrate the \emph{original} primary replicate-\eqn{r} weights to
+\eqn{\hat{t}^*_{Cx}(s)} (random margins) union \eqn{T_{\text{fixed}}}
+(fixed margins). When \eqn{K > 1}, average the \eqn{K} calibrated
+weight vectors to obtain output replicate \eqn{r}.
+
+\strong{Step 8.} Write calibrated weights back and append history entry.
+
+\strong{Calibration method and algorithm:}
+When \code{method = "rake"}, \code{algorithm} selects between \code{"classic_ipf"}
+(iterative proportional fitting, Deming & Stephan 1940 — the algorithm
+used by Opsomer & Erciulescu 2022) and \code{"nr"} (Newton-Raphson raking,
+Deville, Sarndal & Sautory 1993). For \code{method = "linear"} or \code{"logit"},
+\code{algorithm} is matched but silently ignored. Note that the default
+\code{method = "rake"} differs from the prior svrep-based behavior (which
+used linear GREG by default); callers who need the prior behavior
+should supply \code{method = "linear"} explicitly.
+}
+
+\section{Convergence}{
+
+Convergence failure in any \code{.calibrate_engine()} or \code{survey::calibrate()}
+call raises \code{surveywts_error_calibration_not_converged}. A hard error
+in calibration raises \code{surveywts_error_calibration_failed}. Users may
+increase \code{control$maxit} or relax \code{control$epsilon}. Perturbed margins
+that are inconsistent with fixed margins may not converge; verify that
+\code{targets} margins are achievable given the data structure.
+}
+
+\section{Warnings}{
+
+\strong{Unknown control parameters.} Keys in \code{control} other than \code{maxit},
+\code{epsilon}, and \code{control_col_matches} are silently ignored with a
+warning. Check spelling before assuming a key has an effect.
+
+\strong{Replicate scheme mismatch.} When \code{primary_design} and
+\code{control_design} have different replicate types (e.g., bootstrap vs.
+jackknife), a warning is emitted. Results are still returned; the
+statistical validity of mixing replicate schemes is the user's
+responsibility.
+
+\strong{Negative calibrated weights.} When \code{method = "linear"} produces
+negative calibrated full-sample weights, those weights are clipped to
+\code{.Machine$double.eps} and a warning is emitted. Replicate weights are
+never clipped.
+}
+
+\section{Limitations}{
+
+\strong{Independence assumption.} The Opsomer & Erciulescu (2022) consistency
+proof assumes \code{primary_design} and \code{control_design} are independent
+samples from non-overlapping draws. Designs that share respondents
+(e.g., panel waves, subsamples of the control, or any linked-sample
+design) violate this assumption. The function cannot detect overlap;
+users are responsible for verifying the independence condition.
+Overlapping samples produce variance estimates that do not account for
+the covariance between the two surveys' totals.
+
+\strong{Nonprobability samples.} The Opsomer & Erciulescu (2022) consistency
+proof assumes probability samples with design-based replicate variance.
+When \code{survey_nonprob} designs are supplied, the method operates
+mechanically but the variance interpretation depends on how the replicate
+weights were constructed.
+}
+
 \examples{
-data(api, package = "survey")
+# calibrate_to_survey() requires two replicate designs.
+# acs_wy_2022_svy is a survey_replicate with scale = 0.025 (80 replicates).
+# We construct a control design from acs_wy_2022 using bootstrap weights.
 
-# Build simple designs from apiclus1 and apisrs
+# Build a control design from a half-sample of acs_wy_2022 -------
+set.seed(42)
+n_ctrl <- 500L
+ctrl_idx <- sample(nrow(acs_wy_2022), n_ctrl)
+ctrl_df  <- acs_wy_2022[ctrl_idx, ]
+ctrl_df$wt <- 1.0  # equal weights for illustration
+ctrl_taylor <- surveycore::survey_taylor(
+  data = ctrl_df,
+  variables = list(weights = "wt")
+)
+control <- create_bootstrap_weights(ctrl_taylor, replicates = 40L, seed = 1L)
+
+# Rake calibration (default) to control-survey margins for 'sex' -
 set.seed(1)
-d_primary <- survey::svydesign(id = ~1, weights = ~pw, data = apiclus1)
-d_control <- survey::svydesign(id = ~1, weights = ~pw, data = apisrs)
-
-# Create bootstrap replicate weights
-boot_primary <- svrep::as_bootstrap_design(
-  d_primary,
-  type = "Rao-Wu-Yue-Beaumont",
-  replicates = 20
-)
-boot_control <- svrep::as_bootstrap_design(
-  d_control,
-  type = "Rao-Wu-Yue-Beaumont",
-  replicates = 20
-)
-
-# Convert to surveywts survey_replicate objects
-primary <- surveycore::survey_replicate(
-  data = cbind(
-    as.data.frame(boot_primary$variables),
-    as.data.frame(as.matrix(boot_primary$repweights))
-  ),
-  variables = list(
-    weights    = "pw",
-    repweights = paste0("V", seq_len(ncol(boot_primary$repweights))),
-    type       = boot_primary$type,
-    scale      = boot_primary$scale,
-    rscales    = boot_primary$rscales,
-    mse        = isTRUE(boot_primary$mse)
-  )
-)
-control <- surveycore::survey_replicate(
-  data = cbind(
-    as.data.frame(boot_control$variables),
-    as.data.frame(as.matrix(boot_control$repweights))
-  ),
-  variables = list(
-    weights    = "pw",
-    repweights = paste0("V", seq_len(ncol(boot_control$repweights))),
-    type       = boot_control$type,
-    scale      = boot_control$scale,
-    rscales    = boot_control$rscales,
-    mse        = isTRUE(boot_control$mse)
-  )
-)
-
-result <- surveywts::calibrate_to_survey(
-  primary_design = primary,
+result <- calibrate_to_survey(
+  primary_design = acs_wy_2022_svy,
   control_design = control,
-  variables      = c(stype)
+  variables      = c(sex)
 )
+
+# With fixed census margins for 'sex' alongside random 'age_f3' margins -
+N <- sum(acs_wy_2022_svy@data[[acs_wy_2022_svy@variables$weights]])
+sex_levels <- sort(unique(acs_wy_2022_svy@data$sex))
+if (length(sex_levels) == 2L) {
+  sex_prop <- stats::setNames(
+    c(0.49, 0.51)[seq_along(sex_levels)],
+    sex_levels
+  )
+  set.seed(2)
+  result2 <- calibrate_to_survey(
+    primary_design = acs_wy_2022_svy,
+    control_design = control,
+    variables      = c(age_f3),
+    targets        = list(sex = sex_prop),
+    type           = "prop"
+  )
+}
 
 }
 \references{
+Opsomer, J.D. and Erciulescu, A.L. (2022). Replication variance
+estimation after sample-based calibration. \emph{Survey Methodology},
+47(2), 265--277.
+
 Fuller, W.A. (1998). Replication variance estimation for two-phase
 samples. \emph{Statistica Sinica}, 8, 1153--1164.
-
-Opsomer, J.D. and Erciulescu, A. (2021). Replication variance estimation
-after sample-based calibration. \emph{Survey Methodology}, 47, 265--277.
 }
 \seealso{
+\code{\link[=calibrate_to_estimate]{calibrate_to_estimate()}} for calibration to externally supplied
+estimates with a known variance-covariance matrix.
+
 Other sample-calibration: 
 \code{\link{calibrate_to_estimate}()}
 }

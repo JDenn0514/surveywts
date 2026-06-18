@@ -165,7 +165,7 @@
       Error in `.parse_margins()`:
       x `targets` must be a named list or a data frame with columns variable, level, and target.
       i Got <numeric>.
-      v See `calibrate_rake()` or `calibrate_greg()` documentation for accepted formats.
+      v See `calibrate_rake()`, `calibrate_linear()`, or `calibrate_logit()` documentation for accepted formats.
 
 # E18: calibrate_linear() throws surveywts_error_bounds_invalid_calibration (L >= 1)
 

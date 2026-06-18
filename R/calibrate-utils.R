@@ -1,7 +1,7 @@
 # R/calibrate-utils.R
 #
 # Calibration-family shared helpers.
-# Used by calibrate_greg() and calibrate_rake().
+# Used by calibrate_rake(), calibrate_linear(), and calibrate_logit().
 
 # ---------------------------------------------------------------------------
 # .parse_margins() — converts targets/margins to Format A
@@ -34,7 +34,7 @@
             "{.and {.field {missing_cols}}}."
           ),
           "v" = paste0(
-            "See {.fn calibrate_rake} or {.fn calibrate_greg} documentation ",
+            "See {.fn calibrate_rake}, {.fn calibrate_linear}, or {.fn calibrate_logit} documentation ",
             "for accepted formats."
           )
         ),
@@ -68,7 +68,7 @@
             "Got {.cls {class(targets)[[1]]}} but list elements are not named."
           ),
           "v" = paste0(
-            "See {.fn calibrate_rake} or {.fn calibrate_greg} documentation ",
+            "See {.fn calibrate_rake}, {.fn calibrate_linear}, or {.fn calibrate_logit} documentation ",
             "for accepted formats."
           )
         ),
@@ -88,7 +88,7 @@
                 "is missing required columns {.field level} and/or {.field target}."
               ),
               "v" = paste0(
-                "See {.fn calibrate_rake} or {.fn calibrate_greg} documentation ",
+                "See {.fn calibrate_rake}, {.fn calibrate_linear}, or {.fn calibrate_logit} documentation ",
                 "for accepted formats."
               )
             ),
@@ -118,7 +118,7 @@
       ),
       "i" = "Got {.cls {cls}}.",
       "v" = paste0(
-        "See {.fn calibrate_rake} or {.fn calibrate_greg} documentation ",
+        "See {.fn calibrate_rake}, {.fn calibrate_linear}, or {.fn calibrate_logit} documentation ",
         "for accepted formats."
       )
     ),
@@ -127,44 +127,12 @@
 }
 
 # ---------------------------------------------------------------------------
-# .validate_reference_design() — validates reference_design argument
-# ---------------------------------------------------------------------------
-
-# Validates the reference_design argument. Returns invisible(TRUE) if valid.
-# Throws surveywts_error_reference_design_not_taylor if non-NULL and not taylor.
-#
-# Arguments:
-#   reference_design : user-supplied reference_design argument
-.validate_reference_design <- function(reference_design) {
-  if (!is.null(reference_design)) {
-    if (!S7::S7_inherits(reference_design, surveycore::survey_taylor)) {
-      cls <- class(reference_design)[[1L]]
-      cli::cli_abort(
-        c(
-          "x" = paste0(
-            "{.arg reference_design} must be a {.cls survey_taylor} object ",
-            "or {.code NULL}."
-          ),
-          "i" = "Got {.cls {cls}}.",
-          "v" = paste0(
-            "Pass a {.cls survey_taylor} design as {.arg reference_design}, ",
-            "or set {.code reference_design = NULL} to omit."
-          )
-        ),
-        class = "surveywts_error_reference_design_not_taylor"
-      )
-    }
-  }
-  invisible(TRUE)
-}
-
-# ---------------------------------------------------------------------------
 # .build_calibration_provenance() — assembles @calibration list from engine
 # ---------------------------------------------------------------------------
 
 # Assembles the @calibration list from ingredients available after
 # .calibrate_engine() returns. Called once per full-sample calibration by
-# calibrate_greg(), calibrate_rake(), and calibrate_poststrat().
+# calibrate_rake(), calibrate_linear(), and calibrate_logit().
 #
 # The @calibration list is the cross-package contract between surveywts
 # (writer) and surveycore (reader). Surveycore reads this list at variance
@@ -225,8 +193,8 @@
 
   # lambda: use the explicit argument if supplied; otherwise compute from
   # the closed-form linear approximation for backward-compatibility with
-  # callers that don't supply it (e.g., old calibrate_greg() callers).
-  # For raking and poststrat methods without explicit lambda: NULL.
+  # callers that don't supply it. For raking and poststrat methods without
+  # explicit lambda: NULL.
   if (is.null(lambda)) {
     lambda <- if (method %in% c("linear", "logit")) {
       crossproduct_inv %*% discrepancy

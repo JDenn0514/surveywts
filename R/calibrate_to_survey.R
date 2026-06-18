@@ -1174,11 +1174,10 @@ calibrate_to_survey <- function(
     cal_args$bounds <- bounds
   }
 
-  # Use a local environment to capture any convergence warning message.
-  # cli::cli_abort() called inside withCallingHandlers(warning=) does not
-  # propagate its class correctly through tryCatch — instead we record the
-  # message and re-signal after the withCallingHandlers block exits.
-  convergence_msg <- NULL
+  # Use an explicit environment to capture any convergence warning message
+  # from inside the withCallingHandlers() closure without <<-.
+  conv_env <- new.env(parent = emptyenv())
+  conv_env$msg <- NULL
 
   cal_result <- tryCatch(
     withCallingHandlers(
@@ -1188,7 +1187,7 @@ calibrate_to_survey <- function(
         if (grepl("converge", msg, ignore.case = TRUE)) {
           # Record the convergence message; re-signal as calibration_not_converged
           # inside the error handler if survey::calibrate() subsequently errors.
-          convergence_msg <<- msg
+          conv_env$msg <- msg
           invokeRestart("muffleWarning")
         } else {
           tryInvokeRestart("muffleWarning")
@@ -1198,13 +1197,13 @@ calibrate_to_survey <- function(
     error = function(e) {
       # If we already saw a convergence warning, this error is a downstream
       # consequence — surface it as not_converged, not calibration_failed.
-      if (!is.null(convergence_msg)) {
+      if (!is.null(conv_env$msg)) {
         cli::cli_abort(
           c(
             "x" = paste0(
               "Calibration did not converge after {ctrl$maxit} iterations."
             ),
-            "i" = "survey::calibrate() reported: {convergence_msg}",
+            "i" = "survey::calibrate() reported: {conv_env$msg}",
             "v" = paste0(
               "Increase {.code control$maxit}, relax ",
               "{.code control$epsilon}, or verify margin totals."
@@ -1225,13 +1224,13 @@ calibrate_to_survey <- function(
 
   # Re-signal convergence failure when survey::calibrate() returned normally
   # despite not fully converging (some calfun implementations only warn).
-  if (!is.null(convergence_msg)) {
+  if (!is.null(conv_env$msg)) {
     cli::cli_abort(
       c(
         "x" = paste0(
           "Calibration did not converge after {ctrl$maxit} iterations."
         ),
-        "i" = "survey::calibrate() reported: {convergence_msg}",
+        "i" = "survey::calibrate() reported: {conv_env$msg}",
         "v" = paste0(
           "Increase {.code control$maxit}, relax ",
           "{.code control$epsilon}, or verify margin totals."

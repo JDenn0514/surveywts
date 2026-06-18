@@ -35,7 +35,7 @@ changes and validation; the second covers the algorithm and documentation.
 ## PR Map
 
 - [x] PR 1: `feature/cts-opsomer-validation` — New signature, input validation (6 new error classes + scale + level checks), test helper updates
-- [ ] PR 2: `feature/cts-opsomer-algorithm` — Opsomer algorithm, svrep delegation removed, happy path + numerical tests, Tier 3 documentation, NEWS.md
+- [x] PR 2: `feature/cts-opsomer-algorithm` — Opsomer algorithm, svrep delegation removed, happy path + numerical tests, Tier 3 documentation, NEWS.md
 
 ---
 

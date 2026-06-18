@@ -1,5 +1,26 @@
 # surveywts 0.2.1 (development)
 
+## Breaking changes
+
+### `calibrate_to_survey()` — native Opsomer algorithm replaces svrep delegation
+
+`calibrate_to_survey()` now implements the Opsomer & Erciulescu (2022)
+replication variance adjustment natively. The svrep delegation (via
+`svrep::calibrate_to_sample()`) has been removed from the main calibration
+path. Existing calls with `targets = NULL` will continue to produce
+calibrated designs, but the replicate weight adjustment now uses the Opsomer
+algorithm directly rather than delegating to svrep. Numerical results may
+differ slightly from prior versions.
+
+### `calibrate_to_survey()` history entry schema change
+
+The weighting history entry produced by `calibrate_to_survey()` now promotes
+`K`, `a_constants`, `targets`, `type`, and `fixed_variables` as top-level
+fields on the history entry (in addition to being stored under `parameters`).
+Code that accessed these values via `entry$parameters$K` should now use
+`entry$K` instead. The `parameters` sub-list retains all fields for backward
+compatibility.
+
 ## Datasets
 
 ### New datasets

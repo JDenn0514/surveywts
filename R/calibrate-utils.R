@@ -846,3 +846,55 @@
   }
   invisible(TRUE)
 }
+
+# ---------------------------------------------------------------------------
+# .to_svyrep() — convert survey_replicate / survey_nonprob to svyrep.design
+# ---------------------------------------------------------------------------
+
+# Convert a survey_replicate or survey_nonprob S7 object to a survey package
+# svyrep.design object that svrep can consume.
+# Shared by calibrate_to_survey() and calibrate_to_estimate().
+#
+# @keywords internal
+# @noRd
+.to_svyrep <- function(design) {
+  wt_col   <- design@variables$weights
+  rep_cols <- design@variables$repweights
+  data_df  <- as.data.frame(design@data)
+
+  pweights <- data_df[[wt_col]]
+  repwts   <- as.matrix(data_df[, rep_cols, drop = FALSE])
+
+  # Build a svyrep.design object. Suppress the "combined weights" warning
+  # that fires when mean(repweights) << mean(sampling weights).
+  suppressWarnings(
+    survey::svrepdesign(
+      data       = data_df,
+      repweights = repwts,
+      weights    = pweights,
+      type       = design@variables$type %||% "bootstrap",
+      scale      = design@variables$scale,
+      rscales    = design@variables$rscales,
+      mse        = isTRUE(design@variables$mse)
+    )
+  )
+}
+
+# ---------------------------------------------------------------------------
+# .method_to_calfun() — map method string to survey calfun object
+# ---------------------------------------------------------------------------
+
+# Map method string to survey calfun object.
+# Shared by calibrate_to_survey() and calibrate_to_estimate().
+#
+# @keywords internal
+# @noRd
+.method_to_calfun <- function(method) {
+  switch(
+    method,
+    "rake"   = survey::cal.raking,
+    "linear" = survey::cal.linear,
+    "logit"  = survey::cal.logit,
+    survey::cal.raking  # default
+  )
+}

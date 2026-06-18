@@ -84,25 +84,6 @@
       x Calibration variables not found in `primary_design`.
       i Tidy-select error: Can't select columns that don't exist. x Column `nonexistent_var` doesn't exist.
 
-# calibrate_to_survey() propagates convergence warning as error
-
-    Code
-      calibrate_to_survey(primary, control, variables = c(sex))
-    Condition
-      Error:
-      x Sample-based calibration did not converge after 50 iterations.
-      i svrep::calibrate_to_sample() reported: Calibration did not converge
-      v Increase `control$maxit`, relax `control$epsilon`, or verify that the variables are present in both designs.
-
-# calibrate_to_survey() propagates hard svrep errors
-
-    Code
-      calibrate_to_survey(primary, control, variables = c(sex))
-    Condition
-      Error in `value[[3L]]()`:
-      x svrep::calibrate_to_sample() encountered an error.
-      i svrep reported: svrep internal error
-
 # calibrate_to_estimate() rejects non-replicate design
 
     Code

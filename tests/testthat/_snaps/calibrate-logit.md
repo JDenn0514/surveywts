@@ -114,7 +114,7 @@
       Error in `.validate_calibration_variables()`:
       x Calibration variable age_group contains 1 NA value(s).
       i NA values in calibration variables are not allowed.
-      v Remove or impute NA values in age_group before calling `calibrate_greg()`.
+      v Remove or impute NA values in age_group before calling `calibrate_linear()`.
 
 # E13: calibrate_logit() throws surveywts_error_population_level_missing
 

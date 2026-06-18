@@ -19,7 +19,6 @@
 #   .update_survey_weights()          — updates survey object weights + history
 #   .check_input_class()             — validates input class (4 callers)
 #   .get_history()                   — extracts weighting history from any class
-#   .calibrate_engine()               — dispatches to calibration algorithms
 #   .validate_formula()               — validates one-sided formula object
 #   .validate_formula_variables()     — validates formula variables exist in data
 #   .trim_weights_internal()          — clip-and-redistribute primitive for trim_weights()
@@ -341,7 +340,7 @@
 
     n_na <- sum(is.na(col))
     if (n_na > 0L) {
-      fn_name <- if (context == "Calibration") "calibrate_greg" else "calibrate_rake"
+      fn_name <- if (context == "Calibration") "calibrate_linear" else "calibrate_rake"
       cli::cli_abort(
         c(
           "x" = paste0(
@@ -630,8 +629,8 @@
 
 # Updates a survey object's weight column and appends a history entry to
 # @metadata@weighting_history. Returns a new survey object of the SAME class
-# as the input (no class promotion). Used by calibrate_greg(),
-# calibrate_rake(), calibrate_poststrat(), calibrate(), and
+# as the input (no class promotion). Used by calibrate_rake(),
+# calibrate_linear(), calibrate_logit(), calibrate_poststrat(), calibrate(), and
 # adjust_nonresponse(). Supported input classes: survey_taylor, survey_nonprob,
 # and survey_replicate (for calibration functions).
 #
@@ -679,7 +678,7 @@
 # ============================================================================
 
 # Validates that `data` is a supported input class for the four calibrate
-# functions (calibrate_greg, calibrate_rake, calibrate_poststrat, calibrate).
+# functions (calibrate_rake, calibrate_linear, calibrate_logit, calibrate_poststrat, calibrate).
 # survey_replicate is now a supported class for these functions.
 # adjust_nonresponse() and sample-calibration functions continue to reject
 # survey_replicate via their own validation logic.
@@ -728,233 +727,6 @@
   }
 }
 
-# ============================================================================
-# .calibrate_engine()
-# ============================================================================
-
-# The shared computation engine used by calibrate(), rake(), and
-# poststratify(). Takes only plain data (no S7/S3 dispatch). Returns a
-# named list with the calibrated weight vector and convergence information.
-#
-# Arguments:
-#   data_df          : plain data.frame
-#   weights_vec      : numeric vector (length = nrow(data_df)),
-#                      all positive, no NAs
-#   calibration_spec : list describing the calibration problem (see below)
-#   method           : character(1) — "linear", "logit", "ipf", "anesrake",
-#                      or "poststratify"
-#   control          : list with at least $maxit; method-appropriate defaults
-#                      already applied by the calling function
-#
-# calibration_spec format:
-#   list(
-#     type      = <method string — same as method argument>,
-#     variables = list(  # for "linear"/"logit"/"ipf"/"anesrake"
-#       list(col = "age_group", targets = c("18-34" = 420, ...)),  # counts
-#       ...
-#     ),
-#     cells     = list(  # for "poststratify" only
-#       list(indices = <integer vector>, target = <count>),
-#       ...
-#     ),
-#     total_n   = <sum of starting weights; for reference>
-#   )
-#
-# Targets in calibration_spec must be in COUNT form (not proportions).
-# The calling function converts prop→count via prop * sum(weights_vec).
-#
-# Returns: list(
-#   weights     = <numeric vector of calibrated weights>,
-#   convergence = list(
-#     converged  = <logical>,
-#     iterations = <integer>,
-#     max_error  = <numeric>,
-#     tolerance  = <numeric>
-#   )
-# )
-# For "poststratify", convergence = NULL (non-iterative).
-#
-# Throws surveywts_error_calibration_not_converged on failure.
-#
-# NOTE (GAP #6): calibration_spec format may be refined during implementation
-# of PRs 5–7. Document departures here.
-.calibrate_engine <- function(data_df, weights_vec, calibration_spec, method, control) {
-  # Handle maxit = 0: algorithm never runs
-  if (isTRUE(control$maxit == 0L) || isTRUE(control$maxit == 0)) {
-    .throw_not_converged_zero_maxit(method, control)
-  }
-
-  type <- calibration_spec$type
-  vars_spec <- calibration_spec$variables
-
-  # ---- Anesrake (via internal .rake_anesrake()) ----------------------------
-  if (type == "anesrake") {
-    var_names <- vapply(vars_spec, function(v) v$col, character(1))
-
-    # Build named list of target vectors (proportions for anesrake)
-    targets_list <- lapply(vars_spec, function(v) {
-      tgt <- v$targets
-      tgt / sum(tgt)  # anesrake expects proportions
-    })
-    names(targets_list) <- var_names
-
-    # Ensure data columns are factors with correct levels
-    for (v in vars_spec) {
-      lvls <- names(v$targets)
-      data_df[[v$col]] <- factor(data_df[[v$col]], levels = lvls)
-    }
-
-    # Create synthetic caseid
-    data_df$.anesrake_id <- seq_len(nrow(data_df))
-
-    # cap = NULL means no cap; use Inf so .rake_list()'s while loop never fires
-    anesrake_cap <- calibration_spec$cap %||% Inf
-
-    # When data is already calibrated, .rake_select_by_pct() throws
-    # an error "No variables are off by more than ...". Catch that and treat
-    # as already-calibrated.
-    anesrake_error <- NULL
-    result <- tryCatch(
-      suppressWarnings(
-        .rake_anesrake(
-          inputter     = targets_list,
-          dataframe    = data_df,
-          caseid       = data_df$.anesrake_id,
-          weightvec    = weights_vec,
-          choosemethod = control$variable_select,
-          cap          = anesrake_cap,
-          pctlim       = control$improvement,
-          iterate      = TRUE,
-          maxit        = as.integer(control$maxit)
-        )
-      ),
-        error = function(e) {
-          if (grepl("No variables are off", conditionMessage(e),
-                    ignore.case = TRUE)) {
-            anesrake_error <<- "already_calibrated"
-            NULL
-          } else {
-            stop(e) # nocov
-          }
-        }
-      )
-
-    # Already-calibrated: engine threw an error because no variables
-    # exceeded the improvement threshold
-    if (identical(anesrake_error, "already_calibrated")) {
-      cli::cli_inform(
-        c("i" = paste0(
-          "Raking converged in 1 sweep: all variables already met their ",
-          "margins. Weights were not adjusted."
-        )),
-        class = "surveywts_message_already_calibrated"
-      )
-      return(list(
-        weights = weights_vec,
-        convergence = list(
-          converged  = TRUE,
-          iterations = 1L,
-          max_error  = 0,
-          tolerance  = control$improvement
-        ),
-        capping = NULL
-      ))
-    }
-
-    # .rake_anesrake()$converge is a character string:
-    #   "Complete convergence was achieved" — fully converged
-    #   "Results are stable, but do not perfectly match..." — partial,
-    #     treated as converged (matches old vendored behaviour)
-    #   Other strings (e.g. containing "Did Not Converge") — failure
-    converged <- grepl(
-      "Complete convergence|Results are stable",
-      result$converge, ignore.case = TRUE
-    )
-
-    if (!converged) {
-      cli::cli_abort(
-        c(
-          "x" = paste0(
-            "Raking did not converge after ",
-            "{control$maxit} full sweeps."
-          ),
-          "i" = paste0(
-            "Internal raking engine reported: {result$converge}"
-          ),
-          "v" = paste0(
-            "Increase {.code control$maxit} or relax ",
-            "{.code control$improvement} in the {.arg control} list."
-          )
-        ),
-        class = "surveywts_error_calibration_not_converged"
-      )
-    }
-
-    # nocov start
-    # Defensive: engine returns iterations = 0 only when it throws "No
-    # variables are off", which is caught above and returns early. This branch
-    # cannot be reached via the public API.
-    if (result$iterations == 0L) {
-      cli::cli_inform(
-        c("i" = paste0(
-          "Raking converged in 1 sweep: all variables already met their ",
-          "margins. Weights were not adjusted."
-        )),
-        class = "surveywts_message_already_calibrated"
-      )
-    }
-    # nocov end
-
-    new_weights <- as.numeric(result$weightvec)
-    precap <- as.numeric(result$precap_weightvec)
-    internal_cap <- calibration_spec$cap
-
-    capping_result <- if (is.null(internal_cap)) {
-      NULL
-    } else {
-      list(
-        applied        = any(precap > internal_cap),
-        cap_threshold  = internal_cap,
-        n_capped       = sum(precap > internal_cap),
-        max_precap     = max(precap),
-        mean_excess    = if (any(precap > internal_cap)) {
-          mean(precap[precap > internal_cap] - internal_cap)
-        } else {
-          NA_real_
-        },
-        precap_weights = precap
-      )
-    }
-
-    return(list(
-      weights = new_weights,
-      convergence = list(
-        converged  = converged,
-        iterations = as.integer(result$iterations),
-        max_error  = 0,
-        tolerance  = control$improvement
-      ),
-      capping = capping_result
-    ))
-  }
-}
-
-# ---- Internal helpers for .calibrate_engine() ----------------------------
-
-# Throw surveywts_error_calibration_not_converged for the maxit = 0 case.
-# context: the calibration method (linear, logit, ipf, anesrake, poststratify)
-.throw_not_converged_zero_maxit <- function(method, control) {
-  cli::cli_abort(
-    c(
-      "x" = "Raking did not converge after 0 iterations.",
-      "i" = "Setting {.code control$maxit = 0} means no raking is attempted.",
-      "v" = paste0(
-        "Set {.code control$maxit} to a positive integer."
-      )
-    ),
-    class = "surveywts_error_calibration_not_converged"
-  )
-}
 
 # ============================================================================
 # .validate_formula()

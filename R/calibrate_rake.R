@@ -388,7 +388,7 @@ calibrate_rake <- function(
   })
 
   if (algorithm == "classic_ipf") {
-    # --- classic_ipf path: anesrake engine via .calibrate_engine() ----------
+    # --- classic_ipf path: anesrake engine via .anesrake_engine() ----------
     engine_method <- "anesrake"
 
     calibration_spec <- list(
@@ -398,11 +398,10 @@ calibrate_rake <- function(
       cap = cap
     )
 
-    engine_result <- .calibrate_engine(
+    engine_result <- .anesrake_engine(
       data_df = plain_df,
       weights_vec = weights_vec,
       calibration_spec = calibration_spec,
-      method = engine_method,
       control = control_resolved
     )
 
@@ -585,11 +584,10 @@ calibrate_rake <- function(
                 total_n   = nrow(plain_df),
                 cap       = cap
               )
-              rep_engine <- .calibrate_engine(
+              rep_engine <- .anesrake_engine(
                 data_df          = plain_df,
                 weights_vec      = rep_wt,
                 calibration_spec = rep_cal_spec,
-                method           = "anesrake",
                 control          = control_resolved
               )
               data@data[[repwt_col]] <- rep_engine$weights

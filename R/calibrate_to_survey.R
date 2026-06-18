@@ -153,7 +153,7 @@
 #'   should supply `method = "linear"` explicitly.
 #'
 #' @section Convergence:
-#'   Convergence failure in any `.calibrate_engine()` or `survey::calibrate()`
+#'   Convergence failure in any `.calibrate_opsomer_single()` or `survey::calibrate()`
 #'   call raises `surveywts_error_calibration_not_converged`. A hard error
 #'   in calibration raises `surveywts_error_calibration_failed`. Users may
 #'   increase `control$maxit` or relax `control$epsilon`. Perturbed margins

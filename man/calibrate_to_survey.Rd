@@ -184,7 +184,7 @@ should supply \code{method = "linear"} explicitly.
 
 \section{Convergence}{
 
-Convergence failure in any \code{.calibrate_engine()} or \code{survey::calibrate()}
+Convergence failure in any \code{.calibrate_opsomer_single()} or \code{survey::calibrate()}
 call raises \code{surveywts_error_calibration_not_converged}. A hard error
 in calibration raises \code{surveywts_error_calibration_failed}. Users may
 increase \code{control$maxit} or relax \code{control$epsilon}. Perturbed margins

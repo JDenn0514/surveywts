@@ -139,9 +139,9 @@ for (v in names(optin_specs)) {
 ## ---- 4b. Harmonized demographic factor columns ----
 
 race_f4_levels <- c("White", "Black", "Hispanic", "Other")
-edu_f3_levels  <- c("Less than HS", "HS/Some college", "College+")
-pid_f3_levels  <- c("Republican", "Independent", "Democrat")
-age_f3_labs    <- c("18-34", "35-54", "55+")
+edu_f3_levels <- c("Less than HS", "HS/Some college", "College+")
+pid_f3_levels <- c("Republican", "Independent", "Democrat")
+age_f3_labs <- c("18-34", "35-54", "55+")
 
 # sex: gender 1=Male, 2=Female; 3=Refused -> NA
 pew_2016_optin$sex <- factor(
@@ -159,10 +159,10 @@ pew_2016_optin$sex <- factor(
 pew_2016_optin$race_f4 <- factor(
   dplyr::recode_values(
     pew_2016_optin$racethn,
-    1        ~ "White",
-    2        ~ "Black",
-    3        ~ "Hispanic",
-    c(4, 5)  ~ "Other",
+    1 ~ "White",
+    2 ~ "Black",
+    3 ~ "Hispanic",
+    c(4, 5) ~ "Other",
     default = NA_character_
   ),
   levels = race_f4_levels
@@ -172,9 +172,9 @@ pew_2016_optin$race_f4 <- factor(
 pew_2016_optin$edu_f3 <- factor(
   dplyr::recode_values(
     pew_2016_optin$educcat5,
-    1        ~ "Less than HS",
-    c(2, 3)  ~ "HS/Some college",
-    c(4, 5)  ~ "College+",
+    1 ~ "Less than HS",
+    c(2, 3) ~ "HS/Some college",
+    c(4, 5) ~ "College+",
     default = NA_character_
   ),
   levels = edu_f3_levels
@@ -201,9 +201,9 @@ pew_2016_optin$pid_f3 <- factor(
 pew_2016_optin$age_f3 <- factor(
   dplyr::recode_values(
     pew_2016_optin$agecat6,
-    c(1, 2)  ~ "18-34",
-    c(3, 4)  ~ "35-54",
-    c(5, 6)  ~ "55+",
+    c(1, 2) ~ "18-34",
+    c(3, 4) ~ "35-54",
+    c(5, 6) ~ "55+",
     default = NA_character_
   ),
   levels = age_f3_labs
@@ -219,22 +219,12 @@ stopifnot(is.factor(pew_2016_optin$pid_f3))
 stopifnot(is.factor(pew_2016_optin$age_f3))
 stopifnot(sum(is.na(pew_2016_optin$pid_f3)) == 0L)
 
-## ---- 5. Save pew_2016_optin tibble (no weight column) ----
 
-usethis::use_data(pew_2016_optin, overwrite = TRUE)
-message(
-  "Saved pew_2016_optin: ",
-  nrow(pew_2016_optin),
-  " rows x ",
-  ncol(pew_2016_optin),
-  " cols"
-)
-
-## ---- 6. Load reference population for calibration targets ----
+## ---- 5. Load reference population for calibration targets ----
 
 load("data/pew_2016_synth_pop.rda")
 
-## ---- 7. Build calibration variables and targets ----
+## ---- 6. Build calibration variables and targets ----
 ##
 ## 7 margins: sex, race_f4, edu_f3, pid_f3, age_f3 (from permanent columns),
 ##   plus division (9-level) and ideo3 (3-level) built inline.
@@ -248,9 +238,15 @@ optin_for_svy$cal_division <- factor(
   optin_for_svy$division,
   levels = 1L:9L,
   labels = c(
-    "E. North Central", "E. South Central", "Middle Atlantic",
-    "Mountain", "New England", "Pacific", "South Atlantic",
-    "W. North Central", "W. South Central"
+    "E. North Central",
+    "E. South Central",
+    "Middle Atlantic",
+    "Mountain",
+    "New England",
+    "Pacific",
+    "South Atlantic",
+    "W. North Central",
+    "W. South Central"
   )
 )
 
@@ -263,8 +259,15 @@ optin_for_svy$cal_ideo3 <- factor(
 
 # Drop rows with NA in any calibration variable (Refused codes) so
 # calibrate_rake() receives complete cases on all 7 margins.
-.cal_vars <- c("sex", "race_f4", "edu_f3", "pid_f3", "age_f3",
-               "cal_division", "cal_ideo3")
+.cal_vars <- c(
+  "sex",
+  "race_f4",
+  "edu_f3",
+  "pid_f3",
+  "age_f3",
+  "cal_division",
+  "cal_ideo3"
+)
 optin_for_svy <- optin_for_svy[
   stats::complete.cases(optin_for_svy[.cal_vars]),
 ]
@@ -279,12 +282,18 @@ stopifnot(n_dropped < 1000L)
 
 optin_for_svy$weight <- 1L
 
-## ---- 8. Compute calibration targets from synth_pop permanent columns ----
+## ---- 7. Compute calibration targets from synth_pop permanent columns ----
 
-.div_lvls  <- c(
-  "E. North Central", "E. South Central", "Middle Atlantic",
-  "Mountain", "New England", "Pacific", "South Atlantic",
-  "W. North Central", "W. South Central"
+.div_lvls <- c(
+  "E. North Central",
+  "E. South Central",
+  "Middle Atlantic",
+  "Mountain",
+  "New England",
+  "Pacific",
+  "South Atlantic",
+  "W. North Central",
+  "W. South Central"
 )
 .ideo3_lvls <- c("Liberal", "Moderate", "Conservative")
 
@@ -300,14 +309,20 @@ synth_ideo3 <- factor(
 )
 
 .pew_targets <- list(
-  sex          = c(prop.table(table(pew_2016_synth_pop$sex))),
-  race_f4      = c(prop.table(table(pew_2016_synth_pop$race_f4))),
-  edu_f3       = c(prop.table(table(pew_2016_synth_pop$edu_f3))),
-  pid_f3       = c(prop.table(table(pew_2016_synth_pop$pid_f3))),
-  age_f3       = c(prop.table(table(pew_2016_synth_pop$age_f3))),
+  sex = c(prop.table(table(pew_2016_synth_pop$sex))),
+  race_f4 = c(prop.table(table(pew_2016_synth_pop$race_f4))),
+  edu_f3 = c(prop.table(table(pew_2016_synth_pop$edu_f3))),
+  pid_f3 = c(prop.table(table(pew_2016_synth_pop$pid_f3))),
+  age_f3 = c(prop.table(table(pew_2016_synth_pop$age_f3))),
   cal_division = c(prop.table(table(synth_division))),
-  cal_ideo3    = c(prop.table(table(synth_ideo3)))
+  cal_ideo3 = c(prop.table(table(synth_ideo3)))
 )
+
+
+## ---- 8. Keep only 2000 random respondents ----
+
+optin_for_svy <- optin_for_svy[sample(nrow(optin_for_svy), 2000), ]
+pew_2016_optin <- optin_for_svy
 
 ## ---- 9. Build survey_nonprob ----
 
@@ -340,9 +355,10 @@ pew_2016_optin_svy <- trim_weights(
 
 pew_2016_optin_svy <- create_bootstrap_weights(
   pew_2016_optin_svy,
-  type = "quasi-randomization",
-  seed = 2016L
+  type = "quasi-randomization"
 )
+
+## ---- 12. Remove objects ----
 
 rm(
   .cal_vars,
@@ -354,7 +370,9 @@ rm(
   synth_ideo3
 )
 
-usethis::use_data(pew_2016_optin_svy, overwrite = TRUE)
+## ---- 14. Save data ----
+
+usethis::use_data(pew_2016_optin, pew_2016_optin_svy, overwrite = TRUE)
 message(
   "Saved pew_2016_optin_svy ",
   "(raked to synth_pop targets + 200 bootstrap replicate weights)"

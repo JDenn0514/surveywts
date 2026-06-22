@@ -11,11 +11,11 @@
 library(surveycore)
 pkgload::load_all(quiet = TRUE)
 
-age_f3_bins    <- c(18, 35, 55, Inf)
-age_f3_labs    <- c("18-34", "35-54", "55+")
+age_f3_bins <- c(18, 35, 55, Inf)
+age_f3_labs <- c("18-34", "35-54", "55+")
 race_f4_levels <- c("White", "Black", "Hispanic", "Other")
-edu_f3_levels  <- c("Less than HS", "HS/Some college", "College+")
-pid_f3_levels  <- c("Republican", "Independent", "Democrat")
+edu_f3_levels <- c("Less than HS", "HS/Some college", "College+")
+pid_f3_levels <- c("Republican", "Independent", "Democrat")
 
 ## ---- ns_wave1 ---------------------------------------------------------------
 ## Full surveycore::ns_wave1 dataset (171 original columns).
@@ -57,11 +57,11 @@ hisp <- ns_wave1$hispanic
 
 ns_wave1$race_f4 <- factor(
   dplyr::case_when(
-    hisp != 1L             ~ "Hispanic",
-    race == 1L             ~ "White",
-    race == 2L             ~ "Black",
-    race %in% 3L:14L       ~ "Other",
-    .default = NA_character_   # race_ethnicity == 15 -> NA
+    hisp != 1L ~ "Hispanic",
+    race == 1L ~ "White",
+    race == 2L ~ "Black",
+    race %in% 3L:14L ~ "Other",
+    .default = NA_character_ # race_ethnicity == 15 -> NA
   ),
   levels = race_f4_levels
 )
@@ -70,8 +70,8 @@ ns_wave1$race_f4 <- factor(
 ns_wave1$edu_f3 <- factor(
   dplyr::recode_values(
     ns_wave1$education,
-    c(1:3)  ~ "Less than HS",
-    c(4:7)  ~ "HS/Some college",
+    c(1:3) ~ "Less than HS",
+    c(4:7) ~ "HS/Some college",
     c(8:11) ~ "College+",
     default = NA_character_
   ),
@@ -84,9 +84,9 @@ ns_wave1$edu_f3 <- factor(
 ns_wave1$pid_f3 <- factor(
   dplyr::recode_values(
     ns_wave1$pid3,
-    1        ~ "Democrat",
-    2        ~ "Republican",
-    c(3, 4)  ~ "Independent",
+    1 ~ "Democrat",
+    2 ~ "Republican",
+    c(3, 4) ~ "Independent",
     default = NA_character_
   ),
   levels = pid_f3_levels
@@ -119,11 +119,11 @@ ns_wave1$ns_hispanic <- factor(
 ns_wave1$ns_race <- factor(
   dplyr::recode_values(
     ns_wave1$race_ethnicity,
-    1        ~ "White",
-    2        ~ "Black",
-    c(4:14)  ~ "Asian/Pacific",
+    1 ~ "White",
+    2 ~ "Black",
+    c(4:14) ~ "Asian/Pacific",
     c(3, 15) ~ "Other",
-    default  = NA_character_
+    default = NA_character_
   ),
   levels = c("White", "Black", "Asian/Pacific", "Other")
 )
@@ -138,7 +138,7 @@ ns_wave1$ns_age <- factor(
     c(40:49) ~ "40-49",
     c(50:59) ~ "50-59",
     c(60:69) ~ "60-69",
-    default  = "70+"
+    default = "70+"
   ),
   levels = c("18-23", "24-29", "30-39", "40-49", "50-59", "60-69", "70+")
 )
@@ -199,9 +199,9 @@ vote_16 <- ns_wave1$vote_2016
 ns_wave1$ns_vote_2016 <- factor(
   dplyr::recode_values(
     vote_16,
-    1       ~ "Trump",
-    2       ~ "Clinton",
-    c(3:5)  ~ "Other",
+    1 ~ "Trump",
+    2 ~ "Clinton",
+    c(3:5) ~ "Other",
     default = "No vote"
   ),
   levels = c("Trump", "Clinton", "Other", "No vote")
@@ -302,15 +302,13 @@ ns_wave1_svy <- calibrate_rake(
   wt_name = "weight",
   type = "prop",
   algorithm = "nr"
-)
-ns_wave1_svy <- trim_weights(
-  ns_wave1_svy,
-  weights = weight,
-  lower = 0.05,
-  upper = 0.95,
-  type = "percentile",
-  wt_name = "weight"
-)
+) |>
+  trim_weights(
+    lower = 0.05,
+    upper = 0.95,
+    type = "percentile"
+  )
+
 
 rm(.income_na_rate, .income_scale, .ns_targets)
 

@@ -332,9 +332,7 @@ test_that("pew_2016_optin_svy is survey_nonprob with correct row count", {
   expect_true(
     S7::S7_inherits(pew_2016_optin_svy, surveycore::survey_nonprob)
   )
-  # complete.cases() filter on calibration variables drops ~499 rows from 31863
-  expect_gt(nrow(pew_2016_optin_svy@data), 30000L)
-  expect_lt(nrow(pew_2016_optin_svy@data), 32000L)
+  expect_equal(nrow(pew_2016_optin_svy@data), 2000L)
 })
 
 test_that("pew_2016_optin does NOT have equal_wt column", {

@@ -542,12 +542,15 @@
 #' Pew 2016 ATP opt-in sample
 #'
 #' @title Pew 2016 ATP opt-in sample
-#' @description A 2016 Pew Research Center study fielded simultaneously on three
-#'   opt-in (non-probability) online vendor panels alongside the probability-based
-#'   American Trends Panel (ATP). The dataset is used in Mercer, Lau and Kennedy
+#' @description A 2,000-respondent random sample drawn from a 2016 Pew Research
+#'   Center study fielded simultaneously on three opt-in (non-probability) online
+#'   vendor panels alongside the probability-based American Trends Panel (ATP).
+#'   The original study (31,863 respondents) is used in Mercer, Lau and Kennedy
 #'   (2018) "For Weighting Online Opt-In Samples, What Matters Most?" and
 #'   provides 13 benchmark variables (shared with [pew_2016_synth_pop]) that can
-#'   be validated against population truth estimates.
+#'   be validated against population truth estimates. `pew_2016_optin` contains
+#'   a random sample of 2,000 complete-case respondents drawn after removing rows
+#'   with `NA` in any of the 7 calibration variables (seed 42).
 #'
 #'   Value labels are preserved as named numeric attributes on each column
 #'   (accessible via `attr(pew_2016_optin$gender, "labels")`). Variable labels
@@ -562,7 +565,7 @@
 #'   in the object's `@data` slot only; it is not present in the
 #'   `pew_2016_optin` tibble.
 #'
-#' @format A data frame with 31,863 rows and 104 columns:
+#' @format A data frame with 2,000 rows and 104 columns:
 #' \describe{
 #'   \item{rid}{Character. Respondent ID with vendor prefix (e.g., `"V1_7"`).}
 #'   \item{vendor}{Numeric. Opt-in panel vendor: `1` = Vendor 1, `2` = Vendor 2,

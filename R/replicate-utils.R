@@ -595,6 +595,10 @@
     data@data[[repwt_names[i]]] <- repwt_list[[i]]
   }
   data@variables$repweights <- repwt_names
+  data@variables$scale      <- 1 / draws_used
+  data@variables$rscales    <- rep(1, draws_used)
+  data@variables$type       <- "bootstrap"
+  data@variables$mse        <- (mse == "mse")
 
   # Append bootstrap_weights history entry
   meta <- data@metadata

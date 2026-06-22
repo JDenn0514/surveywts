@@ -1341,6 +1341,169 @@ test_that("calibration-only QR bootstrap (Level A) repwt columns are named repwt
   )
 })
 
+# calibration-only QR bootstrap — @variables scale/rscales/type/mse ----------
+
+test_that("calibration-only QR bootstrap (Level A) sets @variables$scale to 1/draws_used", {
+  skip_if_not_installed("svrep")
+
+  df <- make_surveywts_data(n = 200L, seed = 7L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = df,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_calib_a <- calibrate_rake(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+  )
+
+  result <- create_bootstrap_weights(
+    nps_calib_a,
+    replicates = 20L,
+    type       = "quasi-randomization",
+    seed       = 1L
+  )
+
+  draws_used <- length(result@variables$repweights)
+  expect_equal(result@variables$scale, 1 / draws_used, tolerance = 1e-10)
+})
+
+test_that("calibration-only QR bootstrap (Level A) sets @variables$rscales to rep(1, draws_used)", {
+  skip_if_not_installed("svrep")
+
+  df <- make_surveywts_data(n = 200L, seed = 7L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = df,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_calib_a <- calibrate_rake(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+  )
+
+  result <- create_bootstrap_weights(
+    nps_calib_a,
+    replicates = 20L,
+    type       = "quasi-randomization",
+    seed       = 1L
+  )
+
+  draws_used <- length(result@variables$repweights)
+  expect_identical(result@variables$rscales, rep(1, draws_used))
+})
+
+test_that("calibration-only QR bootstrap (Level A) sets @variables$type to 'bootstrap'", {
+  skip_if_not_installed("svrep")
+
+  df <- make_surveywts_data(n = 200L, seed = 7L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = df,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_calib_a <- calibrate_rake(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+  )
+
+  result <- create_bootstrap_weights(
+    nps_calib_a,
+    replicates = 20L,
+    type       = "quasi-randomization",
+    seed       = 1L
+  )
+
+  expect_identical(result@variables$type, "bootstrap")
+})
+
+test_that("calibration-only QR bootstrap (Level A) sets @variables$mse = TRUE when mse = 'mse'", {
+  skip_if_not_installed("svrep")
+
+  df <- make_surveywts_data(n = 200L, seed = 7L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = df,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_calib_a <- calibrate_rake(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+  )
+
+  result <- create_bootstrap_weights(
+    nps_calib_a,
+    replicates = 20L,
+    type       = "quasi-randomization",
+    mse        = "mse",
+    seed       = 1L
+  )
+
+  expect_true(result@variables$mse)
+})
+
+test_that("calibration-only QR bootstrap (Level A) sets @variables$mse = FALSE when mse = 'uncentered'", {
+  skip_if_not_installed("svrep")
+
+  df <- make_surveywts_data(n = 200L, seed = 7L)
+  nps_base <- surveycore::survey_nonprob(
+    data      = df,
+    variables = list(weights = "base_weight"),
+    metadata  = surveycore::survey_metadata()
+  )
+  nps_calib_a <- calibrate_rake(
+    nps_base,
+    targets = list(
+      age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+      sex       = c("M" = 0.49, "F" = 0.51)
+    ),
+    type = "prop"
+  )
+
+  result <- create_bootstrap_weights(
+    nps_calib_a,
+    replicates = 20L,
+    type       = "quasi-randomization",
+    mse        = "uncentered",
+    seed       = 1L
+  )
+
+  expect_false(result@variables$mse)
+})
+
+test_that("IPW-path QR bootstrap sets @variables$scale to 1/draws_used", {
+  skip_if_not_installed("svrep")
+
+  nps <- suppressWarnings(make_nps_level_a(seed = 1L, n = 200L))
+
+  result <- create_bootstrap_weights(
+    nps,
+    replicates = 20L,
+    type       = "quasi-randomization",
+    seed       = 1L
+  )
+
+  draws_used <- length(result@variables$repweights)
+  expect_equal(result@variables$scale, 1 / draws_used, tolerance = 1e-10)
+  expect_identical(result@variables$type, "bootstrap")
+})
+
 test_that("calibration-only QR bootstrap (Level A) original columns are unchanged", {
   skip_if_not_installed("svrep")
 

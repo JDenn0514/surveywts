@@ -174,18 +174,18 @@
 #'   age_f3 = c("18-34" = 0.30, "35-54" = 0.33, "55+" = 0.37)
 #' )
 #'
-#' # Format A + classic_ipf (default) --------- ----
+#' # Format A + classic_ipf (default) ----------------------------
 #' calibrate_rake(ns_wave1, targets = targets_a, weights = weight)
 #'
-#' # Format A + Newton-Raphson algorithm ------- ----
+#' # Format A + Newton-Raphson algorithm -------------------------
 #' calibrate_rake(
 #'   ns_wave1, targets = targets_a, weights = weight, algorithm = "nr"
 #' )
 #'
-#' # survey_nonprob — weight column auto-detected ---------
+#' # survey_nonprob — weight column auto-detected -----------------
 #' calibrate_rake(ns_wave1_svy, targets = targets_a)
 #'
-#' # Format B ------ ----
+#' # Format B -------------------------------------------------------
 #' targets_b <- data.frame(
 #'   variable = c("sex", "sex", "age_f3", "age_f3", "age_f3"),
 #'   level    = c("Male", "Female", "18-34", "35-54", "55+"),

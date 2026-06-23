@@ -166,7 +166,7 @@
 #' # survey_nonprob — weight column auto-detected ---------------------------
 #' calibrate_linear(ns_wave1_svy, targets = targets_a)
 #'
-#' # Format B ------ ----
+#' # Format B -------------------------------------------------------
 #' targets_b <- data.frame(
 #'   variable = c("sex", "sex", "age_f3", "age_f3", "age_f3"),
 #'   level    = c("Male", "Female", "18-34", "35-54", "55+"),

@@ -7,20 +7,11 @@
 # redistribute_weights() — exported
 # ---------------------------------------------------------------------------
 
-#' Redistribute weights from one set of rows to another
+#' Transfer weight from excluded rows to retained rows
 #'
-#' A general-purpose weight redistribution primitive. Sets the weights of rows
-#' satisfying `reduce_if` to zero and redistributes their weight to rows
-#' satisfying `increase_if`, proportionally by current weight, within groups
-#' defined by `by`.
-#'
-#' Within each group `h`:
-#'
-#' \deqn{w_{i,new} = w_i \times \frac{W_{reduce} + W_{increase}}{W_{increase}}}
-#'
-#' for each `increase_if` row `i`, where \eqn{W_{reduce}} and
-#' \eqn{W_{increase}} are the summed weights of `reduce_if` and `increase_if`
-#' rows in that group. Rows matching neither indicator are left unchanged.
+#' Sets the weights of rows satisfying `reduce_if` to zero and proportionally
+#' redistributes their weight to rows satisfying `increase_if` within groups
+#' defined by `by`. Rows matching neither condition are unchanged.
 #'
 #' @param data A `data.frame`, `weighted_df`, `survey_taylor`, or
 #'   `survey_nonprob`. `survey_replicate` -> error.
@@ -42,7 +33,16 @@
 #'   group has fewer than this many `increase_if` rows. `max_adjust`: warn
 #'   when the adjustment factor exceeds this value.
 #'
-#' @return
+#' @section Algorithm:
+#' Within each group \eqn{h} defined by `by`, the adjustment factor applied to
+#' each `increase_if` row is
+#' \deqn{f_h = \frac{W_{h,\text{reduce}} + W_{h,\text{increase}}}{W_{h,\text{increase}}}}
+#' where \eqn{W_{h,\text{reduce}}} and \eqn{W_{h,\text{increase}}} are the
+#' summed weights of `reduce_if` and `increase_if` rows in group \eqn{h}.
+#' Each `increase_if` weight becomes \eqn{w_{i,new} = w_i \times f_h}.
+#' Rows matching neither indicator are unchanged.
+#'
+#' @returns
 #'   - `data.frame` or `weighted_df` input -> `weighted_df` (all rows
 #'     retained; `reduce_if` rows have weight 0).
 #'   - `survey_nonprob` or `survey_taylor` input -> same class as input,
@@ -66,6 +66,7 @@
 #' )
 #' result <- redistribute_weights(df, reduce_if = reduce, increase_if = increase)
 #'
+#' @seealso [adjust_nonresponse()]
 #' @family nonresponse
 #' @export
 redistribute_weights <- function(

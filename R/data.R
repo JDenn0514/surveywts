@@ -1443,7 +1443,7 @@
 #' @source IPUMS-CPS, 2023 Annual Social and Economic Supplement (March 2023).
 #'   Sarah Flood, Miriam King, Renae Rodgers, Steven Ruggles, J. Robert Warren,
 #'   Daniel Backman, Annie Chen, Grace Cooper, Stephanie Richards, Megan
-#'   Schouweiler, and Michael Westberry. IPUMS CPS: Version 11.0 [dataset].
+#'   Schouweiler, and Michael Westberry. IPUMS CPS: Version 11.0 \[dataset\].
 #'   Minneapolis, MN: IPUMS, 2023. \doi{10.18128/D030.V11.0}
 #'   See `data-raw/cps-2023.R` for the construction script.
 #' @seealso [ns_wave1], [pew_2016_optin], [npors_2025], [npors_2025_clean],

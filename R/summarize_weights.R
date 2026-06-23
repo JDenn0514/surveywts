@@ -6,21 +6,23 @@
 # summarize_weights()
 # ---------------------------------------------------------------------------
 
-#' Summarize the distribution of survey weights
+#' Report summary statistics for the weight distribution
 #'
-#' Returns a tibble with summary statistics for the weight column, optionally
-#' computed within groups defined by `by`.
+#' Returns a tibble with n, mean, CV, percentiles (p25, p50, p75), and ESS
+#' for the weight column. Pass `by` to compute statistics separately within
+#' each subgroup defined by one or more grouping variables.
 #'
 #' @inheritParams effective_sample_size
 #' @param by <[`tidy-select`][tidyselect::language]> Optional grouping
-#'   variables. When `NULL` (default), a single-row summary over all
+#'   variables. When `NULL` (the default), a single-row summary over all
 #'   observations is returned. When specified, one row is returned per
 #'   unique group combination.
 #'
-#' @return A tibble with columns `n`, `n_positive`, `n_zero`, `mean`, `cv`,
+#' @returns A tibble with columns `n`, `n_positive`, `n_zero`, `mean`, `cv`,
 #'   `min`, `p25`, `p50`, `p75`, `max`, `ess`. When `by` is non-`NULL`,
 #'   the group columns precede the summary columns.
 #'
+#' @seealso [effective_sample_size()], [weight_variability()]
 #' @family diagnostics
 #' @export
 #'

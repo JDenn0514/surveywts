@@ -95,6 +95,18 @@ replicate the original NPS recruitment mechanism (AAPOR 2022, §4). This
 understatement is not reduced by increasing \code{replicates}.
 }
 
+\examples{
+# default SRSWR bootstrap on a probability survey -----------------------
+create_bootstrap_weights(gss_2024_svy)
+
+# quasi-randomization bootstrap for a non-probability sample -----------
+create_bootstrap_weights(
+  ns_wave1_svy,
+  type       = "quasi-randomization",
+  replicates = 200L
+)
+
+}
 \references{
 Elliott, M.R. and Valliant, R. (2017). Inference for nonprobability
 samples. \emph{Statistical Science} \strong{32}(2), 249--264.

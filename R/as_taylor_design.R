@@ -22,6 +22,11 @@
 #'
 #' @returns A `survey_taylor`.
 #'
+#' @examples
+#' # convert a bootstrap replicate design back to Taylor ------------------
+#' rep_design <- create_bootstrap_weights(gss_2024_svy, replicates = 50L)
+#' as_taylor_design(rep_design)
+#'
 #' @seealso [create_bootstrap_weights()], [create_jackknife_weights()],
 #'   [create_group_jackknife_weights()], [create_brr_weights()],
 #'   [create_gen_boot_weights()], [create_gen_rep_weights()],

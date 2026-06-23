@@ -58,6 +58,11 @@ the multipliers are chosen to satisfy \eqn{E[u_k] = 1} and
 \code{\link[svrep:as_gen_boot_design]{svrep::as_gen_boot_design()}}.
 }
 
+\examples{
+# generalized bootstrap with reproducible seed -------------------------
+create_gen_boot_weights(gss_2024_svy, seed = 42L)
+
+}
 \references{
 Beaumont, J.-F. and Patak, Z. (2012). On the generalized bootstrap for
 sample surveys with special attention to Poisson sampling.

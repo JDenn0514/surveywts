@@ -31,8 +31,11 @@ weighted estimates. Rows with zero weights (typically produced by
 }
 
 \examples{
-df <- data.frame(x = 1:5, w = c(1.2, 0.8, 1.5, 0.9, 1.1))
-effective_sample_size(df, weights = w)
+# data.frame with explicit weight column ---------------------------------
+effective_sample_size(ns_wave1, weights = weight)
+
+# survey_nonprob — weight column auto-detected ---------------------------
+effective_sample_size(ns_wave1_svy)
 }
 \references{
 Kish, L. (1965). \emph{Survey Sampling}. New York: John Wiley & Sons.

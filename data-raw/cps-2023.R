@@ -11,11 +11,13 @@
 ## are the official substitute for variance estimation.
 ##
 ## Raw extract must be placed at:
-##   data-raw/cps_2023/cps_2023.csv
+##   data-raw/cps_2023/cps_2023.dat      (fixed-width data file)
+##   data-raw/cps_2023/cps_2023.ddi.xml  (DDI codebook)
 ##
 ## To download: register at https://cps.ipums.org/cps/, create an extract with
 ## the variables listed in plans/cps-2023-dataset.md Section II, enable
-## replicate weights, select the 2023 ASEC sample, and download as CSV.
+## replicate weights, select the 2023 ASEC sample. Download the .dat data file
+## and the DDI/XML codebook. Rename them as shown above.
 ##
 ## Run from the package root: source("data-raw/cps-2023.R")
 
@@ -30,22 +32,41 @@ empstat_levels <- c("Employed", "Unemployed", "Not in labor force")
 inc_hh_levels  <- c("Under $25k", "$25k-$50k", "$50k-$75k", "$75k-$100k", "$100k+")
 
 ## ---- read raw extract -------------------------------------------------------
-CPS_FILE <- file.path(here::here(), "data-raw", "cps_2023", "cps_2023.csv")
+CPS_DAT <- file.path(here::here(), "data-raw", "cps_2023", "cps_2023.dat")
+CPS_DDI <- file.path(here::here(), "data-raw", "cps_2023", "cps_2023.ddi.xml")
 
-if (!file.exists(CPS_FILE)) {
+if (!file.exists(CPS_DAT) || !file.exists(CPS_DDI)) {
   stop(
-    "Raw CPS file not found: ", CPS_FILE, "\n",
+    "Raw CPS files not found. Expected:\n",
+    "  ", CPS_DAT, "\n",
+    "  ", CPS_DDI, "\n",
     "See plans/cps-2023-dataset.md Section II for download instructions."
   )
 }
 
-raw <- as.data.frame(
-  readr::read_csv(CPS_FILE, show_col_types = FALSE),
-  stringsAsFactors = FALSE
-)
+ddi <- ipumsr::read_ipums_ddi(CPS_DDI)
+raw_tbl <- ipumsr::read_ipums_micro(ddi, data_file = CPS_DAT, verbose = FALSE)
 
-# Lowercase all column names (IPUMS CSV exports are uppercase by default)
-names(raw) <- tolower(names(raw))
+# Lowercase column names
+names(raw_tbl) <- tolower(names(raw_tbl))
+
+# zap_labels() converts haven_labelled columns to plain integer/double, which
+# makes base R subsetting work correctly on the resulting data.frame.
+raw_tbl <- haven::zap_labels(raw_tbl)
+raw <- as.data.frame(raw_tbl, stringsAsFactors = FALSE)
+rm(raw_tbl)
+
+# wtfinl in IPUMS is the *basic* CPS weight and is NA for ASEC supplement
+# respondents. asecwt is the correct ASEC person weight; assign it to wtfinl
+# so the rest of the script (filter, keep_cols, documentation) stays correct.
+raw$wtfinl <- raw$asecwt
+
+# IPUMS CPS REGION uses Census division codes (11=NE, 12=MA, 21=ENC, 22=WNC,
+# 31=SA, 32=ESC, 33=WSC, 41=Mt, 42=Pac). Recode to 4-category Census regions
+# (1=NE, 2=MW, 3=S, 4=W) to match the documented column contract.
+raw$region <- c(1L, 1L, 2L, 2L, 3L, 3L, 3L, 4L, 4L)[
+  match(raw$region, c(11L, 12L, 21L, 22L, 31L, 32L, 33L, 41L, 42L))
+]
 
 ## ---- row selection ----------------------------------------------------------
 raw <- raw[raw$asecflag == 1L & raw$age >= 18L & raw$wtfinl > 0, ]
@@ -57,7 +78,7 @@ idx <- unlist(tapply(
   seq_len(nrow(raw)),
   strat_key,
   function(i) {
-    n_draw <- max(1L, round(10000L * length(i) / nrow(raw)))
+    n_draw <- max(1L, round(10000 * length(i) / nrow(raw)))
     sample(i, min(n_draw, length(i)))
   }
 ))
@@ -78,6 +99,7 @@ keep_cols <- c(
 cps_2023 <- raw[, keep_cols]
 
 ## ---- derived columns --------------------------------------------------------
+cps_2023$cpsidp <- as.character(cps_2023$cpsidp)
 cps_2023$sex <- factor(cps_2023$sex, levels = c(1L, 2L), labels = c("Male", "Female"))
 
 cps_2023$age_f3 <- cut(

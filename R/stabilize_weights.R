@@ -45,18 +45,14 @@
 #' @family utilities
 #' @export
 #' @examples
-#' set.seed(42)
-#' df <- data.frame(
-#'   id = 1:200,
-#'   age_group = sample(c("18-34", "35-54", "55+"), 200, replace = TRUE),
-#'   base_weight = exp(rnorm(200, 0, 0.4))
-#' )
+#' # data.frame with explicit weight column ---------------------------------
+#' stabilize_weights(ns_wave1, weights = weight)
 #'
-#' # Global stabilization: sum(result$base_weight) == nrow(df)
-#' result <- stabilize_weights(df, weights = base_weight)
+#' # grouped by sex — each group sums to its own n_h -----------------------
+#' stabilize_weights(ns_wave1, weights = weight, by = sex)
 #'
-#' # Within-group stabilization
-#' result <- stabilize_weights(df, weights = base_weight, by = age_group)
+#' # survey_nonprob — weight column auto-detected ---------------------------
+#' stabilize_weights(ns_wave1_svy)
 stabilize_weights <- function(
   data,
   weights = NULL,

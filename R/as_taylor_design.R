@@ -28,15 +28,17 @@
 #' as_taylor_design(rep_design)
 #'
 #' @seealso [create_bootstrap_weights()], [create_jackknife_weights()],
-#'   [create_group_jackknife_weights()], [create_brr_weights()],
-#'   [create_gen_boot_weights()], [create_gen_rep_weights()],
-#'   [create_sdr_weights()], [create_replicate_weights()]
+#'   [create_brr_weights()], [create_gen_boot_weights()],
+#'   [create_gen_rep_weights()], [create_sdr_weights()],
+#'   [create_replicate_weights()]
 #' @family replicate-weights
 #' @export
 as_taylor_design <- function(data) {
   if (S7::S7_inherits(data, surveycore::survey_taylor)) {
     cli::cli_warn(
-      c("!" = "{.arg data} is already a {.cls survey_taylor}; returning unchanged."),
+      c(
+        "!" = "{.arg data} is already a {.cls survey_taylor}; returning unchanged."
+      ),
       class = "surveywts_warning_already_taylor"
     )
     return(data)
@@ -53,7 +55,7 @@ as_taylor_design <- function(data) {
     )
   }
 
-  history      <- data@metadata@weighting_history
+  history <- data@metadata@weighting_history
   creation_idx <- which(
     vapply(
       history,
@@ -73,7 +75,7 @@ as_taylor_design <- function(data) {
     )
   }
 
-  last_idx      <- max(creation_idx)
+  last_idx <- max(creation_idx)
   last_creation <- history[[last_idx]]
 
   # Check for post-creation weight adjustments
@@ -111,28 +113,36 @@ as_taylor_design <- function(data) {
   }
 
   cli::cli_warn(
-    c("!" = "Converting to {.cls survey_taylor} discards replicate weights and variance capability."),
+    c(
+      "!" = "Converting to {.cls survey_taylor} discards replicate weights and variance capability."
+    ),
     class = "surveywts_warning_taylor_loses_variance"
   )
 
   source_vars <- last_creation$source_design$variables
-  rep_cols    <- data@variables$repweights
-  clean_data  <- data@data[, !names(data@data) %in% rep_cols, drop = FALSE]
+  rep_cols <- data@variables$repweights
+  clean_data <- data@data[, !names(data@data) %in% rep_cols, drop = FALSE]
 
   # source_vars$ids/strata/weights/fpc are stored character column names.
   # as_survey() uses tidy-eval (enquo), so character strings must be converted
   # to symbols with rlang::sym() and unquoted with !! inside rlang::inject().
   # ids may be NULL for SRS designs (no cluster structure); guard all optional args.
   weights_sym <- rlang::sym(source_vars$weights)
-  optional    <- list()
-  if (!is.null(source_vars$ids))    optional$ids    <- rlang::sym(source_vars$ids)
-  if (!is.null(source_vars$strata)) optional$strata <- rlang::sym(source_vars$strata)
-  if (!is.null(source_vars$fpc))    optional$fpc    <- rlang::sym(source_vars$fpc)
+  optional <- list()
+  if (!is.null(source_vars$ids)) {
+    optional$ids <- rlang::sym(source_vars$ids)
+  }
+  if (!is.null(source_vars$strata)) {
+    optional$strata <- rlang::sym(source_vars$strata)
+  }
+  if (!is.null(source_vars$fpc)) {
+    optional$fpc <- rlang::sym(source_vars$fpc)
+  }
 
   rlang::inject(surveycore::as_survey(
     clean_data,
     weights = !!weights_sym,
-    nest    = isTRUE(source_vars$nest),
+    nest = isTRUE(source_vars$nest),
     !!!optional
   ))
 }

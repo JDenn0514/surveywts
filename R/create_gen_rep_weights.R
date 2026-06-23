@@ -6,7 +6,7 @@
 # create_gen_rep_weights()
 # ============================================================================
 
-#' Create generalized replication replicate weights
+#' Generate generalized replication replicate weights
 #'
 #' Generates Fay's generalized replication weights via
 #' [svrep::as_fays_gen_rep_design()]. Produces deterministic replicate weights
@@ -25,8 +25,35 @@
 #' @param mse `logical(1)`, default `TRUE`.
 #' @param seed `integer(1)` or `NULL`. RNG seed for reproducibility.
 #'
-#' @return A `survey_replicate` with generalized replication weights.
+#' @returns A `survey_replicate` with generalized replication weights.
 #'
+#' @section Algorithm:
+#' Generalized replication (GR) is a BRR extension that removes the
+#' requirement for exactly 2 PSUs per stratum. It constructs
+#' \eqn{R \geq H} replicates (where \eqn{H} is the number of strata)
+#' using a generalized Hadamard matrix, assigning each stratum-PSU unit a
+#' weight that satisfies the BRR variance formula
+#' \deqn{\hat{V}_{GR} = \frac{1}{R} \sum_{r=1}^{R}
+#'   (\hat{\theta}^{(r)} - \hat{\theta})^2.}
+#' Delegates to [svrep::as_fays_gen_rep_design()].
+#'
+#' @references
+#'   Fay, R.E. (1984). Some properties of estimates of variance based on
+#'   replication methods. *Proceedings of the American Statistical
+#'   Association*, 495--500.
+#'
+#'   Fay, R.E. (1989). Theory and application of replicate weighting for
+#'   variance calculations. *Proceedings of the American Statistical
+#'   Association*, 495--500.
+#'
+#'   Dippo, C., Fay, R.E. and Morganstein, D. (1984). Computing variances
+#'   from complex samples with replicate weights. *Proceedings of the
+#'   American Statistical Association*, 489--494.
+#'
+#' @seealso [create_bootstrap_weights()], [create_jackknife_weights()],
+#'   [create_group_jackknife_weights()], [create_brr_weights()],
+#'   [create_gen_boot_weights()], [create_sdr_weights()],
+#'   [create_replicate_weights()], [as_taylor_design()]
 #' @family replicate-weights
 #' @export
 create_gen_rep_weights <- function(

@@ -7,7 +7,7 @@
 # trim_weights()
 # ============================================================================
 
-#' Trim survey weights to a specified interval
+#' Clip weights to a bounded interval
 #'
 #' Clips (trims) survey weights to `[lower, upper]` and redistributes the
 #' trimmed excess equally across untrimmed units, preserving the total weight
@@ -58,6 +58,28 @@
 #' loop is not applied to replicate columns; each replicate column receives
 #' exactly one clip-and-redistribute pass.
 #'
+#' @section Algorithm:
+#' Bounds are computed from the main weights:
+#' - `type = "absolute"` with `upper = NULL`: `upper_abs = median(w) + k * IQR(w)`;
+#'   `lower_abs = lower` (or `0` if `NULL`).
+#' - `type = "absolute"` with `upper` specified: `upper_abs = upper`,
+#'   `lower_abs = lower` (or `0` if `NULL`).
+#' - `type = "percentile"`: `lower_abs = quantile(w, lower)`,
+#'   `upper_abs = quantile(w, upper)`.
+#'
+#' Within each clip-and-redistribute pass, weights above `upper_abs` are
+#' clipped to `upper_abs`; weights below `lower_abs` are clipped to
+#' `lower_abs`. The clipped mass is redistributed proportionally to
+#' untrimmed observations so that the total weight sum is preserved. When
+#' `strict = TRUE`, the pass repeats until all weights satisfy
+#' `[lower_abs, upper_abs]`.
+#'
+#' @references
+#'   Potter, F. and Zheng, Y. (2015). Methods and issues in trimming extreme
+#'   weights in sample surveys. *Proceedings of the Joint Statistical
+#'   Meetings, Section on Survey Research Methods*, 2707--2719.
+#'
+#' @seealso [stabilize_weights()]
 #' @family utilities
 #' @export
 #' @examples

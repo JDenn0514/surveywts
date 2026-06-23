@@ -147,11 +147,8 @@
 # ipw()
 # ============================================================================
 
-#' Inverse probability weighting for non-probability samples
+#' Estimate inverse probability weights for a non-probability sample
 #'
-#' @title Inverse Probability Weighting (IPW) for Non-Probability Samples
-#'
-#' @description
 #' Constructs inverse probability weights for a non-probability sample (NPS)
 #' by estimating participation propensity via pseudo-likelihood logistic
 #' regression. The weights adjust for selection bias by upweighting NPS units
@@ -271,7 +268,7 @@
 #'   non-empty character scalar that does not already exist in `data`.
 #'   Default `"ipw_weight"`.
 #'
-#' @return A `survey_nonprob` object. The `@data` slot contains all original
+#' @returns A `survey_nonprob` object. The `@data` slot contains all original
 #'   columns from `data` plus a new column named `wt_name` holding the
 #'   (possibly trimmed) IPW weights. When `missing_method = "omit"`, rows with
 #'   NA in any selection variable are excluded from `@data`. The
@@ -426,6 +423,9 @@
 #'   [calibrate_to_survey()] for post-stratification and raking calibration
 #'   that can be applied after `ipw()` as the regression correction step of a
 #'   doubly robust estimator.
+#'
+#'   [summarize_weights()] for diagnosing the distribution of the IPW weights
+#'   produced by this function.
 #'
 #'   `diagnose_propensity()` (planned) for propensity score diagnostics
 #'   including AUC, covariate balance plots, and standardized mean differences.

@@ -2,7 +2,7 @@
 % Please edit documentation in R/create_replicate_weights.R
 \name{create_replicate_weights}
 \alias{create_replicate_weights}
-\title{Create replicate weights (dispatcher)}
+\title{Generate replicate weights for a survey design}
 \usage{
 create_replicate_weights(
   data,
@@ -35,7 +35,7 @@ dispatched function; this function only resolves the method name.
 \seealso{
 \code{\link[=create_bootstrap_weights]{create_bootstrap_weights()}}, \code{\link[=create_jackknife_weights]{create_jackknife_weights()}},
 \code{\link[=create_brr_weights]{create_brr_weights()}}, \code{\link[=create_gen_boot_weights]{create_gen_boot_weights()}},
-\code{\link[=create_gen_rep_weights]{create_gen_rep_weights()}}, \code{\link[=create_sdr_weights]{create_sdr_weights()}}
+\code{\link[=create_gen_rep_weights]{create_gen_rep_weights()}}, \code{\link[=create_sdr_weights]{create_sdr_weights()}}, \code{\link[=as_taylor_design]{as_taylor_design()}}
 
 Other replicate-weights: 
 \code{\link{as_taylor_design}()},

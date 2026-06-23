@@ -2,7 +2,7 @@
 % Please edit documentation in R/poststratify.R
 \name{poststratify}
 \alias{poststratify}
-\title{Post-stratify survey weights to known joint population cell totals}
+\title{Fit weights using post-stratification}
 \usage{
 poststratify(
   data,
@@ -79,6 +79,18 @@ variables. Unlike \code{\link[=calibrate_linear]{calibrate_linear()}} and \code{
 marginal totals, \code{poststratify()} matches exact cross-tabulation cells in
 a single pass.
 }
+\section{Algorithm}{
+
+Within each cell \eqn{h} defined by the joint combination of
+stratification variables, the calibration factor is
+\deqn{c_h = \frac{T_h}{W_h}}
+where \eqn{T_h} is the target cell total (population count or proportion
+scaled to population size) and \eqn{W_h = \sum_{k \in h} w_k} is the
+sum of current weights in cell \eqn{h}. The calibrated weight for each
+unit in cell \eqn{h} is \eqn{w_k^* = c_h \cdot w_k}. The solution is
+exact in one pass — no iteration is required.
+}
+
 \examples{
 df <- data.frame(
   age_group = c("18-34", "35-54", "55+", "18-34", "35-54", "55+"),
@@ -105,16 +117,15 @@ result2 <- poststratify(
   targets = pop_count,
   type = "count"
 )
-
 }
 \references{
 Valliant, R. (1993). Poststratification and conditional variance
 estimation. \emph{Journal of the American Statistical Association},
-88(421), 89--96. doi:10.2307/2290701
+88(421), 89--96.
 
 Deville, J.-C. and Sarndal, C.-E. (1992). Calibration estimators in
 survey sampling. \emph{Journal of the American Statistical Association},
-87(418), 376--382. doi:10.2307/2290268
+87(418), 376--382.
 
 Rao, J. N. K., Yung, W. and Hidiroglou, M. A. (2002). Estimating
 equations for the analysis of survey data using poststratification
@@ -123,13 +134,15 @@ information. \emph{Sankhya}, 64(2), 364--378.
 Deville, J.-C., Sarndal, C.-E. and Sautory, O. (1993). Generalized
 raking procedures in survey sampling. \emph{Journal of the American
 Statistical Association}, 88(423), 1013--1020.
-doi:10.1080/01621459.1993.10476369
 
 Rao, J. N. K., Wu, C. F. J. and Yue, K. (1992). Some recent work on
 resampling methods for complex surveys. \emph{Survey Methodology},
 18(2), 209--217.
 }
 \seealso{
+\code{\link[=calibrate]{calibrate()}}, \code{\link[=calibrate_rake]{calibrate_rake()}}, \code{\link[=calibrate_linear]{calibrate_linear()}},
+\code{\link[=calibrate_logit]{calibrate_logit()}}
+
 Other calibration: 
 \code{\link{calibrate}()},
 \code{\link{calibrate_linear}()},

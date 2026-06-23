@@ -17,52 +17,124 @@
 #   R/calibrate_linear.R  — GREG / linear calibration
 #   R/calibrate_logit.R   — logit-bounded calibration
 
-#' Calibrate survey weights
+#' Adjust weights to match population totals
 #'
-#' Thin dispatcher that routes to [calibrate_rake()], [calibrate_linear()], or
-#' [calibrate_logit()] based on `method`. All arguments are forwarded
-#' unchanged to the dispatched function; all validation and error handling
-#' occurs there.
+#' A thin dispatcher that routes to [calibrate_rake()], [calibrate_linear()],
+#' or [calibrate_logit()] based on `method`. All arguments are forwarded
+#' unchanged; all validation and error handling occur in the dispatched
+#' function.
 #'
-#' @param data A `data.frame`, `weighted_df`, `survey_taylor`, or
-#'   `survey_nonprob`. Forwarded to the dispatched function.
+#' @param data A `data.frame`, `weighted_df`, `survey_taylor`, `survey_nonprob`,
+#'   or `survey_replicate`. Forwarded unchanged to the dispatched function. For
+#'   `survey_replicate` inputs, calibration is applied to every replicate weight
+#'   column using the same `targets`; see the dispatched function for replicate
+#'   weight handling details.
 #' @param targets Target specification. Forwarded to the dispatched function.
+#'   Two formats are accepted:
+#'
+#'   **Format A — named list** (one element per calibration variable):
+#'   ```r
+#'   list(
+#'     sex   = c("Male" = 0.49, "Female" = 0.51),
+#'     age_f3 = c("18-34" = 0.30, "35-54" = 0.33, "55+" = 0.37)
+#'   )
+#'   ```
+#'
+#'   **Format B — long data frame** with columns `variable`, `level`, `target`:
+#'   ```r
+#'   data.frame(
+#'     variable = c("sex", "sex", "age_f3", "age_f3", "age_f3"),
+#'     level    = c("Male", "Female", "18-34", "35-54", "55+"),
+#'     target   = c(0.49, 0.51, 0.30, 0.33, 0.37)
+#'   )
+#'   ```
+#'
+#'   Format B is auto-detected and converted to Format A before dispatch.
 #'   See [calibrate_rake()], [calibrate_linear()], or [calibrate_logit()]
-#'   for accepted formats.
-#' @param weights <[`tidy-select`][tidyselect::language]> Weight column name
-#'   (bare name). Forwarded to the dispatched function.
-#' @param wt_name Character scalar. Name of the output weight column.
-#'   Default `"wts"`. Forwarded to the dispatched function.
-#' @param type Character scalar. `"prop"` (default) or `"count"`. Forwarded
+#'   for per-method target validation rules.
+#' @param weights <[`tidy-select`][tidyselect::language]> Weight column
+#'   (bare name). Forwarded to the dispatched function. `NULL` (the default)
+#'   auto-detects the weight column from `weighted_df` attributes or survey
+#'   object `@variables$weights`.
+#' @param wt_name `character(1)`. Name of the output weight column in the
+#'   returned `weighted_df`. `"wts"` (the default). Ignored when `data` is a
+#'   survey object.
+#' @param type `character(1)`. `"prop"` (the default): `targets` values are
+#'   proportions. `"count"`: `targets` values are population counts. Forwarded
 #'   to the dispatched function.
-#' @param reference_design A `survey_taylor` object or `NULL`. Forwarded to
-#'   the dispatched function.
-#' @param ... Additional arguments passed to the dispatched function. See
-#'   [calibrate_rake()], [calibrate_linear()], or [calibrate_logit()] for
-#'   available arguments.
-#' @param method Character scalar. Calibration method: `"rake"` (default),
+#' @param reference_design A `survey_taylor` or `NULL` (the default). Stored
+#'   in the weighting history for provenance. Forwarded to the dispatched
+#'   function.
+#' @param ... Additional arguments forwarded as-is to the dispatched function.
+#'   See [calibrate_rake()], [calibrate_linear()], or [calibrate_logit()]
+#'   for available arguments (e.g., `algorithm`, `bounds`, `cap`, `control`).
+#' @param method `character(1)`. Calibration method: `"rake"` (the default),
 #'   `"linear"`, or `"logit"`. Matched with [rlang::arg_match()].
+#'   - `"rake"`: multiplicative raking via [calibrate_rake()]. Weights remain
+#'     strictly positive. Two algorithms available via `algorithm` in `...`.
+#'   - `"linear"`: GREG estimator via [calibrate_linear()]. Exact in one step;
+#'     may produce negative weights for large discrepancies.
+#'   - `"logit"`: logit-bounded calibration via [calibrate_logit()]. G-weight
+#'     ratios constrained to an open interval `(L, U)` via `bounds` in `...`.
 #'
-#' @return A `weighted_df` or survey object (same class as `data`), as
-#'   returned by the dispatched function. See [calibrate_rake()],
-#'   [calibrate_linear()], or [calibrate_logit()] for details.
+#' @returns An object of the same class as `data`, as returned by the
+#'   dispatched function. See [calibrate_rake()], [calibrate_linear()], or
+#'   [calibrate_logit()] for class-specific return value details and
+#'   weighting history guarantees.
 #'
-#' @examples
-#' df <- data.frame(
-#'   age_group = c("18-34", "35-54", "55+", "18-34", "35-54"),
-#'   sex = c("M", "F", "M", "F", "M"),
-#'   stringsAsFactors = FALSE
-#' )
-#' targets <- list(
-#'   age_group = c("18-34" = 0.40, "35-54" = 0.40, "55+" = 0.20),
-#'   sex = c("M" = 0.50, "F" = 0.50)
-#' )
-#' # Dispatch to calibrate_rake() (default method)
-#' result_rake <- calibrate(df, targets = targets)
+#' @details
+#' All three methods implement the Deville-Sarndal calibration framework:
+#' each adjusts survey weights so that weighted auxiliary totals match
+#' known population totals. The methods share a variance estimator and
+#' differ in the weight-ratio function \eqn{F} applied during calibration
+#' (Deville & Sarndal 1992; Deville, Sarndal & Sautory 1993).
 #'
-#' # Dispatch to calibrate_linear() explicitly
-#' result_linear <- calibrate(df, targets = targets, method = "linear")
+#' **Raking** (`method = "rake"`, the default) uses the multiplicative
+#' function \eqn{F(u) = \exp(u)}, which keeps all calibrated weights
+#' strictly positive. For marginal targets, raking reduces to classical
+#' iterative proportional fitting (Deville, Sarndal & Sautory 1993). Two
+#' algorithms are available via `algorithm` (passed through `...`):
+#' `"classic_ipf"` (the default; chi-square variable selection ported
+#' from the ANES raking procedure, DeBell & Krosnick 2009) and `"nr"`
+#' (Newton-Raphson). The weight ratio \eqn{w_k / d_k} is unbounded above.
 #'
+#' **Linear** (`method = "linear"`) uses \eqn{F(u) = 1 + u}, equivalent
+#' to the generalized regression (GREG) estimator. The solution is exact
+#' in a single step — no iteration required — making it the fastest method
+#' (Deville & Sarndal 1992). The weight ratio is unbounded in both
+#' directions; large sample-to-population discrepancies can produce
+#' negative calibrated weights.
+#'
+#' **Logit** (`method = "logit"`) constrains the weight ratio
+#' \eqn{w_k / d_k} to the open interval \eqn{(L, U)} via a logit-bounded
+#' \eqn{F} function (Deville & Sarndal 1992; Deville, Sarndal & Sautory
+#' 1993). Pass `bounds` via `...` to control the interval (default
+#' `c(1e-6, 1e6)`). Note that bounds apply to the ratio of calibrated to
+#' design weight, not to calibrated weights directly.
+#'
+#' For full algorithm documentation, convergence criteria, and
+#' replicate-weight handling, see [calibrate_rake()],
+#' [calibrate_linear()], and [calibrate_logit()].
+#'
+#' @references
+#'   DeBell, M. and Krosnick, J.A. (2009). Computing Weights for American
+#'   National Election Study Survey Data. ANES Technical Report series,
+#'   no. nes012427. Ann Arbor, MI, and Palo Alto, CA: American National
+#'   Election Studies.
+#'
+#'   Deville, J.-C. and Sarndal, C.-E. (1992). Calibration estimators in
+#'   survey sampling. *Journal of the American Statistical Association*,
+#'   87(418), 376--382.
+#'
+#'   Deville, J.-C., Sarndal, C.-E. and Sautory, O. (1993). Generalized
+#'   raking procedures in survey sampling. *Journal of the American
+#'   Statistical Association*, 88(423), 1013--1020.
+#'
+#'   Kott, P.S. (2003). An overview of calibration weighting. 2003 Joint
+#'   Statistical Meetings — Section on Survey Research Methods.
+#'
+#' @seealso [calibrate_rake()], [calibrate_linear()], [calibrate_logit()],
+#'   [poststratify()]
 #' @family calibration
 #' @export
 calibrate <- function(

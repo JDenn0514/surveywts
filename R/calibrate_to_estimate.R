@@ -4,7 +4,7 @@
 # externally-supplied population count estimates, with an associated
 # variance-covariance matrix. Delegates to svrep::calibrate_to_estimate().
 
-#' Calibrate replicate weights to externally supplied population estimates
+#' Reweight to externally estimated population totals
 #'
 #' Adjusts the full-sample and replicate weights of `design` so that its
 #' estimated totals for the variables named in `targets` match the supplied
@@ -109,6 +109,7 @@
 #'   vcov_estimate = vcov_est
 #' )
 #'
+#' @seealso [calibrate_to_survey()]
 #' @family sample-calibration
 #' @export
 calibrate_to_estimate <- function(
@@ -122,12 +123,14 @@ calibrate_to_estimate <- function(
   control = list()
 ) {
   call_str <- paste0(deparse(match.call()), collapse = " ")
-  method   <- rlang::arg_match(method)
+  method <- rlang::arg_match(method)
 
   # ---- 1. design class check ------------------------------------------------
   is_nonprob_design <- S7::S7_inherits(design, surveycore::survey_nonprob)
-  if (!S7::S7_inherits(design, surveycore::survey_replicate) &&
-      !is_nonprob_design) {
+  if (
+    !S7::S7_inherits(design, surveycore::survey_replicate) &&
+      !is_nonprob_design
+  ) {
     cls <- class(design)[[1L]]
     cli::cli_abort(
       c(
@@ -195,7 +198,7 @@ calibrate_to_estimate <- function(
 
   # ---- 4. control unknown-key warning + extraction + merge with defaults -----
   known_keys <- c("maxit", "epsilon", "col_selection")
-  unknown    <- setdiff(names(control), known_keys)
+  unknown <- setdiff(names(control), known_keys)
   for (key in unknown) {
     cli::cli_warn(
       c(
@@ -216,12 +219,16 @@ calibrate_to_estimate <- function(
 
   # Build effective control (without col_selection)
   ctrl_defaults <- list(maxit = 50L, epsilon = 1e-7)
-  ctrl_clean    <- control[intersect(names(control), c("maxit", "epsilon"))]
-  ctrl          <- utils::modifyList(ctrl_defaults, ctrl_clean)
+  ctrl_clean <- control[intersect(names(control), c("maxit", "epsilon"))]
+  ctrl <- utils::modifyList(ctrl_defaults, ctrl_clean)
 
   # ---- 5. targets named-list check (including empty-list check) -------------
-  if (!is.list(targets) || is.null(names(targets)) ||
-      any(names(targets) == "") || length(targets) == 0L) {
+  if (
+    !is.list(targets) ||
+      is.null(names(targets)) ||
+      any(names(targets) == "") ||
+      length(targets) == 0L
+  ) {
     cli::cli_abort(
       c(
         "x" = paste0(
@@ -280,7 +287,7 @@ calibrate_to_estimate <- function(
   }
 
   # ---- 7. targets variable names existence check in design@data -------------
-  var_names    <- names(targets)
+  var_names <- names(targets)
   data_colnames <- names(design@data)
   missing_vars <- setdiff(var_names, data_colnames)
   if (length(missing_vars) > 0L) {
@@ -308,23 +315,29 @@ calibrate_to_estimate <- function(
       data_levels <- sort(unique(as.character(col)))
     }
     target_levels <- sort(names(targets[[nm]]))
-    data_levels   <- sort(data_levels)
+    data_levels <- sort(data_levels)
 
     if (!identical(data_levels, target_levels)) {
       missing_in_tgt <- setdiff(data_levels, target_levels)
-      extra_in_tgt   <- setdiff(target_levels, data_levels)
+      extra_in_tgt <- setdiff(target_levels, data_levels)
       detail <- character(0)
       if (length(missing_in_tgt) > 0L) {
-        detail <- c(detail, paste0(
-          "Levels in data but not in targets: ",
-          paste(missing_in_tgt, collapse = ", ")
-        ))
+        detail <- c(
+          detail,
+          paste0(
+            "Levels in data but not in targets: ",
+            paste(missing_in_tgt, collapse = ", ")
+          )
+        )
       }
       if (length(extra_in_tgt) > 0L) {
-        detail <- c(detail, paste0(
-          "Levels in targets but not in data: ",
-          paste(extra_in_tgt, collapse = ", ")
-        ))
+        detail <- c(
+          detail,
+          paste0(
+            "Levels in targets but not in data: ",
+            paste(extra_in_tgt, collapse = ", ")
+          )
+        )
       }
       cli::cli_abort(
         c(
@@ -352,7 +365,7 @@ calibrate_to_estimate <- function(
   }
 
   # ---- 9. vcov_estimate dimension check -------------------------------------
-  k        <- length(unlist(targets))
+  k <- length(unlist(targets))
   vcov_dim <- dim(vcov_estimate)
   if (is.null(vcov_dim) || !identical(as.integer(vcov_dim), c(k, k))) {
     actual_dim <- if (!is.null(vcov_dim)) {
@@ -423,23 +436,23 @@ calibrate_to_estimate <- function(
     }))
   )
   cal_formula <- stats::reformulate(var_names)
-  calfun      <- .method_to_calfun(method)
+  calfun <- .method_to_calfun(method)
   svrep_bounds <- list(lower = bounds[[1L]], upper = bounds[[2L]])
 
-  wt_col_name  <- design@variables$weights
+  wt_col_name <- design@variables$weights
   before_weights <- design@data[[wt_col_name]]
-  before_stats   <- .compute_weight_stats(before_weights)
+  before_stats <- .compute_weight_stats(before_weights)
 
   cal_args <- list(
-    rep_design    = design_svyrep,
-    estimate      = estimate,
+    rep_design = design_svyrep,
+    estimate = estimate,
     vcov_estimate = vcov_estimate,
-    cal_formula   = cal_formula,
-    calfun        = calfun,
-    bounds        = svrep_bounds,
-    maxit         = as.integer(ctrl$maxit),
-    epsilon       = ctrl$epsilon,
-    variance      = unit_scale
+    cal_formula = cal_formula,
+    calfun = calfun,
+    bounds = svrep_bounds,
+    maxit = as.integer(ctrl$maxit),
+    epsilon = ctrl$epsilon,
+    variance = unit_scale
   )
   if (!is.null(col_selection)) {
     cal_args$col_selection <- col_selection
@@ -514,8 +527,8 @@ calibrate_to_estimate <- function(
 
   # ---- 14. Write weights back, append history --------------------------------
   rep_matrix <- as.matrix(cal_result$repweights)
-  n_rep      <- ncol(rep_matrix)
-  rep_names  <- design@variables$repweights
+  n_rep <- ncol(rep_matrix)
+  rep_names <- design@variables$repweights
 
   if (n_rep != length(rep_names)) {
     rep_names <- paste0("rep_", seq_len(n_rep))
@@ -524,33 +537,35 @@ calibrate_to_estimate <- function(
   after_stats <- .compute_weight_stats(new_full_weights)
 
   history_params <- list(
-    variables          = var_names,
-    method             = method,
-    bounds             = bounds,
-    unit_scale         = unit_scale,
-    n_replicates       = length(design@variables$repweights),
-    targets            = targets,
-    vcov_dim           = dim(vcov_estimate),
+    variables = var_names,
+    method = method,
+    bounds = bounds,
+    unit_scale = unit_scale,
+    n_replicates = length(design@variables$repweights),
+    targets = targets,
+    vcov_dim = dim(vcov_estimate),
     targets_from_reference = !is.null(reference_design),
-    reference_design   = if (!is.null(reference_design)) {
-      list(class = class(reference_design)[[1L]],
-           n = nrow(reference_design@data))
+    reference_design = if (!is.null(reference_design)) {
+      list(
+        class = class(reference_design)[[1L]],
+        n = nrow(reference_design@data)
+      )
     } else {
       NULL
     },
-    control            = ctrl
+    control = ctrl
   )
 
   current_history <- design@metadata@weighting_history
-  history_entry   <- .make_history_entry(
-    step         = length(current_history) + 1L,
-    operation    = "calibrate_to_estimate",
-    weight_col   = wt_col_name,
-    call_str     = call_str,
-    parameters   = history_params,
+  history_entry <- .make_history_entry(
+    step = length(current_history) + 1L,
+    operation = "calibrate_to_estimate",
+    weight_col = wt_col_name,
+    call_str = call_str,
+    parameters = history_params,
     before_stats = before_stats,
-    after_stats  = after_stats,
-    convergence  = NULL
+    after_stats = after_stats,
+    convergence = NULL
   )
 
   # Build new data: update full-sample weights + replicate weight columns
@@ -565,20 +580,20 @@ calibrate_to_estimate <- function(
   # ---- 15. Dispatch on design class for output constructor ------------------
   if (S7::S7_inherits(design, surveycore::survey_nonprob)) {
     result <- surveycore::survey_nonprob(
-      data      = new_data,
+      data = new_data,
       variables = design@variables,
-      metadata  = design@metadata
+      metadata = design@metadata
     )
   } else {
     result <- surveycore::survey_replicate(
-      data      = new_data,
+      data = new_data,
       variables = design@variables,
-      metadata  = design@metadata
+      metadata = design@metadata
     )
   }
-  meta                   <- result@metadata
+  meta <- result@metadata
   meta@weighting_history <- c(meta@weighting_history, list(history_entry))
-  result@metadata        <- meta
+  result@metadata <- meta
 
   result
 }

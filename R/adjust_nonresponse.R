@@ -4,19 +4,12 @@
 # nonresponse adjustment. Redistributes nonrespondent weights to respondents
 # within cells. Returns all rows; nonrespondent weights = 0.
 
-#' Adjust survey weights for unit nonresponse
+#' Correct weights for unit nonresponse
 #'
 #' Redistributes the weights of nonrespondents to respondents within weighting
-#' classes defined by `by`. All rows (respondents and nonrespondents) are
-#' returned; nonrespondent weights are set to 0 and respondent weights are
-#' adjusted upward to conserve the total weight within each cell.
-#'
-#' The adjustment formula within each cell `h` is:
-#'
-#' \deqn{w_{i,new} = w_i \times \frac{\sum w_h}{\sum w_{h,resp}}}
-#'
-#' where \eqn{\sum w_h} is the sum of all weights (respondents + nonrespondents)
-#' in cell `h` and \eqn{\sum w_{h,resp}} is the sum of respondent weights only.
+#' classes defined by `by`. All rows are returned; nonrespondent weights are
+#' set to zero and respondent weights increase proportionally to preserve the
+#' total weight within each class.
 #'
 #' @param data A `data.frame`, `weighted_df`, `survey_taylor`, or
 #'   `survey_nonprob`. Must include BOTH respondents and nonrespondents.
@@ -59,7 +52,14 @@
 #'     number >= 2. Used only when `method = "propensity-cell"`.
 #'   Either `min_cell` or `max_adjust` condition alone triggers the warning.
 #'
-#' @return
+#' @section Algorithm:
+#' Within each cell \eqn{h} defined by `by`, the adjustment factor is
+#' \deqn{f_h = \frac{\sum_{i \in h} w_i}{\sum_{i \in h, \text{resp}} w_i}}
+#' where the numerator sums all weights in the cell and the denominator
+#' sums respondent weights only. Each respondent weight becomes
+#' \eqn{w_{i,new} = w_i \times f_h}. Nonrespondent weights are set to 0.
+#'
+#' @returns
 #'   All rows (respondents and nonrespondents) are returned. Nonrespondent
 #'   weights are set to 0; respondent weights are adjusted upward to conserve
 #'   the total weight within each cell.
@@ -103,8 +103,7 @@
 #'   known (estimated from the data), not as true population propensities; this
 #'   understates variance and should be accounted for in downstream analysis.
 #'
-#' @seealso [redistribute_weights()] for the general weight redistribution
-#'   primitive that underlies `method = "weighting-class"`.
+#' @seealso [redistribute_weights()]
 #'
 #' @examples
 #' df <- data.frame(

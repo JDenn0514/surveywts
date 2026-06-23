@@ -2,7 +2,7 @@
 % Please edit documentation in R/redistribute_weights.R
 \name{redistribute_weights}
 \alias{redistribute_weights}
-\title{Redistribute weights from one set of rows to another}
+\title{Transfer weight from excluded rows to retained rows}
 \usage{
 redistribute_weights(
   data,
@@ -52,26 +52,28 @@ with \code{reduce_if} rows removed (zero weights violate survey validators).
 A history entry with \code{operation = "redistribute_weights"} is appended.
 }
 \description{
-A general-purpose weight redistribution primitive. Sets the weights of rows
-satisfying \code{reduce_if} to zero and redistributes their weight to rows
-satisfying \code{increase_if}, proportionally by current weight, within groups
-defined by \code{by}.
+Sets the weights of rows satisfying \code{reduce_if} to zero and proportionally
+redistributes their weight to rows satisfying \code{increase_if} within groups
+defined by \code{by}. Rows matching neither condition are unchanged.
 }
 \details{
-Within each group \code{h}:
-
-\deqn{w_{i,new} = w_i \times \frac{W_{reduce} + W_{increase}}{W_{increase}}}
-
-for each \code{increase_if} row \code{i}, where \eqn{W_{reduce}} and
-\eqn{W_{increase}} are the summed weights of \code{reduce_if} and \code{increase_if}
-rows in that group. Rows matching neither indicator are left unchanged.
-
 This function is the general form of
 \link[=adjust_nonresponse]{adjust_nonresponse(method = "weighting-class")}.
 When \verb{reduce_if = nonrespondent indicator} and \verb{increase_if = respondent indicator}, the two produce equivalent results (within \code{1e-10}).
 \code{adjust_nonresponse()} does not call \code{redistribute_weights()} internally
 because it is currently the only call site; refactor if a second emerges.
 }
+\section{Algorithm}{
+
+Within each group \eqn{h} defined by \code{by}, the adjustment factor applied to
+each \code{increase_if} row is
+\deqn{f_h = \frac{W_{h,\text{reduce}} + W_{h,\text{increase}}}{W_{h,\text{increase}}}}
+where \eqn{W_{h,\text{reduce}}} and \eqn{W_{h,\text{increase}}} are the
+summed weights of \code{reduce_if} and \code{increase_if} rows in group \eqn{h}.
+Each \code{increase_if} weight becomes \eqn{w_{i,new} = w_i \times f_h}.
+Rows matching neither indicator are unchanged.
+}
+
 \examples{
 df <- data.frame(
   group    = c("A", "A", "A", "B", "B"),
@@ -82,6 +84,8 @@ result <- redistribute_weights(df, reduce_if = reduce, increase_if = increase)
 
 }
 \seealso{
+\code{\link[=adjust_nonresponse]{adjust_nonresponse()}}
+
 Other nonresponse: 
 \code{\link{adjust_nonresponse}()}
 }

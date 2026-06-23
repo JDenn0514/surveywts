@@ -6,7 +6,7 @@
 # create_gen_boot_weights()
 # ============================================================================
 
-#' Create generalized bootstrap replicate weights
+#' Generate generalized bootstrap replicate weights
 #'
 #' Generates generalized bootstrap replicate weights via
 #' [svrep::as_gen_boot_design()]. Requires a `survey_taylor` design.
@@ -27,8 +27,37 @@
 #' @param mse `logical(1)`, default `TRUE`.
 #' @param seed `integer(1)` or `NULL`. RNG seed.
 #'
-#' @return A `survey_replicate` with `@variables$type = "bootstrap"`.
+#' @returns A `survey_replicate` with `@variables$type = "bootstrap"`.
 #'
+#' @section Algorithm:
+#' The generalized bootstrap (Beaumont & Patak, 2012) generates replicate
+#' weights using unit-level random multipliers:
+#' \deqn{w_k^{(r)} = w_k \cdot u_k^{(r)}}
+#' where \eqn{u_k^{(r)}} are drawn from a distribution calibrated to the
+#' design's first-order inclusion probabilities. Unlike SRSWR bootstrap,
+#' the multipliers are chosen to satisfy \eqn{E[u_k] = 1} and
+#' \eqn{Var(u_k) = (1 - \pi_k) / \pi_k}. Delegates to
+#' [svrep::as_gen_boot_design()].
+#'
+#' @references
+#'   Beaumont, J.-F. and Patak, Z. (2012). On the generalized bootstrap for
+#'   sample surveys with special attention to Poisson sampling.
+#'   *International Statistical Review*, 80(1), 127--148.
+#'
+#'   Fay, R.E. (1984). Some properties of estimates of variance based on
+#'   replication methods. *Proceedings of the American Statistical
+#'   Association*, 495--500.
+#'
+#'   Dippo, C., Fay, R.E. and Morganstein, D. (1984). Computing variances
+#'   from complex samples with replicate weights. *Proceedings of the
+#'   American Statistical Association*, 489--494.
+#'
+#'   Bellhouse, D.R. (1985). Computing methods for variance estimation in
+#'   complex surveys. *Journal of Official Statistics*, 1(3).
+#'
+#' @seealso [create_bootstrap_weights()], [create_jackknife_weights()],
+#'   [create_brr_weights()], [create_gen_rep_weights()],
+#'   [create_sdr_weights()], [create_replicate_weights()], [as_taylor_design()]
 #' @family replicate-weights
 #' @export
 create_gen_boot_weights <- function(

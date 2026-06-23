@@ -6,16 +6,23 @@
 # weight_variability()
 # ---------------------------------------------------------------------------
 
-#' Coefficient of variation of survey weights
+#' Measure how unequal the survey weights are
 #'
-#' Computes the coefficient of variation (CV) of the weight column:
-#' \deqn{CV = \frac{sd(w)}{mean(w)}}
+#' The coefficient of variation (CV) measures how spread out the weights are
+#' relative to their mean. A CV near zero indicates near-uniform weights;
+#' higher values signal greater variability and a correspondingly larger design
+#' effect. Rows with zero weights (typically produced by [adjust_nonresponse()])
+#' are excluded before computing CV.
 #'
 #' @inheritParams effective_sample_size
 #'
-#' @return A named numeric scalar: `c(cv = <value>)`. The name `"cv"` is
+#' @returns A named numeric scalar: `c(cv = <value>)`. The name `"cv"` is
 #'   part of the API contract.
 #'
+#' @section Algorithm:
+#' `cv(w) = sd(w) / mean(w)`
+#'
+#' @seealso [effective_sample_size()], [summarize_weights()]
 #' @family diagnostics
 #' @export
 #'

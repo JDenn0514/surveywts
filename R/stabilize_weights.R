@@ -6,7 +6,7 @@
 # stabilize_weights()
 # ============================================================================
 
-#' Stabilize survey weights to sum to sample size
+#' Rescale weights to sum to the sample size
 #'
 #' Rescales weights so they sum to the sample size `n` (globally) or to the
 #' group sample size within each group (when `by` is specified). Relative
@@ -41,6 +41,7 @@
 #' per group `n_h / W_h`. Each row's replicate values are multiplied by the
 #' same scalar (global) or per-group scalar that was applied to the main weight.
 #'
+#' @seealso [trim_weights()]
 #' @family utilities
 #' @export
 #' @examples

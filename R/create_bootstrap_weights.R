@@ -7,7 +7,7 @@
 # create_bootstrap_weights()
 # ============================================================================
 
-#' Create bootstrap replicate weights
+#' Generate bootstrap replicate weights
 #'
 #' Generates bootstrap replicate weights for probability-sample designs via
 #' [svrep::as_bootstrap_design()], or quasi-randomization bootstrap replicate
@@ -48,19 +48,32 @@
 #'   state is **not** restored. For probability-sample types, the seed is
 #'   applied via `withr::local_seed()` and the caller's state is restored.
 #'
-#' @return
+#' @returns
 #'   - Probability-sample types → `survey_replicate` with `replicates` new
 #'     `rep_1...rep_N` columns and a `"replicate_creation"` history entry.
 #'   - `type = "quasi-randomization"` → `survey_nonprob` with `replicates`
 #'     new `repwt_1...repwt_B` columns in `@data`, `@variables$repweights`
 #'     populated, and a `"bootstrap_weights"` history entry.
 #'
-#' @details
-#'   **SRSWR understatement:** Bootstrap standard errors from
-#'   `type = "quasi-randomization"` likely understate true sampling
-#'   variability because SRSWR resampling cannot replicate the original NPS
-#'   recruitment mechanism (AAPOR 2022, §4). This understatement is not
-#'   reduced by increasing `replicates`.
+#' @section Algorithm:
+#' For probability-sample designs (`survey_taylor`), delegates to
+#' [svrep::as_bootstrap_design()] with the specified `type`. The variance
+#' estimator for resampling type `"Rao-Wu-Yue-Beaumont"` is:
+#' \deqn{\hat{V}_{boot} = \frac{1}{B} \sum_{b=1}^{B}
+#'   (\hat{\theta}^{(b)} - \hat{\theta})^2}
+#' when `mse = "mse"`, with `B = replicates`.
+#'
+#' For non-probability samples (`type = "quasi-randomization"`), each
+#' bootstrap replicate resamples respondents with replacement (SRSWR),
+#' then re-runs the original IPW fitting on the resampled data, producing
+#' replicate weights that reflect the variability of the propensity
+#' estimation step.
+#'
+#' @section Limitations:
+#' Bootstrap standard errors from `type = "quasi-randomization"` likely
+#' understate true sampling variability because SRSWR resampling cannot
+#' replicate the original NPS recruitment mechanism (AAPOR 2022, §4). This
+#' understatement is not reduced by increasing `replicates`.
 #'
 #' @references
 #'   Elliott, M.R. and Valliant, R. (2017). Inference for nonprobability
@@ -76,6 +89,9 @@
 #'   Kolenikov, S. (2014). Calibrating variance estimation with proxy
 #'   variables. *Survey Methodology* **40**(1), 21--38.
 #'
+#' @seealso [create_jackknife_weights()], [create_brr_weights()], [create_gen_boot_weights()],
+#'   [create_gen_rep_weights()], [create_sdr_weights()],
+#'   [create_replicate_weights()], [as_taylor_design()]
 #' @family replicate-weights
 #' @export
 create_bootstrap_weights <- function(

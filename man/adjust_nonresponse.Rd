@@ -129,12 +129,24 @@ sums respondent weights only. Each respondent weight becomes
 }
 
 \examples{
-df <- data.frame(
-  age_group = c("18-34", "35-54", "55+", "18-34", "35-54"),
-  responded = c(1L, 1L, 1L, 0L, 1L),
-  stringsAsFactors = FALSE
+# data.frame path: add response_status column ---------------------------
+gss <- gss_2024[!is.na(gss_2024$sex), ]
+gss$responded <- sample(
+  c(0L, 1L), nrow(gss), replace = TRUE, prob = c(0.2, 0.8)
 )
-result <- adjust_nonresponse(df, response_status = responded)
+result <- adjust_nonresponse(
+  gss, response_status = responded, weights = wtssps, by = sex
+)
+
+# survey_taylor path: mutate the tibble first, then construct the design --
+gss_with_resp <- gss_2024[!is.na(gss_2024$sex), ]
+gss_with_resp$responded <- sample(
+  c(0L, 1L), nrow(gss_with_resp), replace = TRUE, prob = c(0.2, 0.8)
+)
+gss_svy <- surveycore::as_survey(
+  gss_with_resp, weights = wtssps, strata = vstrat, ids = vpsu, nest = TRUE
+)
+result <- adjust_nonresponse(gss_svy, response_status = responded, by = sex)
 
 }
 \seealso{

@@ -92,30 +92,25 @@ exact in one pass — no iteration is required.
 }
 
 \examples{
-df <- data.frame(
-  age_group = c("18-34", "35-54", "55+", "18-34", "35-54", "55+"),
-  sex = c("M", "M", "M", "F", "F", "F"),
-  stringsAsFactors = FALSE
+# joint cell proportions (sex x age_f3, 6 cells, sum = 1.000) --------
+ps_cells <- data.frame(
+  sex    = rep(c("Male", "Female"), each = 3),
+  age_f3 = rep(c("18-34", "35-54", "55+"), times = 2),
+  target = c(0.1470, 0.1617, 0.1813, 0.1530, 0.1683, 0.1887)
 )
+poststratify(ns_wave1, targets = ps_cells, weights = weight)
 
-# Proportion targets (default type = "prop")
-pop_prop <- data.frame(
-  age_group = c("18-34", "35-54", "55+", "18-34", "35-54", "55+"),
-  sex = c("M", "M", "M", "F", "F", "F"),
-  target = c(0.14, 0.18, 0.17, 0.15, 0.19, 0.17)
-)
-result <- poststratify(df, targets = pop_prop)
+# survey_nonprob — weight column auto-detected -----------------
+poststratify(ns_wave1_svy, targets = ps_cells)
 
-# Count targets (explicit type = "count")
-pop_count <- data.frame(
-  age_group = c("18-34", "35-54", "55+", "18-34", "35-54", "55+"),
-  sex = c("M", "M", "M", "F", "F", "F"),
-  target = c(14000, 18000, 17000, 15000, 19000, 17000)
+# type = "count" with US adult population counts (260 million) ------------
+ps_counts <- data.frame(
+  sex    = rep(c("Male", "Female"), each = 3),
+  age_f3 = rep(c("18-34", "35-54", "55+"), times = 2),
+  target = c(0.1470, 0.1617, 0.1813, 0.1530, 0.1683, 0.1887) * 260000000
 )
-result2 <- poststratify(
-  df,
-  targets = pop_count,
-  type = "count"
+poststratify(
+  ns_wave1, targets = ps_counts, weights = weight, type = "count"
 )
 }
 \references{

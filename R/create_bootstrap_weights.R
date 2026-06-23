@@ -89,6 +89,17 @@
 #'   Kolenikov, S. (2014). Calibrating variance estimation with proxy
 #'   variables. *Survey Methodology* **40**(1), 21--38.
 #'
+#' @examples
+#' # default SRSWR bootstrap on a probability survey -----------------------
+#' create_bootstrap_weights(gss_2024_svy)
+#'
+#' # quasi-randomization bootstrap for a non-probability sample -----------
+#' create_bootstrap_weights(
+#'   ns_wave1_svy,
+#'   type       = "quasi-randomization",
+#'   replicates = 200L
+#' )
+#'
 #' @seealso [create_jackknife_weights()], [create_brr_weights()], [create_gen_boot_weights()],
 #'   [create_gen_rep_weights()], [create_sdr_weights()],
 #'   [create_replicate_weights()], [as_taylor_design()]

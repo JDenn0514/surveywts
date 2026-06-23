@@ -43,6 +43,10 @@
 #'   states and counties. *Joint Statistical Meetings, Proceedings of
 #'   the Section on Government Statistics*, 154--159.
 #'
+#' @examples
+#' # apply SDR to a Taylor-linearization design ---------------------------
+#' create_sdr_weights(gss_2024_svy)
+#'
 #' @seealso [create_bootstrap_weights()], [create_jackknife_weights()],
 #'   [create_brr_weights()], [create_gen_boot_weights()],
 #'   [create_gen_rep_weights()], [create_replicate_weights()], [as_taylor_design()]

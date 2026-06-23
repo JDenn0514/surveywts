@@ -56,6 +56,11 @@ weight that satisfies the BRR variance formula
 Delegates to \code{\link[svrep:as_fays_gen_rep_design]{svrep::as_fays_gen_rep_design()}}.
 }
 
+\examples{
+# generalized replication with reproducible seed -----------------------
+create_gen_rep_weights(gss_2024_svy, seed = 42L)
+
+}
 \references{
 Fay, R.E. (1984). Some properties of estimates of variance based on
 replication methods. \emph{Proceedings of the American Statistical

@@ -85,42 +85,36 @@ When \code{method = "linear"}, any negative full-sample weights are clipped to
 \code{.Machine$double.eps} with a warning; replicate weights are not clipped.
 }
 \examples{
-data(api, package = "survey")
+# calibrate GSS 2024 pid_f3 to NPORS population estimates ---------------
 
-set.seed(1)
-d_primary <- survey::svydesign(id = ~1, weights = ~pw, data = apiclus1)
-boot_primary <- svrep::as_bootstrap_design(
-  d_primary,
-  type = "Rao-Wu-Yue-Beaumont",
-  replicates = 20
-)
+# build primary replicate design from GSS (JKn on complete pid_f3 rows)
+gss_pop <- surveycore::as_survey(
+  gss_2024[!is.na(gss_2024$pid_f3), ],
+  weights = wt_pop,
+  strata  = vstrat,
+  ids     = vpsu,
+  nest    = TRUE
+) |>
+  create_jackknife_weights(type = "jkn")
 
-# Convert to surveywts survey_replicate object
-primary <- surveycore::survey_replicate(
-  data = cbind(
-    as.data.frame(boot_primary$variables),
-    as.data.frame(as.matrix(boot_primary$repweights))
-  ),
-  variables = list(
-    weights    = "pw",
-    repweights = paste0("V", seq_len(ncol(boot_primary$repweights))),
-    type       = boot_primary$type,
-    scale      = boot_primary$scale,
-    rscales    = boot_primary$rscales,
-    mse        = isTRUE(boot_primary$mse)
-  )
-)
+# build NPORS control design (must use survey pkg for svytotal/coef/vcov)
+npors_pop <- survey::svydesign(
+  ids     = ~1,
+  strata  = ~stratum,
+  weights = ~wt_pop,
+  data    = npors_2025_clean
+) |>
+  survey::as.svrepdesign(type = "JKn")
 
-# Known population counts by school type
-targets <- list(
-  stype = c(E = 4421, H = 755, M = 1018)
-)
-vcov_est <- diag(c(10000, 1000, 2000))
+# derive targets from control survey
+pid_f3_est    <- survey::svytotal(~pid_f3, npors_pop)
+pid_f3_totals <- setNames(coef(pid_f3_est), levels(npors_2025_clean$pid_f3))
+vcov_pid_f3   <- vcov(pid_f3_est)
 
-result <- surveywts::calibrate_to_estimate(
-  design        = primary,
-  targets       = targets,
-  vcov_estimate = vcov_est
+result <- calibrate_to_estimate(
+  gss_pop,
+  targets       = list(pid_f3 = pid_f3_totals),
+  vcov_estimate = vcov_pid_f3
 )
 
 }

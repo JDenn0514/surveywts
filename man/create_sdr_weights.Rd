@@ -40,6 +40,11 @@ PSUs are in selection order (Ash, 2014; Fay & Train, 1995). Delegates
 to \code{\link[svrep:as_sdr_design]{svrep::as_sdr_design()}}.
 }
 
+\examples{
+# apply SDR to a Taylor-linearization design ---------------------------
+create_sdr_weights(gss_2024_svy)
+
+}
 \references{
 Ash, S. (2014). Using successive difference replication for
 estimating variances. \emph{Survey Methodology, Statistics Canada},

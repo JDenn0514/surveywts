@@ -229,47 +229,16 @@ weights were constructed.
 }
 
 \examples{
-# calibrate_to_survey() requires two replicate designs.
-# acs_wy_2022_svy is a survey_replicate with scale = 0.025 (80 replicates).
-# We construct a control design from acs_wy_2022 using bootstrap weights.
-
-# Build a control design from a half-sample of acs_wy_2022 -------
-set.seed(42)
-n_ctrl <- 500L
-ctrl_idx <- sample(nrow(acs_wy_2022), n_ctrl)
-ctrl_df  <- acs_wy_2022[ctrl_idx, ]
-ctrl_df$wt <- 1.0  # equal weights for illustration
-ctrl_taylor <- surveycore::survey_taylor(
-  data = ctrl_df,
-  variables = list(weights = "wt")
+# calibrate pew NPS to NPORS control survey on age_f3 and pid_f3 -------
+control <- create_bootstrap_weights(
+  npors_2025_clean_svy,
+  replicates = 50L
 )
-control <- create_bootstrap_weights(ctrl_taylor, replicates = 40L, seed = 1L)
-
-# Rake calibration (default) to control-survey margins for 'sex' -
-set.seed(1)
 result <- calibrate_to_survey(
-  primary_design = acs_wy_2022_svy,
-  control_design = control,
-  variables      = c(sex)
+  pew_2016_optin_svy,
+  control,
+  variables = c(age_f3, pid_f3)
 )
-
-# With fixed census margins for 'sex' alongside random 'age_f3' margins -
-N <- sum(acs_wy_2022_svy@data[[acs_wy_2022_svy@variables$weights]])
-sex_levels <- sort(unique(acs_wy_2022_svy@data$sex))
-if (length(sex_levels) == 2L) {
-  sex_prop <- stats::setNames(
-    c(0.49, 0.51)[seq_along(sex_levels)],
-    sex_levels
-  )
-  set.seed(2)
-  result2 <- calibrate_to_survey(
-    primary_design = acs_wy_2022_svy,
-    control_design = control,
-    variables      = c(age_f3),
-    targets        = list(sex = sex_prop),
-    type           = "prop"
-  )
-}
 
 }
 \references{

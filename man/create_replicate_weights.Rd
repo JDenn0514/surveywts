@@ -32,6 +32,17 @@ Dispatches to the appropriate \verb{create_*_weights()} function based on
 \code{method}. All validation, defaults, and error messages are handled by the
 dispatched function; this function only resolves the method name.
 }
+\examples{
+# bootstrap (default: Rao-Wu-Yue-Beaumont) ------------------------------
+create_replicate_weights(gss_2024_svy, method = "bootstrap")
+
+# jackknife ----------------------------------------------------------------
+create_replicate_weights(gss_2024_svy, method = "jackknife")
+
+# delete-a-group jackknife for a non-probability sample ------------------
+create_replicate_weights(ns_wave1_svy, method = "jackknife", type = "grouped", replicates = 50L)
+
+}
 \seealso{
 \code{\link[=create_bootstrap_weights]{create_bootstrap_weights()}}, \code{\link[=create_jackknife_weights]{create_jackknife_weights()}},
 \code{\link[=create_brr_weights]{create_brr_weights()}}, \code{\link[=create_gen_boot_weights]{create_gen_boot_weights()}},

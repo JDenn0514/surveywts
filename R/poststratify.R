@@ -129,7 +129,7 @@
 #' # survey_nonprob — weight column auto-detected -----------------
 #' poststratify(ns_wave1_svy, targets = ps_cells)
 #'
-#' # type = "count" with US adult population counts (260 million) -
+#' # type = "count" with US adult population counts (260 million) ------------
 #' ps_counts <- data.frame(
 #'   sex    = rep(c("Male", "Female"), each = 3),
 #'   age_f3 = rep(c("18-34", "35-54", "55+"), times = 2),

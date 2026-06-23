@@ -2,7 +2,7 @@
 % Please edit documentation in R/create_brr_weights.R
 \name{create_brr_weights}
 \alias{create_brr_weights}
-\title{Create BRR (Fay) replicate weights}
+\title{Generate BRR (Fay) replicate weights}
 \usage{
 create_brr_weights(data, ..., rho = 0, mse = TRUE)
 }
@@ -25,7 +25,39 @@ Generates balanced repeated replication (BRR) or Fay's BRR replicate weights
 via \code{\link[survey:as.svrepdesign]{survey::as.svrepdesign()}}. Requires a paired-PSU design (exactly 2 PSUs
 per stratum).
 }
+\section{Algorithm}{
+
+BRR creates \eqn{R} half-sample replicates from a paired-PSU design
+(exactly 2 PSUs per stratum). A Hadamard matrix of order \eqn{R}
+determines which PSU in each stratum belongs to each half-sample.
+Within replicate \eqn{r}, PSU 1 receives weight \eqn{2(1-\rho)} and
+PSU 2 receives weight \eqn{2\rho} (or vice versa). The BRR variance
+estimator is:
+\deqn{\hat{V}_{BRR} = \frac{1}{R(1-\rho)^2}
+  \sum_{r=1}^{R} (\hat{\theta}^{(r)} - \hat{\theta})^2.}
+When \code{rho = 0}, this simplifies to standard BRR. The Fay variant
+(\code{rho > 0}) reduces variance instability from extreme replicate
+estimates.
+}
+
+\references{
+Fay, R.E. (1984). Some properties of estimates of variance based on
+replication methods. \emph{Proceedings of the American Statistical
+Association}, 495--500.
+
+Fay, R.E. (1989). Theory and application of replicate weighting for
+variance calculations. \emph{Proceedings of the American Statistical
+Association}, 495--500.
+
+Dippo, C., Fay, R.E. and Morganstein, D. (1984). Computing variances
+from complex samples with replicate weights. \emph{Proceedings of the
+American Statistical Association}, 489--494.
+}
 \seealso{
+\code{\link[=create_bootstrap_weights]{create_bootstrap_weights()}}, \code{\link[=create_jackknife_weights]{create_jackknife_weights()}},
+\code{\link[=create_gen_boot_weights]{create_gen_boot_weights()}}, \code{\link[=create_gen_rep_weights]{create_gen_rep_weights()}},
+\code{\link[=create_sdr_weights]{create_sdr_weights()}}, \code{\link[=create_replicate_weights]{create_replicate_weights()}}, \code{\link[=as_taylor_design]{as_taylor_design()}}
+
 Other replicate-weights: 
 \code{\link{as_taylor_design}()},
 \code{\link{create_bootstrap_weights}()},

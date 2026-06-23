@@ -20,7 +20,7 @@
 #                         .build_calibration_provenance(),
 #                         .validate_count_marginal_consistency()
 
-#' Calibrate survey weights using logit-bounded method
+#' Fit weights using logit-bounded calibration
 #'
 #' Adjusts survey weights so that the weighted marginal totals of calibration
 #' variables match known population values using logit calibration. Uses the
@@ -98,7 +98,7 @@
 #'   non-`NULL` non-`survey_taylor` value triggers
 #'   `surveywts_error_reference_design_not_taylor`.
 #'
-#' @return
+#' @returns
 #'   - `data.frame` or `weighted_df` input -> `weighted_df` with the calibrated
 #'     weight column named by `wt_name` and a history entry appended.
 #'   - `survey_taylor` input -> `survey_taylor` (class preserved); only
@@ -121,15 +121,33 @@
 #'   Lagrange multipliers from the final iteration -- not the one-step
 #'   linear approximation.
 #'
+#' @section Algorithm:
+#' Logit calibration constrains the g-weight ratio \eqn{w_k / d_k} to the
+#' open interval \eqn{(L, U)} via the bounded function
+#' \deqn{F(u) = \frac{L + U e^u}{1 + e^u}.}
+#' The calibrated weights are \eqn{w_k = d_k F(x_k^T \hat{\lambda})},
+#' guaranteeing \eqn{L < w_k / d_k < U}. The Lagrange multipliers
+#' \eqn{\hat{\lambda}} are found by Newton-Raphson iteration.
+#'
+#' @section Convergence:
+#' Newton-Raphson terminates when the maximum absolute change in
+#' \eqn{\lambda} falls below `control$epsilon` (default `1e-7`), or when
+#' `control$maxit` (default `50`) iterations are reached. Calibration
+#' non-convergence raises an error.
+#'
 #' @references
 #'   Deville, J.-C. and Sarndal, C.-E. (1992). Calibration estimators in
 #'   survey sampling. *Journal of the American Statistical Association*,
 #'   87(418), 376--382.
-#'   <http://links.jstor.org/sici?sici=0162-1459%28199206%2987%3A418%3C376%3ACEISS%3E2.0.CO%3B2-3>
 #'
 #'   Deville, J.-C., Sarndal, C.-E. and Sautory, O. (1993). Generalized
-#'   raking procedures in survey sampling. *Journal of the American Statistical
-#'   Association*, 88(423), 1013--1020. <https://www.jstor.org/stable/2290793>
+#'   raking procedures in survey sampling. *Journal of the American
+#'   Statistical Association*, 88(423), 1013--1020.
+#'
+#' @seealso [calibrate()], [calibrate_rake()], [calibrate_linear()],
+#'   [poststratify()]
+#' @family calibration
+#' @export
 #'
 #' @examples
 #' df <- data.frame(
@@ -143,9 +161,6 @@
 #'   sex = c("M" = 0.50, "F" = 0.50)
 #' )
 #' result <- calibrate_logit(df, targets = targets, weights = wt)
-#'
-#' @family calibration
-#' @export
 calibrate_logit <- function(
   data,
   targets,

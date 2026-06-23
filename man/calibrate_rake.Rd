@@ -2,7 +2,7 @@
 % Please edit documentation in R/calibrate_rake.R
 \name{calibrate_rake}
 \alias{calibrate_rake}
-\title{Rake survey weights to marginal population totals}
+\title{Fit weights using raking}
 \usage{
 calibrate_rake(
   data,
@@ -127,23 +127,48 @@ improvement-based convergence, ported from the anesrake package) and the
 \code{"nr"} method (Newton-Raphson solver from Deville, Sarndal & Sautory 1993,
 using the multiplicative \code{F(u) = exp(u)} function).
 }
-\details{
-\strong{\code{algorithm = "classic_ipf"}:} At each sweep, variables are sorted by
-their chi-square discrepancy (controlled by \code{control$variable_select}).
-Variables with any cell below \code{control$min_cell_n} unweighted observations
-are excluded entirely. Variables where the chi-square p-value exceeds
-\code{control$pval} are skipped in that sweep. Convergence is assessed as the
-percentage improvement in total chi-square between consecutive sweeps.
-If all variables pass or are excluded in sweep 1, a
-\code{surveywts_message_already_calibrated} message is emitted.
+\section{Algorithm}{
 
-\strong{\code{algorithm = "nr"}:} Newton-Raphson solver using the multiplicative
-distance function (Deville, Sarndal & Sautory 1993). Calibrated weights
-satisfy: \verb{w_k = d_k * exp(x_k' * lambda)}. Convergence is assessed as
-\verb{max(|misfit| / (1 + |population|)) < epsilon}. Step-halving guards
-against non-finite g-weights. Errors with
-\code{surveywts_error_calibration_not_converged} if \code{maxit} is reached.
+Both algorithms implement the raking calibration function
+\eqn{F(u) = \exp(u)}, which keeps all calibrated weights strictly positive.
+
+\strong{Classic IPF (\code{algorithm = "classic_ipf"}, the default)}
+
+At each sweep, variables are ranked by chi-square discrepancy between
+weighted and target margins (controlled by \code{control$variable_select},
+default \code{"chi_square"}). Variables with any cell below
+\code{control$min_cell_n} (default \code{5L}) unweighted observations are excluded
+entirely; variables whose chi-square p-value exceeds \code{control$pval}
+(default \code{0.01}) are skipped for that sweep. Within each selected
+variable, weights are scaled by \code{target_k / weighted_k} for each level
+\code{k}. If all variables pass or are excluded in sweep 1, a message is
+emitted indicating the data is already calibrated.
+
+\strong{Newton-Raphson (\code{algorithm = "nr"})}
+
+Solves the calibration score equations via Newton-Raphson iteration.
+Calibrated weights satisfy
+\deqn{w_k = d_k \exp(x_k^T \hat{\lambda})}
+where \eqn{\hat{\lambda}} is found by iterating on
+\deqn{\sum_{k \in s} d_k \exp(x_k^T \lambda) x_k = X_U.}
+Step-halving guards against non-finite g-weights at each iteration.
 }
+
+\section{Convergence}{
+
+\strong{Classic IPF:} Terminates when the percentage improvement in total
+chi-square discrepancy between successive sweeps falls below
+\code{control$improvement} (default \code{0.01}\%), or when \code{control$maxit}
+(default \code{1000L}) full sweeps are completed.
+
+\strong{Newton-Raphson:} Terminates when
+\eqn{\max(|\text{misfit}| / (1 + |\text{population}|)) < \epsilon},
+where \eqn{\epsilon} is \code{control$epsilon} (default \code{1e-7}), or when
+\code{control$maxit} (default \code{50L}) iterations are completed.
+
+Calibration non-convergence raises an error.
+}
+
 \examples{
 df <- data.frame(
   age_group = c("18-34", "35-54", "55+", "18-34", "35-54"),
@@ -155,27 +180,28 @@ targets <- list(
   sex       = c("M" = 0.50, "F" = 0.50)
 )
 result <- calibrate_rake(df, targets = targets)
-
 }
 \references{
-DeBell, M. and Krosnick, J. A. (2009). \emph{Computing Weights for American
-National Election Study Survey Data}. ANES Technical Report series,
+DeBell, M. and Krosnick, J.A. (2009). Computing Weights for American
+National Election Study Survey Data. ANES Technical Report series,
 no. nes012427. Ann Arbor, MI, and Palo Alto, CA: American National
 Election Studies.
 
 Deville, J.-C. and Sarndal, C.-E. (1992). Calibration estimators in
 survey sampling. \emph{Journal of the American Statistical Association},
-87(418), 376-382. doi:10.2307/2290268
+87(418), 376--382.
 
 Deville, J.-C., Sarndal, C.-E. and Sautory, O. (1993). Generalized
 raking procedures in survey sampling. \emph{Journal of the American
-Statistical Association}, 88(423), 1013-1020. doi:10.2307/2290793
+Statistical Association}, 88(423), 1013--1020.
 
-Chang, T. and Kott, P. S. (2008). Using calibration weighting to adjust
-for nonresponse under a plausible model. \emph{Biometrika}, 95(3), 555-571.
-doi:10.1093/biomet/asn022
+Kott, P.S. (2003). An overview of calibration weighting. 2003 Joint
+Statistical Meetings — Section on Survey Research Methods.
 }
 \seealso{
+\code{\link[=calibrate]{calibrate()}}, \code{\link[=calibrate_linear]{calibrate_linear()}}, \code{\link[=calibrate_logit]{calibrate_logit()}},
+\code{\link[=poststratify]{poststratify()}}
+
 Other calibration: 
 \code{\link{calibrate}()},
 \code{\link{calibrate_linear}()},

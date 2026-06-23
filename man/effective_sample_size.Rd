@@ -2,7 +2,7 @@
 % Please edit documentation in R/effective_sample_size.R
 \name{effective_sample_size}
 \alias{effective_sample_size}
-\title{Kish's effective sample size}
+\title{Estimate Kish's effective sample size of weighted data}
 \usage{
 effective_sample_size(x, weights = NULL)
 }
@@ -19,14 +19,27 @@ A named numeric scalar: \verb{c(n_eff = <value>)}. The name \code{"n_eff"}
 is part of the API contract.
 }
 \description{
-Computes the effective sample size using Kish's formula:
+The effective sample size (ESS) measures how much statistical precision the
+weighted sample retains relative to an equal-sized simple random sample.
+Higher weight variability reduces the ESS, resulting in higher variance for
+weighted estimates. Rows with zero weights (typically produced by
+\code{\link[=adjust_nonresponse]{adjust_nonresponse()}}) are excluded before computing ESS.
+}
+\section{Algorithm}{
+
 \deqn{ESS = \frac{(\sum w)^2}{\sum w^2}}
 }
+
 \examples{
 df <- data.frame(x = 1:5, w = c(1.2, 0.8, 1.5, 0.9, 1.1))
 effective_sample_size(df, weights = w)
 }
+\references{
+Kish, L. (1965). \emph{Survey Sampling}. New York: John Wiley & Sons.
+}
 \seealso{
+\code{\link[=weight_variability]{weight_variability()}}, \code{\link[=summarize_weights]{summarize_weights()}}
+
 Other diagnostics: 
 \code{\link{summarize_weights}()},
 \code{\link{weight_variability}()}

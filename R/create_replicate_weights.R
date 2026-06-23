@@ -7,7 +7,7 @@
 # create_replicate_weights()
 # ============================================================================
 
-#' Create replicate weights (dispatcher)
+#' Generate replicate weights for a survey design
 #'
 #' Dispatches to the appropriate `create_*_weights()` function based on
 #' `method`. All validation, defaults, and error messages are handled by the
@@ -28,7 +28,7 @@
 #' @family replicate-weights
 #' @seealso [create_bootstrap_weights()], [create_jackknife_weights()],
 #'   [create_brr_weights()], [create_gen_boot_weights()],
-#'   [create_gen_rep_weights()], [create_sdr_weights()]
+#'   [create_gen_rep_weights()], [create_sdr_weights()], [as_taylor_design()]
 #' @export
 create_replicate_weights <- function(
   data,

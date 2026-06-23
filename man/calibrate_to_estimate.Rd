@@ -2,7 +2,7 @@
 % Please edit documentation in R/calibrate_to_estimate.R
 \name{calibrate_to_estimate}
 \alias{calibrate_to_estimate}
-\title{Calibrate replicate weights to externally supplied population estimates}
+\title{Reweight to externally estimated population totals}
 \usage{
 calibrate_to_estimate(
   design,
@@ -132,6 +132,8 @@ Opsomer, J.D. and Erciulescu, A. (2021). Replication variance estimation
 after sample-based calibration. \emph{Survey Methodology}, 47, 265--277.
 }
 \seealso{
+\code{\link[=calibrate_to_survey]{calibrate_to_survey()}}
+
 Other sample-calibration: 
 \code{\link{calibrate_to_survey}()}
 }

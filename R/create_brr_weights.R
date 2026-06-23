@@ -6,7 +6,7 @@
 # create_brr_weights()
 # ============================================================================
 
-#' Create BRR (Fay) replicate weights
+#' Generate BRR (Fay) replicate weights
 #'
 #' Generates balanced repeated replication (BRR) or Fay's BRR replicate weights
 #' via [survey::as.svrepdesign()]. Requires a paired-PSU design (exactly 2 PSUs
@@ -19,8 +19,37 @@
 #'   and `2 - rho`. Must satisfy `0 <= rho < 1`.
 #' @param mse `logical(1)`, default `TRUE`.
 #'
-#' @return A `survey_replicate` with `@variables$type` of `"BRR"` or `"Fay"`.
+#' @returns A `survey_replicate` with `@variables$type` of `"BRR"` or `"Fay"`.
 #'
+#' @section Algorithm:
+#' BRR creates \eqn{R} half-sample replicates from a paired-PSU design
+#' (exactly 2 PSUs per stratum). A Hadamard matrix of order \eqn{R}
+#' determines which PSU in each stratum belongs to each half-sample.
+#' Within replicate \eqn{r}, PSU 1 receives weight \eqn{2(1-\rho)} and
+#' PSU 2 receives weight \eqn{2\rho} (or vice versa). The BRR variance
+#' estimator is:
+#' \deqn{\hat{V}_{BRR} = \frac{1}{R(1-\rho)^2}
+#'   \sum_{r=1}^{R} (\hat{\theta}^{(r)} - \hat{\theta})^2.}
+#' When `rho = 0`, this simplifies to standard BRR. The Fay variant
+#' (`rho > 0`) reduces variance instability from extreme replicate
+#' estimates.
+#'
+#' @references
+#'   Fay, R.E. (1984). Some properties of estimates of variance based on
+#'   replication methods. *Proceedings of the American Statistical
+#'   Association*, 495--500.
+#'
+#'   Fay, R.E. (1989). Theory and application of replicate weighting for
+#'   variance calculations. *Proceedings of the American Statistical
+#'   Association*, 495--500.
+#'
+#'   Dippo, C., Fay, R.E. and Morganstein, D. (1984). Computing variances
+#'   from complex samples with replicate weights. *Proceedings of the
+#'   American Statistical Association*, 489--494.
+#'
+#' @seealso [create_bootstrap_weights()], [create_jackknife_weights()],
+#'   [create_gen_boot_weights()], [create_gen_rep_weights()],
+#'   [create_sdr_weights()], [create_replicate_weights()], [as_taylor_design()]
 #' @family replicate-weights
 #' @export
 create_brr_weights <- function(data, ..., rho = 0, mse = TRUE) {

@@ -2,7 +2,7 @@
 % Please edit documentation in R/weight_variability.R
 \name{weight_variability}
 \alias{weight_variability}
-\title{Coefficient of variation of survey weights}
+\title{Measure how unequal the survey weights are}
 \usage{
 weight_variability(x, weights = NULL)
 }
@@ -19,14 +19,24 @@ A named numeric scalar: \verb{c(cv = <value>)}. The name \code{"cv"} is
 part of the API contract.
 }
 \description{
-Computes the coefficient of variation (CV) of the weight column:
-\deqn{CV = \frac{sd(w)}{mean(w)}}
+The coefficient of variation (CV) measures how spread out the weights are
+relative to their mean. A CV near zero indicates near-uniform weights;
+higher values signal greater variability and a correspondingly larger design
+effect. Rows with zero weights (typically produced by \code{\link[=adjust_nonresponse]{adjust_nonresponse()}})
+are excluded before computing CV.
 }
+\section{Algorithm}{
+
+\code{cv(w) = sd(w) / mean(w)}
+}
+
 \examples{
 df <- data.frame(x = 1:5, w = c(1.2, 0.8, 1.5, 0.9, 1.1))
 weight_variability(df, weights = w)
 }
 \seealso{
+\code{\link[=effective_sample_size]{effective_sample_size()}}, \code{\link[=summarize_weights]{summarize_weights()}}
+
 Other diagnostics: 
 \code{\link{effective_sample_size}()},
 \code{\link{summarize_weights}()}

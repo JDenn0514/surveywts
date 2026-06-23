@@ -22,7 +22,7 @@
 # .check_input_class, .get_history, etc.) live in R/utils.R.
 # Calibration-family shared helpers live in R/calibrate-utils.R.
 
-#' Post-stratify survey weights to known joint population cell totals
+#' Fit weights using post-stratification
 #'
 #' Adjusts survey weights so that the weighted cell counts (or proportions)
 #' match known population values for every joint combination of stratification
@@ -66,7 +66,7 @@
 #'   non-`survey_taylor` value triggers
 #'   `surveywts_error_reference_design_not_taylor`.
 #'
-#' @return
+#' @returns
 #'   - `data.frame` or `weighted_df` input -> `weighted_df`
 #'   - `survey_taylor` or `survey_nonprob` input -> same class as input
 #'     (`survey_taylor` or `survey_nonprob`; class is preserved);
@@ -81,14 +81,24 @@
 #'   post-stratified. Failed replicates retain their original weights and are
 #'   recorded in `output@calibration$replicate_converged` as `FALSE`.
 #'
+#' @section Algorithm:
+#' Within each cell \eqn{h} defined by the joint combination of
+#' stratification variables, the calibration factor is
+#' \deqn{c_h = \frac{T_h}{W_h}}
+#' where \eqn{T_h} is the target cell total (population count or proportion
+#' scaled to population size) and \eqn{W_h = \sum_{k \in h} w_k} is the
+#' sum of current weights in cell \eqn{h}. The calibrated weight for each
+#' unit in cell \eqn{h} is \eqn{w_k^* = c_h \cdot w_k}. The solution is
+#' exact in one pass — no iteration is required.
+#'
 #' @references
 #'   Valliant, R. (1993). Poststratification and conditional variance
 #'   estimation. *Journal of the American Statistical Association*,
-#'   88(421), 89--96. doi:10.2307/2290701
+#'   88(421), 89--96.
 #'
 #'   Deville, J.-C. and Sarndal, C.-E. (1992). Calibration estimators in
 #'   survey sampling. *Journal of the American Statistical Association*,
-#'   87(418), 376--382. doi:10.2307/2290268
+#'   87(418), 376--382.
 #'
 #'   Rao, J. N. K., Yung, W. and Hidiroglou, M. A. (2002). Estimating
 #'   equations for the analysis of survey data using poststratification
@@ -97,11 +107,15 @@
 #'   Deville, J.-C., Sarndal, C.-E. and Sautory, O. (1993). Generalized
 #'   raking procedures in survey sampling. *Journal of the American
 #'   Statistical Association*, 88(423), 1013--1020.
-#'   doi:10.1080/01621459.1993.10476369
 #'
 #'   Rao, J. N. K., Wu, C. F. J. and Yue, K. (1992). Some recent work on
 #'   resampling methods for complex surveys. *Survey Methodology*,
 #'   18(2), 209--217.
+#'
+#' @seealso [calibrate()], [calibrate_rake()], [calibrate_linear()],
+#'   [calibrate_logit()]
+#' @family calibration
+#' @export
 #'
 #' @examples
 #' df <- data.frame(
@@ -129,9 +143,6 @@
 #'   targets = pop_count,
 #'   type = "count"
 #' )
-#'
-#' @family calibration
-#' @export
 poststratify <- function(
   data,
   targets,

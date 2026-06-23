@@ -2,7 +2,7 @@
 % Please edit documentation in R/summarize_weights.R
 \name{summarize_weights}
 \alias{summarize_weights}
-\title{Summarize the distribution of survey weights}
+\title{Report summary statistics for the weight distribution}
 \usage{
 summarize_weights(x, weights = NULL, by = NULL)
 }
@@ -15,7 +15,7 @@ column is auto-detected.}
 \code{weighted_df} and survey objects. Required for plain \code{data.frame}.}
 
 \item{by}{<\code{\link[tidyselect:language]{tidy-select}}> Optional grouping
-variables. When \code{NULL} (default), a single-row summary over all
+variables. When \code{NULL} (the default), a single-row summary over all
 observations is returned. When specified, one row is returned per
 unique group combination.}
 }
@@ -25,8 +25,9 @@ A tibble with columns \code{n}, \code{n_positive}, \code{n_zero}, \code{mean}, \
 the group columns precede the summary columns.
 }
 \description{
-Returns a tibble with summary statistics for the weight column, optionally
-computed within groups defined by \code{by}.
+Returns a tibble with n, mean, CV, percentiles (p25, p50, p75), and ESS
+for the weight column. Pass \code{by} to compute statistics separately within
+each subgroup defined by one or more grouping variables.
 }
 \examples{
 df <- data.frame(
@@ -37,6 +38,8 @@ summarize_weights(df, weights = w)
 summarize_weights(df, weights = w, by = c(group))
 }
 \seealso{
+\code{\link[=effective_sample_size]{effective_sample_size()}}, \code{\link[=weight_variability]{weight_variability()}}
+
 Other diagnostics: 
 \code{\link{effective_sample_size}()},
 \code{\link{weight_variability}()}

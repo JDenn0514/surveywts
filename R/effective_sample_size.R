@@ -6,10 +6,13 @@
 # effective_sample_size()
 # ---------------------------------------------------------------------------
 
-#' Kish's effective sample size
+#' Estimate Kish's effective sample size of weighted data
 #'
-#' Computes the effective sample size using Kish's formula:
-#' \deqn{ESS = \frac{(\sum w)^2}{\sum w^2}}
+#' The effective sample size (ESS) measures how much statistical precision the
+#' weighted sample retains relative to an equal-sized simple random sample.
+#' Higher weight variability reduces the ESS, resulting in higher variance for
+#' weighted estimates. Rows with zero weights (typically produced by
+#' [adjust_nonresponse()]) are excluded before computing ESS.
 #'
 #' @param x A `data.frame`, `weighted_df`, `survey_taylor`, or
 #'   `survey_nonprob`. For `weighted_df` and survey objects, the weight
@@ -17,9 +20,16 @@
 #' @param weights Bare name (NSE). Weight column. Auto-detected for
 #'   `weighted_df` and survey objects. Required for plain `data.frame`.
 #'
-#' @return A named numeric scalar: `c(n_eff = <value>)`. The name `"n_eff"`
+#' @returns A named numeric scalar: `c(n_eff = <value>)`. The name `"n_eff"`
 #'   is part of the API contract.
 #'
+#' @section Algorithm:
+#' \deqn{ESS = \frac{(\sum w)^2}{\sum w^2}}
+#'
+#' @references
+#'   Kish, L. (1965). *Survey Sampling*. New York: John Wiley & Sons.
+#'
+#' @seealso [weight_variability()], [summarize_weights()]
 #' @family diagnostics
 #' @export
 #'

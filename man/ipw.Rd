@@ -2,7 +2,7 @@
 % Please edit documentation in R/ipw.R
 \name{ipw}
 \alias{ipw}
-\title{Inverse Probability Weighting (IPW) for Non-Probability Samples}
+\title{Estimate inverse probability weights for a non-probability sample}
 \usage{
 ipw(
   data,
@@ -163,8 +163,6 @@ regression. The weights adjust for selection bias by upweighting NPS units
 that are underrepresented relative to a probability-based reference sample.
 }
 \details{
-Inverse probability weighting for non-probability samples
-
 \strong{Newton-Raphson non-convergence:} If the algorithm does not converge
 within \code{maxit} iterations, a \code{surveywts_warning_propensity_nr_no_convergence}
 warning is issued and the result from the last iteration is returned.
@@ -457,6 +455,9 @@ when the nonresponse mechanism is modeled.
 \code{\link[=calibrate_to_survey]{calibrate_to_survey()}} for post-stratification and raking calibration
 that can be applied after \code{ipw()} as the regression correction step of a
 doubly robust estimator.
+
+\code{\link[=summarize_weights]{summarize_weights()}} for diagnosing the distribution of the IPW weights
+produced by this function.
 
 \code{diagnose_propensity()} (planned) for propensity score diagnostics
 including AUC, covariate balance plots, and standardized mean differences.

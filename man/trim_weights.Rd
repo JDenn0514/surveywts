@@ -2,7 +2,7 @@
 % Please edit documentation in R/trim_weights.R
 \name{trim_weights}
 \alias{trim_weights}
-\title{Trim survey weights to a specified interval}
+\title{Clip weights to a bounded interval}
 \usage{
 trim_weights(
   data,
@@ -77,6 +77,26 @@ loop is not applied to replicate columns; each replicate column receives
 exactly one clip-and-redistribute pass.
 }
 
+\section{Algorithm}{
+
+Bounds are computed from the main weights:
+\itemize{
+\item \code{type = "absolute"} with \code{upper = NULL}: \code{upper_abs = median(w) + k * IQR(w)};
+\code{lower_abs = lower} (or \code{0} if \code{NULL}).
+\item \code{type = "absolute"} with \code{upper} specified: \code{upper_abs = upper},
+\code{lower_abs = lower} (or \code{0} if \code{NULL}).
+\item \code{type = "percentile"}: \code{lower_abs = quantile(w, lower)},
+\code{upper_abs = quantile(w, upper)}.
+}
+
+Within each clip-and-redistribute pass, weights above \code{upper_abs} are
+clipped to \code{upper_abs}; weights below \code{lower_abs} are clipped to
+\code{lower_abs}. The clipped mass is redistributed proportionally to
+untrimmed observations so that the total weight sum is preserved. When
+\code{strict = TRUE}, the pass repeats until all weights satisfy
+\verb{[lower_abs, upper_abs]}.
+}
+
 \examples{
 set.seed(42)
 df <- data.frame(
@@ -95,7 +115,14 @@ result <- trim_weights(df, weights = base_weight, k = 6)
 result <- trim_weights(df, weights = base_weight,
                        lower = 0.01, upper = 0.99, type = "percentile")
 }
+\references{
+Potter, F. and Zheng, Y. (2015). Methods and issues in trimming extreme
+weights in sample surveys. \emph{Proceedings of the Joint Statistical
+Meetings, Section on Survey Research Methods}, 2707--2719.
+}
 \seealso{
+\code{\link[=stabilize_weights]{stabilize_weights()}}
+
 Other utilities: 
 \code{\link{stabilize_weights}()}
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/create_bootstrap_weights.R
 \name{create_bootstrap_weights}
 \alias{create_bootstrap_weights}
-\title{Create bootstrap replicate weights}
+\title{Generate bootstrap replicate weights}
 \usage{
 create_bootstrap_weights(
   data,
@@ -71,13 +71,30 @@ Generates bootstrap replicate weights for probability-sample designs via
 weights for non-probability samples (\code{survey_nonprob}) via an internal
 resample-reweight algorithm.
 }
-\details{
-\strong{SRSWR understatement:} Bootstrap standard errors from
-\code{type = "quasi-randomization"} likely understate true sampling
-variability because SRSWR resampling cannot replicate the original NPS
-recruitment mechanism (AAPOR 2022, §4). This understatement is not
-reduced by increasing \code{replicates}.
+\section{Algorithm}{
+
+For probability-sample designs (\code{survey_taylor}), delegates to
+\code{\link[svrep:as_bootstrap_design]{svrep::as_bootstrap_design()}} with the specified \code{type}. The variance
+estimator for resampling type \code{"Rao-Wu-Yue-Beaumont"} is:
+\deqn{\hat{V}_{boot} = \frac{1}{B} \sum_{b=1}^{B}
+  (\hat{\theta}^{(b)} - \hat{\theta})^2}
+when \code{mse = "mse"}, with \code{B = replicates}.
+
+For non-probability samples (\code{type = "quasi-randomization"}), each
+bootstrap replicate resamples respondents with replacement (SRSWR),
+then re-runs the original IPW fitting on the resampled data, producing
+replicate weights that reflect the variability of the propensity
+estimation step.
 }
+
+\section{Limitations}{
+
+Bootstrap standard errors from \code{type = "quasi-randomization"} likely
+understate true sampling variability because SRSWR resampling cannot
+replicate the original NPS recruitment mechanism (AAPOR 2022, §4). This
+understatement is not reduced by increasing \code{replicates}.
+}
+
 \references{
 Elliott, M.R. and Valliant, R. (2017). Inference for nonprobability
 samples. \emph{Statistical Science} \strong{32}(2), 249--264.
@@ -93,6 +110,10 @@ Kolenikov, S. (2014). Calibrating variance estimation with proxy
 variables. \emph{Survey Methodology} \strong{40}(1), 21--38.
 }
 \seealso{
+\code{\link[=create_jackknife_weights]{create_jackknife_weights()}}, \code{\link[=create_brr_weights]{create_brr_weights()}}, \code{\link[=create_gen_boot_weights]{create_gen_boot_weights()}},
+\code{\link[=create_gen_rep_weights]{create_gen_rep_weights()}}, \code{\link[=create_sdr_weights]{create_sdr_weights()}},
+\code{\link[=create_replicate_weights]{create_replicate_weights()}}, \code{\link[=as_taylor_design]{as_taylor_design()}}
+
 Other replicate-weights: 
 \code{\link{as_taylor_design}()},
 \code{\link{create_brr_weights}()},

@@ -137,6 +137,29 @@
 #'   [poststratify()]
 #' @family calibration
 #' @export
+#'
+#' @examples
+#' targets_a <- list(
+#'   sex   = c("Male" = 0.49, "Female" = 0.51),
+#'   age_f3 = c("18-34" = 0.30, "35-54" = 0.33, "55+" = 0.37)
+#' )
+#'
+#' # Format A + rake (default) ------------------------------------
+#' calibrate(ns_wave1, targets = targets_a, weights = weight)
+#'
+#' # Format A + linear -------------------------------------------------
+#' calibrate(ns_wave1, targets = targets_a, weights = weight, method = "linear")
+#'
+#' # Format A + logit -----------------------------------------------
+#' calibrate(ns_wave1, targets = targets_a, weights = weight, method = "logit")
+#'
+#' # Format B + rake -------------------------------------------------------
+#' targets_b <- data.frame(
+#'   variable = c("sex", "sex", "age_f3", "age_f3", "age_f3"),
+#'   level    = c("Male", "Female", "18-34", "35-54", "55+"),
+#'   target   = c(0.49, 0.51, 0.30, 0.33, 0.37)
+#' )
+#' calibrate(ns_wave1, targets = targets_b, weights = weight)
 calibrate <- function(
   data,
   targets,

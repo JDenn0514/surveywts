@@ -60,3 +60,6 @@ docs
 data-raw/pew_2016/
 
 /.quarto/
+
+# Raw data files (CPS IPUMS — not committed)
+data-raw/cps_2023/

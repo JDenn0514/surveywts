@@ -20,7 +20,7 @@
 #                         .build_calibration_provenance(),
 #                         .validate_count_marginal_consistency()
 
-#' Calibrate survey weights using linear (GREG) or truncated-linear method
+#' Fit weights using linear (GREG) calibration
 #'
 #' Adjusts survey weights so that the weighted marginal totals of calibration
 #' variables match known population values using linear (GREG) estimation. Uses
@@ -99,7 +99,7 @@
 #'   non-`NULL` non-`survey_taylor` value triggers
 #'   `surveywts_error_reference_design_not_taylor`.
 #'
-#' @return
+#' @returns
 #'   - `data.frame` or `weighted_df` input -> `weighted_df` with the calibrated
 #'     weight column named by `wt_name` and a history entry appended.
 #'   - `survey_taylor` input -> `survey_taylor` (class preserved); only
@@ -118,15 +118,41 @@
 #'
 #'   History entry `operation` field: `"calibrate_linear"`.
 #'
+#' @section Algorithm:
+#' Linear calibration uses \eqn{F(u) = 1 + u} (the GREG estimator). The
+#' calibrated weights are
+#' \deqn{w_k = d_k (1 + x_k^T \hat{\lambda})}
+#' where the Lagrange multipliers satisfy
+#' \deqn{\hat{\lambda} = \left(\sum_{k \in s} d_k x_k x_k^T\right)^{-1}
+#'   \left(X_U - \sum_{k \in s} d_k x_k\right).}
+#' The solution is obtained in a single Newton step (no iteration required)
+#' when `bounds = NULL`.
+#'
+#' When `bounds = c(L, U)` is specified, g-weights are constrained to
+#' `[L, U]` (truncated-linear calibration) via Newton-Raphson iteration.
+#'
+#' @section Convergence:
+#' For unbounded calibration (`bounds = NULL`), the solution is exact in
+#' one step — no convergence check is performed.
+#'
+#' For bounded calibration, Newton-Raphson terminates when the maximum
+#' absolute change in \eqn{\lambda} falls below `control$epsilon` (default
+#' `1e-7`), or when `control$maxit` (default `50`) iterations are reached.
+#' Calibration non-convergence raises an error.
+#'
 #' @references
 #'   Deville, J.-C. and Sarndal, C.-E. (1992). Calibration estimators in
 #'   survey sampling. *Journal of the American Statistical Association*,
 #'   87(418), 376--382.
-#'   <http://links.jstor.org/sici?sici=0162-1459%28199206%2987%3A418%3C376%3ACEISS%3E2.0.CO%3B2-3>
 #'
 #'   Deville, J.-C., Sarndal, C.-E. and Sautory, O. (1993). Generalized
-#'   raking procedures in survey sampling. *Journal of the American Statistical
-#'   Association*, 88(423), 1013--1020. <https://www.jstor.org/stable/2290793>
+#'   raking procedures in survey sampling. *Journal of the American
+#'   Statistical Association*, 88(423), 1013--1020.
+#'
+#' @seealso [calibrate()], [calibrate_rake()], [calibrate_logit()],
+#'   [poststratify()]
+#' @family calibration
+#' @export
 #'
 #' @examples
 #' df <- data.frame(
@@ -140,9 +166,6 @@
 #'   sex = c("M" = 0.50, "F" = 0.50)
 #' )
 #' result <- calibrate_linear(df, targets = targets, weights = wt)
-#'
-#' @family calibration
-#' @export
 calibrate_linear <- function(
   data,
   targets,

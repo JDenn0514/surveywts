@@ -2,7 +2,7 @@
 % Please edit documentation in R/stabilize_weights.R
 \name{stabilize_weights}
 \alias{stabilize_weights}
-\title{Stabilize survey weights to sum to sample size}
+\title{Rescale weights to sum to the sample size}
 \usage{
 stabilize_weights(data, weights = NULL, by = NULL, wt_name = "wts")
 }
@@ -63,6 +63,8 @@ result <- stabilize_weights(df, weights = base_weight)
 result <- stabilize_weights(df, weights = base_weight, by = age_group)
 }
 \seealso{
+\code{\link[=trim_weights]{trim_weights()}}
+
 Other utilities: 
 \code{\link{trim_weights}()}
 }

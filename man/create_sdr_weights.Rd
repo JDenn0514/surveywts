@@ -2,7 +2,7 @@
 % Please edit documentation in R/create_sdr_weights.R
 \name{create_sdr_weights}
 \alias{create_sdr_weights}
-\title{Create successive difference replication (SDR) weights}
+\title{Generate successive difference replication weights}
 \usage{
 create_sdr_weights(data, replicates = 100L, ..., sort_var = NULL, mse = TRUE)
 }
@@ -28,7 +28,33 @@ A \code{survey_replicate} with \verb{@variables$type = "successive-difference"}.
 Generates successive difference replication weights via
 \code{\link[svrep:as_sdr_design]{svrep::as_sdr_design()}}. Requires a \code{survey_taylor} design.
 }
+\section{Algorithm}{
+
+Successive difference replication (SDR) pairs adjacent PSUs in
+systematic selection order. A Hadamard matrix of order \eqn{R} assigns
+each pair to a half-sample. The SDR variance estimator is:
+\deqn{\hat{V}_{SDR} = \frac{1}{2R} \sum_{r=1}^{R}
+  (\hat{\theta}^{(r)} - \hat{\theta}_{\text{full}})^2.}
+This estimator matches the variance of a systematic random sample when
+PSUs are in selection order (Ash, 2014; Fay & Train, 1995). Delegates
+to \code{\link[svrep:as_sdr_design]{svrep::as_sdr_design()}}.
+}
+
+\references{
+Ash, S. (2014). Using successive difference replication for
+estimating variances. \emph{Survey Methodology, Statistics Canada},
+40(1), 47--59.
+
+Fay, R.E. and Train, G.F. (1995). Aspects of survey and model-based
+postcensal estimation of income and poverty characteristics for
+states and counties. \emph{Joint Statistical Meetings, Proceedings of
+the Section on Government Statistics}, 154--159.
+}
 \seealso{
+\code{\link[=create_bootstrap_weights]{create_bootstrap_weights()}}, \code{\link[=create_jackknife_weights]{create_jackknife_weights()}},
+\code{\link[=create_brr_weights]{create_brr_weights()}}, \code{\link[=create_gen_boot_weights]{create_gen_boot_weights()}},
+\code{\link[=create_gen_rep_weights]{create_gen_rep_weights()}}, \code{\link[=create_replicate_weights]{create_replicate_weights()}}, \code{\link[=as_taylor_design]{as_taylor_design()}}
+
 Other replicate-weights: 
 \code{\link{as_taylor_design}()},
 \code{\link{create_bootstrap_weights}()},

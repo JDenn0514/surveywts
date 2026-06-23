@@ -2,7 +2,7 @@
 % Please edit documentation in R/adjust_nonresponse.R
 \name{adjust_nonresponse}
 \alias{adjust_nonresponse}
-\title{Adjust survey weights for unit nonresponse}
+\title{Correct weights for unit nonresponse}
 \usage{
 adjust_nonresponse(
   data,
@@ -86,18 +86,11 @@ A history entry with \code{operation = "nonresponse_weighting_class"} (for
 }
 \description{
 Redistributes the weights of nonrespondents to respondents within weighting
-classes defined by \code{by}. All rows (respondents and nonrespondents) are
-returned; nonrespondent weights are set to 0 and respondent weights are
-adjusted upward to conserve the total weight within each cell.
+classes defined by \code{by}. All rows are returned; nonrespondent weights are
+set to zero and respondent weights increase proportionally to preserve the
+total weight within each class.
 }
 \details{
-The adjustment formula within each cell \code{h} is:
-
-\deqn{w_{i,new} = w_i \times \frac{\sum w_h}{\sum w_{h,resp}}}
-
-where \eqn{\sum w_h} is the sum of all weights (respondents + nonrespondents)
-in cell \code{h} and \eqn{\sum w_{h,resp}} is the sum of respondent weights only.
-
 Zero-weight observations are retained for design-based variance estimation.
 Survey estimation functions (e.g., \code{\link[survey:surveysummary]{survey::svymean()}}) handle zero
 weights correctly -- zero-weight units are excluded from point estimates
@@ -126,6 +119,15 @@ corrected by this method. Additionally, propensity scores are treated as
 known (estimated from the data), not as true population propensities; this
 understates variance and should be accounted for in downstream analysis.
 }
+\section{Algorithm}{
+
+Within each cell \eqn{h} defined by \code{by}, the adjustment factor is
+\deqn{f_h = \frac{\sum_{i \in h} w_i}{\sum_{i \in h, \text{resp}} w_i}}
+where the numerator sums all weights in the cell and the denominator
+sums respondent weights only. Each respondent weight becomes
+\eqn{w_{i,new} = w_i \times f_h}. Nonrespondent weights are set to 0.
+}
+
 \examples{
 df <- data.frame(
   age_group = c("18-34", "35-54", "55+", "18-34", "35-54"),
@@ -136,8 +138,7 @@ result <- adjust_nonresponse(df, response_status = responded)
 
 }
 \seealso{
-\code{\link[=redistribute_weights]{redistribute_weights()}} for the general weight redistribution
-primitive that underlies \code{method = "weighting-class"}.
+\code{\link[=redistribute_weights]{redistribute_weights()}}
 
 Other nonresponse: 
 \code{\link{redistribute_weights}()}

@@ -2,7 +2,7 @@
 % Please edit documentation in R/calibrate_logit.R
 \name{calibrate_logit}
 \alias{calibrate_logit}
-\title{Calibrate survey weights using logit-bounded method}
+\title{Fit weights using logit-bounded calibration}
 \usage{
 calibrate_logit(
   data,
@@ -128,6 +128,24 @@ logit \code{F}-function that keeps g-weights in the open interval \verb{(L, U)},
 guaranteeing strictly positive calibrated weights. Requires Newton-Raphson
 iteration.
 }
+\section{Algorithm}{
+
+Logit calibration constrains the g-weight ratio \eqn{w_k / d_k} to the
+open interval \eqn{(L, U)} via the bounded function
+\deqn{F(u) = \frac{L + U e^u}{1 + e^u}.}
+The calibrated weights are \eqn{w_k = d_k F(x_k^T \hat{\lambda})},
+guaranteeing \eqn{L < w_k / d_k < U}. The Lagrange multipliers
+\eqn{\hat{\lambda}} are found by Newton-Raphson iteration.
+}
+
+\section{Convergence}{
+
+Newton-Raphson terminates when the maximum absolute change in
+\eqn{\lambda} falls below \code{control$epsilon} (default \code{1e-7}), or when
+\code{control$maxit} (default \code{50}) iterations are reached. Calibration
+non-convergence raises an error.
+}
+
 \examples{
 df <- data.frame(
   age_group = c("18-34", "35-54", "55+", "18-34", "35-54"),
@@ -140,19 +158,20 @@ targets <- list(
   sex = c("M" = 0.50, "F" = 0.50)
 )
 result <- calibrate_logit(df, targets = targets, weights = wt)
-
 }
 \references{
 Deville, J.-C. and Sarndal, C.-E. (1992). Calibration estimators in
 survey sampling. \emph{Journal of the American Statistical Association},
 87(418), 376--382.
-\url{http://links.jstor.org/sici?sici=0162-1459\%28199206\%2987\%3A418\%3C376\%3ACEISS\%3E2.0.CO\%3B2-3}
 
 Deville, J.-C., Sarndal, C.-E. and Sautory, O. (1993). Generalized
-raking procedures in survey sampling. \emph{Journal of the American Statistical
-Association}, 88(423), 1013--1020. \url{https://www.jstor.org/stable/2290793}
+raking procedures in survey sampling. \emph{Journal of the American
+Statistical Association}, 88(423), 1013--1020.
 }
 \seealso{
+\code{\link[=calibrate]{calibrate()}}, \code{\link[=calibrate_rake]{calibrate_rake()}}, \code{\link[=calibrate_linear]{calibrate_linear()}},
+\code{\link[=poststratify]{poststratify()}}
+
 Other calibration: 
 \code{\link{calibrate}()},
 \code{\link{calibrate_linear}()},

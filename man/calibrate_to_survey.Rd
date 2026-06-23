@@ -2,7 +2,7 @@
 % Please edit documentation in R/calibrate_to_survey.R
 \name{calibrate_to_survey}
 \alias{calibrate_to_survey}
-\title{Calibrate replicate weights to a control survey}
+\title{Reweight to population totals estimated from a control survey}
 \usage{
 calibrate_to_survey(
   primary_design,
@@ -281,8 +281,7 @@ Fuller, W.A. (1998). Replication variance estimation for two-phase
 samples. \emph{Statistica Sinica}, 8, 1153--1164.
 }
 \seealso{
-\code{\link[=calibrate_to_estimate]{calibrate_to_estimate()}} for calibration to externally supplied
-estimates with a known variance-covariance matrix.
+\code{\link[=calibrate_to_estimate]{calibrate_to_estimate()}}
 
 Other sample-calibration: 
 \code{\link{calibrate_to_estimate}()}

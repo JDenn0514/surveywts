@@ -51,9 +51,8 @@
 #'   American Statistical Association*, 489--494.
 #'
 #' @seealso [create_bootstrap_weights()], [create_jackknife_weights()],
-#'   [create_group_jackknife_weights()], [create_brr_weights()],
-#'   [create_gen_boot_weights()], [create_sdr_weights()],
-#'   [create_replicate_weights()], [as_taylor_design()]
+#'   [create_brr_weights()], [create_gen_boot_weights()],
+#'   [create_sdr_weights()], [create_replicate_weights()], [as_taylor_design()]
 #' @family replicate-weights
 #' @export
 create_gen_rep_weights <- function(

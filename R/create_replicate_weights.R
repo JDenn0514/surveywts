@@ -27,9 +27,8 @@
 #'
 #' @family replicate-weights
 #' @seealso [create_bootstrap_weights()], [create_jackknife_weights()],
-#'   [create_group_jackknife_weights()], [create_brr_weights()],
-#'   [create_gen_boot_weights()], [create_gen_rep_weights()],
-#'   [create_sdr_weights()], [as_taylor_design()]
+#'   [create_brr_weights()], [create_gen_boot_weights()],
+#'   [create_gen_rep_weights()], [create_sdr_weights()], [as_taylor_design()]
 #' @export
 create_replicate_weights <- function(
   data,

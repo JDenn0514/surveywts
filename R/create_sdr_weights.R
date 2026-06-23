@@ -6,7 +6,7 @@
 # create_sdr_weights()
 # ============================================================================
 
-#' Create successive difference replication (SDR) weights
+#' Generate successive difference replication weights
 #'
 #' Generates successive difference replication weights via
 #' [svrep::as_sdr_design()]. Requires a `survey_taylor` design.
@@ -21,8 +21,32 @@
 #'   (svrep >= 0.9.1); for non-stratified designs row order is used as fallback.
 #' @param mse `logical(1)`, default `TRUE`.
 #'
-#' @return A `survey_replicate` with `@variables$type = "successive-difference"`.
+#' @returns A `survey_replicate` with `@variables$type = "successive-difference"`.
 #'
+#' @section Algorithm:
+#' Successive difference replication (SDR) pairs adjacent PSUs in
+#' systematic selection order. A Hadamard matrix of order \eqn{R} assigns
+#' each pair to a half-sample. The SDR variance estimator is:
+#' \deqn{\hat{V}_{SDR} = \frac{1}{2R} \sum_{r=1}^{R}
+#'   (\hat{\theta}^{(r)} - \hat{\theta}_{\text{full}})^2.}
+#' This estimator matches the variance of a systematic random sample when
+#' PSUs are in selection order (Ash, 2014; Fay & Train, 1995). Delegates
+#' to [svrep::as_sdr_design()].
+#'
+#' @references
+#'   Ash, S. (2014). Using successive difference replication for
+#'   estimating variances. *Survey Methodology, Statistics Canada*,
+#'   40(1), 47--59.
+#'
+#'   Fay, R.E. and Train, G.F. (1995). Aspects of survey and model-based
+#'   postcensal estimation of income and poverty characteristics for
+#'   states and counties. *Joint Statistical Meetings, Proceedings of
+#'   the Section on Government Statistics*, 154--159.
+#'
+#' @seealso [create_bootstrap_weights()], [create_jackknife_weights()],
+#'   [create_group_jackknife_weights()], [create_brr_weights()],
+#'   [create_gen_boot_weights()], [create_gen_rep_weights()],
+#'   [create_replicate_weights()], [as_taylor_design()]
 #' @family replicate-weights
 #' @export
 create_sdr_weights <- function(

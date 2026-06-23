@@ -20,8 +20,12 @@
 #' @param data A `survey_replicate` created by `create_*_weights()`, or a
 #'   `survey_taylor` (returns unchanged with a warning).
 #'
-#' @return A `survey_taylor`.
+#' @returns A `survey_taylor`.
 #'
+#' @seealso [create_bootstrap_weights()], [create_jackknife_weights()],
+#'   [create_group_jackknife_weights()], [create_brr_weights()],
+#'   [create_gen_boot_weights()], [create_gen_rep_weights()],
+#'   [create_sdr_weights()], [create_replicate_weights()]
 #' @family replicate-weights
 #' @export
 as_taylor_design <- function(data) {

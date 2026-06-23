@@ -4,7 +4,7 @@
 # externally-supplied population count estimates, with an associated
 # variance-covariance matrix. Delegates to svrep::calibrate_to_estimate().
 
-#' Calibrate replicate weights to externally supplied population estimates
+#' Reweight to externally estimated population totals
 #'
 #' Adjusts the full-sample and replicate weights of `design` so that its
 #' estimated totals for the variables named in `targets` match the supplied
@@ -109,6 +109,7 @@
 #'   vcov_estimate = vcov_est
 #' )
 #'
+#' @seealso [calibrate_to_survey()]
 #' @family sample-calibration
 #' @export
 calibrate_to_estimate <- function(

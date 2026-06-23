@@ -4,7 +4,7 @@
 # population totals estimated from a control (reference) survey design,
 # using the Opsomer & Erciulescu (2022) replication variance adjustment.
 
-#' Calibrate replicate weights to a control survey
+#' Reweight to population totals estimated from a control survey
 #'
 #' Adjusts the full-sample and replicate weights of `primary_design` so that
 #' its estimated totals for `variables` match those estimated from
@@ -243,9 +243,8 @@
 #'   )
 #' }
 #'
+#' @seealso [calibrate_to_estimate()]
 #' @family sample-calibration
-#' @seealso [calibrate_to_estimate()] for calibration to externally supplied
-#'   estimates with a known variance-covariance matrix.
 #' @export
 calibrate_to_survey <- function(
   primary_design,

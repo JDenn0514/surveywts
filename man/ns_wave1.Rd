@@ -8,12 +8,12 @@
 \format{
 \subsection{\code{ns_wave1}}{
 
-A data frame with 6,422 rows and 184 columns. All 171 original columns from
-\code{surveycore::ns_wave1} are retained, including \code{gender} as numeric; thirteen
-new columns are appended: five general-purpose derived columns (\code{sex},
-\code{age_f3}, \code{race_f4}, \code{edu_f3}, \code{pid_f3}) and eight Nationscape raking
-recode columns (\code{ns_region}, \code{ns_hispanic}, \code{ns_race}, \code{ns_age},
-\code{ns_language}, \code{ns_foreign_born}, \code{ns_income}, \code{ns_vote_2016}):
+A data frame with 6,422 rows and 185 columns. All 171 original columns from
+\code{surveycore::ns_wave1} are retained, including \code{gender} as numeric; fourteen
+new columns are appended: six general-purpose derived columns (\code{sex},
+\code{age_f3}, \code{race_f4}, \code{edu_f3}, \code{pid_f3}, \code{hh_income_f9}) and eight
+Nationscape raking recode columns (\code{ns_region}, \code{ns_hispanic}, \code{ns_race},
+\code{ns_age}, \code{ns_language}, \code{ns_foreign_born}, \code{ns_income}, \code{ns_vote_2016}):
 \describe{
 \item{response_id}{Character. Respondent identifier.}
 \item{start_date}{Character. Survey start date.}
@@ -227,6 +227,10 @@ Levels: \code{c("18-23", "24-29", "30-39", "40-49", "50-59", "60-69", "70+")}. N
 \item{ns_income}{Factor. Nine household income brackets derived from
 \code{household_income} (codes \code{1}–\code{24}), plus \code{"No answer"} for \code{NA}
 responses. Levels: \code{c("<$20k", "$20-35k", "$35-50k", "$50-65k", "$65-80k", "$80-100k", "$100-125k", "$125-200k", ">=$200k", "No answer")}. No \code{NA} values.}
+\item{hh_income_f9}{Factor. Nine-bracket household income harmonized
+with \code{cps_2023$hh_income_f9} for use as a \code{selection} variable in
+\code{ipw()}. Derived from \code{ns_income}; \code{"No answer"} is mapped to \code{NA}.
+Levels: \code{c("<$20k", "$20-35k", "$35-50k", "$50-65k", "$65-80k", "$80-100k", "$100-125k", "$125-200k", "≥$200k")}.}
 \item{ns_vote_2016}{Factor. 2016 presidential vote derived from
 \code{vote_2016}: \code{1} = \code{"Trump"}, \code{2} = \code{"Clinton"}, \code{3:5} = \code{"Other"},
 \code{6:8} = \code{"No vote"} (includes ineligible and don't recall). Levels:

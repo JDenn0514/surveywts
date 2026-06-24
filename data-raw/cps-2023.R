@@ -153,9 +153,29 @@ cps_2023$inc_hh_cat <- factor(
   levels = inc_hh_levels
 )
 
+hh_income_f9_levels <- c(
+  "<$20k", "$20-35k", "$35-50k", "$50-65k", "$65-80k",
+  "$80-100k", "$100-125k", "$125-200k", "≥$200k"
+)
+cps_2023$hh_income_f9 <- factor(
+  dplyr::case_when(
+    is.na(inc)       ~ NA_character_,
+    inc < 20000L     ~ "<$20k",
+    inc < 35000L     ~ "$20-35k",
+    inc < 50000L     ~ "$35-50k",
+    inc < 65000L     ~ "$50-65k",
+    inc < 80000L     ~ "$65-80k",
+    inc < 100000L    ~ "$80-100k",
+    inc < 125000L    ~ "$100-125k",
+    inc < 200000L    ~ "$125-200k",
+    .default          = "≥$200k"
+  ),
+  levels = hh_income_f9_levels
+)
+
 ## ---- structural assertions --------------------------------------------------
 stopifnot(nrow(cps_2023) >= 9000L, nrow(cps_2023) <= 11000L)
-stopifnot(ncol(cps_2023) == 186L)
+stopifnot(ncol(cps_2023) == 187L)
 stopifnot(is.factor(cps_2023$sex))
 stopifnot(is.factor(cps_2023$age_f3))
 stopifnot(is.factor(cps_2023$race_f4))

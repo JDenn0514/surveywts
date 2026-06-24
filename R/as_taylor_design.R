@@ -23,9 +23,9 @@
 #' @returns A `survey_taylor`.
 #'
 #' @seealso [create_bootstrap_weights()], [create_jackknife_weights()],
-#'   [create_group_jackknife_weights()], [create_brr_weights()],
-#'   [create_gen_boot_weights()], [create_gen_rep_weights()],
-#'   [create_sdr_weights()], [create_replicate_weights()]
+#'   [create_brr_weights()], [create_gen_boot_weights()],
+#'   [create_gen_rep_weights()], [create_sdr_weights()],
+#'   [create_replicate_weights()]
 #' @family replicate-weights
 #' @export
 as_taylor_design <- function(data) {

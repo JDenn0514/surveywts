@@ -917,12 +917,12 @@
 #'
 #' @format
 #' ## `ns_wave1`
-#' A data frame with 6,422 rows and 184 columns. All 171 original columns from
-#' `surveycore::ns_wave1` are retained, including `gender` as numeric; thirteen
-#' new columns are appended: five general-purpose derived columns (`sex`,
-#' `age_f3`, `race_f4`, `edu_f3`, `pid_f3`) and eight Nationscape raking
-#' recode columns (`ns_region`, `ns_hispanic`, `ns_race`, `ns_age`,
-#' `ns_language`, `ns_foreign_born`, `ns_income`, `ns_vote_2016`):
+#' A data frame with 6,422 rows and 185 columns. All 171 original columns from
+#' `surveycore::ns_wave1` are retained, including `gender` as numeric; fourteen
+#' new columns are appended: six general-purpose derived columns (`sex`,
+#' `age_f3`, `race_f4`, `edu_f3`, `pid_f3`, `hh_income_f9`) and eight
+#' Nationscape raking recode columns (`ns_region`, `ns_hispanic`, `ns_race`,
+#' `ns_age`, `ns_language`, `ns_foreign_born`, `ns_income`, `ns_vote_2016`):
 #' \describe{
 #'   \item{response_id}{Character. Respondent identifier.}
 #'   \item{start_date}{Character. Survey start date.}
@@ -1141,6 +1141,11 @@
 #'     responses. Levels: `c("<$20k", "$20-35k", "$35-50k", "$50-65k",
 #'     "$65-80k", "$80-100k", "$100-125k", "$125-200k", ">=$200k",
 #'     "No answer")`. No `NA` values.}
+#'   \item{hh_income_f9}{Factor. Nine-bracket household income harmonized
+#'     with `cps_2023$hh_income_f9` for use as a `selection` variable in
+#'     `ipw()`. Derived from `ns_income`; `"No answer"` is mapped to `NA`.
+#'     Levels: `c("<$20k", "$20-35k", "$35-50k", "$50-65k", "$65-80k",
+#'     "$80-100k", "$100-125k", "$125-200k", "≥$200k")`.}
 #'   \item{ns_vote_2016}{Factor. 2016 presidential vote derived from
 #'     `vote_2016`: `1` = `"Trump"`, `2` = `"Clinton"`, `3:5` = `"Other"`,
 #'     `6:8` = `"No vote"` (includes ineligible and don't recall). Levels:
@@ -1192,12 +1197,12 @@
 #' cps_ref <- surveycore::as_survey(cps_2023, weights = wtfinl)
 #' ipw(
 #'   ns_wave1, cps_ref,
-#'   selection = ~sex + age_f3 + race_f4 + edu_f3 + empstat_f + inc_hh_cat,
+#'   selection = ~sex + age_f3 + race_f4 + edu_f3 + hh_income_f9,
 #'   missing_method = "omit"
 #' )
 #' ```
 #'
-#' @format A data frame with approximately 10,000 rows and 186 columns:
+#' @format A data frame with approximately 10,000 rows and 187 columns:
 #' \describe{
 #'   \item{cpsidp}{Character. IPUMS-CPS person identifier (unique within the
 #'     extract).}
@@ -1438,6 +1443,11 @@
 #'     `hhincome`. Code 99999999 (missing/N/A) maps to `NA`. Levels:
 #'     `c("Under $25k", "$25k-$50k", "$50k-$75k", "$75k-$100k", "$100k+")`.
 #'     Some `NA` values present.}
+#'   \item{hh_income_f9}{Factor. Nine-bracket household income harmonized
+#'     with `ns_wave1$hh_income_f9` for use as a `selection` variable in
+#'     `ipw()`. Derived from `hhincome`; code 99999999 (missing/N/A) maps
+#'     to `NA`. Levels: `c("<$20k", "$20-35k", "$35-50k", "$50-65k",
+#'     "$65-80k", "$80-100k", "$100-125k", "$125-200k", "≥$200k")`.}
 #' }
 #'
 #' @source IPUMS-CPS, 2023 Annual Social and Economic Supplement (March 2023).

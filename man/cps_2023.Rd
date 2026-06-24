@@ -5,7 +5,7 @@
 \alias{cps_2023}
 \title{CPS ASEC 2023 national adult sample with harmonized demographic columns}
 \format{
-A data frame with approximately 10,000 rows and 186 columns:
+A data frame with approximately 10,000 rows and 187 columns:
 \describe{
 \item{cpsidp}{Character. IPUMS-CPS person identifier (unique within the
 extract).}
@@ -245,6 +245,10 @@ labor force) = \code{"Not in labor force"}. No \code{NA} values. Levels:
 \code{hhincome}. Code 99999999 (missing/N/A) maps to \code{NA}. Levels:
 \code{c("Under $25k", "$25k-$50k", "$50k-$75k", "$75k-$100k", "$100k+")}.
 Some \code{NA} values present.}
+\item{hh_income_f9}{Factor. Nine-bracket household income harmonized
+with \code{ns_wave1$hh_income_f9} for use as a \code{selection} variable in
+\code{ipw()}. Derived from \code{hhincome}; code 99999999 (missing/N/A) maps
+to \code{NA}. Levels: \code{c("<$20k", "$20-35k", "$35-50k", "$50-65k", "$65-80k", "$80-100k", "$100-125k", "$125-200k", "≥$200k")}.}
 }
 }
 \source{
@@ -279,7 +283,7 @@ needed. For IPW workflows, construct a plain design from the tibble:
 cps_ref <- surveycore::as_survey(cps_2023, weights = wtfinl)
 ipw(
   ns_wave1, cps_ref,
-  selection = ~sex + age_f3 + race_f4 + edu_f3 + empstat_f + inc_hh_cat,
+  selection = ~sex + age_f3 + race_f4 + edu_f3 + hh_income_f9,
   missing_method = "omit"
 )
 }\if{html}{\out{</div>}}

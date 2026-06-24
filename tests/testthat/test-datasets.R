@@ -15,8 +15,8 @@ test_that("new tibble datasets are loadable via data()", {
   expect_no_error(data(gss_2024, envir = new.env()))
   expect_no_error(data(npors_2025, envir = new.env()))
   expect_no_error(data(npors_2025_clean, envir = new.env()))
-  expect_no_error(data(acs_wy_2022, envir = new.env()))
   expect_no_error(data(ns_wave1, envir = new.env()))
+  expect_no_error(data(cps_2023, envir = new.env()))
   # Existing pew tibbles still loadable
   expect_no_error(data(pew_2016_optin, envir = new.env()))
   expect_no_error(data(pew_2016_synth_pop, envir = new.env()))
@@ -26,7 +26,6 @@ test_that("new survey companion datasets are loadable via data()", {
   expect_no_error(data(gss_2024_svy, envir = new.env()))
   expect_no_error(data(npors_2025_svy, envir = new.env()))
   expect_no_error(data(npors_2025_clean_svy, envir = new.env()))
-  expect_no_error(data(acs_wy_2022_svy, envir = new.env()))
   expect_no_error(data(pew_2016_optin_svy, envir = new.env()))
   expect_no_error(data(pew_2016_synth_pop_svy, envir = new.env()))
   expect_no_error(data(ns_wave1_svy, envir = new.env()))
@@ -41,6 +40,8 @@ test_that("retired datasets no longer exist in the package", {
   expect_false("npors_2025_clean_ref" %in% pkg_data)
   expect_false("acs_ipw_ref" %in% pkg_data)
   expect_false("ns_wave1_ipw" %in% pkg_data)
+  expect_false("acs_wy_2022" %in% pkg_data)
+  expect_false("acs_wy_2022_svy" %in% pkg_data)
 })
 
 # ============================================================================
@@ -241,86 +242,47 @@ test_that("npors_2025_clean_svy is survey_taylor with matching row count", {
 })
 
 # ============================================================================
-# acs_wy_2022 structural tests
+# cps_2023 structural tests
 # ============================================================================
 
-test_that("acs_wy_2022 has correct row count (adults only)", {
-  data(acs_wy_2022)
-  expect_equal(nrow(acs_wy_2022), 4736L)
+test_that("cps_2023 has approximately 10000 rows", {
+  data(cps_2023)
+  expect_gte(nrow(cps_2023), 9000L)
+  expect_lte(nrow(cps_2023), 11000L)
 })
 
-test_that("acs_wy_2022 all rows are adults (agep >= 18)", {
-  data(acs_wy_2022)
-  expect_true(all(acs_wy_2022$agep >= 18L))
+test_that("cps_2023 has wtfinl weight column and 160 repwtp* columns", {
+  data(cps_2023)
+  expect_true("wtfinl" %in% names(cps_2023))
+  rep_cols <- grep("^repwtp[0-9]", names(cps_2023), value = TRUE)
+  expect_length(rep_cols, 160L)
 })
 
-test_that("acs_wy_2022 has pwgtp and 80 individual replicate weight columns", {
-  data(acs_wy_2022)
-  expect_true("pwgtp" %in% names(acs_wy_2022))
-  rep_cols <- grep("^pwgtp[0-9]", names(acs_wy_2022), value = TRUE)
-  expect_equal(length(rep_cols), 80L)
-  expect_true("pwgtp1" %in% rep_cols)
-  expect_true("pwgtp80" %in% rep_cols)
-  # Main pwgtp should NOT be in rep_cols
-  expect_false("pwgtp" %in% rep_cols)
+test_that("cps_2023 derived factor columns are factors with expected levels", {
+  data(cps_2023)
+  expect_true(is.factor(cps_2023$sex))
+  expect_identical(levels(cps_2023$sex), c("Male", "Female"))
+  expect_true(is.factor(cps_2023$age_f3))
+  expect_identical(levels(cps_2023$age_f3), c("18-34", "35-54", "55+"))
+  expect_true(is.factor(cps_2023$race_f4))
 })
 
-test_that("acs_wy_2022 derived columns are factors with zero NAs", {
-  data(acs_wy_2022)
-  # sex overwrites the raw integer column; no NAs for adults
-  expect_true(is.factor(acs_wy_2022$sex))
-  expect_identical(levels(acs_wy_2022$sex), c("Male", "Female"))
-  expect_equal(sum(is.na(acs_wy_2022$sex)), 0L)
-
-  expect_true(is.factor(acs_wy_2022$age_f3))
-  expect_identical(levels(acs_wy_2022$age_f3), c("18-34", "35-54", "55+"))
-  expect_equal(sum(is.na(acs_wy_2022$age_f3)), 0L)
-
-  expect_true(is.factor(acs_wy_2022$race_f4))
-  expect_identical(
-    levels(acs_wy_2022$race_f4),
-    c("White", "Black", "Hispanic", "Other")
-  )
-  expect_equal(sum(is.na(acs_wy_2022$race_f4)), 0L)
-
-  expect_true(is.factor(acs_wy_2022$edu_f3))
-  expect_identical(
-    levels(acs_wy_2022$edu_f3),
-    c("Less than HS", "HS/Some college", "College+")
-  )
-  expect_equal(sum(is.na(acs_wy_2022$edu_f3)), 0L)
-})
-
-# ============================================================================
-# acs_wy_2022_svy structural tests
-# ============================================================================
-
-test_that("acs_wy_2022_svy is survey_replicate with 4736 rows", {
-  data(acs_wy_2022_svy)
-  expect_true(
-    S7::S7_inherits(acs_wy_2022_svy, surveycore::survey_replicate)
-  )
-  expect_equal(nrow(acs_wy_2022_svy@data), 4736L)
-})
-
-test_that("acs_wy_2022_svy uses pwgtp as weight column", {
-  data(acs_wy_2022_svy)
-  expect_identical(acs_wy_2022_svy@variables$weights, "pwgtp")
-})
-
-test_that("acs_wy_2022_svy has 80 replicate weight columns", {
-  data(acs_wy_2022_svy)
-  rep_wts <- acs_wy_2022_svy@variables$repweights
-  expect_equal(length(rep_wts), 80L)
-})
-
-test_that("acs_wy_2022_svy cannot be passed to ipw() — throws correct error", {
+test_that("cps_2023 can be used as survey_replicate reference in ipw()", {
   data(ns_wave1)
-  data(acs_wy_2022_svy)
-  expect_error(
-    ipw(ns_wave1, acs_wy_2022_svy, selection = ~sex + age_f3),
-    class = "surveywts_error_svydesign_not_taylor"
+  data(cps_2023)
+  cps_ref <- surveycore::as_survey_replicate(
+    cps_2023,
+    weights    = "wtfinl",
+    repweights = paste0("repwtp", 1:160),
+    type       = "successive-difference",
+    scale      = 4 / 160,
+    rscales    = rep(1, 160)
   )
+  result <- suppressWarnings(
+    ipw(ns_wave1, cps_ref, selection = ~sex + age_f3 + race_f4)
+  )
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
 })
 
 # ============================================================================
@@ -501,14 +463,14 @@ test_that("ipw() works with ns_wave1 and npors_2025_clean (wt_pop) reference", {
   expect_true("ipw_weight" %in% names(result@data))
 })
 
-test_that("ipw() works with ns_wave1 and acs_wy_2022 (Taylor design) reference", {
+test_that("ipw() works with ns_wave1 and cps_2023 (Taylor design) reference", {
   data(ns_wave1)
-  data(acs_wy_2022)
-  acs_ref <- surveycore::as_survey(acs_wy_2022, weights = pwgtp)
+  data(cps_2023)
+  cps_ref <- surveycore::as_survey(cps_2023, weights = wtfinl)
   result <- suppressWarnings(
     ipw(
       ns_wave1,
-      acs_ref,
+      cps_ref,
       selection = ~sex + age_f3 + race_f4 + edu_f3,
       missing_method = "omit"
     )

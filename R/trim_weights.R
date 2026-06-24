@@ -105,7 +105,16 @@
 #' )
 #'
 #' # survey_replicate — bounds auto-applied to all replicate columns -------
-#' trim_weights(acs_wy_2022_svy)
+#' data(cps_2023)
+#' cps_svy <- surveycore::as_survey_replicate(
+#'   cps_2023,
+#'   weights    = "wtfinl",
+#'   repweights = paste0("repwtp", 1:160),
+#'   type       = "successive-difference",
+#'   scale      = 4 / 160,
+#'   rscales    = rep(1, 160)
+#' )
+#' trim_weights(cps_svy)
 trim_weights <- function(
   data,
   weights = NULL,

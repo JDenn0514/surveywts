@@ -367,173 +367,7 @@
 #' @keywords datasets
 "npors_2025_clean_svy"
 
-# ============================================================================
-# acs_wy_2022 + acs_wy_2022_svy
-# ============================================================================
 
-#' ACS PUMS 2022 Wyoming adults with harmonized demographic columns
-#'
-#' @description
-#' The 2022 American Community Survey (ACS) Public Use Microdata Sample (PUMS)
-#' for Wyoming, obtained from `surveycore::acs_pums_wy` and restricted to
-#' adults (`agep >= 18`). The result has 4,736 rows. The raw `sex` column is
-#' overwritten in-place as a factor. Three new derived columns are added:
-#' `age_f3`, `race_f4`, and `edu_f3`. The main person weight `pwgtp` is
-#' population-scaled by design (ACS PUMS weights sum to the Wyoming adult
-#' population) so no `wt_pop` column is needed.
-#'
-#' `acs_wy_2022_svy` is a `survey_replicate` object using successive-difference
-#' replication (SDR) with `pwgtp` as the main weight and `pwgtp1`-`pwgtp80`
-#' as the 80 replicate weight columns (`mse = TRUE`). Because `ipw()` requires
-#' a `survey_taylor` object, use the tibble to construct a plain Taylor design
-#' for IPW workflows:
-#' ```r
-#' data(acs_wy_2022)
-#' acs_ref <- surveycore::as_survey(acs_wy_2022, weights = pwgtp)
-#' result <- ipw(
-#'   ns_wave1, acs_ref,
-#'   selection = ~sex + age_f3 + race_f4 + edu_f3,
-#'   missing_method = "omit"
-#' )
-#' ```
-#' The full replicate design `acs_wy_2022_svy` is used for variance estimation
-#' after weighting.
-#'
-#' @format
-#' ## `acs_wy_2022`
-#' A data frame with 4,736 rows and 99 columns. Original ACS PUMS columns
-#' for adult rows. The raw `sex` column is overwritten in-place as a factor;
-#' three new derived columns are added (`age_f3`, `race_f4`, `edu_f3`):
-#' \describe{
-#'   \item{puma}{Numeric. Public Use Microdata Area code.}
-#'   \item{st}{Numeric. State FIPS code.}
-#'   \item{pwgtp}{Numeric. ACS PUMS person weight (population-scaled; sums to
-#'     the Wyoming adult population). Use directly for IPW.}
-#'   \item{pwgtp1}{Numeric. ACS PUMS successive-difference replicate weight 1.}
-#'   \item{pwgtp2}{Numeric. ACS PUMS successive-difference replicate weight 2.}
-#'   \item{pwgtp3}{Numeric. ACS PUMS successive-difference replicate weight 3.}
-#'   \item{pwgtp4}{Numeric. ACS PUMS successive-difference replicate weight 4.}
-#'   \item{pwgtp5}{Numeric. ACS PUMS successive-difference replicate weight 5.}
-#'   \item{pwgtp6}{Numeric. ACS PUMS successive-difference replicate weight 6.}
-#'   \item{pwgtp7}{Numeric. ACS PUMS successive-difference replicate weight 7.}
-#'   \item{pwgtp8}{Numeric. ACS PUMS successive-difference replicate weight 8.}
-#'   \item{pwgtp9}{Numeric. ACS PUMS successive-difference replicate weight 9.}
-#'   \item{pwgtp10}{Numeric. ACS PUMS successive-difference replicate weight 10.}
-#'   \item{pwgtp11}{Numeric. ACS PUMS successive-difference replicate weight 11.}
-#'   \item{pwgtp12}{Numeric. ACS PUMS successive-difference replicate weight 12.}
-#'   \item{pwgtp13}{Numeric. ACS PUMS successive-difference replicate weight 13.}
-#'   \item{pwgtp14}{Numeric. ACS PUMS successive-difference replicate weight 14.}
-#'   \item{pwgtp15}{Numeric. ACS PUMS successive-difference replicate weight 15.}
-#'   \item{pwgtp16}{Numeric. ACS PUMS successive-difference replicate weight 16.}
-#'   \item{pwgtp17}{Numeric. ACS PUMS successive-difference replicate weight 17.}
-#'   \item{pwgtp18}{Numeric. ACS PUMS successive-difference replicate weight 18.}
-#'   \item{pwgtp19}{Numeric. ACS PUMS successive-difference replicate weight 19.}
-#'   \item{pwgtp20}{Numeric. ACS PUMS successive-difference replicate weight 20.}
-#'   \item{pwgtp21}{Numeric. ACS PUMS successive-difference replicate weight 21.}
-#'   \item{pwgtp22}{Numeric. ACS PUMS successive-difference replicate weight 22.}
-#'   \item{pwgtp23}{Numeric. ACS PUMS successive-difference replicate weight 23.}
-#'   \item{pwgtp24}{Numeric. ACS PUMS successive-difference replicate weight 24.}
-#'   \item{pwgtp25}{Numeric. ACS PUMS successive-difference replicate weight 25.}
-#'   \item{pwgtp26}{Numeric. ACS PUMS successive-difference replicate weight 26.}
-#'   \item{pwgtp27}{Numeric. ACS PUMS successive-difference replicate weight 27.}
-#'   \item{pwgtp28}{Numeric. ACS PUMS successive-difference replicate weight 28.}
-#'   \item{pwgtp29}{Numeric. ACS PUMS successive-difference replicate weight 29.}
-#'   \item{pwgtp30}{Numeric. ACS PUMS successive-difference replicate weight 30.}
-#'   \item{pwgtp31}{Numeric. ACS PUMS successive-difference replicate weight 31.}
-#'   \item{pwgtp32}{Numeric. ACS PUMS successive-difference replicate weight 32.}
-#'   \item{pwgtp33}{Numeric. ACS PUMS successive-difference replicate weight 33.}
-#'   \item{pwgtp34}{Numeric. ACS PUMS successive-difference replicate weight 34.}
-#'   \item{pwgtp35}{Numeric. ACS PUMS successive-difference replicate weight 35.}
-#'   \item{pwgtp36}{Numeric. ACS PUMS successive-difference replicate weight 36.}
-#'   \item{pwgtp37}{Numeric. ACS PUMS successive-difference replicate weight 37.}
-#'   \item{pwgtp38}{Numeric. ACS PUMS successive-difference replicate weight 38.}
-#'   \item{pwgtp39}{Numeric. ACS PUMS successive-difference replicate weight 39.}
-#'   \item{pwgtp40}{Numeric. ACS PUMS successive-difference replicate weight 40.}
-#'   \item{pwgtp41}{Numeric. ACS PUMS successive-difference replicate weight 41.}
-#'   \item{pwgtp42}{Numeric. ACS PUMS successive-difference replicate weight 42.}
-#'   \item{pwgtp43}{Numeric. ACS PUMS successive-difference replicate weight 43.}
-#'   \item{pwgtp44}{Numeric. ACS PUMS successive-difference replicate weight 44.}
-#'   \item{pwgtp45}{Numeric. ACS PUMS successive-difference replicate weight 45.}
-#'   \item{pwgtp46}{Numeric. ACS PUMS successive-difference replicate weight 46.}
-#'   \item{pwgtp47}{Numeric. ACS PUMS successive-difference replicate weight 47.}
-#'   \item{pwgtp48}{Numeric. ACS PUMS successive-difference replicate weight 48.}
-#'   \item{pwgtp49}{Numeric. ACS PUMS successive-difference replicate weight 49.}
-#'   \item{pwgtp50}{Numeric. ACS PUMS successive-difference replicate weight 50.}
-#'   \item{pwgtp51}{Numeric. ACS PUMS successive-difference replicate weight 51.}
-#'   \item{pwgtp52}{Numeric. ACS PUMS successive-difference replicate weight 52.}
-#'   \item{pwgtp53}{Numeric. ACS PUMS successive-difference replicate weight 53.}
-#'   \item{pwgtp54}{Numeric. ACS PUMS successive-difference replicate weight 54.}
-#'   \item{pwgtp55}{Numeric. ACS PUMS successive-difference replicate weight 55.}
-#'   \item{pwgtp56}{Numeric. ACS PUMS successive-difference replicate weight 56.}
-#'   \item{pwgtp57}{Numeric. ACS PUMS successive-difference replicate weight 57.}
-#'   \item{pwgtp58}{Numeric. ACS PUMS successive-difference replicate weight 58.}
-#'   \item{pwgtp59}{Numeric. ACS PUMS successive-difference replicate weight 59.}
-#'   \item{pwgtp60}{Numeric. ACS PUMS successive-difference replicate weight 60.}
-#'   \item{pwgtp61}{Numeric. ACS PUMS successive-difference replicate weight 61.}
-#'   \item{pwgtp62}{Numeric. ACS PUMS successive-difference replicate weight 62.}
-#'   \item{pwgtp63}{Numeric. ACS PUMS successive-difference replicate weight 63.}
-#'   \item{pwgtp64}{Numeric. ACS PUMS successive-difference replicate weight 64.}
-#'   \item{pwgtp65}{Numeric. ACS PUMS successive-difference replicate weight 65.}
-#'   \item{pwgtp66}{Numeric. ACS PUMS successive-difference replicate weight 66.}
-#'   \item{pwgtp67}{Numeric. ACS PUMS successive-difference replicate weight 67.}
-#'   \item{pwgtp68}{Numeric. ACS PUMS successive-difference replicate weight 68.}
-#'   \item{pwgtp69}{Numeric. ACS PUMS successive-difference replicate weight 69.}
-#'   \item{pwgtp70}{Numeric. ACS PUMS successive-difference replicate weight 70.}
-#'   \item{pwgtp71}{Numeric. ACS PUMS successive-difference replicate weight 71.}
-#'   \item{pwgtp72}{Numeric. ACS PUMS successive-difference replicate weight 72.}
-#'   \item{pwgtp73}{Numeric. ACS PUMS successive-difference replicate weight 73.}
-#'   \item{pwgtp74}{Numeric. ACS PUMS successive-difference replicate weight 74.}
-#'   \item{pwgtp75}{Numeric. ACS PUMS successive-difference replicate weight 75.}
-#'   \item{pwgtp76}{Numeric. ACS PUMS successive-difference replicate weight 76.}
-#'   \item{pwgtp77}{Numeric. ACS PUMS successive-difference replicate weight 77.}
-#'   \item{pwgtp78}{Numeric. ACS PUMS successive-difference replicate weight 78.}
-#'   \item{pwgtp79}{Numeric. ACS PUMS successive-difference replicate weight 79.}
-#'   \item{pwgtp80}{Numeric. ACS PUMS successive-difference replicate weight 80.}
-#'   \item{agep}{Numeric. Age in years (all values >= 18).}
-#'   \item{sex}{Factor. Derived from the raw `sex` column: `1` = `"Male"`,
-#'     `2` = `"Female"`. No `NA` values for adults. Levels:
-#'     `c("Male", "Female")`.}
-#'   \item{rac1p}{Numeric. Recoded detailed race code (ACS).}
-#'   \item{hisp}{Numeric. Hispanic origin recode (ACS): `1` = not Hispanic,
-#'     `2`-`24` = specific Hispanic origin.}
-#'   \item{schl}{Numeric. Educational attainment (ACS codes 1-24).}
-#'   \item{esr}{Numeric. Employment status recode.}
-#'   \item{pincp}{Numeric. Total person income.}
-#'   \item{wagp}{Numeric. Wages or salary income.}
-#'   \item{hicov}{Numeric. Health insurance coverage.}
-#'   \item{dis}{Numeric. Disability recode.}
-#'   \item{povpip}{Numeric. Income-to-poverty ratio.}
-#'   \item{wkhp}{Numeric. Hours worked per week.}
-#'   \item{adjinc}{Numeric. Income adjustment factor.}
-#'   \item{age_f3}{Factor. Derived from `agep` using
-#'     `cut(agep, breaks = c(18, 35, 55, Inf), right = FALSE)`. No `NA`
-#'     values for adults. Levels: `c("18-34", "35-54", "55+")`.}
-#'   \item{race_f4}{Factor. Derived from `rac1p` and `hisp`: Hispanic
-#'     origin takes precedence; `rac1p %in% 4:6` (Asian) collapsed into
-#'     `"Other"`. No `NA` values for adults. Levels:
-#'     `c("White", "Black", "Hispanic", "Other")`.}
-#'   \item{edu_f3}{Factor. Derived from `schl`: `1:11` = `"Less than HS"`,
-#'     `12:15` = `"HS/Some college"`, `16:24` = `"College+"`. No `NA`
-#'     values for adults. Levels:
-#'     `c("Less than HS", "HS/Some college", "College+")`.}
-#' }
-#'
-#' ## `acs_wy_2022_svy`
-#' A `survey_replicate` object. Constructed with `weights = pwgtp`,
-#' `repweights = pwgtp1:pwgtp80`, `type = "successive-difference"`,
-#' `mse = TRUE`. Cannot be passed directly to `ipw()` (which requires
-#' `survey_taylor`). Use the plain Taylor design pattern shown in
-#' `@description` for IPW workflows.
-#'
-#' @source Derived from `surveycore::acs_pums_wy`.
-#'   See `data-raw/acs-wy-2022.R` for the construction script.
-#' @seealso [acs_wy_2022_svy], [ns_wave1]
-#' @keywords datasets
-"acs_wy_2022"
-
-#' @rdname acs_wy_2022
-#' @keywords datasets
-"acs_wy_2022_svy"
 
 # ============================================================================
 # pew_2016_optin + pew_2016_optin_svy
@@ -1162,7 +996,7 @@
 #'
 #' @source Derived from `surveycore::ns_wave1`.
 #'   See `data-raw/ns-wave1.R` for the construction script.
-#' @seealso [ns_wave1_svy], [gss_2024], [npors_2025_clean], [acs_wy_2022]
+#' @seealso [ns_wave1_svy], [gss_2024], [npors_2025_clean], [cps_2023]
 #' @keywords datasets
 "ns_wave1"
 
@@ -1189,12 +1023,18 @@
 #'
 #' PSU and stratum identifiers are not released in the public CPS microdata.
 #' The 160 SDR replicate weight columns (`repwtp1`-`repwtp160`) are the Census
-#' Bureau's official substitute for variance estimation; use them to construct a
-#' `survey_replicate` design via `surveycore::as_survey_replicate()` when
-#' needed. For IPW workflows, construct a plain design from the tibble:
+#' Bureau's official substitute for variance estimation. To use `cps_2023` as
+#' a `survey_replicate` reference in `ipw()`, construct it inline:
 #' ```r
 #' data(cps_2023)
-#' cps_ref <- surveycore::as_survey(cps_2023, weights = wtfinl)
+#' cps_ref <- surveycore::as_survey_replicate(
+#'   cps_2023,
+#'   weights    = "wtfinl",
+#'   repweights = paste0("repwtp", 1:160),
+#'   type       = "successive-difference",
+#'   scale      = 4 / 160,
+#'   rscales    = rep(1, 160)
+#' )
 #' ipw(
 #'   ns_wave1, cps_ref,
 #'   selection = ~sex + age_f3 + race_f4 + edu_f3 + hh_income_f9,

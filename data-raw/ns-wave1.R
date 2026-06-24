@@ -194,6 +194,22 @@ ns_wave1$ns_income <- factor(
   )
 )
 
+# hh_income_f9: 9-bracket income harmonized with cps_2023$hh_income_f9.
+# "No answer" in ns_income maps to NA so both datasets treat missing income
+# consistently (dropped by ipw() when missing_method = "omit").
+hh_income_f9_levels <- c(
+  "<$20k", "$20-35k", "$35-50k", "$50-65k", "$65-80k",
+  "$80-100k", "$100-125k", "$125-200k", "≥$200k"
+)
+ns_wave1$hh_income_f9 <- factor(
+  ifelse(
+    ns_wave1$ns_income == "No answer",
+    NA_character_,
+    as.character(ns_wave1$ns_income)
+  ),
+  levels = hh_income_f9_levels
+)
+
 # ns_vote_2016: Trump/Clinton/Other/No vote (codes 7-8 -> No vote)
 vote_16 <- ns_wave1$vote_2016
 ns_wave1$ns_vote_2016 <- factor(
@@ -208,7 +224,7 @@ ns_wave1$ns_vote_2016 <- factor(
 )
 
 # Structural assertions
-stopifnot(ncol(ns_wave1) == 184L)
+stopifnot(ncol(ns_wave1) == 185L)
 stopifnot(nrow(ns_wave1) == 6422L)
 stopifnot(is.factor(ns_wave1$sex))
 stopifnot(is.factor(ns_wave1$age_f3))
@@ -223,6 +239,7 @@ stopifnot(all(!is.na(ns_wave1$ns_language)))
 stopifnot(all(!is.na(ns_wave1$ns_foreign_born)))
 stopifnot(all(!is.na(ns_wave1$ns_income)))
 stopifnot(all(!is.na(ns_wave1$ns_vote_2016)))
+stopifnot(is.factor(ns_wave1$hh_income_f9))
 # ~491 NAs in race_f4 (race_ethnicity == 15); 0 NAs in edu_f3
 
 ## ---- ns_wave1_svy -----------------------------------------------------------

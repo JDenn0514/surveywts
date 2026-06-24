@@ -30,12 +30,14 @@ for the weight column. Pass \code{by} to compute statistics separately within
 each subgroup defined by one or more grouping variables.
 }
 \examples{
-df <- data.frame(
-  group = c("A", "A", "B", "B"),
-  w = c(1.2, 0.8, 1.5, 0.9)
-)
-summarize_weights(df, weights = w)
-summarize_weights(df, weights = w, by = c(group))
+# overall summary --------------------------------------------------------
+summarize_weights(ns_wave1, weights = weight)
+
+# grouped by sex ---------------------------------------------------------
+summarize_weights(ns_wave1, weights = weight, by = sex)
+
+# survey_nonprob — weight column auto-detected ---------------------------
+summarize_weights(ns_wave1_svy)
 }
 \seealso{
 \code{\link[=effective_sample_size]{effective_sample_size()}}, \code{\link[=weight_variability]{weight_variability()}}

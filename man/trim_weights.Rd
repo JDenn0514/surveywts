@@ -98,22 +98,29 @@ untrimmed observations so that the total weight sum is preserved. When
 }
 
 \examples{
-set.seed(42)
-df <- data.frame(
-  id = 1:200,
-  age_group = sample(c("18-34", "35-54", "55+"), 200, replace = TRUE),
-  base_weight = exp(rnorm(200, 0, 0.4))
+# IQR default (k = 5) ---------------------------------------------------
+trim_weights(ns_wave1, weights = weight)
+
+# explicit percentile bounds --------------------------------------------
+trim_weights(
+  ns_wave1,
+  weights = weight,
+  lower = 0.05,
+  upper = 0.95,
+  type = "percentile"
 )
 
-# Default: IQR-based upper cutpoint (Potter & Zheng 2015)
-result <- trim_weights(df, weights = base_weight)
+# absolute bounds -------------------------------------------------------
+trim_weights(
+  ns_wave1,
+  weights = weight,
+  lower = 0.3,
+  upper = 3.0,
+  type = "absolute"
+)
 
-# Adjust the IQR multiplier
-result <- trim_weights(df, weights = base_weight, k = 6)
-
-# Percentile: trim at 1st and 99th percentile
-result <- trim_weights(df, weights = base_weight,
-                       lower = 0.01, upper = 0.99, type = "percentile")
+# survey_replicate — bounds auto-applied to all replicate columns -------
+trim_weights(acs_wy_2022_svy)
 }
 \references{
 Potter, F. and Zheng, Y. (2015). Methods and issues in trimming extreme

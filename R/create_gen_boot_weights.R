@@ -55,6 +55,10 @@
 #'   Bellhouse, D.R. (1985). Computing methods for variance estimation in
 #'   complex surveys. *Journal of Official Statistics*, 1(3).
 #'
+#' @examples
+#' # generalized bootstrap with reproducible seed -------------------------
+#' create_gen_boot_weights(gss_2024_svy, seed = 42L)
+#'
 #' @seealso [create_bootstrap_weights()], [create_jackknife_weights()],
 #'   [create_brr_weights()], [create_gen_rep_weights()],
 #'   [create_sdr_weights()], [create_replicate_weights()], [as_taylor_design()]

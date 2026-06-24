@@ -19,3 +19,7 @@
 ^implementation\.md$
 ^review\.md$
 ^shipper\.md$
+^\.agents$
+^\.superpowers$
+^skills-lock\.json$
+^air\.toml$

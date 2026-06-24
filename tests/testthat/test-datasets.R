@@ -375,8 +375,8 @@ test_that("ns_wave1 has correct dimensions", {
   data(ns_wave1)
   expect_equal(nrow(ns_wave1), 6422L)
   # 171 original (gender kept as integer) + sex + age_f3 + race_f4 + edu_f3 +
-  # pid_f3 + 8 ns_* raking columns = 184
-  expect_equal(ncol(ns_wave1), 184L)
+  # pid_f3 + 8 ns_* raking columns + hh_income_f9 = 185
+  expect_equal(ncol(ns_wave1), 185L)
 })
 
 test_that("ns_wave1 gender column is retained as numeric", {

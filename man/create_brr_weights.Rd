@@ -40,6 +40,14 @@ When \code{rho = 0}, this simplifies to standard BRR. The Fay variant
 estimates.
 }
 
+\examples{
+# standard BRR (gss_2024_svy has 67 strata x 2 PSUs) ------------------
+create_brr_weights(gss_2024_svy)
+
+# Fay's BRR with damping coefficient -----------------------------------
+create_brr_weights(gss_2024_svy, rho = 0.5)
+
+}
 \references{
 Fay, R.E. (1984). Some properties of estimates of variance based on
 replication methods. \emph{Proceedings of the American Statistical

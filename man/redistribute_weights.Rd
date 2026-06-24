@@ -75,12 +75,32 @@ Rows matching neither indicator are unchanged.
 }
 
 \examples{
-df <- data.frame(
-  group    = c("A", "A", "A", "B", "B"),
-  reduce   = c(1L, 0L, 0L, 1L, 0L),
-  increase = c(0L, 1L, 1L, 0L, 1L)
+# data.frame path: add reduce_if and increase_if columns ----------------
+gss <- gss_2024[!is.na(gss_2024$sex), ]
+gss$excluded <- sample(
+  c(0L, 1L), nrow(gss), replace = TRUE, prob = c(0.8, 0.2)
 )
-result <- redistribute_weights(df, reduce_if = reduce, increase_if = increase)
+gss$retained <- as.integer(!gss$excluded)
+result <- redistribute_weights(
+  gss,
+  reduce_if   = excluded,
+  increase_if = retained,
+  weights     = wtssps,
+  by          = sex
+)
+
+# survey_taylor path: mutate the tibble first, then construct the design --
+gss_excl <- gss_2024[!is.na(gss_2024$sex), ]
+gss_excl$excluded <- sample(
+  c(0L, 1L), nrow(gss_excl), replace = TRUE, prob = c(0.8, 0.2)
+)
+gss_excl$retained <- as.integer(!gss_excl$excluded)
+gss_svy <- surveycore::as_survey(
+  gss_excl, weights = wtssps, strata = vstrat, ids = vpsu, nest = TRUE
+)
+result <- redistribute_weights(
+  gss_svy, reduce_if = excluded, increase_if = retained, by = sex
+)
 
 }
 \seealso{

@@ -917,12 +917,12 @@
 #'
 #' @format
 #' ## `ns_wave1`
-#' A data frame with 6,422 rows and 184 columns. All 171 original columns from
-#' `surveycore::ns_wave1` are retained, including `gender` as numeric; thirteen
-#' new columns are appended: five general-purpose derived columns (`sex`,
-#' `age_f3`, `race_f4`, `edu_f3`, `pid_f3`) and eight Nationscape raking
-#' recode columns (`ns_region`, `ns_hispanic`, `ns_race`, `ns_age`,
-#' `ns_language`, `ns_foreign_born`, `ns_income`, `ns_vote_2016`):
+#' A data frame with 6,422 rows and 185 columns. All 171 original columns from
+#' `surveycore::ns_wave1` are retained, including `gender` as numeric; fourteen
+#' new columns are appended: six general-purpose derived columns (`sex`,
+#' `age_f3`, `race_f4`, `edu_f3`, `pid_f3`, `hh_income_f9`) and eight
+#' Nationscape raking recode columns (`ns_region`, `ns_hispanic`, `ns_race`,
+#' `ns_age`, `ns_language`, `ns_foreign_born`, `ns_income`, `ns_vote_2016`):
 #' \describe{
 #'   \item{response_id}{Character. Respondent identifier.}
 #'   \item{start_date}{Character. Survey start date.}
@@ -1141,6 +1141,11 @@
 #'     responses. Levels: `c("<$20k", "$20-35k", "$35-50k", "$50-65k",
 #'     "$65-80k", "$80-100k", "$100-125k", "$125-200k", ">=$200k",
 #'     "No answer")`. No `NA` values.}
+#'   \item{hh_income_f9}{Factor. Nine-bracket household income harmonized
+#'     with `cps_2023$hh_income_f9` for use as a `selection` variable in
+#'     `ipw()`. Derived from `ns_income`; `"No answer"` is mapped to `NA`.
+#'     Levels: `c("<$20k", "$20-35k", "$35-50k", "$50-65k", "$65-80k",
+#'     "$80-100k", "$100-125k", "$125-200k", "≥$200k")`.}
 #'   \item{ns_vote_2016}{Factor. 2016 presidential vote derived from
 #'     `vote_2016`: `1` = `"Trump"`, `2` = `"Clinton"`, `3:5` = `"Other"`,
 #'     `6:8` = `"No vote"` (includes ineligible and don't recall). Levels:
@@ -1164,3 +1169,294 @@
 #' @rdname ns_wave1
 #' @keywords datasets
 "ns_wave1_svy"
+
+# ============================================================================
+# cps_2023
+# ============================================================================
+
+#' CPS ASEC 2023 national adult sample with harmonized demographic columns
+#'
+#' @description
+#' A person-level probability sample of U.S. adults drawn from the 2023
+#' Current Population Survey Annual Social and Economic Supplement (CPS ASEC,
+#' March 2023), obtained from IPUMS-CPS. The CPS ASEC is conducted by the
+#' U.S. Census Bureau and Bureau of Labor Statistics and is the primary source
+#' for national estimates of income, poverty, and employment. Approximately
+#' 10,000 adult respondents (age 18+) are retained after stratified random
+#' sampling from the full ASEC extract (stratified by census region and sex,
+#' `set.seed(42)`). The person weight `wtfinl` is population-scaled by design;
+#' use it directly for IPW reference construction.
+#'
+#' PSU and stratum identifiers are not released in the public CPS microdata.
+#' The 160 SDR replicate weight columns (`repwtp1`-`repwtp160`) are the Census
+#' Bureau's official substitute for variance estimation; use them to construct a
+#' `survey_replicate` design via `surveycore::as_survey_replicate()` when
+#' needed. For IPW workflows, construct a plain design from the tibble:
+#' ```r
+#' data(cps_2023)
+#' cps_ref <- surveycore::as_survey(cps_2023, weights = wtfinl)
+#' ipw(
+#'   ns_wave1, cps_ref,
+#'   selection = ~sex + age_f3 + race_f4 + edu_f3 + hh_income_f9,
+#'   missing_method = "omit"
+#' )
+#' ```
+#'
+#' @format A data frame with approximately 10,000 rows and 187 columns:
+#' \describe{
+#'   \item{cpsidp}{Character. IPUMS-CPS person identifier (unique within the
+#'     extract).}
+#'   \item{serial}{Integer. Household serial number.}
+#'   \item{wtfinl}{Numeric. CPS ASEC final person weight, population-scaled
+#'     by design (values reflect the U.S. adult civilian non-institutional
+#'     population). Use directly for IPW reference construction; no scaling
+#'     needed.}
+#'   \item{repwtp1}{Numeric. Successive-difference replicate weight 1. Pass all 160 `repwtp*` columns to `surveycore::as_survey_replicate()` to construct a variance-estimation design.}
+#'   \item{repwtp2}{Numeric. Successive-difference replicate weight 2.}
+#'   \item{repwtp3}{Numeric. Successive-difference replicate weight 3.}
+#'   \item{repwtp4}{Numeric. Successive-difference replicate weight 4.}
+#'   \item{repwtp5}{Numeric. Successive-difference replicate weight 5.}
+#'   \item{repwtp6}{Numeric. Successive-difference replicate weight 6.}
+#'   \item{repwtp7}{Numeric. Successive-difference replicate weight 7.}
+#'   \item{repwtp8}{Numeric. Successive-difference replicate weight 8.}
+#'   \item{repwtp9}{Numeric. Successive-difference replicate weight 9.}
+#'   \item{repwtp10}{Numeric. Successive-difference replicate weight 10.}
+#'   \item{repwtp11}{Numeric. Successive-difference replicate weight 11.}
+#'   \item{repwtp12}{Numeric. Successive-difference replicate weight 12.}
+#'   \item{repwtp13}{Numeric. Successive-difference replicate weight 13.}
+#'   \item{repwtp14}{Numeric. Successive-difference replicate weight 14.}
+#'   \item{repwtp15}{Numeric. Successive-difference replicate weight 15.}
+#'   \item{repwtp16}{Numeric. Successive-difference replicate weight 16.}
+#'   \item{repwtp17}{Numeric. Successive-difference replicate weight 17.}
+#'   \item{repwtp18}{Numeric. Successive-difference replicate weight 18.}
+#'   \item{repwtp19}{Numeric. Successive-difference replicate weight 19.}
+#'   \item{repwtp20}{Numeric. Successive-difference replicate weight 20.}
+#'   \item{repwtp21}{Numeric. Successive-difference replicate weight 21.}
+#'   \item{repwtp22}{Numeric. Successive-difference replicate weight 22.}
+#'   \item{repwtp23}{Numeric. Successive-difference replicate weight 23.}
+#'   \item{repwtp24}{Numeric. Successive-difference replicate weight 24.}
+#'   \item{repwtp25}{Numeric. Successive-difference replicate weight 25.}
+#'   \item{repwtp26}{Numeric. Successive-difference replicate weight 26.}
+#'   \item{repwtp27}{Numeric. Successive-difference replicate weight 27.}
+#'   \item{repwtp28}{Numeric. Successive-difference replicate weight 28.}
+#'   \item{repwtp29}{Numeric. Successive-difference replicate weight 29.}
+#'   \item{repwtp30}{Numeric. Successive-difference replicate weight 30.}
+#'   \item{repwtp31}{Numeric. Successive-difference replicate weight 31.}
+#'   \item{repwtp32}{Numeric. Successive-difference replicate weight 32.}
+#'   \item{repwtp33}{Numeric. Successive-difference replicate weight 33.}
+#'   \item{repwtp34}{Numeric. Successive-difference replicate weight 34.}
+#'   \item{repwtp35}{Numeric. Successive-difference replicate weight 35.}
+#'   \item{repwtp36}{Numeric. Successive-difference replicate weight 36.}
+#'   \item{repwtp37}{Numeric. Successive-difference replicate weight 37.}
+#'   \item{repwtp38}{Numeric. Successive-difference replicate weight 38.}
+#'   \item{repwtp39}{Numeric. Successive-difference replicate weight 39.}
+#'   \item{repwtp40}{Numeric. Successive-difference replicate weight 40.}
+#'   \item{repwtp41}{Numeric. Successive-difference replicate weight 41.}
+#'   \item{repwtp42}{Numeric. Successive-difference replicate weight 42.}
+#'   \item{repwtp43}{Numeric. Successive-difference replicate weight 43.}
+#'   \item{repwtp44}{Numeric. Successive-difference replicate weight 44.}
+#'   \item{repwtp45}{Numeric. Successive-difference replicate weight 45.}
+#'   \item{repwtp46}{Numeric. Successive-difference replicate weight 46.}
+#'   \item{repwtp47}{Numeric. Successive-difference replicate weight 47.}
+#'   \item{repwtp48}{Numeric. Successive-difference replicate weight 48.}
+#'   \item{repwtp49}{Numeric. Successive-difference replicate weight 49.}
+#'   \item{repwtp50}{Numeric. Successive-difference replicate weight 50.}
+#'   \item{repwtp51}{Numeric. Successive-difference replicate weight 51.}
+#'   \item{repwtp52}{Numeric. Successive-difference replicate weight 52.}
+#'   \item{repwtp53}{Numeric. Successive-difference replicate weight 53.}
+#'   \item{repwtp54}{Numeric. Successive-difference replicate weight 54.}
+#'   \item{repwtp55}{Numeric. Successive-difference replicate weight 55.}
+#'   \item{repwtp56}{Numeric. Successive-difference replicate weight 56.}
+#'   \item{repwtp57}{Numeric. Successive-difference replicate weight 57.}
+#'   \item{repwtp58}{Numeric. Successive-difference replicate weight 58.}
+#'   \item{repwtp59}{Numeric. Successive-difference replicate weight 59.}
+#'   \item{repwtp60}{Numeric. Successive-difference replicate weight 60.}
+#'   \item{repwtp61}{Numeric. Successive-difference replicate weight 61.}
+#'   \item{repwtp62}{Numeric. Successive-difference replicate weight 62.}
+#'   \item{repwtp63}{Numeric. Successive-difference replicate weight 63.}
+#'   \item{repwtp64}{Numeric. Successive-difference replicate weight 64.}
+#'   \item{repwtp65}{Numeric. Successive-difference replicate weight 65.}
+#'   \item{repwtp66}{Numeric. Successive-difference replicate weight 66.}
+#'   \item{repwtp67}{Numeric. Successive-difference replicate weight 67.}
+#'   \item{repwtp68}{Numeric. Successive-difference replicate weight 68.}
+#'   \item{repwtp69}{Numeric. Successive-difference replicate weight 69.}
+#'   \item{repwtp70}{Numeric. Successive-difference replicate weight 70.}
+#'   \item{repwtp71}{Numeric. Successive-difference replicate weight 71.}
+#'   \item{repwtp72}{Numeric. Successive-difference replicate weight 72.}
+#'   \item{repwtp73}{Numeric. Successive-difference replicate weight 73.}
+#'   \item{repwtp74}{Numeric. Successive-difference replicate weight 74.}
+#'   \item{repwtp75}{Numeric. Successive-difference replicate weight 75.}
+#'   \item{repwtp76}{Numeric. Successive-difference replicate weight 76.}
+#'   \item{repwtp77}{Numeric. Successive-difference replicate weight 77.}
+#'   \item{repwtp78}{Numeric. Successive-difference replicate weight 78.}
+#'   \item{repwtp79}{Numeric. Successive-difference replicate weight 79.}
+#'   \item{repwtp80}{Numeric. Successive-difference replicate weight 80.}
+#'   \item{repwtp81}{Numeric. Successive-difference replicate weight 81.}
+#'   \item{repwtp82}{Numeric. Successive-difference replicate weight 82.}
+#'   \item{repwtp83}{Numeric. Successive-difference replicate weight 83.}
+#'   \item{repwtp84}{Numeric. Successive-difference replicate weight 84.}
+#'   \item{repwtp85}{Numeric. Successive-difference replicate weight 85.}
+#'   \item{repwtp86}{Numeric. Successive-difference replicate weight 86.}
+#'   \item{repwtp87}{Numeric. Successive-difference replicate weight 87.}
+#'   \item{repwtp88}{Numeric. Successive-difference replicate weight 88.}
+#'   \item{repwtp89}{Numeric. Successive-difference replicate weight 89.}
+#'   \item{repwtp90}{Numeric. Successive-difference replicate weight 90.}
+#'   \item{repwtp91}{Numeric. Successive-difference replicate weight 91.}
+#'   \item{repwtp92}{Numeric. Successive-difference replicate weight 92.}
+#'   \item{repwtp93}{Numeric. Successive-difference replicate weight 93.}
+#'   \item{repwtp94}{Numeric. Successive-difference replicate weight 94.}
+#'   \item{repwtp95}{Numeric. Successive-difference replicate weight 95.}
+#'   \item{repwtp96}{Numeric. Successive-difference replicate weight 96.}
+#'   \item{repwtp97}{Numeric. Successive-difference replicate weight 97.}
+#'   \item{repwtp98}{Numeric. Successive-difference replicate weight 98.}
+#'   \item{repwtp99}{Numeric. Successive-difference replicate weight 99.}
+#'   \item{repwtp100}{Numeric. Successive-difference replicate weight 100.}
+#'   \item{repwtp101}{Numeric. Successive-difference replicate weight 101.}
+#'   \item{repwtp102}{Numeric. Successive-difference replicate weight 102.}
+#'   \item{repwtp103}{Numeric. Successive-difference replicate weight 103.}
+#'   \item{repwtp104}{Numeric. Successive-difference replicate weight 104.}
+#'   \item{repwtp105}{Numeric. Successive-difference replicate weight 105.}
+#'   \item{repwtp106}{Numeric. Successive-difference replicate weight 106.}
+#'   \item{repwtp107}{Numeric. Successive-difference replicate weight 107.}
+#'   \item{repwtp108}{Numeric. Successive-difference replicate weight 108.}
+#'   \item{repwtp109}{Numeric. Successive-difference replicate weight 109.}
+#'   \item{repwtp110}{Numeric. Successive-difference replicate weight 110.}
+#'   \item{repwtp111}{Numeric. Successive-difference replicate weight 111.}
+#'   \item{repwtp112}{Numeric. Successive-difference replicate weight 112.}
+#'   \item{repwtp113}{Numeric. Successive-difference replicate weight 113.}
+#'   \item{repwtp114}{Numeric. Successive-difference replicate weight 114.}
+#'   \item{repwtp115}{Numeric. Successive-difference replicate weight 115.}
+#'   \item{repwtp116}{Numeric. Successive-difference replicate weight 116.}
+#'   \item{repwtp117}{Numeric. Successive-difference replicate weight 117.}
+#'   \item{repwtp118}{Numeric. Successive-difference replicate weight 118.}
+#'   \item{repwtp119}{Numeric. Successive-difference replicate weight 119.}
+#'   \item{repwtp120}{Numeric. Successive-difference replicate weight 120.}
+#'   \item{repwtp121}{Numeric. Successive-difference replicate weight 121.}
+#'   \item{repwtp122}{Numeric. Successive-difference replicate weight 122.}
+#'   \item{repwtp123}{Numeric. Successive-difference replicate weight 123.}
+#'   \item{repwtp124}{Numeric. Successive-difference replicate weight 124.}
+#'   \item{repwtp125}{Numeric. Successive-difference replicate weight 125.}
+#'   \item{repwtp126}{Numeric. Successive-difference replicate weight 126.}
+#'   \item{repwtp127}{Numeric. Successive-difference replicate weight 127.}
+#'   \item{repwtp128}{Numeric. Successive-difference replicate weight 128.}
+#'   \item{repwtp129}{Numeric. Successive-difference replicate weight 129.}
+#'   \item{repwtp130}{Numeric. Successive-difference replicate weight 130.}
+#'   \item{repwtp131}{Numeric. Successive-difference replicate weight 131.}
+#'   \item{repwtp132}{Numeric. Successive-difference replicate weight 132.}
+#'   \item{repwtp133}{Numeric. Successive-difference replicate weight 133.}
+#'   \item{repwtp134}{Numeric. Successive-difference replicate weight 134.}
+#'   \item{repwtp135}{Numeric. Successive-difference replicate weight 135.}
+#'   \item{repwtp136}{Numeric. Successive-difference replicate weight 136.}
+#'   \item{repwtp137}{Numeric. Successive-difference replicate weight 137.}
+#'   \item{repwtp138}{Numeric. Successive-difference replicate weight 138.}
+#'   \item{repwtp139}{Numeric. Successive-difference replicate weight 139.}
+#'   \item{repwtp140}{Numeric. Successive-difference replicate weight 140.}
+#'   \item{repwtp141}{Numeric. Successive-difference replicate weight 141.}
+#'   \item{repwtp142}{Numeric. Successive-difference replicate weight 142.}
+#'   \item{repwtp143}{Numeric. Successive-difference replicate weight 143.}
+#'   \item{repwtp144}{Numeric. Successive-difference replicate weight 144.}
+#'   \item{repwtp145}{Numeric. Successive-difference replicate weight 145.}
+#'   \item{repwtp146}{Numeric. Successive-difference replicate weight 146.}
+#'   \item{repwtp147}{Numeric. Successive-difference replicate weight 147.}
+#'   \item{repwtp148}{Numeric. Successive-difference replicate weight 148.}
+#'   \item{repwtp149}{Numeric. Successive-difference replicate weight 149.}
+#'   \item{repwtp150}{Numeric. Successive-difference replicate weight 150.}
+#'   \item{repwtp151}{Numeric. Successive-difference replicate weight 151.}
+#'   \item{repwtp152}{Numeric. Successive-difference replicate weight 152.}
+#'   \item{repwtp153}{Numeric. Successive-difference replicate weight 153.}
+#'   \item{repwtp154}{Numeric. Successive-difference replicate weight 154.}
+#'   \item{repwtp155}{Numeric. Successive-difference replicate weight 155.}
+#'   \item{repwtp156}{Numeric. Successive-difference replicate weight 156.}
+#'   \item{repwtp157}{Numeric. Successive-difference replicate weight 157.}
+#'   \item{repwtp158}{Numeric. Successive-difference replicate weight 158.}
+#'   \item{repwtp159}{Numeric. Successive-difference replicate weight 159.}
+#'   \item{repwtp160}{Numeric. Successive-difference replicate weight 160.}
+#'   \item{statefip}{Integer. State FIPS code (numeric, e.g., 6 = California).}
+#'   \item{region}{Integer. Census region: 1 = Northeast, 2 = Midwest,
+#'     3 = South, 4 = West.}
+#'   \item{metro}{Integer. Metropolitan status: 0 = not identified,
+#'     1 = not in metropolitan area, 2 = central city of metropolitan area,
+#'     3 = outside central city, 4 = central city status unclear.}
+#'   \item{age}{Integer. Age in years (18+ by construction).}
+#'   \item{sex}{Factor. Derived from the raw `sex` column (overwritten
+#'     in-place): `1` = `"Male"`, `2` = `"Female"`. No `NA` values. Levels:
+#'     `c("Male", "Female")`.}
+#'   \item{race}{Integer. IPUMS race recode. Key codes: 100 = White,
+#'     200 = Black/African American, 300 = American Indian/Alaska Native,
+#'     650-652 = Asian or Pacific Islander groups. See `race_f4` for a
+#'     derived four-category factor.}
+#'   \item{hispan}{Integer. Hispanic origin. 0 = Not Hispanic;
+#'     100-412 = Hispanic origins (various national groups);
+#'     901-902 = Not applicable/unknown. See `race_f4` for a derived
+#'     factor where Hispanic origin takes precedence over `race`.}
+#'   \item{educ}{Integer. IPUMS educational attainment recode. Key codes:
+#'     0 = N/A or preschool; 1-59 = did not complete high school; 60 = HS
+#'     diploma or equivalent; 71-110 = some college or associate's degree;
+#'     111-125 = bachelor's degree or higher. See `edu_f3` for a derived
+#'     three-category factor.}
+#'   \item{marst}{Integer. Marital status: 1 = Married, spouse present;
+#'     2 = Married, spouse absent; 3 = Separated; 4 = Divorced;
+#'     5 = Widowed; 6 = Never married/single.}
+#'   \item{empstat}{Integer. Employment status. Key codes: 1 = Armed Forces;
+#'     10 = At work; 12 = Has job, not at work last week; 20-22 = Unemployed;
+#'     30-36 = Not in labor force. See `empstat_f` for a derived three-category
+#'     factor.}
+#'   \item{classwkr}{Integer. Class of worker. Key codes: 0 = N/A;
+#'     10 = Self-employed; 20-28 = Private sector; 25 = Nonprofit;
+#'     27 = For-profit; 28 = Private (not specified); 29 = Self-employed
+#'     (not incorporated); 40-50 = Government; 99 = Unknown.}
+#'   \item{wkswork2}{Integer. Weeks worked last year (interval codes):
+#'     1 = 1-13 weeks; 2 = 14-26 weeks; 3 = 27-39 weeks; 4 = 40-47 weeks;
+#'     5 = 48-49 weeks; 6 = 50-52 weeks. 0 = N/A (did not work).}
+#'   \item{uhrsworkly}{Integer. Usual hours worked per week last year.
+#'     999 = N/A (did not work or not applicable).}
+#'   \item{inctot}{Integer. Total personal income in dollars.
+#'     99999999 = N/A or missing.}
+#'   \item{hhincome}{Integer. Total household income in dollars.
+#'     99999999 = N/A or missing. See `inc_hh_cat` for a derived
+#'     five-bracket factor.}
+#'   \item{health}{Integer. Self-reported health status: 1 = Excellent;
+#'     2 = Very good; 3 = Good; 4 = Fair; 5 = Poor.}
+#'   \item{nchild}{Integer. Number of own children in the household
+#'     (under age 18).}
+#'   \item{famsize}{Integer. Number of persons in the family.}
+#'   \item{age_f3}{Factor. Age group derived from `age`:
+#'     `cut(age, breaks = c(18, 35, 55, Inf), right = FALSE)`. No `NA`
+#'     values (all respondents are 18+). Levels:
+#'     `c("18-34", "35-54", "55+")`.}
+#'   \item{race_f4}{Factor. Race/ethnicity derived from `race` and `hispan`:
+#'     Hispanic origin takes precedence (`hispan` in 100-412); `race == 100`
+#'     = `"White"`; `race == 200` = `"Black"`; all other codes (including
+#'     Asian/Pacific Islander codes 650-652) = `"Other"`. No `NA` values.
+#'     Levels: `c("White", "Black", "Hispanic", "Other")`.}
+#'   \item{edu_f3}{Factor. Educational attainment derived from `educ` (IPUMS
+#'     recode): codes 1-59 = `"Less than HS"`; codes 60-110 = `"HS/Some
+#'     college"` (HS diploma through associate's degree); codes 111-125 =
+#'     `"College+"`. Code 0 (N/A/preschool) maps to `NA`. Levels:
+#'     `c("Less than HS", "HS/Some college", "College+")`.}
+#'   \item{empstat_f}{Factor. Employment status derived from `empstat`: codes
+#'     10-12 = `"Employed"` (at work or has job but not at work); codes
+#'     20-22 = `"Unemployed"`; all remaining codes (Armed Forces, not in
+#'     labor force) = `"Not in labor force"`. No `NA` values. Levels:
+#'     `c("Employed", "Unemployed", "Not in labor force")`.}
+#'   \item{inc_hh_cat}{Factor. Household income brackets derived from
+#'     `hhincome`. Code 99999999 (missing/N/A) maps to `NA`. Levels:
+#'     `c("Under $25k", "$25k-$50k", "$50k-$75k", "$75k-$100k", "$100k+")`.
+#'     Some `NA` values present.}
+#'   \item{hh_income_f9}{Factor. Nine-bracket household income harmonized
+#'     with `ns_wave1$hh_income_f9` for use as a `selection` variable in
+#'     `ipw()`. Derived from `hhincome`; code 99999999 (missing/N/A) maps
+#'     to `NA`. Levels: `c("<$20k", "$20-35k", "$35-50k", "$50-65k",
+#'     "$65-80k", "$80-100k", "$100-125k", "$125-200k", "≥$200k")`.}
+#' }
+#'
+#' @source IPUMS-CPS, 2023 Annual Social and Economic Supplement (March 2023).
+#'   Sarah Flood, Miriam King, Renae Rodgers, Steven Ruggles, J. Robert Warren,
+#'   Daniel Backman, Annie Chen, Grace Cooper, Stephanie Richards, Megan
+#'   Schouweiler, and Michael Westberry. IPUMS CPS: Version 11.0 \[dataset\].
+#'   Minneapolis, MN: IPUMS, 2023. \doi{10.18128/D030.V11.0}
+#'   See `data-raw/cps-2023.R` for the construction script.
+#' @seealso [ns_wave1], [pew_2016_optin], [npors_2025], [npors_2025_clean],
+#'   [gss_2024], [pew_2016_synth_pop]
+#' @keywords datasets
+"cps_2023"

@@ -27,8 +27,11 @@
 #' @export
 #'
 #' @examples
-#' df <- data.frame(x = 1:5, w = c(1.2, 0.8, 1.5, 0.9, 1.1))
-#' weight_variability(df, weights = w)
+#' # data.frame with explicit weight column ---------------------------------
+#' weight_variability(ns_wave1, weights = weight)
+#'
+#' # survey_nonprob — weight column auto-detected ---------------------------
+#' weight_variability(ns_wave1_svy)
 weight_variability <- function(x, weights = NULL) {
   weights_quo <- rlang::enquo(weights)
   vld <- .diag_validate_input(x, weights_quo)

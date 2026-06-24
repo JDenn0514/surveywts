@@ -170,16 +170,29 @@ Calibration non-convergence raises an error.
 }
 
 \examples{
-df <- data.frame(
-  age_group = c("18-34", "35-54", "55+", "18-34", "35-54"),
-  sex       = c("M", "F", "M", "F", "M"),
-  stringsAsFactors = FALSE
+targets_a <- list(
+  sex   = c("Male" = 0.49, "Female" = 0.51),
+  age_f3 = c("18-34" = 0.30, "35-54" = 0.33, "55+" = 0.37)
 )
-targets <- list(
-  age_group = c("18-34" = 0.40, "35-54" = 0.40, "55+" = 0.20),
-  sex       = c("M" = 0.50, "F" = 0.50)
+
+# Format A + classic_ipf (default) ----------------------------
+calibrate_rake(ns_wave1, targets = targets_a, weights = weight)
+
+# Format A + Newton-Raphson algorithm -------------------------
+calibrate_rake(
+  ns_wave1, targets = targets_a, weights = weight, algorithm = "nr"
 )
-result <- calibrate_rake(df, targets = targets)
+
+# survey_nonprob — weight column auto-detected -----------------
+calibrate_rake(ns_wave1_svy, targets = targets_a)
+
+# Format B -------------------------------------------------------
+targets_b <- data.frame(
+  variable = c("sex", "sex", "age_f3", "age_f3", "age_f3"),
+  level    = c("Male", "Female", "18-34", "35-54", "55+"),
+  target   = c(0.49, 0.51, 0.30, 0.33, 0.37)
+)
+calibrate_rake(ns_wave1, targets = targets_b, weights = weight)
 }
 \references{
 DeBell, M. and Krosnick, J.A. (2009). Computing Weights for American

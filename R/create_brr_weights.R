@@ -47,6 +47,13 @@
 #'   from complex samples with replicate weights. *Proceedings of the
 #'   American Statistical Association*, 489--494.
 #'
+#' @examples
+#' # standard BRR (gss_2024_svy has 67 strata x 2 PSUs) ------------------
+#' create_brr_weights(gss_2024_svy)
+#'
+#' # Fay's BRR with damping coefficient -----------------------------------
+#' create_brr_weights(gss_2024_svy, rho = 0.5)
+#'
 #' @seealso [create_bootstrap_weights()], [create_jackknife_weights()],
 #'   [create_gen_boot_weights()], [create_gen_rep_weights()],
 #'   [create_sdr_weights()], [create_replicate_weights()], [as_taylor_design()]

@@ -49,7 +49,6 @@ reference:
       - gss_2024
       - npors_2025
       - npors_2025_clean
-      - acs_wy_2022
   - title: ~
     subtitle: Calibration example data
     contents:

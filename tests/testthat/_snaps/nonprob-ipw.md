@@ -55,9 +55,9 @@
       ipw(nps, ref_df, selection = ~ age_group + sex)
     Condition
       Error in `ipw()`:
-      x `reference` must be a <survey_taylor> object.
+      x `reference` must be a <survey_taylor> or <survey_replicate> object.
       i Got <data.frame>.
-      v Pass a probability-based <survey_taylor> design as the reference. Use `surveycore::as_survey()` to construct one from a data frame.
+      v Pass a probability-based survey design as the reference. Use `surveycore::as_survey()` or `surveycore::as_survey_replicate()` to construct one from a data frame.
 
 # ipw() errors when reference is survey_nonprob
 
@@ -65,9 +65,9 @@
       ipw(nps, np_obj, selection = ~ age_group + sex)
     Condition
       Error in `ipw()`:
-      x `reference` must be a <survey_taylor> object.
+      x `reference` must be a <survey_taylor> or <survey_replicate> object.
       i Got <surveycore::survey_nonprob>.
-      v Pass a probability-based <survey_taylor> design as the reference. Use `surveycore::as_survey()` to construct one from a data frame.
+      v Pass a probability-based survey design as the reference. Use `surveycore::as_survey()` or `surveycore::as_survey_replicate()` to construct one from a data frame.
 
 # ipw() errors when reference has a zero design weight
 
@@ -363,4 +363,24 @@
       x Level "65+" of variable age_group is present in `data` but not in `reference`.
       i Propensity estimation requires all NPS covariate levels to appear in the reference design.
       v Remove NPS rows with age_group = "65+", or add reference units with that level.
+
+# E-3: ipw() errors when reference is NULL
+
+    Code
+      ipw(nps, NULL, selection = ~ age_group + sex)
+    Condition
+      Error in `ipw()`:
+      x `reference` must be a <survey_taylor> or <survey_replicate> object.
+      i Got <NULL>.
+      v Pass a probability-based survey design as the reference. Use `surveycore::as_survey()` or `surveycore::as_survey_replicate()` to construct one from a data frame.
+
+# E-4: ipw() errors when reference is a plain list
+
+    Code
+      ipw(nps, list(a = 1), selection = ~ age_group + sex)
+    Condition
+      Error in `ipw()`:
+      x `reference` must be a <survey_taylor> or <survey_replicate> object.
+      i Got <list>.
+      v Pass a probability-based survey design as the reference. Use `surveycore::as_survey()` or `surveycore::as_survey_replicate()` to construct one from a data frame.
 

@@ -282,6 +282,6 @@ Some respondents have \code{NA} in \code{race_f4} (those who reported "some othe
 race" with no Hispanic origin, which cannot be mapped to a standard category).
 }
 \seealso{
-\link{ns_wave1_svy}, \link{gss_2024}, \link{npors_2025_clean}, \link{acs_wy_2022}
+\link{ns_wave1_svy}, \link{gss_2024}, \link{npors_2025_clean}, \link{cps_2023}
 }
 \keyword{datasets}

@@ -24,10 +24,13 @@ ipw(
 \arguments{
 \item{data}{A \code{data.frame} containing the non-probability sample.}
 
-\item{reference}{A \code{survey_taylor} object representing the probability-based
-reference sample. Must have strictly positive design weights. See the
-\strong{Limitations} section for guidance on reference sample quality and
-covariate measurement requirements.}
+\item{reference}{A \code{survey_taylor} or \code{survey_replicate} object representing
+the probability-based reference sample. Must have strictly positive design
+weights. When a \code{survey_replicate} is supplied, only the main design
+weights (\verb{@variables$weights}) are used for propensity estimation; the
+replicate weight columns are not used by \code{ipw()}. See the \strong{Limitations}
+section for guidance on reference sample quality and covariate measurement
+requirements.}
 
 \item{selection}{A one-sided formula (e.g., \code{~ age + sex}) specifying
 the covariates used to model participation propensity. Exactly one of
@@ -162,6 +165,14 @@ SRS resampling.
 Both procedures apply equally when \code{estimating_eq = "gee"}. Variance
 estimates that do not refit the propensity model at each replicate will
 be anti-conservative.
+
+\strong{\code{survey_replicate} reference:} When \code{reference} is a \code{survey_replicate}
+object, \code{ipw()} uses only the main design weights
+(\code{reference@variables$weights}) for propensity estimation. The replicate
+weight columns stored in the \code{survey_replicate} object are not used —
+variance estimation still requires refitting the propensity model at each
+replicate as described above. The population size estimate \eqn{\hat{N}_p}
+is computed from the main weights in the usual way (Wu, 2022, §6.2).
 
 \strong{Estimating equation:} \code{ipw()} uses the \emph{unconditional} pseudo-likelihood
 approach (Valliant & Dever, 2011, as described in Elliott & Valliant, 2017,
@@ -376,15 +387,21 @@ result2 <- ipw(
 effective_sample_size(result1)
 weight_variability(result1)
 
-# --- ACS PUMS Wyoming as probability reference ------------------------
-# acs_wy_2022_svy is survey_replicate; ipw() needs survey_taylor.
-# Construct a plain Taylor design from the tibble.
-data(acs_wy_2022)
-acs_ref <- surveycore::as_survey(acs_wy_2022, weights = pwgtp)
-result_acs <- ipw(
+# --- CPS ASEC 2023 as survey_replicate reference ----------------------
+# cps_2023 is a plain data.frame; construct the replicate design inline.
+data(cps_2023)
+cps_ref <- surveycore::as_survey_replicate(
+  cps_2023,
+  weights    = "wtfinl",
+  repweights = paste0("repwtp", 1:160),
+  type       = "successive-difference",
+  scale      = 4 / 160,
+  rscales    = rep(1, 160)
+)
+result_cps <- ipw(
   ns_wave1,
-  acs_ref,
-  selection = ~sex + age_f3 + race_f4 + edu_f3,
+  cps_ref,
+  selection      = ~sex + age_f3 + race_f4 + edu_f3,
   missing_method = "omit"
 )
 
@@ -488,6 +505,9 @@ data. \emph{Journal of the Royal Statistical Society: Series B} \strong{82}(2),
 Beresewicz, M., Szymkowiak, M. and Chlebicki, P. (2025). Quantile
 balancing inverse probability weighting for non-probability samples.
 \emph{arXiv preprint} arXiv:2403.09028.
+
+Wu, C. (2022). \emph{Statistical inference with non-probability survey samples}.
+\emph{Survey Methodology} \strong{48}(2), 283--311.
 }
 \seealso{
 \code{\link[=adjust_nonresponse]{adjust_nonresponse()}} for unit nonresponse adjustment via weighting

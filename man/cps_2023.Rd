@@ -275,12 +275,18 @@ use it directly for IPW reference construction.
 
 PSU and stratum identifiers are not released in the public CPS microdata.
 The 160 SDR replicate weight columns (\code{repwtp1}-\code{repwtp160}) are the Census
-Bureau's official substitute for variance estimation; use them to construct a
-\code{survey_replicate} design via \code{surveycore::as_survey_replicate()} when
-needed. For IPW workflows, construct a plain design from the tibble:
+Bureau's official substitute for variance estimation. To use \code{cps_2023} as
+a \code{survey_replicate} reference in \code{ipw()}, construct it inline:
 
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{data(cps_2023)
-cps_ref <- surveycore::as_survey(cps_2023, weights = wtfinl)
+cps_ref <- surveycore::as_survey_replicate(
+  cps_2023,
+  weights    = "wtfinl",
+  repweights = paste0("repwtp", 1:160),
+  type       = "successive-difference",
+  scale      = 4 / 160,
+  rscales    = rep(1, 160)
+)
 ipw(
   ns_wave1, cps_ref,
   selection = ~sex + age_f3 + race_f4 + edu_f3 + hh_income_f9,

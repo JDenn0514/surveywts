@@ -169,10 +169,13 @@
 #' `estimating_eq`; see the **Algorithm** section for method details.
 #'
 #' @param data A `data.frame` containing the non-probability sample.
-#' @param reference A `survey_taylor` object representing the probability-based
-#'   reference sample. Must have strictly positive design weights. See the
-#'   **Limitations** section for guidance on reference sample quality and
-#'   covariate measurement requirements.
+#' @param reference A `survey_taylor` or `survey_replicate` object representing
+#'   the probability-based reference sample. Must have strictly positive design
+#'   weights. When a `survey_replicate` is supplied, only the main design
+#'   weights (`@variables$weights`) are used for propensity estimation; the
+#'   replicate weight columns are not used by `ipw()`. See the **Limitations**
+#'   section for guidance on reference sample quality and covariate measurement
+#'   requirements.
 #' @param selection A one-sided formula (e.g., `~ age + sex`) specifying
 #'   the covariates used to model participation propensity. Exactly one of
 #'   `selection` and `predictors` must be supplied.
@@ -283,6 +286,14 @@
 #' Both procedures apply equally when `estimating_eq = "gee"`. Variance
 #' estimates that do not refit the propensity model at each replicate will
 #' be anti-conservative.
+#'
+#' **`survey_replicate` reference:** When `reference` is a `survey_replicate`
+#' object, `ipw()` uses only the main design weights
+#' (`reference@variables$weights`) for propensity estimation. The replicate
+#' weight columns stored in the `survey_replicate` object are not used —
+#' variance estimation still requires refitting the propensity model at each
+#' replicate as described above. The population size estimate \eqn{\hat{N}_p}
+#' is computed from the main weights in the usual way (Wu, 2022, §6.2).
 #'
 #' **Estimating equation:** `ipw()` uses the *unconditional* pseudo-likelihood
 #' approach (Valliant & Dever, 2011, as described in Elliott & Valliant, 2017,
@@ -511,6 +522,9 @@
 #' balancing inverse probability weighting for non-probability samples.
 #' *arXiv preprint* arXiv:2403.09028.
 #'
+#' Wu, C. (2022). *Statistical inference with non-probability survey samples*.
+#' *Survey Methodology* **48**(2), 283--311.
+#'
 #' @examples
 #' data(ns_wave1)
 #'
@@ -535,15 +549,21 @@
 #' effective_sample_size(result1)
 #' weight_variability(result1)
 #'
-#' # --- ACS PUMS Wyoming as probability reference ------------------------
-#' # acs_wy_2022_svy is survey_replicate; ipw() needs survey_taylor.
-#' # Construct a plain Taylor design from the tibble.
-#' data(acs_wy_2022)
-#' acs_ref <- surveycore::as_survey(acs_wy_2022, weights = pwgtp)
-#' result_acs <- ipw(
+#' # --- CPS ASEC 2023 as survey_replicate reference ----------------------
+#' # cps_2023 is a plain data.frame; construct the replicate design inline.
+#' data(cps_2023)
+#' cps_ref <- surveycore::as_survey_replicate(
+#'   cps_2023,
+#'   weights    = "wtfinl",
+#'   repweights = paste0("repwtp", 1:160),
+#'   type       = "successive-difference",
+#'   scale      = 4 / 160,
+#'   rscales    = rep(1, 160)
+#' )
+#' result_cps <- ipw(
 #'   ns_wave1,
-#'   acs_ref,
-#'   selection = ~sex + age_f3 + race_f4 + edu_f3,
+#'   cps_ref,
+#'   selection      = ~sex + age_f3 + race_f4 + edu_f3,
 #'   missing_method = "omit"
 #' )
 #'
@@ -730,18 +750,22 @@ ipw <- function(
     )
   }
 
-  # Behavior Rule 2: validate reference is survey_taylor
-  if (!S7::S7_inherits(reference, surveycore::survey_taylor)) {
+  # Behavior Rule 2: validate reference is survey_taylor or survey_replicate
+  if (
+    !S7::S7_inherits(reference, surveycore::survey_taylor) &&
+      !S7::S7_inherits(reference, surveycore::survey_replicate)
+  ) {
     cli::cli_abort(
       c(
-        "x" = "{.arg reference} must be a {.cls survey_taylor} object.",
+        "x" = "{.arg reference} must be a {.cls survey_taylor} or {.cls survey_replicate} object.",
         "i" = "Got {.cls {class(reference)[[1L]]}}.",
         "v" = paste0(
-          "Pass a probability-based {.cls survey_taylor} design as the reference. ",
-          "Use {.fn surveycore::as_survey} to construct one from a data frame."
+          "Pass a probability-based survey design as the reference. ",
+          "Use {.fn surveycore::as_survey} or {.fn surveycore::as_survey_replicate} ",
+          "to construct one from a data frame."
         )
       ),
-      class = "surveywts_error_svydesign_not_taylor"
+      class = "surveywts_error_reference_not_survey_design"
     )
   }
 
@@ -1238,13 +1262,26 @@ ipw <- function(
 
   # Behavior Rule 20: construct survey_nonprob and append history
 
+  # as_survey_nonprob() requires reference_sample to be survey_taylor; coerce
+  # survey_replicate by stripping replicate columns (main weights unchanged).
+  reference_for_nonprob <- if (
+    S7::S7_inherits(reference, surveycore::survey_replicate)
+  ) {
+    surveycore::survey_taylor(
+      data      = reference@data,
+      variables = reference@variables
+    )
+  } else {
+    reference
+  }
+
   # Step 1 - construct the object (NSE injection for wt_name)
   out_df <- data
   out_df[[wt_name]] <- w
   result <- surveycore::as_survey_nonprob(
     data = out_df,
     weights = !!rlang::sym(wt_name),
-    reference_sample = reference
+    reference_sample = reference_for_nonprob
   )
 
   # Step 2 - build history entry and append

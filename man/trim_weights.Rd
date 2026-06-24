@@ -120,7 +120,16 @@ trim_weights(
 )
 
 # survey_replicate — bounds auto-applied to all replicate columns -------
-trim_weights(acs_wy_2022_svy)
+data(cps_2023)
+cps_svy <- surveycore::as_survey_replicate(
+  cps_2023,
+  weights    = "wtfinl",
+  repweights = paste0("repwtp", 1:160),
+  type       = "successive-difference",
+  scale      = 4 / 160,
+  rscales    = rep(1, 160)
+)
+trim_weights(cps_svy)
 }
 \references{
 Potter, F. and Zheng, Y. (2015). Methods and issues in trimming extreme

@@ -366,7 +366,7 @@ test_that("ipw() errors when reference is a data.frame", {
 
   expect_error(
     ipw(nps, ref_df, selection = ~age_group + sex),
-    class = "surveywts_error_svydesign_not_taylor"
+    class = "surveywts_error_reference_not_survey_design"
   )
   expect_snapshot(
     error = TRUE,
@@ -381,7 +381,7 @@ test_that("ipw() errors when reference is survey_nonprob", {
 
   expect_error(
     ipw(nps, np_obj, selection = ~age_group + sex),
-    class = "surveywts_error_svydesign_not_taylor"
+    class = "surveywts_error_reference_not_survey_design"
   )
   expect_snapshot(
     error = TRUE,
@@ -2257,4 +2257,256 @@ test_that("ipw() GEE converges with unit-scale reference weights", {
 
   test_invariants(result)
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+})
+
+# ---------------------------------------------------------------------------
+# survey_replicate reference fixtures
+# ---------------------------------------------------------------------------
+
+.make_ipw_ref_replicate <- function(seed = 42L) {
+  ref_df <- make_nps_reference(n = 1000L, seed = 99L)@data
+  set.seed(seed)
+  n_rows <- nrow(ref_df)
+  n_reps <- 10L
+  repmat <- matrix(
+    sample(c(0, 2), n_rows * n_reps, replace = TRUE) * ref_df$base_weight,
+    nrow = n_rows, ncol = n_reps
+  )
+  colnames(repmat) <- paste0("repwt", seq_len(n_reps))
+  ref_data_reps <- cbind(ref_df, repmat)
+  surveycore::as_survey_replicate(
+    data       = ref_data_reps,
+    weights    = "base_weight",
+    repweights = paste0("repwt", seq_len(n_reps)),
+    type       = "bootstrap",
+    scale      = 1 / n_reps,
+    rscales    = rep(1, n_reps)
+  )
+}
+
+# ---------------------------------------------------------------------------
+# Category 1 — Happy path: survey_replicate reference (H-R1 through H-R5)
+# ---------------------------------------------------------------------------
+
+test_that("H-R1: ipw() returns survey_nonprob for survey_replicate reference", {
+  nps <- .make_ipw_nps()
+  ref <- .make_ipw_ref_replicate()
+
+  result <- suppressWarnings(ipw(nps, ref, selection = ~age_group + sex))
+
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+})
+
+test_that("H-R2: all original NPS columns preserved; ipw_weight present; nrow unchanged", {
+  nps <- .make_ipw_nps()
+  ref <- .make_ipw_ref_replicate()
+
+  result <- suppressWarnings(ipw(nps, ref, selection = ~age_group + sex))
+
+  expect_true("ipw_weight" %in% names(result@data))
+  for (cn in names(nps)) {
+    expect_true(cn %in% names(result@data))
+  }
+  expect_identical(nrow(result@data), nrow(nps))
+})
+
+test_that("H-R3: all IPW weights strictly positive with survey_replicate reference", {
+  nps <- .make_ipw_nps()
+  ref <- .make_ipw_ref_replicate()
+
+  result <- suppressWarnings(ipw(nps, ref, selection = ~age_group + sex))
+
+  expect_true(all(result@data$ipw_weight > 0))
+})
+
+test_that("H-R4: history entry has operation='ipw'; reference_design is survey_replicate", {
+  nps <- .make_ipw_nps()
+  ref <- .make_ipw_ref_replicate()
+
+  result <- suppressWarnings(ipw(nps, ref, selection = ~age_group + sex))
+
+  entry <- result@metadata@weighting_history[[1L]]
+  expect_identical(entry$operation, "ipw")
+  expect_true(
+    S7::S7_inherits(entry$reference_design, surveycore::survey_replicate)
+  )
+})
+
+test_that("H-R5: survey_replicate and survey_taylor with same main weights produce identical IPW weights", {
+  nps <- .make_ipw_nps()
+  ref_df <- make_nps_reference(n = 1000L, seed = 99L)@data
+
+  ref_taylor <- surveycore::survey_taylor(
+    data      = ref_df,
+    variables = list(weights = "base_weight")
+  )
+
+  set.seed(42L)
+  n_rows <- nrow(ref_df)
+  n_reps <- 10L
+  repmat <- matrix(
+    sample(c(0, 2), n_rows * n_reps, replace = TRUE) * ref_df$base_weight,
+    nrow = n_rows, ncol = n_reps
+  )
+  colnames(repmat) <- paste0("repwt", seq_len(n_reps))
+  ref_replicate <- surveycore::as_survey_replicate(
+    data       = cbind(ref_df, repmat),
+    weights    = "base_weight",
+    repweights = paste0("repwt", seq_len(n_reps)),
+    type       = "bootstrap",
+    scale      = 1 / n_reps,
+    rscales    = rep(1, n_reps)
+  )
+
+  result_taylor    <- suppressWarnings(ipw(nps, ref_taylor,    selection = ~age_group + sex))
+  result_replicate <- suppressWarnings(ipw(nps, ref_replicate, selection = ~age_group + sex))
+
+  expect_equal(
+    result_replicate@data$ipw_weight,
+    result_taylor@data$ipw_weight,
+    tolerance = 1e-10
+  )
+})
+
+# ---------------------------------------------------------------------------
+# Category 3 — Error paths: E-3, E-4, E-5 (new)
+# ---------------------------------------------------------------------------
+
+test_that("E-3: ipw() errors when reference is NULL", {
+  nps <- .make_ipw_nps()
+
+  expect_error(
+    ipw(nps, NULL, selection = ~age_group + sex),
+    class = "surveywts_error_reference_not_survey_design"
+  )
+  expect_snapshot(
+    error = TRUE,
+    ipw(nps, NULL, selection = ~age_group + sex)
+  )
+})
+
+test_that("E-4: ipw() errors when reference is a plain list", {
+  nps <- .make_ipw_nps()
+
+  expect_error(
+    ipw(nps, list(a = 1), selection = ~age_group + sex),
+    class = "surveywts_error_reference_not_survey_design"
+  )
+  expect_snapshot(
+    error = TRUE,
+    ipw(nps, list(a = 1), selection = ~age_group + sex)
+  )
+})
+
+test_that("E-5: ipw() errors when survey_replicate reference has zero in main weight", {
+  nps <- .make_ipw_nps()
+  ref <- .make_ipw_ref_replicate()
+  # Use attr<- to bypass the survey_replicate S7 validator so ipw() sees it
+  bad_data <- ref@data
+  bad_data$base_weight[1L] <- 0
+  attr(ref, "data") <- bad_data
+
+  expect_error(
+    ipw(nps, ref, selection = ~age_group + sex),
+    class = "surveywts_error_reference_weights_nonpositive"
+  )
+})
+
+# ---------------------------------------------------------------------------
+# Category 5 — Edge cases: EC-1 through EC-5
+# ---------------------------------------------------------------------------
+
+test_that("EC-1: survey_replicate with BRR zeros in replicate columns; weights computed", {
+  nps <- .make_ipw_nps()
+  ref_df <- make_nps_reference(n = 1000L, seed = 99L)@data
+  set.seed(42L)
+  n_rows <- nrow(ref_df)
+  n_reps <- 10L
+  repmat <- matrix(
+    sample(c(0, 2), n_rows * n_reps, replace = TRUE) * ref_df$base_weight,
+    nrow = n_rows, ncol = n_reps
+  )
+  # BRR-style zeros in some replicate cells; main weight stays positive
+  repmat[seq_len(100L), c(1L, 3L, 5L)] <- 0
+  colnames(repmat) <- paste0("repwt", seq_len(n_reps))
+  ref_brr <- surveycore::as_survey_replicate(
+    data       = cbind(ref_df, repmat),
+    weights    = "base_weight",
+    repweights = paste0("repwt", seq_len(n_reps)),
+    type       = "bootstrap",
+    scale      = 1 / n_reps,
+    rscales    = rep(1, n_reps)
+  )
+
+  result <- suppressWarnings(ipw(nps, ref_brr, selection = ~age_group + sex))
+
+  test_invariants(result)
+  expect_true(all(result@data$ipw_weight > 0))
+})
+
+test_that("EC-2: survey_replicate reference; wt_name conflict errors correctly", {
+  nps <- .make_ipw_nps()
+  ref <- .make_ipw_ref_replicate()
+
+  suppressWarnings(
+    expect_error(
+      ipw(nps, ref, selection = ~age_group + sex, wt_name = "base_weight"),
+      class = "surveywts_error_wt_name_conflict"
+    )
+  )
+})
+
+test_that("EC-3: survey_replicate reference; selection variable absent from reference errors", {
+  nps <- .make_ipw_nps()
+  ref <- .make_ipw_ref_replicate()
+  # Remove sex from reference data via attr<- to bypass S7 validator
+  ref_data <- ref@data
+  ref_data$sex <- NULL
+  attr(ref, "data") <- ref_data
+
+  expect_error(
+    ipw(nps, ref, selection = ~age_group + sex),
+    class = "surveywts_error_formula_variable_not_in_reference"
+  )
+})
+
+test_that("EC-4: survey_replicate reference; NPS factor level absent from reference errors", {
+  nps <- .make_ipw_nps()
+  nps_extra <- nps
+  nps_extra$age_group[1L] <- "65+"
+  ref <- .make_ipw_ref_replicate()
+
+  expect_error(
+    ipw(nps_extra, ref, selection = ~age_group + sex),
+    class = "surveywts_error_propensity_level_not_in_reference"
+  )
+})
+
+test_that("EC-5: survey_replicate reference; zero main weight errors with reference_weights_nonpositive", {
+  nps <- .make_ipw_nps()
+  ref <- .make_ipw_ref_replicate()
+  # Use attr<- to bypass the survey_replicate S7 validator so ipw() sees it
+  bad_data <- ref@data
+  bad_data$base_weight[1L] <- 0
+  attr(ref, "data") <- bad_data
+
+  expect_error(
+    ipw(nps, ref, selection = ~age_group + sex),
+    class = "surveywts_error_reference_weights_nonpositive"
+  )
+})
+
+test_that("EC-6: survey_replicate reference with trim=TRUE; test_invariants passes; entry$trim TRUE", {
+  nps <- .make_ipw_nps()
+  ref <- .make_ipw_ref_replicate()
+
+  result <- suppressWarnings(
+    ipw(nps, ref, selection = ~age_group + sex, trim = TRUE)
+  )
+
+  test_invariants(result)
+  entry <- result@metadata@weighting_history[[1L]]
+  expect_true(entry$trim)
+  expect_true(entry$n_trimmed >= 0L)
 })

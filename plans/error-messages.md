@@ -87,6 +87,14 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_error_population_cell_not_in_data` | `poststratify()` | A `population` cell has no observations in `data` |
 | `surveywts_error_empty_stratum` | `poststratify()` | A stratum cell has zero weighted count |
 
+### `ipw()`
+
+| Class | Thrown by | Condition |
+|-------|-----------|-----------|
+| `surveywts_error_reference_not_survey_design` | `ipw()` | `reference` is neither `survey_taylor` nor `survey_replicate` |
+| ~~`surveywts_error_svydesign_not_taylor`~~ | ~~`ipw()`~~ | **RETIRED** — replaced by `surveywts_error_reference_not_survey_design`; the old class required a `survey_taylor` specifically; the new class covers any non-survey-design input, allowing `survey_replicate` as a valid reference |
+| `surveywts_error_reference_weights_nonpositive` | `ipw()` | Main weight column of `reference` contains values ≤ 0 |
+
 ### `adjust_nonresponse()`
 
 | Class | Thrown by | Condition |

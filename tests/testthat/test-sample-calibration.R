@@ -3071,7 +3071,7 @@ test_that(
   "calibrate_to_survey() a_r[r] == sqrt(A_C/A) for r <= R_C, 0 for r > R_C",
   {
     # primary R=60 (need to create this), control R=50 -> a_r[51..60] = 0
-    # Use acs_wy_2022_svy which has R=80, then create smaller controls
+    # Use custom designs with differing R counts instead of package data
     # Actually make a custom design with R=60 via bootstrap
     df60 <- make_surveywts_data(n = 100L, seed = 42L)
     t60  <- surveycore::survey_taylor(

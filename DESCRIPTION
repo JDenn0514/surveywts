@@ -29,6 +29,7 @@ Depends:
 Imports:
     cli (>= 3.6.0),
     dplyr (>= 1.1.0),
+    nleqslv (>= 3.3.2),
     rlang (>= 1.1.0),
     S7 (>= 0.2.0),
     survey (>= 4.2-1),

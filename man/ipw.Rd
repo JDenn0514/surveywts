@@ -12,7 +12,7 @@ ipw(
   missing_method = c("omit", "separate", "impute"),
   mice_args = list(),
   method = "logit",
-  estimating_eq = c("mle", "gee"),
+  estimating_eq = c("gee", "mle"),
   maxit = 25L,
   epsilon = 1e-08,
   adjust_reference = TRUE,
@@ -25,17 +25,9 @@ ipw(
 \item{data}{A \code{data.frame} containing the non-probability sample.}
 
 \item{reference}{A \code{survey_taylor} object representing the probability-based
-reference sample. Must have strictly positive design weights. The reference
-sample must itself represent the target population without material coverage
-or nonresponse bias — design weights alone do not correct for an internally
-biased reference survey. Elliott & Valliant (2017) recommend using large,
-well-controlled probability surveys (e.g., government-conducted household
-surveys) as the reference; a biased reference will produce biased propensity
-estimates regardless of model specification. Shared covariates must be
-measured with the same question wording, response options, and measurement
-period in both samples — category differences (e.g., 4-point vs. 5-point
-scales) produce spurious covariate imbalance that the propensity model
-cannot correct (Valliant, 2020).}
+reference sample. Must have strictly positive design weights. See the
+\strong{Limitations} section for guidance on reference sample quality and
+covariate measurement requirements.}
 
 \item{selection}{A one-sided formula (e.g., \code{~ age + sex}) specifying
 the covariates used to model participation propensity. Exactly one of
@@ -46,32 +38,9 @@ the covariates used to model participation propensity. Exactly one of
 of \code{selection} and \code{predictors} must be supplied. Suitable for
 programmatic use (e.g., \code{lapply()}).}
 
-\item{missing_method}{How to handle \code{NA} values in \code{selection} variables in
-\code{data}. One of:
-\describe{
-\item{\code{"omit"} (default)}{Rows with any NA in a selection variable are
-dropped before fitting and excluded from \verb{@data}; a warning reports
-the count and which variables.}
-\item{\code{"separate"}}{NA values in \strong{factor and character} selection
-variables are recoded to an explicit \code{"(Missing)"} baseline category
-so those units still enter the propensity model and receive weights.
-\strong{Numeric selection variables with NA values are not supported} —
-\code{ipw()} errors with \code{surveywts_error_separate_numeric_na}. Convert
-the variable to a factor (e.g. with \code{cut()}) or use
-\code{missing_method = "impute"} instead.
-\strong{Caveat:} The pseudo-likelihood is fitted on complete-case NPS
-rows only; propensity scores are predicted for all rows by
-substituting \code{"(Missing)"} with the reference baseline level.
-This adaptation is not derived from the pseudo-likelihood framework
-and has no published theoretical validation. Use
-\code{missing_method = "impute"} for a more principled missing data
-approach.}
-\item{\code{"impute"}}{Missing values are imputed via a single iteration of
-predictive mean matching using \code{mice::mice()} (requires the \code{mice}
-package). All NPS units receive weights.}
-}
-Regardless of \code{missing_method}, NA values in \code{reference@data} selection
-variables are always handled by listwise deletion with a warning.}
+\item{missing_method}{\code{"omit"} (the default), \code{"separate"}, or \code{"impute"}.
+Controls how \code{NA} values in \code{selection} variables in \code{data} are handled.
+See the \strong{Missing Data} section for full documentation of each option.}
 
 \item{mice_args}{Named list of additional arguments forwarded to
 \code{mice::mice()} when \code{missing_method = "impute"}. The argument \code{m} is
@@ -79,43 +48,33 @@ fixed at \code{1} and cannot be overridden — attempting to do so triggers
 \code{surveywts_warning_ipw_mice_m_ignored}. Ignored when \code{missing_method} is
 not \code{"impute"}.}
 
-\item{method}{Link function for the propensity model. One of \code{"logit"}
-(default), \code{"probit"}, or \code{"cloglog"}. Partial matching is supported.
-Asymptotic consistency and normality results in the cited literature
-(Chen, Li & Wu, 2020; Beresewicz et al., 2025) are derived specifically
-for logistic regression. \code{"probit"} and \code{"cloglog"} are computationally
-valid alternatives but have weaker formal backing in the pseudo-likelihood
-framework for non-probability samples.}
+\item{method}{\code{"logit"} (the default), \code{"probit"}, or \code{"cloglog"}. Link
+function for the propensity model. Partial matching is supported.}
 
-\item{estimating_eq}{Estimating equation for the propensity model. One of
-\code{"mle"} (default) or \code{"gee"}. Partial matching is supported.
+\item{estimating_eq}{\code{"gee"} (the default) or \code{"mle"}. Estimating equation
+for the propensity model. Partial matching is supported.
 \itemize{
-\item \code{"mle"} uses the pseudo-likelihood score equation
-(Chen, Li & Wu, 2020; Beresewicz et al., 2025, eq. 3.1). Weights
-reproduce the reference-weighted covariate totals in expectation
-but not exactly.
-\item \code{"gee"} uses the calibration estimating equations
-(Beresewicz et al., 2025, eq. 3.3). At convergence, the weighted
-NPS covariate totals exactly reproduce the reference-weighted
-totals: \code{sum(w_k * x_k) = sum(d_k * x_k)}. When
-\code{adjust_reference = TRUE} and \code{nps_fraction > 0.05}, the
-calibration target is the Valliant-adjusted reference totals
-\code{sum(adjust_factor * d_k * x_k)} (where
-\code{adjust_factor = 1 - nps_fraction}), not the original
-design-weight totals. This covariate balance guarantee makes
-\code{"gee"} the building block for doubly robust estimation.
-When \code{missing_method = "separate"}, the guarantee applies only
-to complete-case NPS rows.
-}
+\item \code{"gee"} uses calibration estimating equations that guarantee
+\eqn{\sum_k w_k x_k = \sum_k d_k x_k} at convergence, where \eqn{w_k}
+are the IPW weights, \eqn{d_k} are reference design weights, and
+\eqn{x_k} are the covariate values. When \code{adjust_reference = TRUE} and
+\code{nps_fraction > 0.05}, the calibration target uses Valliant-adjusted
+reference totals. When \code{missing_method = "separate"}, the guarantee
+applies to complete-case NPS rows only.
+\item \code{"mle"} uses the pseudo-likelihood score equation. Weights reproduce
+the reference-weighted covariate totals in expectation but not exactly.
+}}
 
-Beresewicz et al. (2025) show GEE-based methods generally outperform
-MLE in simulation. For most applications \code{"gee"} is preferred.}
+\item{maxit}{Maximum iterations for the propensity solver. For MLE, the
+maximum number of Newton-Raphson steps. For GEE, passed as
+\code{control$maxit} to \code{nleqslv::nleqslv()} (controls the solver's internal
+iteration budget). Must be >= 1. Default \code{25L}.}
 
-\item{maxit}{Maximum number of Newton-Raphson iterations. Must be >= 1.
-Default \code{25L}.}
-
-\item{epsilon}{Convergence threshold on the maximum absolute step size.
-Must be > 0. Default \code{1e-8}.}
+\item{epsilon}{Convergence threshold. For MLE, applied to the maximum
+absolute Newton-Raphson step size. For GEE, passed as both \code{xtol} and
+\code{ftol} to \code{nleqslv::nleqslv()}; convergence is declared when either the
+step-size criterion or the score-norm criterion is satisfied. Must be > 0.
+Default \code{1e-8}.}
 
 \item{adjust_reference}{Logical (default \code{TRUE}). Whether to apply Valliant
 (2020) Eq. (1) reference weight adjustment when the NPS is a non-negligible
@@ -134,15 +93,10 @@ correction is inappropriate.}
 \item{population_size}{Optional positive numeric scalar. If the population
 size N is known from a census or frame, supply it here. When provided,
 \code{estimated_population_size} in the history entry records this known value
-and \code{population_size_known} is set to \code{TRUE}. This value is stored for
-reference only and does not affect the returned weights or any downstream
-\code{svymean()} call (which always uses the Hájek/IPW2 estimator). To compute
-an IPW1-style mean manually: \code{sum(result@data[[wt_name]] * y) / population_size}. When \code{NULL} (default), \code{population_size_known = FALSE}
-and the self-normalizing estimate \code{N_hat = sum(1 / pi_hat)} is recorded
-(IPW2/Hájek). If \code{population_size < nrow(data)}, the recorded value will
-be smaller than the sample size — this indicates a user error (N < n is
-impossible). Verify that \code{population_size} is the total population count N,
-not a subsample or domain size.}
+and \code{population_size_known} is set to \code{TRUE}. When \code{NULL} (default),
+\code{population_size_known = FALSE} and the self-normalizing estimate
+\code{N_hat = sum(1 / pi_hat)} is recorded (IPW2/Hájek). This value is stored
+for reference only and does not affect the returned weights.}
 
 \item{wt_name}{Name for the output weight column in \verb{@data}. Must be a
 non-empty character scalar that does not already exist in \code{data}.
@@ -153,21 +107,20 @@ A \code{survey_nonprob} object. The \verb{@data} slot contains all original
 columns from \code{data} plus a new column named \code{wt_name} holding the
 (possibly trimmed) IPW weights. When \code{missing_method = "omit"}, rows with
 NA in any selection variable are excluded from \verb{@data}. The
-\verb{@reference_sample} slot holds the supplied \code{reference} design. A history
-entry is appended to \verb{@metadata@weighting_history}.
+\verb{@reference_sample} slot holds the supplied \code{reference} design. A new
+entry with \code{operation = "ipw"} is appended to the weighting history. The
+\code{estimated_population_size} field in the history entry always equals
+\code{sum(w)} before trimming, regardless of \code{trim}.
 }
 \description{
 Constructs inverse probability weights for a non-probability sample (NPS)
 by estimating participation propensity via pseudo-likelihood logistic
 regression. The weights adjust for selection bias by upweighting NPS units
 that are underrepresented relative to a probability-based reference sample.
+Routes to the MLE Newton-Raphson path or the GEE calibration path based on
+\code{estimating_eq}; see the \strong{Algorithm} section for method details.
 }
 \details{
-\strong{Newton-Raphson non-convergence:} If the algorithm does not converge
-within \code{maxit} iterations, a \code{surveywts_warning_propensity_nr_no_convergence}
-warning is issued and the result from the last iteration is returned.
-Inspect the data for extreme covariate imbalance or increase \code{maxit}.
-
 \strong{Variance estimation — refit required:} Naive variance estimates from
 the returned \code{survey_nonprob} object treat the propensity scores as fixed
 and underestimate variance. Correct variance estimation requires a
@@ -232,23 +185,6 @@ misspecification. The weights returned by \code{ipw()} are the propensity
 component of such a DR pipeline; the outcome regression step is planned
 for a future release.
 
-\strong{Sensitivity to propensity model misspecification:} IPW estimates can be
-severely biased when selection is nonlinear and the \code{selection} formula does
-not capture this nonlinearity. Chen, Li & Wu (2020, Table 1) demonstrate
-~25\% relative bias under a misspecified propensity model even when the
-correct variables are included. Beresewicz et al. (2025) show RMSE
-increases of 30x or more under nonlinear selection. To mitigate this risk:
-add interaction or polynomial terms to \code{selection} if nonlinear selection
-is suspected; follow \code{ipw()} with a doubly robust step; or use
-\code{diagnose_propensity()} (planned) to assess covariate balance.
-
-\strong{High-dimensional selection:} For large covariate vectors, Elliott &
-Valliant (2017) recommend regularized alternatives such as LASSO-penalized
-logistic regression, BART, or super learner. \code{ipw()} uses Newton-Raphson
-on the full unpenalized model and may overfit in high-dimensional settings.
-In such cases, fit the propensity model externally, extract predicted
-probabilities, and use them directly.
-
 \strong{Quantile balancing approximation:} Beresewicz et al. (2025) show that
 augmenting the propensity model with quantile-indicator variables for
 continuous covariates substantially reduces bias under nonlinear selection
@@ -266,39 +202,120 @@ ipw(nps, ref, selection = ~age_q + sex)
 Native QBIPW support (Beresewicz et al., 2025, eqs. 4.1--4.2) is planned
 for a future release.
 }
-\note{
+\section{Algorithm}{
+
+
+\strong{MLE} — pseudo-likelihood score equation (Chen, Li & Wu, 2020;
+Beresewicz et al., 2025, eq. 3.1):
+
+\deqn{U_{MLE}(\gamma) = \sum_{k \in NPS} x_k - \sum_{k \in ref} d_k \pi_k(\gamma) x_k = 0}
+
+where \eqn{\pi_k(\gamma) = \text{link}^{-1}(x_k^\top \gamma)} is the
+propensity score under link function \code{method}. The system is solved by
+Newton-Raphson with step \eqn{\gamma_{t+1} = \gamma_t - H^{-1} U}, where
+\eqn{H = -X_{ref}^\top \text{diag}(d \pi(1-\pi)) X_{ref}} is the Hessian.
+IPW weights are \eqn{w_k = 1 / \pi_k(\hat\gamma)} — the reciprocal of the
+estimated participation propensity. At convergence, the weighted NPS
+covariate totals match the reference totals in expectation.
+
+\strong{GEE} — calibration estimating equations (Beresewicz et al., 2025,
+eq. 3.3):
+
+\deqn{U_{GEE}(\gamma) = \sum_{k \in NPS} \frac{x_k}{\pi_k(\gamma)} - \sum_{k \in ref} d_k x_k = 0}
+
+At convergence, this guarantees exact covariate balance:
+\eqn{\sum_k w_k x_k = \sum_k d_k x_k}. The system is solved by
+\code{nleqslv::nleqslv()} with the analytical Jacobian
+\eqn{J(\gamma) = -X_{NPS}^\top \text{diag}((1-\pi)/\pi) X_{NPS}} and
+Newton method with double-dogleg global strategy. Convergence is declared
+when the nleqslv termination code is 1 (function criterion near zero) or
+2 (step criterion near zero). IPW weights are \eqn{w_k = 1 / \pi_k(\hat\gamma)}.
+}
+
+\section{Convergence}{
+
+
+\strong{MLE:} Convergence is declared when
+\eqn{\max_j |\delta_j| < \epsilon}, where \eqn{\delta} is the Newton-Raphson
+step vector. If the MLE algorithm does not converge within \code{maxit}
+iterations, a warning is issued with class
+\code{surveywts_warning_propensity_nr_no_convergence} and the result from the
+last iteration is returned. The convergence diagnostic reported in the
+warning message is \code{max(abs(delta))}.
+
+\strong{GEE:} Convergence is delegated to \code{nleqslv::nleqslv()}. Convergence
+is declared when nleqslv returns termination code 1 (function-norm
+criterion satisfied) or 2 (step-size criterion satisfied). Both criteria
+use the \code{epsilon} threshold. If the GEE solver does not converge
+(\code{termcd >= 3}), the same \code{surveywts_warning_propensity_nr_no_convergence}
+warning is issued and scores from the last iterate are returned. The
+convergence diagnostic reported in the warning message is
+\code{max(abs(fvec))}, the maximum absolute score residual at the final
+iterate.
+}
+
+\section{Missing Data}{
+
+
+\strong{Reference sample:} NA values in \code{reference@data} selection variables
+are always handled by listwise deletion. Rows with any NA in a selection
+variable are dropped before fitting, and a warning reports the count and
+which variables.
+
+\strong{NPS sample} (\code{missing_method} controls):
+\itemize{
+\item \code{"omit"} (default): Rows with any NA in a selection variable are dropped
+before fitting and excluded from \verb{@data}. A warning reports the count
+and which variables.
+\item \code{"separate"}: NA values in \strong{factor and character} selection variables
+are recoded to an explicit \code{"(Missing)"} baseline category so those units
+still enter the propensity model and receive weights. Numeric selection
+variables with NA are not supported — \code{ipw()} errors with
+\code{surveywts_error_separate_numeric_na}; convert to a factor (e.g., with
+\code{cut()}) or use \code{"impute"} instead. The propensity model is fitted on
+complete-case NPS rows only; scores are predicted for all rows by
+substituting \code{"(Missing)"} with the reference baseline level. This
+adaptation has no published theoretical validation; use \code{"impute"} for
+a more principled approach.
+\item \code{"impute"}: Missing values are imputed via a single iteration of
+predictive mean matching using \code{mice::mice()} (requires the \code{mice}
+package). All NPS units receive weights.
+}
+}
+
+\section{Limitations}{
+
+
+\strong{Reference sample quality:} The reference sample must represent the
+target population without material coverage or nonresponse bias — design
+weights alone do not correct for an internally biased reference survey.
+Elliott & Valliant (2017) recommend using large, well-controlled
+probability surveys (e.g., government-conducted household surveys) as the
+reference; a biased reference will produce biased propensity estimates
+regardless of model specification.
+
+\strong{Covariate measurement:} Shared covariates must be measured with the
+same question wording, response options, and measurement period in both
+samples — category differences (e.g., 4-point vs. 5-point scales) produce
+spurious covariate imbalance that the propensity model cannot correct
+(Valliant, 2020).
+
 \strong{Missing at random (MAR) assumption:} \code{ipw()} is consistent only if NPS
 participation is independent of the outcome variable given the observed
-covariates in \code{selection} — formally, P(I_NPS = 1 | X, Y) = P(I_NPS = 1 |
-X). This is called "missing at random" (MAR) or "non-informative sampling"
-in the survey statistics literature (Chen, Li & Wu, 2020, Assumption A1;
-Valliant, 2020). It is not testable from observed data. If participation
-depends on Y even after conditioning on X (not missing at random, NMAR),
-IPW weights will be biased regardless of model quality. Common causes of
-NMAR in opt-in panels include self-selection on health, income, or political
-engagement when those outcomes are also the study variables.
+covariates in \code{selection} — formally,
+\eqn{P(I_{NPS} = 1 | X, Y) = P(I_{NPS} = 1 | X)}. This is called MAR or
+"non-informative sampling" (Chen, Li & Wu, 2020, Assumption A1; Valliant,
+2020). It is not testable from observed data.
 
 \strong{Common support:} IPW requires that every covariate combination observed
-in the NPS is also present in the reference. If not, scores approach 1 and
-weights become uninformative.
-
-\strong{Variance under-estimation:} Naive variance estimates from the resulting
-\code{survey_nonprob} object do not account for the uncertainty in the estimated
-propensity scores. Bootstrap variance estimation is recommended.
-
-\strong{Weight interpretation:} The IPW weight for unit \code{i} is
-\verb{w_i = 1 / P(in NPS | x_i)}. The sum of weights estimates the population
-size (\code{N_hat} in the history entry reflects the pre-trim total).
-
-\strong{Pre-trim population size:} \code{estimated_population_size} in the history
-entry always equals \code{sum(w)} before trimming, regardless of \code{trim}.
+in the NPS is also present in the reference. If not, scores approach 1
+and weights become uninformative.
 
 \strong{Independence of participation:} The pseudo-likelihood assumes NPS
 participation decisions are independent across units given the covariates
-in \code{selection} (Chen, Li & Wu, 2020, Assumption A3). This assumption fails
-when NPS units are clustered — for example, household panels where multiple
-family members participate together, or snowball-recruited samples. In
-clustered NPS settings the propensity model should include cluster-level
+in \code{selection} (Chen, Li & Wu, 2020, Assumption A3). This assumption
+fails when NPS units are clustered (household panels, snowball recruitment).
+In clustered NPS settings the propensity model should include cluster-level
 covariates, and variance estimation should use cluster-aware resampling.
 
 \strong{Non-overlapping samples:} The pseudo-likelihood codes NPS units as
@@ -306,11 +323,39 @@ members (1) and reference units as non-members (0). If the same individual
 appears in both \code{data} and \code{reference}, the coding is inconsistent and
 propensity estimates will be biased. Remove any units present in both
 samples from \code{reference} before calling \code{ipw()} (Valliant, 2020, §2.1.2).
+
+\strong{Sensitivity to propensity model misspecification:} IPW estimates can be
+severely biased when selection is nonlinear and the \code{selection} formula
+does not capture this nonlinearity. Chen, Li & Wu (2020, Table 1)
+demonstrate ~25\% relative bias under a misspecified propensity model even
+when the correct variables are included. Beresewicz et al. (2025) show
+RMSE increases of 30x or more under nonlinear selection. To mitigate this
+risk: add interaction or polynomial terms to \code{selection} if nonlinear
+selection is suspected; follow \code{ipw()} with a doubly robust step; or use
+\code{diagnose_propensity()} (planned) to assess covariate balance.
+
+\strong{High-dimensional selection:} For large covariate vectors, Elliott &
+Valliant (2017) recommend regularized alternatives such as LASSO-penalized
+logistic regression, BART, or super learner. \code{ipw()} uses an unpenalized
+propensity model and may overfit in high-dimensional settings. In such
+cases, fit the propensity model externally, extract predicted
+probabilities, and use them directly.
 }
+
+\section{Warnings}{
+
+
+A convergence warning is issued when the propensity solver does not reach
+the \code{epsilon} threshold within \code{maxit} iterations. The warning reports a
+convergence diagnostic and suggests increasing \code{maxit}, relaxing \code{epsilon},
+or checking for extreme covariate imbalance. Scores from the last iterate
+are returned; inspect them before use.
+}
+
 \examples{
 data(ns_wave1)
 
-# --- GSS 2024 as probability reference ---
+# --- GSS 2024 as probability reference --------------------------------
 # Construct a Taylor reference design from the gss_2024 tibble using wt_pop.
 data(gss_2024)
 gss_ref <- surveycore::as_survey(
@@ -331,7 +376,7 @@ result2 <- ipw(
 effective_sample_size(result1)
 weight_variability(result1)
 
-# --- ACS PUMS Wyoming as probability reference ---
+# --- ACS PUMS Wyoming as probability reference ------------------------
 # acs_wy_2022_svy is survey_replicate; ipw() needs survey_taylor.
 # Construct a plain Taylor design from the tibble.
 data(acs_wy_2022)
@@ -343,7 +388,7 @@ result_acs <- ipw(
   missing_method = "omit"
 )
 
-# --- Pew NPORS 2025 as probability reference ---
+# --- Pew NPORS 2025 as probability reference --------------------------
 # ns_wave1 has ~120 NA values in race_f4; missing_method controls handling.
 # Use npors_2025_clean to avoid reference-NA listwise-deletion warnings.
 data(npors_2025_clean)
@@ -375,11 +420,10 @@ if (requireNamespace("mice", quietly = TRUE)) {
   )
 }
 
-# --- GEE estimating equation ---
-# GEE guarantees sum(w * x) = sum(d * x) at convergence;
-# generally preferred over the default MLE when covariate balance matters.
-# GEE converges best when NPS and reference are similar in size;
-# use balanced synthetic data here to illustrate the API.
+# --- GEE estimating equation ------------------------------------------
+# GEE guarantees sum(w * x) = sum(d * x) at convergence and is the
+# default. The example below uses population-scale reference weights
+# to show GEE convergence with realistic survey data scales.
 set.seed(42L)
 nps_gee <- data.frame(
   age_group = sample(c("18-34", "35-54", "55+"), 200L, replace = TRUE),
@@ -400,15 +444,13 @@ ref_gee <- surveycore::survey_taylor(
 result_gee <- ipw(
   nps_gee,
   ref_gee,
-  selection      = ~age_group + sex,
-  estimating_eq  = "gee",
+  selection        = ~age_group + sex,
+  estimating_eq    = "gee",
   adjust_reference = FALSE
 )
 
-# --- Known population size ---
+# --- Known population size --------------------------------------------
 # Supply N from a census frame to record it in the history entry.
-# The returned weights are unchanged; N enables manual IPW1 means:
-#   sum(result@data[["ipw_weight"]] * y) / population_size
 result_known_n <- ipw(
   ns_wave1,
   gss_ref,

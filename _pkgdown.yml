@@ -45,6 +45,7 @@ reference:
   - title: ~
     subtitle: Probability reference surveys
     contents:
+      - cps_2023
       - gss_2024
       - npors_2025
       - npors_2025_clean

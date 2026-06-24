@@ -227,7 +227,8 @@
 # ipw() errors when propensity scores are degenerate (score >= 1)
 
     Code
-      suppressWarnings(ipw(nps_degen, ref_degen, selection = ~cat_var, maxit = 500L))
+      suppressWarnings(ipw(nps_degen, ref_degen, selection = ~cat_var, maxit = 500L,
+        estimating_eq = "mle"))
     Condition
       Error in `ipw()`:
       x 200 propensity score(s) saturate at the floating-point boundary of (0, 1).
@@ -238,7 +239,7 @@
 
     Code
       suppressWarnings(ipw(nps_coll, ref_coll, selection = ~ x1 + x2,
-      adjust_reference = FALSE))
+      adjust_reference = FALSE, estimating_eq = "mle"))
     Condition
       Error in `value[[3L]]()`:
       x Propensity Hessian is singular: Lapack routine dgesv: system is exactly singular: U[3,3] = 0
@@ -332,17 +333,34 @@
 # numeric covariate range extrapolation warns (Rule 8b)
 
     Code
-      expect_warning(ipw(nps_with_wide_age, ref_narrow_age, selection = ~ age + sex),
-      class = "surveywts_warning_ipw_covariate_range_extrapolation")
+      expect_warning(ipw(nps_with_wide_age, ref_narrow_age, selection = ~ age + sex,
+      estimating_eq = "mle"), class = "surveywts_warning_ipw_covariate_range_extrapolation")
 
 # reference factor levels absent from NPS warns (Rule 8c)
 
     Code
-      expect_warning(ipw(nps_no_other, ref_with_other, selection = ~ age_group + sex),
-      class = "surveywts_warning_ipw_reference_levels_absent_from_nps")
+      expect_warning(ipw(nps_no_other, ref_with_other, selection = ~ age_group + sex,
+      estimating_eq = "mle"), class = "surveywts_warning_ipw_reference_levels_absent_from_nps")
     Condition
       Warning:
-      ! Newton-Raphson did not converge after 25 iterations (max |delta| = 1).
+      ! Propensity solver did not converge after 25 iterations (convergence diagnostic = 1).
       i Propensity scores from the last iteration are returned.
       v Increase `maxit`, relax `epsilon`, or check for extreme covariate imbalance between `data` and `reference`.
+
+# ipw() GEE non-convergence warning snapshot (AC-4)
+
+    Code
+      expect_warning(ipw(nps_df, ref_big, selection = ~ age_group + sex,
+      estimating_eq = "gee", maxit = 1L), class = "surveywts_warning_propensity_nr_no_convergence")
+
+# ipw() GEE still errors when NPS level is absent from reference (AC-5)
+
+    Code
+      ipw(nps_missing_level, ref_no_65plus, selection = ~ age_group + sex,
+      estimating_eq = "gee")
+    Condition
+      Error in `ipw()`:
+      x Level "65+" of variable age_group is present in `data` but not in `reference`.
+      i Propensity estimation requires all NPS covariate levels to appear in the reference design.
+      v Remove NPS rows with age_group = "65+", or add reference units with that level.
 

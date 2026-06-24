@@ -279,6 +279,7 @@ make_dagjk_datasets <- function() {
     data             = nps_df,
     reference        = ref,
     selection        = ~age_group + sex,
+    estimating_eq    = "mle",
     adjust_reference = FALSE
   ))
 
@@ -286,6 +287,7 @@ make_dagjk_datasets <- function() {
     data             = nps_df,
     reference        = ref,
     selection        = ~age_group + sex,
+    estimating_eq    = "mle",
     adjust_reference = FALSE
   ))
   B <- surveywts::calibrate_rake(
@@ -301,6 +303,7 @@ make_dagjk_datasets <- function() {
     data             = nps_df,
     reference        = ref,
     selection        = ~age_group + sex,
+    estimating_eq    = "mle",
     adjust_reference = FALSE
   ))
 
@@ -308,6 +311,7 @@ make_dagjk_datasets <- function() {
     data             = nps_df,
     reference        = ref,
     selection        = ~age_group + sex,
+    estimating_eq    = "mle",
     adjust_reference = FALSE
   ))
   D <- surveywts::calibrate_rake(
@@ -324,6 +328,7 @@ make_dagjk_datasets <- function() {
     data             = nps_df,
     reference        = ref,
     selection        = ~age_group + sex,
+    estimating_eq    = "mle",
     adjust_reference = FALSE
   ))
   targets_e <- list(
@@ -344,6 +349,7 @@ make_dagjk_datasets <- function() {
     data             = nps_df,
     reference        = ref,
     selection        = ~age_group + sex,
+    estimating_eq    = "mle",
     adjust_reference = FALSE
   ))
   targets_f <- list(

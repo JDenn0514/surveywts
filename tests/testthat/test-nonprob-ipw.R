@@ -239,9 +239,11 @@ test_that("ipw() weights match manual Newton-Raphson at tolerance 1e-10", {
   nps <- .make_ipw_nps(seed = 7L)
   ref <- .make_ipw_ref(seed = 77L)
 
+  # MLE-specific test: compare to manual Newton-Raphson.
   # Use adjust_reference = FALSE so that manual NR (without adjustment) matches.
   result <- suppressWarnings(
-    ipw(nps, ref, selection = ~age_group + sex, adjust_reference = FALSE)
+    ipw(nps, ref, selection = ~age_group + sex, adjust_reference = FALSE,
+        estimating_eq = "mle")
   )
 
   # Manual NR computation — must align factor levels to reference (same as ipw())
@@ -280,10 +282,10 @@ test_that("ipw() estimates match nonprobsvy at tolerance 1e-6 [numerical cross-v
   nps <- .make_ipw_nps(seed = 5L)
   ref <- .make_ipw_ref(seed = 55L)
 
-  # nonprobsvy does not apply the Valliant reference weight adjustment;
-  # use adjust_reference = FALSE to make the comparison valid.
+  # nonprobsvy uses MLE; adjust_reference = FALSE to make the comparison valid.
   result <- suppressWarnings(
-    ipw(nps, ref, selection = ~age_group + sex, adjust_reference = FALSE)
+    ipw(nps, ref, selection = ~age_group + sex, adjust_reference = FALSE,
+        estimating_eq = "mle")
   )
 
   # Use HT total / N_ref to match nonprobsvy's estimator (divides by sum of
@@ -634,14 +636,16 @@ test_that("ipw() errors when propensity scores are degenerate (score >= 1)", {
 
   expect_error(
     suppressWarnings(
-      ipw(nps_degen, ref_degen, selection = ~cat_var, maxit = 500L)
+      ipw(nps_degen, ref_degen, selection = ~cat_var, maxit = 500L,
+          estimating_eq = "mle")
     ),
     class = "surveywts_error_propensity_scores_degenerate"
   )
   expect_snapshot(
     error = TRUE,
     suppressWarnings(
-      ipw(nps_degen, ref_degen, selection = ~cat_var, maxit = 500L)
+      ipw(nps_degen, ref_degen, selection = ~cat_var, maxit = 500L,
+          estimating_eq = "mle")
     )
   )
 })
@@ -669,14 +673,16 @@ test_that("ipw() errors when Hessian is singular (collinear covariates)", {
 
   expect_error(
     suppressWarnings(
-      ipw(nps_coll, ref_coll, selection = ~x1 + x2, adjust_reference = FALSE)
+      ipw(nps_coll, ref_coll, selection = ~x1 + x2, adjust_reference = FALSE,
+          estimating_eq = "mle")
     ),
     class = "surveywts_error_propensity_hessian_singular"
   )
   expect_snapshot(
     error = TRUE,
     suppressWarnings(
-      ipw(nps_coll, ref_coll, selection = ~x1 + x2, adjust_reference = FALSE)
+      ipw(nps_coll, ref_coll, selection = ~x1 + x2, adjust_reference = FALSE,
+          estimating_eq = "mle")
     )
   )
 })
@@ -1380,12 +1386,14 @@ test_that("numeric covariate range extrapolation warns (Rule 8b)", {
   )
 
   expect_warning(
-    result <- ipw(nps_with_wide_age, ref_narrow_age, selection = ~age + sex),
+    result <- ipw(nps_with_wide_age, ref_narrow_age, selection = ~age + sex,
+                  estimating_eq = "mle"),
     class = "surveywts_warning_ipw_covariate_range_extrapolation"
   )
   expect_snapshot(
     expect_warning(
-      ipw(nps_with_wide_age, ref_narrow_age, selection = ~age + sex),
+      ipw(nps_with_wide_age, ref_narrow_age, selection = ~age + sex,
+          estimating_eq = "mle"),
       class = "surveywts_warning_ipw_covariate_range_extrapolation"
     )
   )
@@ -1449,12 +1457,14 @@ test_that("reference factor levels absent from NPS warns (Rule 8c)", {
   )
 
   expect_warning(
-    result <- ipw(nps_no_other, ref_with_other, selection = ~age_group + sex),
+    result <- ipw(nps_no_other, ref_with_other, selection = ~age_group + sex,
+                  estimating_eq = "mle"),
     class = "surveywts_warning_ipw_reference_levels_absent_from_nps"
   )
   expect_snapshot(
     expect_warning(
-      ipw(nps_no_other, ref_with_other, selection = ~age_group + sex),
+      ipw(nps_no_other, ref_with_other, selection = ~age_group + sex,
+          estimating_eq = "mle"),
       class = "surveywts_warning_ipw_reference_levels_absent_from_nps"
     )
   )
@@ -1751,12 +1761,12 @@ test_that(
 )
 
 test_that(
-  "GEE saturation guard triggers surveywts_error_propensity_scores_degenerate (H-6 block 5)",
+  "MLE saturation guard triggers surveywts_error_propensity_scores_degenerate (H-6 block 5)",
   {
-    # NPS has 50% F but reference has only 0.1% F — the GEE score pushes
-    # pi(F) → 0 (F is severely over-represented in NPS vs reference). This
-    # causes the NR to diverge, failing to converge, and the final scores
-    # saturate at the float boundary, triggering the degenerate-scores error.
+    # NPS has 50% F but reference has only 0.1% F — the MLE NR diverges
+    # and final scores saturate at the float boundary, triggering the error.
+    # This tests the MLE path saturation guard (GEE uses nleqslv which does
+    # not diverge in the same way; MLE NR is the path where scores saturate).
     set.seed(1L)
     nps_df <- data.frame(
       sex         = c(rep("M", 50L), rep("F", 50L)),
@@ -1780,7 +1790,7 @@ test_that(
           nps_df,
           ref_design,
           selection        = ~sex,
-          estimating_eq    = "gee",
+          estimating_eq    = "mle",
           adjust_reference = FALSE
         )
       ),
@@ -1889,3 +1899,362 @@ test_that(
     )
   }
 )
+
+# ---------------------------------------------------------------------------
+# GEE nleqslv rewrite — Acceptance criteria tests
+# ---------------------------------------------------------------------------
+# All blocks use inline synthetic data (no package datasets).
+# No skip_if_not_installed("nleqslv") — nleqslv is in Imports.
+
+test_that("ipw() GEE converges with population-scale reference weights (AC-1)", {
+  set.seed(42L)
+  ref_df <- data.frame(
+    age_group   = sample(c("18-34", "35-54", "55+"), 500L, replace = TRUE,
+                         prob = c(0.3, 0.4, 0.3)),
+    sex         = sample(c("M", "F"), 500L, replace = TRUE),
+    base_weight = rep(2000, 500L),
+    stringsAsFactors = FALSE
+  )
+  ref_big <- surveycore::survey_taylor(
+    ref_df,
+    variables = list(weights = "base_weight")
+  )
+  nps_df <- data.frame(
+    age_group = sample(c("18-34", "35-54", "55+"), 100L, replace = TRUE),
+    sex       = sample(c("M", "F"), 100L, replace = TRUE),
+    stringsAsFactors = FALSE
+  )
+
+  result <- ipw(
+    nps_df,
+    ref_big,
+    selection     = ~age_group + sex,
+    estimating_eq = "gee"
+  )
+
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+})
+
+test_that("ipw() GEE satisfies calibration constraint at convergence (AC-2)", {
+  set.seed(42L)
+  ref_df <- data.frame(
+    age_group   = sample(c("18-34", "35-54", "55+"), 500L, replace = TRUE,
+                         prob = c(0.3, 0.4, 0.3)),
+    sex         = sample(c("M", "F"), 500L, replace = TRUE),
+    base_weight = rep(2000, 500L),
+    stringsAsFactors = FALSE
+  )
+  ref_big <- surveycore::survey_taylor(
+    ref_df,
+    variables = list(weights = "base_weight")
+  )
+  nps_df <- data.frame(
+    age_group = sample(c("18-34", "35-54", "55+"), 100L, replace = TRUE),
+    sex       = sample(c("M", "F"), 100L, replace = TRUE),
+    stringsAsFactors = FALSE
+  )
+
+  result <- ipw(
+    nps_df,
+    ref_big,
+    selection     = ~age_group + sex,
+    estimating_eq = "gee"
+  )
+
+  test_invariants(result)
+  w   <- result@data[["ipw_weight"]]
+  sel <- ~age_group + sex
+
+  # Align factor levels
+  nps_fit <- result@data
+  ref_dat <- ref_big@data
+  d_ref   <- ref_dat[["base_weight"]]
+  for (v in all.vars(sel)) {
+    if (is.character(ref_dat[[v]]) || is.factor(ref_dat[[v]])) {
+      ref_lv       <- sort(unique(as.character(ref_dat[[v]][!is.na(ref_dat[[v]])])))
+      nps_fit[[v]] <- factor(as.character(nps_fit[[v]]), levels = ref_lv)
+      ref_dat[[v]] <- factor(ref_dat[[v]], levels = ref_lv)
+    }
+  }
+  X_nps <- stats::model.matrix(sel, data = nps_fit)
+  X_ref <- stats::model.matrix(sel, data = ref_dat)
+
+  nps_totals <- colSums(X_nps * w)
+  ref_totals <- colSums(X_ref * d_ref)
+
+  expect_equal(nps_totals, ref_totals, tolerance = 1e-4)
+})
+
+test_that("ipw() MLE converges with unit-scale reference weights (AC-3a)", {
+  set.seed(7L)
+  ref_unit_df <- data.frame(
+    age_group   = sample(c("18-34", "35-54", "55+"), 500L, replace = TRUE,
+                         prob = c(0.3, 0.4, 0.3)),
+    sex         = sample(c("M", "F"), 500L, replace = TRUE),
+    base_weight = 1,
+    stringsAsFactors = FALSE
+  )
+  ref_unit <- surveycore::survey_taylor(
+    ref_unit_df,
+    variables = list(weights = "base_weight")
+  )
+  nps_unit_df <- data.frame(
+    age_group = sample(c("18-34", "35-54", "55+"), 200L, replace = TRUE),
+    sex       = sample(c("M", "F"), 200L, replace = TRUE),
+    stringsAsFactors = FALSE
+  )
+
+  result <- suppressWarnings(
+    ipw(
+      nps_unit_df,
+      ref_unit,
+      selection        = ~age_group + sex,
+      estimating_eq    = "mle",
+      adjust_reference = FALSE
+    )
+  )
+
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+})
+
+test_that("ipw() MLE converges with population-scale reference weights (AC-3b)", {
+  set.seed(42L)
+  ref_df <- data.frame(
+    age_group   = sample(c("18-34", "35-54", "55+"), 500L, replace = TRUE,
+                         prob = c(0.3, 0.4, 0.3)),
+    sex         = sample(c("M", "F"), 500L, replace = TRUE),
+    base_weight = rep(2000, 500L),
+    stringsAsFactors = FALSE
+  )
+  ref_big <- surveycore::survey_taylor(
+    ref_df,
+    variables = list(weights = "base_weight")
+  )
+  nps_df <- data.frame(
+    age_group = sample(c("18-34", "35-54", "55+"), 100L, replace = TRUE),
+    sex       = sample(c("M", "F"), 100L, replace = TRUE),
+    stringsAsFactors = FALSE
+  )
+
+  result <- suppressWarnings(
+    ipw(
+      nps_df,
+      ref_big,
+      selection     = ~age_group + sex,
+      estimating_eq = "mle"
+    )
+  )
+
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+})
+
+test_that("ipw() GEE issues non-convergence warning with maxit = 1L (AC-4)", {
+  set.seed(42L)
+  ref_df <- data.frame(
+    age_group   = sample(c("18-34", "35-54", "55+"), 500L, replace = TRUE,
+                         prob = c(0.3, 0.4, 0.3)),
+    sex         = sample(c("M", "F"), 500L, replace = TRUE),
+    base_weight = rep(2000, 500L),
+    stringsAsFactors = FALSE
+  )
+  ref_big <- surveycore::survey_taylor(
+    ref_df,
+    variables = list(weights = "base_weight")
+  )
+  nps_df <- data.frame(
+    age_group = sample(c("18-34", "35-54", "55+"), 100L, replace = TRUE),
+    sex       = sample(c("M", "F"), 100L, replace = TRUE),
+    stringsAsFactors = FALSE
+  )
+
+  expect_warning(
+    result <- ipw(
+      nps_df,
+      ref_big,
+      selection     = ~age_group + sex,
+      estimating_eq = "gee",
+      maxit         = 1L
+    ),
+    class = "surveywts_warning_propensity_nr_no_convergence"
+  )
+
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+})
+
+test_that("ipw() GEE non-convergence warning snapshot (AC-4)", {
+  set.seed(42L)
+  ref_df <- data.frame(
+    age_group   = sample(c("18-34", "35-54", "55+"), 500L, replace = TRUE,
+                         prob = c(0.3, 0.4, 0.3)),
+    sex         = sample(c("M", "F"), 500L, replace = TRUE),
+    base_weight = rep(2000, 500L),
+    stringsAsFactors = FALSE
+  )
+  ref_big <- surveycore::survey_taylor(
+    ref_df,
+    variables = list(weights = "base_weight")
+  )
+  nps_df <- data.frame(
+    age_group = sample(c("18-34", "35-54", "55+"), 100L, replace = TRUE),
+    sex       = sample(c("M", "F"), 100L, replace = TRUE),
+    stringsAsFactors = FALSE
+  )
+
+  expect_snapshot(
+    expect_warning(
+      ipw(
+        nps_df,
+        ref_big,
+        selection     = ~age_group + sex,
+        estimating_eq = "gee",
+        maxit         = 1L
+      ),
+      class = "surveywts_warning_propensity_nr_no_convergence"
+    )
+  )
+})
+
+test_that("ipw() GEE still errors when NPS level is absent from reference (AC-5)", {
+  set.seed(99L)
+  nps_missing_level <- data.frame(
+    age_group = c("18-34", "35-54", "65+"),
+    sex       = c("M", "F", "M"),
+    stringsAsFactors = FALSE
+  )
+  ref_no_65plus_df <- data.frame(
+    age_group   = c("18-34", "35-54", "55+"),
+    sex         = c("M", "F", "M"),
+    base_weight = rep(2000, 3L),
+    stringsAsFactors = FALSE
+  )
+  ref_no_65plus <- surveycore::survey_taylor(
+    ref_no_65plus_df,
+    variables = list(weights = "base_weight")
+  )
+
+  expect_error(
+    ipw(
+      nps_missing_level,
+      ref_no_65plus,
+      selection     = ~age_group + sex,
+      estimating_eq = "gee"
+    ),
+    class = "surveywts_error_propensity_level_not_in_reference"
+  )
+  expect_snapshot(
+    error = TRUE,
+    ipw(
+      nps_missing_level,
+      ref_no_65plus,
+      selection     = ~age_group + sex,
+      estimating_eq = "gee"
+    )
+  )
+})
+
+test_that("ipw() GEE warns and returns valid scores on extreme imbalance (Rule 15 via nleqslv)", {
+  # GEE equation has no valid solution (pi_F would need to exceed 1).
+  # nleqslv does not diverge — it returns a non-convergence warning and
+  # scores stay in (0, 1). Rule 15 (post-fit degenerate check) does not
+  # fire because nleqslv's Newton+dbldog strategy prevents float saturation.
+  set.seed(55L)
+  nps_extreme <- data.frame(
+    sex = c(rep("M", 5L), rep("F", 50L)),
+    stringsAsFactors = FALSE
+  )
+  ref_extreme_df <- data.frame(
+    sex         = c(rep("M", 9990L), rep("F", 1L)),
+    base_weight = 1,
+    stringsAsFactors = FALSE
+  )
+  ref_extreme <- surveycore::survey_taylor(
+    ref_extreme_df,
+    variables = list(weights = "base_weight")
+  )
+
+  expect_warning(
+    result <- ipw(
+      nps_extreme,
+      ref_extreme,
+      selection        = ~sex,
+      estimating_eq    = "gee",
+      adjust_reference = FALSE
+    ),
+    class = "surveywts_warning_propensity_nr_no_convergence"
+  )
+  test_invariants(result)
+  scores <- 1 / result@data[["ipw_weight"]]
+  expect_true(all(scores > 0 & scores < 1))
+})
+
+test_that("ipw() GEE history entry records estimating_eq = 'gee' and correct propensity_scores", {
+  set.seed(42L)
+  ref_df <- data.frame(
+    age_group   = sample(c("18-34", "35-54", "55+"), 500L, replace = TRUE,
+                         prob = c(0.3, 0.4, 0.3)),
+    sex         = sample(c("M", "F"), 500L, replace = TRUE),
+    base_weight = rep(2000, 500L),
+    stringsAsFactors = FALSE
+  )
+  ref_big <- surveycore::survey_taylor(
+    ref_df,
+    variables = list(weights = "base_weight")
+  )
+  nps_df <- data.frame(
+    age_group = sample(c("18-34", "35-54", "55+"), 100L, replace = TRUE),
+    sex       = sample(c("M", "F"), 100L, replace = TRUE),
+    stringsAsFactors = FALSE
+  )
+
+  result <- ipw(
+    nps_df,
+    ref_big,
+    selection     = ~age_group + sex,
+    estimating_eq = "gee"
+  )
+
+  test_invariants(result)
+  history <- result@metadata@weighting_history
+  entry   <- history[[length(history)]]
+  expect_identical(entry$operation, "ipw")
+  expect_identical(entry$estimating_eq, "gee")
+  expect_true(is.numeric(entry$propensity_scores))
+  expect_equal(length(entry$propensity_scores), nrow(result@data))
+})
+
+test_that("ipw() GEE converges with unit-scale reference weights", {
+  set.seed(7L)
+  ref_unit_df <- data.frame(
+    age_group   = sample(c("18-34", "35-54", "55+"), 500L, replace = TRUE,
+                         prob = c(0.3, 0.4, 0.3)),
+    sex         = sample(c("M", "F"), 500L, replace = TRUE),
+    base_weight = 1,
+    stringsAsFactors = FALSE
+  )
+  ref_unit <- surveycore::survey_taylor(
+    ref_unit_df,
+    variables = list(weights = "base_weight")
+  )
+  nps_unit_df <- data.frame(
+    age_group = sample(c("18-34", "35-54", "55+"), 200L, replace = TRUE),
+    sex       = sample(c("M", "F"), 200L, replace = TRUE),
+    stringsAsFactors = FALSE
+  )
+
+  result <- suppressWarnings(
+    ipw(
+      nps_unit_df,
+      ref_unit,
+      selection        = ~age_group + sex,
+      estimating_eq    = "gee",
+      adjust_reference = FALSE
+    )
+  )
+
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+})

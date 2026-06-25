@@ -73,10 +73,10 @@ reference:
       - as_taylor_design
   - title: Weight Utilities
     desc: >
-      Functions for trimming and stabilizing survey weights.
+      Functions for trimming and rescaling survey weights.
     contents:
       - trim_weights
-      - stabilize_weights
+      - rescale_weights
   - title: Diagnostics
     desc: >
       Functions for assessing the distribution and quality of survey weights.

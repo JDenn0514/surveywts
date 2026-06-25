@@ -140,6 +140,6 @@ Meetings, Section on Survey Research Methods}, 2707--2719.
 \code{\link[=stabilize_weights]{stabilize_weights()}}
 
 Other utilities: 
-\code{\link{stabilize_weights}()}
+\code{\link{rescale_weights}()}
 }
 \concept{utilities}

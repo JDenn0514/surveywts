@@ -1,12 +1,12 @@
-# R/stabilize_weights.R
+# R/rescale_weights.R
 #
-# stabilize_weights() — rescale weights so they sum to n (or group n).
+# rescale_weights() — rescale weights so they sum to n (or group n).
 
 # ============================================================================
-# stabilize_weights()
+# rescale_weights()
 # ============================================================================
 
-#' Rescale weights to sum to the sample size
+#' Rescale survey weights to a target mean or sum
 #'
 #' Rescales weights so they sum to the sample size `n` (globally) or to the
 #' group sample size within each group (when `by` is specified). Relative
@@ -25,13 +25,13 @@
 #'   Auto-detected for `weighted_df` and survey objects. For plain `data.frame`
 #'   with `weights = NULL`, uniform weights (all 1) are used.
 #' @param by <[`tidy-select`][tidyselect::language]> Grouping variable(s).
-#'   Stabilization is performed within each group (weights in group `h` sum to
-#'   `n_h`). `NULL` → global stabilization (all weights sum to `n`).
+#'   Rescaling is performed within each group (weights in group `h` sum to
+#'   `n_h`). `NULL` → global rescaling (all weights sum to `n`).
 #' @param wt_name `character(1)`. Output weight column name. Used only when
 #'   `data` is a plain `data.frame` with `weights = NULL`. Default `"wts"`.
 #'
-#' @returns An object of the same class as `data` with stabilized weights. A
-#'   new entry with `operation = "stabilize_weights"` is appended to the
+#' @returns An object of the same class as `data` with rescaled weights. A
+#'   new entry with `operation = "rescale_weights"` is appended to the
 #'   weighting history.
 #'
 #' @section Replicate Weights:
@@ -45,16 +45,17 @@
 #' @family utilities
 #' @export
 #' @examples
-#' # data.frame with explicit weight column ---------------------------------
-#' stabilize_weights(ns_wave1, weights = weight)
+#' # Rescale weights to unit mean (default)
+#' data(ns_wave1)
+#' summarize_weights(ns_wave1, weights = weight)
 #'
-#' # grouped by sex — each group sums to its own n_h -----------------------
-#' stabilize_weights(ns_wave1, weights = weight, by = sex)
+#' result <- rescale_weights(ns_wave1, weights = weight)
+#' summarize_weights(result, weights = wts)
 #'
-#' # survey_nonprob — weight column auto-detected ---------------------------
-#' ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
-#' stabilize_weights(ns_wave1_svy)
-stabilize_weights <- function(
+#' # Rescale within groups using by =
+#' result_by <- rescale_weights(ns_wave1, weights = weight, by = ns_region)
+#' summarize_weights(result_by, weights = wts, by = ns_region)
+rescale_weights <- function(
   data,
   weights = NULL,
   by = NULL,
@@ -125,7 +126,7 @@ stabilize_weights <- function(
           c(
             "x" = "{.arg by} variable {.field {v}} contains {n_na} NA value(s).",
             "i" = "Grouping variables must be fully observed.",
-            "v" = "Remove rows with missing {.field {v}} before calling {.fn stabilize_weights}."
+            "v" = "Remove rows with missing {.field {v}} before calling {.fn rescale_weights}."
           ),
           class = "surveywts_error_variable_has_na"
         )
@@ -188,7 +189,7 @@ stabilize_weights <- function(
   old_history <- .get_history(data)
   history_entry <- .make_history_entry(
     step = length(old_history) + 1L,
-    operation = "stabilize_weights",
+    operation = "rescale_weights",
     weight_col = wt_col_name,
     call_str = call_str,
     parameters = hist_params,

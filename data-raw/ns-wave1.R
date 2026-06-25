@@ -1,10 +1,9 @@
 ## data-raw/ns-wave1.R
 ##
 ## Produces:
-##   ns_wave1     — full surveycore::ns_wave1 with derived demographic cols
-##                  + 8 Nationscape raking recode columns (ns_*)
-##   ns_wave1_svy — survey_nonprob raked to Nationscape ACS 2017 targets
-##                  (raked + 5th/95th percentile trimmed; no replicate weights)
+##   ns_wave1 — full surveycore::ns_wave1 with derived demographic cols,
+##              8 Nationscape raking recode columns (ns_*), and
+##              weight updated to the raked+trimmed Nationscape weight
 ##
 ## Run from the package root: source("data-raw/ns-wave1.R")
 
@@ -329,12 +328,38 @@ ns_wave1_svy <- calibrate_rake(
 
 rm(.income_na_rate, .income_scale, .ns_targets)
 
-usethis::use_data(ns_wave1, ns_wave1_svy, overwrite = TRUE)
+# Promote raked+trimmed weight back into the tibble (replaces original published weight).
+# ns_wave1_svy was only needed to compute the calibrated weight; discard afterwards.
+ns_wave1$weight <- ns_wave1_svy@data$weight
+
+rm(ns_wave1_svy)
+
+# Add "label" attributes to derived columns
+attr(ns_wave1$sex, "label")    <- "Sex (factor, derived from gender: 1=Male, 2=Female)"
+attr(ns_wave1$age_f3, "label") <- "Age group (3 levels: 18-34, 35-54, 55+)"
+attr(ns_wave1$race_f4, "label") <- "Race/ethnicity (4 levels: White, Black, Hispanic, Other)"
+attr(ns_wave1$edu_f3, "label") <- "Educational attainment (3 levels)"
+attr(ns_wave1$pid_f3, "label") <- "Party identification (3 levels)"
+attr(ns_wave1$hh_income_f9, "label") <- "Household income (9 brackets, harmonized with cps_2023)"
+attr(ns_wave1$ns_region, "label")     <- "Census region (Nationscape raking variable)"
+attr(ns_wave1$ns_hispanic, "label")   <- "Hispanic ethnicity (3 categories, Nationscape raking variable)"
+attr(ns_wave1$ns_race, "label")       <- "Race (4 categories, Nationscape raking variable)"
+attr(ns_wave1$ns_age, "label")        <- "Age group (7 categories, Nationscape raking variable)"
+attr(ns_wave1$ns_language, "label")   <- "Household language (Nationscape raking variable)"
+attr(ns_wave1$ns_foreign_born, "label") <- "Foreign-born status (Nationscape raking variable)"
+attr(ns_wave1$ns_income, "label")     <- "Household income (10 brackets, Nationscape raking variable)"
+attr(ns_wave1$ns_vote_2016, "label")  <- "2016 presidential vote (Nationscape raking variable)"
+
+ns_wave1 <- tibble::as_tibble(ns_wave1)
+
+# Update the column count assertion (185 cols, weight is updated in-place)
+stopifnot(ncol(ns_wave1) == 185L)
+
+usethis::use_data(ns_wave1, overwrite = TRUE)
 message(
   "Saved ns_wave1 (",
   nrow(ns_wave1),
   " rows x ",
   ncol(ns_wave1),
-  " cols) and ns_wave1_svy ",
-  "(raked + trimmed; no replicate weights)"
+  " cols; weight = raked+trimmed Nationscape weight)"
 )

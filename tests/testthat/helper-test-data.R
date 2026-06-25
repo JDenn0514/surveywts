@@ -471,3 +471,33 @@ make_nonprob_no_repweights <- function(n = 200L, seed = 1L) {
   ref    <- surveycore::as_survey(ref_df, weights = base_weight)
   ipw(data = nps_df, reference = ref, selection = ~sex + age_group)
 }
+
+# ---- Survey object helpers (replace _svy lazy-loaded package data) ----------
+
+make_gss_taylor <- function() {
+  data(gss_2024, package = "surveywts", envir = environment())
+  surveycore::as_survey(
+    gss_2024,
+    weights = wtssps,
+    strata = vstrat,
+    ids = vpsu,
+    nest = TRUE
+  )
+}
+
+make_ns_nonprob <- function() {
+  data(ns_wave1, package = "surveywts", envir = environment())
+  surveycore::survey_nonprob(
+    ns_wave1,
+    variables = list(weights = "weight")
+  )
+}
+
+make_npors_taylor <- function() {
+  data(npors_2025_clean, package = "surveywts", envir = environment())
+  surveycore::as_survey(
+    npors_2025_clean,
+    weights = weight,
+    strata = stratum
+  )
+}

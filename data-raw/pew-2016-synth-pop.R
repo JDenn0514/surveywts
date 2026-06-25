@@ -1,8 +1,7 @@
 ## data-raw/pew-2016-synth-pop.R
 ##
 ## Produces:
-##   pew_2016_synth_pop     — 20,000-row ATP-derived synthetic population, 43 variables
-##   pew_2016_synth_pop_svy — survey_taylor companion (equal weights, SRS)
+##   pew_2016_synth_pop — 20,000-row ATP-derived synthetic population, 43 variables
 ##
 ## Source: Pew Research Center (used in Mercer, Lau & Kennedy 2018
 ##         "For Weighting Online Opt-In Samples, What Matters Most?")
@@ -15,7 +14,6 @@
 
 library(haven)
 library(janitor)
-library(surveycore)
 
 POP_FILE <- file.path(
   here::here(),
@@ -206,7 +204,17 @@ stopifnot(sum(is.na(pew_2016_synth_pop$edu_f3)) == 0L)
 stopifnot(sum(is.na(pew_2016_synth_pop$pid_f3)) == 0L)
 stopifnot(sum(is.na(pew_2016_synth_pop$age_f3)) == 0L)
 
-## ---- 5. Save ----
+## ---- 5. Add derived column labels and save ----
+# haven already preserves "label" and "labels" attrs from SPSS source columns.
+# Only add labels to derived factor columns (haven doesn't set them automatically).
+
+attr(pew_2016_synth_pop$sex, "label")    <- "Sex (factor, derived from gender: 1=Male, 2=Female)"
+attr(pew_2016_synth_pop$race_f4, "label") <- "Race/ethnicity (4 levels: White, Black, Hispanic, Other)"
+attr(pew_2016_synth_pop$edu_f3, "label") <- "Educational attainment (3 levels)"
+attr(pew_2016_synth_pop$pid_f3, "label") <- "Party identification (3 levels: Republican, Independent, Democrat)"
+attr(pew_2016_synth_pop$age_f3, "label") <- "Age group (3 levels: 18-34, 35-54, 55+)"
+
+pew_2016_synth_pop <- tibble::as_tibble(pew_2016_synth_pop)
 
 usethis::use_data(pew_2016_synth_pop, overwrite = TRUE)
 message(
@@ -216,19 +224,3 @@ message(
   ncol(pew_2016_synth_pop),
   " cols"
 )
-
-## ---- 6. Build survey_taylor companion ----
-
-# SRS survey_taylor with equal weights (synthetic pop)
-# Build from a COPY for symmetry with the optin approach.
-synth_for_svy <- pew_2016_synth_pop
-synth_for_svy$equal_wt <- 1L
-pew_2016_synth_pop_svy <- surveycore::as_survey(
-  synth_for_svy,
-  weights = equal_wt
-)
-
-stopifnot(!"equal_wt" %in% names(pew_2016_synth_pop))
-
-usethis::use_data(pew_2016_synth_pop_svy, overwrite = TRUE)
-message("Saved pew_2016_synth_pop_svy")

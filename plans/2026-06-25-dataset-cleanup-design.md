@@ -127,6 +127,12 @@ before saving. `R/data.R` gains a `\item{weight}` entry.
 - Remove all `## \`..._svy\`` subsections from `@format` blocks
 - Update `@description` text that explains `_svy` usage — rewrite to
   describe how to construct a survey object inline from the tibble
+- For `npors_2025` and `npors_2025_clean`: update the inline
+  `survey_taylor` construction example in `@description` to include
+  `strata = stratum` (was missing previously); update the design
+  description to note that NPORS is a national address-based sample with
+  stratified random sampling and differential probabilities of selection
+  across strata
 - Add `\item{weight}` and `\item{repwt_1}`–`\item{repwt_200}` entries to
   `pew_2016_optin` format block
 - Add `\item{weight}` entry to `ns_wave1` format block

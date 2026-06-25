@@ -22,13 +22,15 @@ test_that("new tibble datasets are loadable via data()", {
   expect_no_error(data(pew_2016_synth_pop, envir = new.env()))
 })
 
-test_that("new survey companion datasets are loadable via data()", {
-  expect_no_error(data(gss_2024_svy, envir = new.env()))
-  expect_no_error(data(npors_2025_svy, envir = new.env()))
-  expect_no_error(data(npors_2025_clean_svy, envir = new.env()))
-  expect_no_error(data(pew_2016_optin_svy, envir = new.env()))
-  expect_no_error(data(pew_2016_synth_pop_svy, envir = new.env()))
-  expect_no_error(data(ns_wave1_svy, envir = new.env()))
+test_that("_svy companion datasets are no longer in the package", {
+  pkg_data <- data(package = "surveywts")$results[, "Item"]
+  expect_false("gss_2024_svy" %in% pkg_data)
+  expect_false("npors_2025_svy" %in% pkg_data)
+  expect_false("npors_2025_clean_svy" %in% pkg_data)
+  expect_false("acs_wy_2022_svy" %in% pkg_data)
+  expect_false("pew_2016_optin_svy" %in% pkg_data)
+  expect_false("pew_2016_synth_pop_svy" %in% pkg_data)
+  expect_false("ns_wave1_svy" %in% pkg_data)
 })
 
 test_that("retired datasets no longer exist in the package", {
@@ -40,7 +42,7 @@ test_that("retired datasets no longer exist in the package", {
   expect_false("npors_2025_clean_ref" %in% pkg_data)
   expect_false("acs_ipw_ref" %in% pkg_data)
   expect_false("ns_wave1_ipw" %in% pkg_data)
-  expect_false("acs_wy_2022" %in% pkg_data)
+  # acs_wy_2022 tibble is retained; only acs_wy_2022_svy is retired
   expect_false("acs_wy_2022_svy" %in% pkg_data)
 })
 
@@ -114,22 +116,6 @@ test_that("gss_2024 retains all rows from surveycore::gss_2024", {
 })
 
 # ============================================================================
-# gss_2024_svy structural tests
-# ============================================================================
-
-test_that("gss_2024_svy is survey_taylor with correct row count", {
-  data(gss_2024)
-  data(gss_2024_svy)
-  expect_true(S7::S7_inherits(gss_2024_svy, surveycore::survey_taylor))
-  expect_equal(nrow(gss_2024_svy@data), nrow(gss_2024))
-})
-
-test_that("gss_2024_svy uses wtssps as weight column", {
-  data(gss_2024_svy)
-  expect_identical(gss_2024_svy@variables$weights, "wtssps")
-})
-
-# ============================================================================
 # npors_2025 structural tests
 # ============================================================================
 
@@ -190,21 +176,6 @@ test_that("npors_2025 wt_pop is numeric and positive", {
 })
 
 # ============================================================================
-# npors_2025_svy structural tests
-# ============================================================================
-
-test_that("npors_2025_svy is survey_taylor with 5022 rows", {
-  data(npors_2025_svy)
-  expect_true(S7::S7_inherits(npors_2025_svy, surveycore::survey_taylor))
-  expect_equal(nrow(npors_2025_svy@data), 5022L)
-})
-
-test_that("npors_2025_svy uses weight as weight column", {
-  data(npors_2025_svy)
-  expect_identical(npors_2025_svy@variables$weights, "weight")
-})
-
-# ============================================================================
 # npors_2025_clean structural tests
 # ============================================================================
 
@@ -226,19 +197,6 @@ test_that("npors_2025_clean has same column structure as npors_2025", {
   data(npors_2025)
   data(npors_2025_clean)
   expect_identical(names(npors_2025_clean), names(npors_2025))
-})
-
-# ============================================================================
-# npors_2025_clean_svy structural tests
-# ============================================================================
-
-test_that("npors_2025_clean_svy is survey_taylor with matching row count", {
-  data(npors_2025_clean)
-  data(npors_2025_clean_svy)
-  expect_true(
-    S7::S7_inherits(npors_2025_clean_svy, surveycore::survey_taylor)
-  )
-  expect_equal(nrow(npors_2025_clean_svy@data), nrow(npors_2025_clean))
 })
 
 # ============================================================================
@@ -286,47 +244,34 @@ test_that("cps_2023 can be used as survey_replicate reference in ipw()", {
 })
 
 # ============================================================================
-# pew_2016_optin_svy structural tests
+# pew_2016_optin structural tests
 # ============================================================================
-
-test_that("pew_2016_optin_svy is survey_nonprob with correct row count", {
-  data(pew_2016_optin_svy)
-  expect_true(
-    S7::S7_inherits(pew_2016_optin_svy, surveycore::survey_nonprob)
-  )
-  expect_equal(nrow(pew_2016_optin_svy@data), 2000L)
-})
 
 test_that("pew_2016_optin does NOT have equal_wt column", {
   data(pew_2016_optin)
   expect_false("equal_wt" %in% names(pew_2016_optin))
 })
 
-test_that("pew_2016_optin_svy has calibrated (non-unit) positive weights", {
-  data(pew_2016_optin_svy)
-  wt_col <- pew_2016_optin_svy@variables$weights
-  w <- pew_2016_optin_svy@data[[wt_col]]
-  expect_true(all(w > 0))
-  # Raked weights vary around 1; check they're not all equal
-  expect_gt(sd(w), 0.01)
+test_that("pew_2016_optin has 305 columns (104 original + weight + 200 repwts)", {
+  data(pew_2016_optin)
+  expect_equal(ncol(pew_2016_optin), 305L)
 })
 
-# ============================================================================
-# pew_2016_synth_pop_svy structural tests
-# ============================================================================
-
-test_that("pew_2016_synth_pop_svy is survey_taylor with 20000 rows", {
-  data(pew_2016_synth_pop_svy)
-  expect_true(
-    S7::S7_inherits(pew_2016_synth_pop_svy, surveycore::survey_taylor)
-  )
-  expect_equal(nrow(pew_2016_synth_pop_svy@data), 20000L)
+test_that("pew_2016_optin has promoted calibrated weight column", {
+  data(pew_2016_optin)
+  expect_true("weight" %in% names(pew_2016_optin))
+  expect_true(is.numeric(pew_2016_optin$weight))
+  expect_true(all(pew_2016_optin$weight > 0))
+  # Calibrated weights vary around 1
+  expect_gt(sd(pew_2016_optin$weight), 0.01)
 })
 
-test_that("pew_2016_synth_pop_svy weights are all 1", {
-  data(pew_2016_synth_pop_svy)
-  wt_col <- pew_2016_synth_pop_svy@variables$weights
-  expect_true(all(pew_2016_synth_pop_svy@data[[wt_col]] == 1L))
+test_that("pew_2016_optin has 200 bootstrap replicate weight columns", {
+  data(pew_2016_optin)
+  repwt_cols <- grep("^repwt_", names(pew_2016_optin), value = TRUE)
+  expect_equal(length(repwt_cols), 200L)
+  expect_true("repwt_1" %in% repwt_cols)
+  expect_true("repwt_200" %in% repwt_cols)
 })
 
 # ============================================================================
@@ -406,24 +351,14 @@ test_that("ns_wave1 original columns are preserved", {
   expect_true("weight" %in% names(ns_wave1))
 })
 
-# ============================================================================
-# ns_wave1_svy structural tests
-# ============================================================================
-
-test_that("ns_wave1_svy is survey_nonprob with 6422 rows", {
-  data(ns_wave1_svy)
-  expect_true(S7::S7_inherits(ns_wave1_svy, surveycore::survey_nonprob))
-  expect_equal(nrow(ns_wave1_svy@data), 6422L)
-})
-
-test_that("ns_wave1_svy uses weight as weight column", {
-  data(ns_wave1_svy)
-  expect_identical(ns_wave1_svy@variables$weights, "weight")
-})
-
-test_that("ns_wave1_svy has no replicate weights", {
-  data(ns_wave1_svy)
-  expect_null(ns_wave1_svy@variables$repweights)
+test_that("ns_wave1 weight column is raked+trimmed (not original published weight)", {
+  data(ns_wave1)
+  # Raked weight sums to approximately n (stabilized by calibrate_rake)
+  # Original published Nationscape weight summed to about 6422
+  # The raked weight mean is approximately 1 and varies around the original
+  expect_true(is.numeric(ns_wave1$weight))
+  expect_true(all(ns_wave1$weight > 0))
+  expect_true("weight" %in% names(ns_wave1))
 })
 
 # ============================================================================

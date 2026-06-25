@@ -53,11 +53,11 @@ same scalar (global) or per-group scalar that was applied to the main weight.
 summarize_weights(ns_wave1, weights = weight)
 
 result <- rescale_weights(ns_wave1, weights = weight)
-summarize_weights(result, weights = wts)
+summarize_weights(result, weights = weight)
 
 # Rescale within groups using by =
 result_by <- rescale_weights(ns_wave1, weights = weight, by = ns_region)
-summarize_weights(result_by, weights = wts, by = ns_region)
+summarize_weights(result_by, weights = weight, by = ns_region)
 }
 \seealso{
 \code{\link[=trim_weights]{trim_weights()}}

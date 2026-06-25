@@ -1,10 +1,8 @@
 ## data-raw/npors-2025.R
 ##
 ## Produces:
-##   npors_2025           — full surveycore::pew_npors_2025 with derived cols
-##   npors_2025_svy       — survey_taylor companion
-##   npors_2025_clean     — npors_2025 filtered to complete cases on 4 derived cols
-##   npors_2025_clean_svy — survey_taylor companion for clean version
+##   npors_2025       — full surveycore::pew_npors_2025 with derived cols + labels
+##   npors_2025_clean — npors_2025 filtered to complete cases on 5 derived cols
 ##
 ## Run from the package root: source("data-raw/npors-2025.R")
 
@@ -28,7 +26,6 @@ US_ADULT_POP <- 260000000L
 ##   pid_f3:  factor from partysum (1=Republican, 9=Independent, 2=Democrat)
 ##   wt_pop:  numeric; weight * (260000000L / nrow(npors_2025))
 ##            population-scaled weight for IPW use
-##            npors_2025_svy uses weight (normalized); IPW users use wt_pop
 ## Total columns: 65 + 6 new = 71
 ## Note: ~0.5% NA per derived column from 99-code recoding
 
@@ -98,7 +95,6 @@ npors_2025$pid_f3 <- factor(
 )
 
 # wt_pop: population-scaled weight for IPW use
-# npors_2025_svy uses weight (normalized, correct for standard estimation)
 npors_2025$wt_pop <- npors_2025$weight * (US_ADULT_POP / nrow(npors_2025))
 
 # Structural assertions
@@ -111,20 +107,23 @@ stopifnot(is.factor(npors_2025$edu_f3))
 stopifnot(is.factor(npors_2025$pid_f3))
 stopifnot(is.numeric(npors_2025$wt_pop))
 
-## ---- npors_2025_svy ---------------------------------------------------------
-npors_2025_svy <- surveycore::as_survey(
-  npors_2025,
-  strata = stratum,
-  weights = weight
-)
+# Add "label" attributes to derived columns
+attr(npors_2025$sex, "label")    <- "Sex (factor, derived from gender: 1=Male, 2=Female)"
+attr(npors_2025$age_f3, "label") <- "Age group (3 levels: 18-34, 35-54, 55+)"
+attr(npors_2025$race_f4, "label") <- "Race/ethnicity (4 levels: White, Black, Hispanic, Other)"
+attr(npors_2025$edu_f3, "label") <- "Educational attainment (3 levels)"
+attr(npors_2025$pid_f3, "label") <- "Party identification (3 levels: Republican, Independent, Democrat)"
+attr(npors_2025$wt_pop, "label") <- "Population-scaled weight: weight * (260000000 / nrow(npors_2025))"
 
-usethis::use_data(npors_2025, npors_2025_svy, overwrite = TRUE)
+npors_2025 <- tibble::as_tibble(npors_2025)
+
+usethis::use_data(npors_2025, overwrite = TRUE)
 message(
   "Saved npors_2025 (",
   nrow(npors_2025),
   " rows x ",
   ncol(npors_2025),
-  " cols) and npors_2025_svy"
+  " cols)"
 )
 
 ## ---- npors_2025_clean -------------------------------------------------------
@@ -149,16 +148,11 @@ stopifnot(sum(is.na(npors_2025_clean$edu_f3)) == 0L)
 stopifnot(sum(is.na(npors_2025_clean$pid_f3)) == 0L)
 stopifnot(nrow(npors_2025_clean) > 4700L)
 
-## ---- npors_2025_clean_svy ---------------------------------------------------
-npors_2025_clean_svy <- surveycore::as_survey(
-  npors_2025_clean,
-  strata = stratum,
-  weights = weight
-)
+npors_2025_clean <- tibble::as_tibble(npors_2025_clean)
 
-usethis::use_data(npors_2025_clean, npors_2025_clean_svy, overwrite = TRUE)
+usethis::use_data(npors_2025_clean, overwrite = TRUE)
 message(
   "Saved npors_2025_clean (",
   nrow(npors_2025_clean),
-  " rows) and npors_2025_clean_svy"
+  " rows)"
 )

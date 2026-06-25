@@ -58,7 +58,10 @@ Delegates to \code{\link[svrep:as_fays_gen_rep_design]{svrep::as_fays_gen_rep_de
 
 \examples{
 # generalized replication with reproducible seed -----------------------
-create_gen_rep_weights(gss_2024_svy, seed = 42L)
+gss_svy <- surveycore::as_survey(
+  gss_2024, weights = wtssps, strata = vstrat, ids = vpsu, nest = TRUE
+)
+create_gen_rep_weights(gss_svy, seed = 42L)
 
 }
 \references{

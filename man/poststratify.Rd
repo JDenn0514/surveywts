@@ -101,6 +101,7 @@ ps_cells <- data.frame(
 poststratify(ns_wave1, targets = ps_cells, weights = weight)
 
 # survey_nonprob — weight column auto-detected -----------------
+ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
 poststratify(ns_wave1_svy, targets = ps_cells)
 
 # type = "count" with US adult population counts (260 million) ------------

@@ -97,11 +97,20 @@ understatement is not reduced by increasing \code{replicates}.
 
 \examples{
 # default SRSWR bootstrap on a probability survey -----------------------
-create_bootstrap_weights(gss_2024_svy)
+gss_svy <- surveycore::as_survey(
+  gss_2024, weights = wtssps, strata = vstrat, ids = vpsu, nest = TRUE
+)
+create_bootstrap_weights(gss_svy)
 
-# quasi-randomization bootstrap for a non-probability sample -----------
+# quasi-randomization bootstrap for a calibrated non-probability sample ----
+targets_a <- list(
+  sex    = c("Male" = 0.49, "Female" = 0.51),
+  age_f3 = c("18-34" = 0.30, "35-54" = 0.33, "55+" = 0.37)
+)
+ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
+ns_wave1_cal <- calibrate_rake(ns_wave1_svy, targets = targets_a)
 create_bootstrap_weights(
-  ns_wave1_svy,
+  ns_wave1_cal,
   type       = "quasi-randomization",
   replicates = 200L
 )

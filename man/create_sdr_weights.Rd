@@ -42,7 +42,8 @@ to \code{\link[svrep:as_sdr_design]{svrep::as_sdr_design()}}.
 
 \examples{
 # apply SDR to a Taylor-linearization design ---------------------------
-create_sdr_weights(gss_2024_svy)
+cps_design <- surveycore::as_survey(cps_2023, weights = wtfinl)
+create_sdr_weights(cps_design)
 
 }
 \references{

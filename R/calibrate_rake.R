@@ -183,6 +183,7 @@
 #' )
 #'
 #' # survey_nonprob — weight column auto-detected -----------------
+#' ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
 #' calibrate_rake(ns_wave1_svy, targets = targets_a)
 #'
 #' # Format B -------------------------------------------------------

@@ -34,13 +34,24 @@ dispatched function; this function only resolves the method name.
 }
 \examples{
 # bootstrap (default: Rao-Wu-Yue-Beaumont) ------------------------------
-create_replicate_weights(gss_2024_svy, method = "bootstrap")
+gss_svy <- surveycore::as_survey(
+  gss_2024, weights = wtssps, strata = vstrat, ids = vpsu, nest = TRUE
+)
+create_replicate_weights(gss_svy, method = "bootstrap")
 
 # jackknife ----------------------------------------------------------------
-create_replicate_weights(gss_2024_svy, method = "jackknife")
+create_replicate_weights(gss_svy, method = "jackknife")
 
 # delete-a-group jackknife for a non-probability sample ------------------
-create_replicate_weights(ns_wave1_svy, method = "jackknife", type = "grouped", replicates = 50L)
+targets_a <- list(
+  sex    = c("Male" = 0.49, "Female" = 0.51),
+  age_f3 = c("18-34" = 0.30, "35-54" = 0.33, "55+" = 0.37)
+)
+ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
+ns_wave1_cal <- calibrate_rake(ns_wave1_svy, targets = targets_a)
+create_replicate_weights(
+  ns_wave1_cal, method = "jackknife", type = "grouped", replicates = 50L
+)
 
 }
 \seealso{

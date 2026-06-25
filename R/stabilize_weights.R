@@ -52,6 +52,7 @@
 #' stabilize_weights(ns_wave1, weights = weight, by = sex)
 #'
 #' # survey_nonprob — weight column auto-detected ---------------------------
+#' ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
 #' stabilize_weights(ns_wave1_svy)
 stabilize_weights <- function(
   data,

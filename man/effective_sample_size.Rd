@@ -35,6 +35,7 @@ weighted estimates. Rows with zero weights (typically produced by
 effective_sample_size(ns_wave1, weights = weight)
 
 # survey_nonprob — weight column auto-detected ---------------------------
+ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
 effective_sample_size(ns_wave1_svy)
 }
 \references{

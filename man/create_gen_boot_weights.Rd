@@ -60,7 +60,10 @@ the multipliers are chosen to satisfy \eqn{E[u_k] = 1} and
 
 \examples{
 # generalized bootstrap with reproducible seed -------------------------
-create_gen_boot_weights(gss_2024_svy, seed = 42L)
+gss_svy <- surveycore::as_survey(
+  gss_2024, weights = wtssps, strata = vstrat, ids = vpsu, nest = TRUE
+)
+create_gen_boot_weights(gss_svy, seed = 42L)
 
 }
 \references{

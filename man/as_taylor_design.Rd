@@ -25,7 +25,10 @@ Returns \code{data} unchanged (with a warning) if \code{data} is already a
 }
 \examples{
 # convert a bootstrap replicate design back to Taylor ------------------
-rep_design <- create_bootstrap_weights(gss_2024_svy, replicates = 50L)
+gss_design <- surveycore::as_survey(
+  gss_2024, weights = wtssps, strata = vstrat, ids = vpsu, nest = TRUE
+)
+rep_design <- create_bootstrap_weights(gss_design, replicates = 50L)
 as_taylor_design(rep_design)
 
 }

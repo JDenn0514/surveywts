@@ -1478,3 +1478,137 @@
 #'   [gss_2024], [pew_2016_synth_pop]
 #' @keywords datasets
 "cps_2023"
+
+# ============================================================================
+# acs_wy_2022
+# ============================================================================
+
+#' ACS 2022 Wyoming adults with derived demographic columns and replicate weights
+#'
+#' @description
+#' The 2022 American Community Survey (ACS) 1-year Public Use Microdata Sample
+#' (PUMS) for Wyoming, obtained from `surveycore::acs_pums_wy`. Restricted to
+#' adults (age 18+). Three derived factor columns (`age_f3`, `race_f4`,
+#' `edu_f3`) are appended for use as calibration targets.
+#'
+#' Construct a replicate-weights design from this dataset with:
+#' ```r
+#' acs_design <- surveycore::as_survey_replicate(
+#'   acs_wy_2022,
+#'   weights = pwgtp,
+#'   repweights = starts_with("pwgtp"),
+#'   scale = 4 / 80,
+#'   rscales = rep(1, 80),
+#'   type = "JK1"
+#' )
+#' ```
+#'
+#' @format A data frame with 4,736 rows and 99 columns:
+#' \describe{
+#'   \item{puma}{Integer. Public Use Microdata Area (PUMA) code.}
+#'   \item{st}{Integer. State FIPS code (Wyoming = 56).}
+#'   \item{pwgtp}{Numeric. ACS person weight (population-scaled).}
+#'   \item{pwgtp1}{Numeric. Replicate weight 1 (ACS successive-difference replication).}
+#'   \item{pwgtp2}{Numeric. Replicate weight 2.}
+#'   \item{pwgtp3}{Numeric. Replicate weight 3.}
+#'   \item{pwgtp4}{Numeric. Replicate weight 4.}
+#'   \item{pwgtp5}{Numeric. Replicate weight 5.}
+#'   \item{pwgtp6}{Numeric. Replicate weight 6.}
+#'   \item{pwgtp7}{Numeric. Replicate weight 7.}
+#'   \item{pwgtp8}{Numeric. Replicate weight 8.}
+#'   \item{pwgtp9}{Numeric. Replicate weight 9.}
+#'   \item{pwgtp10}{Numeric. Replicate weight 10.}
+#'   \item{pwgtp11}{Numeric. Replicate weight 11.}
+#'   \item{pwgtp12}{Numeric. Replicate weight 12.}
+#'   \item{pwgtp13}{Numeric. Replicate weight 13.}
+#'   \item{pwgtp14}{Numeric. Replicate weight 14.}
+#'   \item{pwgtp15}{Numeric. Replicate weight 15.}
+#'   \item{pwgtp16}{Numeric. Replicate weight 16.}
+#'   \item{pwgtp17}{Numeric. Replicate weight 17.}
+#'   \item{pwgtp18}{Numeric. Replicate weight 18.}
+#'   \item{pwgtp19}{Numeric. Replicate weight 19.}
+#'   \item{pwgtp20}{Numeric. Replicate weight 20.}
+#'   \item{pwgtp21}{Numeric. Replicate weight 21.}
+#'   \item{pwgtp22}{Numeric. Replicate weight 22.}
+#'   \item{pwgtp23}{Numeric. Replicate weight 23.}
+#'   \item{pwgtp24}{Numeric. Replicate weight 24.}
+#'   \item{pwgtp25}{Numeric. Replicate weight 25.}
+#'   \item{pwgtp26}{Numeric. Replicate weight 26.}
+#'   \item{pwgtp27}{Numeric. Replicate weight 27.}
+#'   \item{pwgtp28}{Numeric. Replicate weight 28.}
+#'   \item{pwgtp29}{Numeric. Replicate weight 29.}
+#'   \item{pwgtp30}{Numeric. Replicate weight 30.}
+#'   \item{pwgtp31}{Numeric. Replicate weight 31.}
+#'   \item{pwgtp32}{Numeric. Replicate weight 32.}
+#'   \item{pwgtp33}{Numeric. Replicate weight 33.}
+#'   \item{pwgtp34}{Numeric. Replicate weight 34.}
+#'   \item{pwgtp35}{Numeric. Replicate weight 35.}
+#'   \item{pwgtp36}{Numeric. Replicate weight 36.}
+#'   \item{pwgtp37}{Numeric. Replicate weight 37.}
+#'   \item{pwgtp38}{Numeric. Replicate weight 38.}
+#'   \item{pwgtp39}{Numeric. Replicate weight 39.}
+#'   \item{pwgtp40}{Numeric. Replicate weight 40.}
+#'   \item{pwgtp41}{Numeric. Replicate weight 41.}
+#'   \item{pwgtp42}{Numeric. Replicate weight 42.}
+#'   \item{pwgtp43}{Numeric. Replicate weight 43.}
+#'   \item{pwgtp44}{Numeric. Replicate weight 44.}
+#'   \item{pwgtp45}{Numeric. Replicate weight 45.}
+#'   \item{pwgtp46}{Numeric. Replicate weight 46.}
+#'   \item{pwgtp47}{Numeric. Replicate weight 47.}
+#'   \item{pwgtp48}{Numeric. Replicate weight 48.}
+#'   \item{pwgtp49}{Numeric. Replicate weight 49.}
+#'   \item{pwgtp50}{Numeric. Replicate weight 50.}
+#'   \item{pwgtp51}{Numeric. Replicate weight 51.}
+#'   \item{pwgtp52}{Numeric. Replicate weight 52.}
+#'   \item{pwgtp53}{Numeric. Replicate weight 53.}
+#'   \item{pwgtp54}{Numeric. Replicate weight 54.}
+#'   \item{pwgtp55}{Numeric. Replicate weight 55.}
+#'   \item{pwgtp56}{Numeric. Replicate weight 56.}
+#'   \item{pwgtp57}{Numeric. Replicate weight 57.}
+#'   \item{pwgtp58}{Numeric. Replicate weight 58.}
+#'   \item{pwgtp59}{Numeric. Replicate weight 59.}
+#'   \item{pwgtp60}{Numeric. Replicate weight 60.}
+#'   \item{pwgtp61}{Numeric. Replicate weight 61.}
+#'   \item{pwgtp62}{Numeric. Replicate weight 62.}
+#'   \item{pwgtp63}{Numeric. Replicate weight 63.}
+#'   \item{pwgtp64}{Numeric. Replicate weight 64.}
+#'   \item{pwgtp65}{Numeric. Replicate weight 65.}
+#'   \item{pwgtp66}{Numeric. Replicate weight 66.}
+#'   \item{pwgtp67}{Numeric. Replicate weight 67.}
+#'   \item{pwgtp68}{Numeric. Replicate weight 68.}
+#'   \item{pwgtp69}{Numeric. Replicate weight 69.}
+#'   \item{pwgtp70}{Numeric. Replicate weight 70.}
+#'   \item{pwgtp71}{Numeric. Replicate weight 71.}
+#'   \item{pwgtp72}{Numeric. Replicate weight 72.}
+#'   \item{pwgtp73}{Numeric. Replicate weight 73.}
+#'   \item{pwgtp74}{Numeric. Replicate weight 74.}
+#'   \item{pwgtp75}{Numeric. Replicate weight 75.}
+#'   \item{pwgtp76}{Numeric. Replicate weight 76.}
+#'   \item{pwgtp77}{Numeric. Replicate weight 77.}
+#'   \item{pwgtp78}{Numeric. Replicate weight 78.}
+#'   \item{pwgtp79}{Numeric. Replicate weight 79.}
+#'   \item{pwgtp80}{Numeric. Replicate weight 80.}
+#'   \item{agep}{Integer. Age in years.}
+#'   \item{sex}{Factor. Sex (1 = Male, 2 = Female).}
+#'   \item{rac1p}{Integer. Recoded detailed race code (Census PUMS coding).}
+#'   \item{hisp}{Integer. Recoded detailed Hispanic origin code (Census PUMS coding).}
+#'   \item{schl}{Integer. Educational attainment (Census PUMS coding).}
+#'   \item{esr}{Integer. Employment status recode.}
+#'   \item{pincp}{Numeric. Total person income (dollars, inflation-adjusted via adjinc).}
+#'   \item{wagp}{Numeric. Wages or salary income (dollars).}
+#'   \item{hicov}{Integer. Health insurance coverage (1 = insured, 2 = uninsured).}
+#'   \item{dis}{Integer. Disability recode (1 = with disability, 2 = without disability).}
+#'   \item{povpip}{Integer. Income-to-poverty ratio (percent; 501 indicates >= 501 percent).}
+#'   \item{wkhp}{Integer. Usual hours worked per week.}
+#'   \item{adjinc}{Integer. Adjustment factor for income and earnings (6-digit multiplier).}
+#'   \item{age_f3}{Factor. Derived age group: "18-34", "35-54", "55+".}
+#'   \item{race_f4}{Factor. Derived race/ethnicity: "White", "Black", "Hispanic", "Other".}
+#'   \item{edu_f3}{Factor. Derived educational attainment: "<HS", "HS", "College+".}
+#' }
+#'
+#' @source Derived from `surveycore::acs_pums_wy`. Original data from the U.S.
+#'   Census Bureau, 2022 American Community Survey 1-Year PUMS.
+#'   See `data-raw/acs-wy-2022.R` for the construction script.
+#' @seealso [calibrate_to_survey()], [ns_wave1]
+#' @keywords datasets
+"acs_wy_2022"

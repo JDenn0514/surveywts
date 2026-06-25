@@ -161,6 +161,7 @@ targets_a <- list(
 calibrate_linear(ns_wave1, targets = targets_a, weights = weight)
 
 # survey_nonprob — weight column auto-detected ---------------------------
+ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
 calibrate_linear(ns_wave1_svy, targets = targets_a)
 
 # Format B -------------------------------------------------------

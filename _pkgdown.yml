@@ -37,14 +37,14 @@ reference:
       - ipw
   - title: Example Datasets
     desc: >
-      Bundled datasets for IPW examples and calibration examples. Each tibble
-      is paired with a survey design companion object (e.g., `gss_2024_svy`).
+      Bundled datasets for IPW examples and calibration examples.
     subtitle: Non-probability sample
     contents:
       - ns_wave1
   - title: ~
     subtitle: Probability reference surveys
     contents:
+      - acs_wy_2022
       - cps_2023
       - gss_2024
       - npors_2025

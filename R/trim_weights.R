@@ -79,7 +79,7 @@
 #'   weights in sample surveys. *Proceedings of the Joint Statistical
 #'   Meetings, Section on Survey Research Methods*, 2707--2719.
 #'
-#' @seealso [stabilize_weights()]
+#' @seealso [rescale_weights()]
 #' @family utilities
 #' @export
 #' @examples

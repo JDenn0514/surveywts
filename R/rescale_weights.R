@@ -46,7 +46,6 @@
 #' @export
 #' @examples
 #' # Rescale weights to unit mean (default)
-#' data(ns_wave1)
 #' summarize_weights(ns_wave1, weights = weight)
 #'
 #' result <- rescale_weights(ns_wave1, weights = weight)

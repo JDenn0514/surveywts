@@ -3,7 +3,6 @@
 \docType{data}
 \name{pew_2016_synth_pop}
 \alias{pew_2016_synth_pop}
-\alias{pew_2016_synth_pop_svy}
 \title{Pew 2016 ATP synthetic population}
 \format{
 A data frame with 20,000 rows and 43 columns:
@@ -86,13 +85,6 @@ then, \code{4} = Hardly at all.}
 \code{cut(age, breaks = c(18, 35, 55, Inf), right = FALSE)}. Levels:
 \code{c("18-34", "35-54", "55+")}.}
 }
-\subsection{\code{pew_2016_synth_pop_svy}}{
-
-A \code{survey_taylor} object wrapping \code{pew_2016_synth_pop}. Constructed with
-equal weights (\code{1L}) as a simple random sample of the synthetic population.
-}
-
-An object of class \code{surveycore::survey_taylor} (inherits from \code{surveycore::survey_base}, \code{S7_object}) of length 1.
 }
 \source{
 Derived from the Pew Research Center 2016 ATP synthetic population
@@ -100,8 +92,6 @@ SPSS file. See \code{data-raw/pew-2016-synth-pop.R} for the preparation script.
 }
 \usage{
 pew_2016_synth_pop
-
-pew_2016_synth_pop_svy
 }
 \description{
 A 20,000-row synthetic population dataset derived from the 2016
@@ -117,15 +107,11 @@ labels are stored in the \code{"label"} attribute of each column.
 Binary benchmark variables (shared with \link{pew_2016_optin}) are dichotomised
 to \code{1} = positive response, \code{0} = negative response; no Refused codes
 exist in this dataset.
-
-\code{pew_2016_synth_pop_svy} is a \code{survey_taylor} object constructed with
-equal weights (\code{1L}), representing the synthetic population as a simple
-random sample.
 }
 \details{
 Pew 2016 ATP synthetic population
 }
 \seealso{
-\link{pew_2016_synth_pop_svy}, \link{pew_2016_optin}
+\link{pew_2016_optin}
 }
 \keyword{datasets}

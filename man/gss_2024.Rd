@@ -3,7 +3,6 @@
 \docType{data}
 \name{gss_2024}
 \alias{gss_2024}
-\alias{gss_2024_svy}
 \title{GSS 2024 sample data with harmonized demographic columns}
 \format{
 \subsection{\code{gss_2024}}{
@@ -60,16 +59,6 @@ origin takes precedence (\code{hispanic > 1} = \code{"Hispanic"}); \code{race ==
 approximately 260 million, the 2024 US adult population estimate).}
 }
 }
-
-\subsection{\code{gss_2024_svy}}{
-
-A \code{survey_taylor} object wrapping \code{gss_2024}. Constructed with
-\code{weights = wtssps}, \code{strata = vstrat}, \code{ids = vpsu}, \code{nest = TRUE}.
-Use for standard survey estimation. For IPW, use \code{wt_pop} from the tibble
-to construct a separate Taylor design (see \verb{@description}).
-}
-
-An object of class \code{surveycore::survey_taylor} (inherits from \code{surveycore::survey_base}, \code{S7_object}) of length 1.
 }
 \source{
 Derived from \code{surveycore::gss_2024}.
@@ -77,8 +66,6 @@ See \verb{data-raw/gss-2024.R} for the construction script.
 }
 \usage{
 gss_2024
-
-gss_2024_svy
 }
 \description{
 The 2024 General Social Survey (GSS), obtained from
@@ -89,20 +76,23 @@ from \code{age}), \code{race_f4} (factor from \code{race} and \code{hispanic}), 
 (factor from \code{partyid}), \code{edu_f3} (factor from \code{degree}), and \code{wt_pop}
 (population-scaled weight for IPW use).
 
-\code{gss_2024_svy} is a \code{survey_taylor} object constructed with \code{wtssps}
-as the weight column, and \code{vstrat}/\code{vpsu} as the stratification and PSU
-variables (\code{nest = TRUE}). This is the correct design for standard
-survey estimation. For IPW workflows, construct a reference design from
-the \code{gss_2024} tibble using the \code{wt_pop} column:
+To construct a survey design for standard estimation, use:
 
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{data(gss_2024)
-ref <- surveycore::as_survey(
+gss_design <- surveycore::as_survey(
+  gss_2024, weights = wtssps, strata = vstrat, ids = vpsu, nest = TRUE
+)
+}\if{html}{\out{</div>}}
+
+For IPW workflows, use the \code{wt_pop} column instead of \code{wtssps}:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{ref <- surveycore::as_survey(
   gss_2024, weights = wt_pop, strata = vstrat, ids = vpsu, nest = TRUE
 )
 ipw(ns_wave1, ref, selection = ~sex + age_f3)
 }\if{html}{\out{</div>}}
 }
 \seealso{
-\link{gss_2024_svy}, \link{ns_wave1}
+\link{ns_wave1}
 }
 \keyword{datasets}

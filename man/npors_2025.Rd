@@ -3,7 +3,6 @@
 \docType{data}
 \name{npors_2025}
 \alias{npors_2025}
-\alias{npors_2025_svy}
 \title{Pew NPORS 2025 probability sample with harmonized demographic columns}
 \format{
 \subsection{\code{npors_2025}}{
@@ -82,8 +81,7 @@ categories, \code{99} = Refused.}
 \item{metro}{Numeric. Metropolitan area.}
 \item{basewt}{Numeric. Base weight before calibration.}
 \item{weight}{Numeric. Final normalized survey weight (mean approximately
-1). Use for \code{npors_2025_svy} and standard estimation. For IPW use
-\code{wt_pop} instead.}
+1). Use for standard estimation. For IPW use \code{wt_pop} instead.}
 \item{sex}{Factor. Derived from \code{gender}: \code{1} = \code{"Male"}, \code{2} =
 \code{"Female"}, \code{3} (Non-binary) and \code{99} (Refused) recoded to \code{NA}.
 Levels: \code{c("Male", "Female")}. Approximately 0.5\% \code{NA}.}
@@ -105,15 +103,6 @@ collapsed), \code{99} = \code{NA}. Levels: \code{c("White", "Black", "Hispanic",
 approximately 260 million, the 2024 US adult population estimate).}
 }
 }
-
-\subsection{\code{npors_2025_svy}}{
-
-A \code{survey_taylor} object wrapping \code{npors_2025}. Constructed with
-\code{weights = weight} (normalized NPORS weight). For IPW use, construct a
-reference design from \code{npors_2025_clean} using \code{wt_pop}.
-}
-
-An object of class \code{surveycore::survey_taylor} (inherits from \code{surveycore::survey_base}, \code{S7_object}) of length 1.
 }
 \source{
 Derived from \code{surveycore::pew_npors_2025}.
@@ -121,8 +110,6 @@ See \verb{data-raw/npors-2025.R} for the construction script.
 }
 \usage{
 npors_2025
-
-npors_2025_svy
 }
 \description{
 The 2025 Pew National Public Opinion Reference Survey (NPORS), obtained from
@@ -131,12 +118,22 @@ The original \code{gender} column is kept as-is (numeric). Six derived columns
 are added: \code{sex} (factor from \code{gender}), \code{age_f3}, \code{race_f4}, \code{edu_f3},
 \code{pid_f3}, and \code{wt_pop}.
 
-\code{npors_2025_svy} is a \code{survey_taylor} object using \code{weight} as the weight
-column (normalized NPORS weight, correct for standard estimation). For IPW
-use, construct a reference design from the tibble using \code{wt_pop}:
+NPORS is a national address-based probability sample with stratified random
+sampling and differential probabilities of selection across strata. Always
+include \code{strata = stratum} when constructing a survey design from this data.
+To construct a survey design for standard estimation:
 
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{data(npors_2025_clean)
-ref <- surveycore::as_survey(npors_2025_clean, weights = wt_pop)
+npors_design <- surveycore::as_survey(
+  npors_2025_clean, weights = weight, strata = stratum
+)
+}\if{html}{\out{</div>}}
+
+For IPW use, construct a reference design using \code{wt_pop}:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{ref <- surveycore::as_survey(
+  npors_2025_clean, weights = wt_pop, strata = stratum
+)
 ipw(ns_wave1, ref,
     selection = ~sex + age_f3 + race_f4 + edu_f3,
     missing_method = "omit")
@@ -147,6 +144,6 @@ Approximately 0.5\% of rows have \code{NA} in each derived column (from \code{99
 warnings when passing to \code{ipw()}.
 }
 \seealso{
-\link{npors_2025_svy}, \link{npors_2025_clean}, \link{ns_wave1}
+\link{npors_2025_clean}, \link{ns_wave1}
 }
 \keyword{datasets}

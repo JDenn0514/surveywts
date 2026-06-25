@@ -1,6 +1,6 @@
 # R/weight-utils.R
 #
-# Internal helpers shared by trim_weights() and stabilize_weights().
+# Internal helpers shared by trim_weights() and rescale_weights().
 #
 # .check_weight_utils_class() — class check accepting all 5 input types;
 #   errors with surveywts_error_unsupported_class for anything else.
@@ -11,7 +11,7 @@
 # .check_weight_utils_class()
 # ============================================================================
 
-# File-local class check for trim_weights() and stabilize_weights().
+# File-local class check for trim_weights() and rescale_weights().
 # Accepts all 5 input types; errors with surveywts_error_unsupported_class
 # for anything else. Does NOT call .check_input_class() (which errors on
 # survey_replicate).

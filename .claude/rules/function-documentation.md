@@ -289,7 +289,7 @@ Simple rescaling or structural conversion does not require a reference.
 
 - `effective_sample_size()` — has a formula (Kish 1965); requires an Algorithm
   section with `\deqn{}` and a `@references` entry
-- `stabilize_weights()` — rescales weights; simple enough that `@description`
+- `rescale_weights()` — rescales weights; simple enough that `@description`
   alone covers the mechanism; no Algorithm section needed
 - `as_taylor_design()` — structural conversion of a `survey_replicate` to a
   `survey_taylor`; no formula; minimal `@details`; no `@references`

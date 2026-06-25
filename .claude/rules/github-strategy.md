@@ -197,7 +197,7 @@ The `/merge-main` skill handles choosing the correct strategy automatically.
 |-----|---------------------|---------------|
 | `v0.1.0` | `0.1.0` | Calibration complete — `weighted_df`, `survey_nonprob`, `calibrate()`, `rake()`, `poststratify()`, basic diagnostics |
 | minor bump | minor bump | Replicate complete — replicate weight generation + bootstrap variance |
-| minor bump | minor bump | Utilities complete — `trim_weights()`, `stabilize_weights()` |
+| minor bump | minor bump | Utilities complete — `trim_weights()`, `rescale_weights()` |
 | minor bump | minor bump | Nonresponse complete — sample-based calibration, advanced nonresponse |
 | minor bump | minor bump | Propensity complete — propensity score weighting |
 | minor bump | minor bump | Diagnostics complete — balance assessment, visual diagnostics |

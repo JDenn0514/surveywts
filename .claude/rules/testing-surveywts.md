@@ -32,7 +32,7 @@ only what is specific to surveywts.
 | `R/adjust_nonresponse.R`, `R/redistribute_weights.R`, `R/nonresponse-utils.R` | `tests/testthat/test-05-nonresponse.R` |
 | `R/effective_sample_size.R`, `R/weight_variability.R`, `R/summarize_weights.R`, `R/diagnostics-utils.R` | `tests/testthat/test-06-diagnostics.R` |
 | `R/calibrate_to_survey.R`, `R/calibrate_to_estimate.R` | `tests/testthat/test-sample-calibration.R` |
-| `R/trim_weights.R`, `R/stabilize_weights.R`, `R/weight-utils.R` | `tests/testthat/test-weight-utils.R` |
+| `R/trim_weights.R`, `R/rescale_weights.R`, `R/weight-utils.R` | `tests/testthat/test-weight-utils.R` |
 | `R/create_bootstrap_weights.R`, and other `create_*_weights.R`, `R/replicate-utils.R` | `tests/testthat/test-replicate-weights.R` |
 | `R/create_replicate_weights.R`, `R/as_taylor_design.R` | `tests/testthat/test-replicate-dispatch.R` |
 | `R/methods-print.R` | `tests/testthat/test-replicate-print.R` |

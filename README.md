@@ -93,7 +93,7 @@ rounds out the ecosystem with tidy data manipulation for survey objects.
 | Function              | Purpose                                       |
 |-----------------------|-----------------------------------------------|
 | `trim_weights()`      | Clip extreme weights with mass redistribution |
-| `stabilize_weights()` | Rescale weights to unit mean                  |
+| `rescale_weights()` | Rescale weights to unit mean                    |
 
 ## Usage
 

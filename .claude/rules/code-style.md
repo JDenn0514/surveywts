@@ -370,7 +370,7 @@ For the full inline markup reference (50+ classes, pluralization, progress bars,
 |---------------|--------|
 | Calibration functions: `calibrate_rake()`, `poststratify()`, etc. | Visible (updated object, same class as input) |
 | Nonresponse functions: `adjust_nonresponse()`, `redistribute_weights()` | Visible (updated object, same class as input) |
-| Utility functions: `trim_weights()`, `stabilize_weights()` | Visible (updated object, same class as input) |
+| Utility functions: `trim_weights()`, `rescale_weights()` | Visible (updated object, same class as input) |
 | Diagnostic functions: `effective_sample_size()`, `weight_variability()`, `summarize_weights()` | Visible (named scalar or tibble) |
 | `ipw()` — always returns `survey_nonprob` regardless of input class | Visible (`survey_nonprob`) |
 | Print methods: `S7::method(print, surveycore::survey_nonprob)`, etc. | `invisible(x)` |

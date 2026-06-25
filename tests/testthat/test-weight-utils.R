@@ -1,6 +1,6 @@
 # tests/testthat/test-weight-utils.R
 #
-# Tests for trim_weights() and stabilize_weights()
+# Tests for trim_weights() and rescale_weights()
 # Per spec-utilities.md §VI test categories
 # Per impl-utilities.md PR 2 acceptance criteria
 #
@@ -767,51 +767,51 @@ test_that("trim_weights() survey_replicate + percentile: cutoffs from main weigh
   expect_equal(hist_entry$parameters$upper_abs, expected_upper, tolerance = 1e-10)
 })
 
-# stabilize_weights() --------------------------------------------------
+# rescale_weights() --------------------------------------------------
 
-# 1. Happy path — stabilize_weights() -----------------------------------
+# 1. Happy path — rescale_weights() -----------------------------------
 
-test_that("stabilize_weights() returns weighted_df for data.frame + named weights", {
+test_that("rescale_weights() returns weighted_df for data.frame + named weights", {
   df <- make_surveywts_data(seed = 50)
-  result <- stabilize_weights(df, weights = base_weight)
+  result <- rescale_weights(df, weights = base_weight)
   test_invariants(result)
   expect_true(inherits(result, "weighted_df"))
   expect_identical(attr(result, "weight_col"), "base_weight")
 })
 
-test_that("stabilize_weights() preserves weighted_df class and weight column name", {
+test_that("rescale_weights() preserves weighted_df class and weight column name", {
   df <- make_surveywts_data(seed = 51)
   wdf <- .make_test_wdf(df)
   col_name <- attr(wdf, "weight_col")
 
-  result <- stabilize_weights(wdf)
+  result <- rescale_weights(wdf)
   test_invariants(result)
   expect_true(inherits(result, "weighted_df"))
   expect_identical(attr(result, "weight_col"), col_name)
 })
 
-test_that("stabilize_weights() preserves survey_taylor class", {
+test_that("rescale_weights() preserves survey_taylor class", {
   df <- make_surveywts_data(seed = 52)
   design <- .make_test_taylor_wt(df)
-  result <- stabilize_weights(design)
+  result <- rescale_weights(design)
   test_invariants(result)
   expect_true(S7::S7_inherits(result, surveycore::survey_taylor))
 })
 
-test_that("stabilize_weights() preserves survey_nonprob class", {
+test_that("rescale_weights() preserves survey_nonprob class", {
   df <- make_surveywts_data(seed = 53)
   design <- .make_test_nonprob_wt(df)
-  result <- stabilize_weights(design)
+  result <- rescale_weights(design)
   test_invariants(result)
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
 })
 
-test_that("stabilize_weights() preserves survey_replicate class and scales rep weights", {
+test_that("rescale_weights() preserves survey_replicate class and scales rep weights", {
   rep_design <- make_replicate_design(seed = 4)
   orig_main <- rep_design@data[[rep_design@variables$weights]]
   orig_rep <- as.matrix(rep_design@data[rep_design@variables$repweights])
 
-  result <- stabilize_weights(rep_design)
+  result <- rescale_weights(rep_design)
   test_invariants(result)
   expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
 
@@ -827,9 +827,9 @@ test_that("stabilize_weights() preserves survey_replicate class and scales rep w
   expect_identical(dim(result_rep), dim(orig_rep))
 })
 
-test_that("stabilize_weights() returns weighted_df with wt_name column for data.frame + NULL weights", {
+test_that("rescale_weights() returns weighted_df with wt_name column for data.frame + NULL weights", {
   df <- make_surveywts_data(seed = 54)
-  result <- stabilize_weights(df, wt_name = "my_stable_weight")
+  result <- rescale_weights(df, wt_name = "my_stable_weight")
   test_invariants(result)
   expect_true(inherits(result, "weighted_df"))
   expect_identical(attr(result, "weight_col"), "my_stable_weight")
@@ -838,15 +838,15 @@ test_that("stabilize_weights() returns weighted_df with wt_name column for data.
   expect_equal(sum(result[["my_stable_weight"]]), n, tolerance = 1e-10)
 })
 
-test_that("stabilize_weights() global: sum(result_weights) == nrow(data)", {
+test_that("rescale_weights() global: sum(result_weights) == nrow(data)", {
   df <- make_surveywts_data(seed = 55)
-  result <- stabilize_weights(df, weights = base_weight)
+  result <- rescale_weights(df, weights = base_weight)
   expect_equal(sum(result[["base_weight"]]), nrow(df), tolerance = 1e-10)
 })
 
-test_that("stabilize_weights() by = col: each group sums to group n", {
+test_that("rescale_weights() by = col: each group sums to group n", {
   df <- make_surveywts_data(seed = 56)
-  result <- stabilize_weights(df, weights = base_weight, by = age_group)
+  result <- rescale_weights(df, weights = base_weight, by = age_group)
   w_new <- result[["base_weight"]]
   for (grp in unique(df$age_group)) {
     idx <- df$age_group == grp
@@ -854,9 +854,9 @@ test_that("stabilize_weights() by = col: each group sums to group n", {
   }
 })
 
-test_that("stabilize_weights() by = c(col1, col2): multi-variable grouping works", {
+test_that("rescale_weights() by = c(col1, col2): multi-variable grouping works", {
   df <- make_surveywts_data(seed = 57)
-  result <- stabilize_weights(df, weights = base_weight, by = c(age_group, sex))
+  result <- rescale_weights(df, weights = base_weight, by = c(age_group, sex))
   w_new <- result[["base_weight"]]
   for (ag in unique(df$age_group)) {
     for (sx in unique(df$sex)) {
@@ -868,17 +868,17 @@ test_that("stabilize_weights() by = c(col1, col2): multi-variable grouping works
   }
 })
 
-# 2. Numerical correctness — stabilize_weights() --------------------------
+# 2. Numerical correctness — rescale_weights() --------------------------
 
-test_that("stabilize_weights() global: sum(w_new) == n to machine precision", {
+test_that("rescale_weights() global: sum(w_new) == n to machine precision", {
   df <- make_surveywts_data(seed = 60)
-  result <- stabilize_weights(df, weights = base_weight)
+  result <- rescale_weights(df, weights = base_weight)
   expect_equal(sum(result[["base_weight"]]), nrow(df), tolerance = 1e-10)
 })
 
-test_that("stabilize_weights() within-group: each group sums to group n (tolerance 1e-10)", {
+test_that("rescale_weights() within-group: each group sums to group n (tolerance 1e-10)", {
   df <- make_surveywts_data(seed = 61)
-  result <- stabilize_weights(df, weights = base_weight, by = age_group)
+  result <- rescale_weights(df, weights = base_weight, by = age_group)
   w_new <- result[["base_weight"]]
   for (grp in unique(df$age_group)) {
     idx <- df$age_group == grp
@@ -886,24 +886,24 @@ test_that("stabilize_weights() within-group: each group sums to group n (toleran
   }
 })
 
-test_that("stabilize_weights() scale factor n/sum(w) matches history", {
+test_that("rescale_weights() scale factor n/sum(w) matches history", {
   df <- make_surveywts_data(seed = 62)
   w <- df$base_weight
   n <- nrow(df)
-  result <- stabilize_weights(df, weights = base_weight)
+  result <- rescale_weights(df, weights = base_weight)
   hist_entry <- attr(result, "weighting_history")[[1]]
   expected_sf <- n / sum(w)
   expect_equal(hist_entry$parameters$scale_factor, expected_sf, tolerance = 1e-10)
 })
 
-test_that("stabilize_weights() survey_replicate global: each rep column scaled by same factor", {
+test_that("rescale_weights() survey_replicate global: each rep column scaled by same factor", {
   rep_design <- make_replicate_design(seed = 5)
   orig_main <- rep_design@data[[rep_design@variables$weights]]
   orig_rep <- as.matrix(rep_design@data[rep_design@variables$repweights])
   n <- nrow(rep_design@data)
   scale_f <- n / sum(orig_main)
 
-  result <- stabilize_weights(rep_design)
+  result <- rescale_weights(rep_design)
   result_rep <- as.matrix(result@data[result@variables$repweights])
 
   # Each replicate column multiplied by same scale factor
@@ -911,13 +911,13 @@ test_that("stabilize_weights() survey_replicate global: each rep column scaled b
   expect_equal(colSums(result_rep), expected_colsums, tolerance = 1e-10)
 })
 
-test_that("stabilize_weights() survey_replicate with by: per-group factors applied to rep columns", {
+test_that("rescale_weights() survey_replicate with by: per-group factors applied to rep columns", {
   rep_design <- make_replicate_design(seed = 6)
   orig_main <- rep_design@data[[rep_design@variables$weights]]
   orig_rep <- as.matrix(rep_design@data[rep_design@variables$repweights])
   data_df <- rep_design@data
 
-  result <- stabilize_weights(rep_design, by = age_group)
+  result <- rescale_weights(rep_design, by = age_group)
   result_rep <- as.matrix(result@data[result@variables$repweights])
 
   # Verify per-group: sum of result_rep[h, j] == sum(orig_rep[h, j]) * (n_h / W_h)
@@ -934,115 +934,115 @@ test_that("stabilize_weights() survey_replicate with by: per-group factors appli
   }
 })
 
-# 3. Error paths — stabilize_weights() ------------------------------------
+# 3. Error paths — rescale_weights() ------------------------------------
 
-test_that("stabilize_weights() rejects list input", {
+test_that("rescale_weights() rejects list input", {
   expect_error(
-    stabilize_weights(list(x = 1:5)),
+    rescale_weights(list(x = 1:5)),
     class = "surveywts_error_unsupported_class"
   )
-  expect_snapshot(error = TRUE, stabilize_weights(list(x = 1:5)))
+  expect_snapshot(error = TRUE, rescale_weights(list(x = 1:5)))
 })
 
-test_that("stabilize_weights() rejects 0-row data frame", {
+test_that("rescale_weights() rejects 0-row data frame", {
   empty <- data.frame(x = numeric(0), w = numeric(0))
   expect_error(
-    stabilize_weights(empty, weights = w),
+    rescale_weights(empty, weights = w),
     class = "surveywts_error_empty_data"
   )
-  expect_snapshot(error = TRUE, stabilize_weights(empty, weights = w))
+  expect_snapshot(error = TRUE, rescale_weights(empty, weights = w))
 })
 
-test_that("stabilize_weights() rejects missing weight column", {
+test_that("rescale_weights() rejects missing weight column", {
   df <- data.frame(x = 1:5)
   expect_error(
-    stabilize_weights(df, weights = missing_col),
+    rescale_weights(df, weights = missing_col),
     class = "surveywts_error_weights_not_found"
   )
-  expect_snapshot(error = TRUE, stabilize_weights(df, weights = missing_col))
+  expect_snapshot(error = TRUE, rescale_weights(df, weights = missing_col))
 })
 
-test_that("stabilize_weights() rejects non-numeric weight column", {
+test_that("rescale_weights() rejects non-numeric weight column", {
   df <- data.frame(x = 1:5, w = letters[1:5])
   expect_error(
-    stabilize_weights(df, weights = w),
+    rescale_weights(df, weights = w),
     class = "surveywts_error_weights_not_numeric"
   )
-  expect_snapshot(error = TRUE, stabilize_weights(df, weights = w))
+  expect_snapshot(error = TRUE, rescale_weights(df, weights = w))
 })
 
-test_that("stabilize_weights() rejects negative weight values", {
+test_that("rescale_weights() rejects negative weight values", {
   df <- data.frame(x = 1:5, w = c(1, 2, -1, 2, 1))
   expect_error(
-    stabilize_weights(df, weights = w),
+    rescale_weights(df, weights = w),
     class = "surveywts_error_weights_nonpositive"
   )
-  expect_snapshot(error = TRUE, stabilize_weights(df, weights = w))
+  expect_snapshot(error = TRUE, rescale_weights(df, weights = w))
 })
 
-test_that("stabilize_weights() rejects NA weight values", {
+test_that("rescale_weights() rejects NA weight values", {
   df <- data.frame(x = 1:5, w = c(1, 2, NA, 2, 1))
   expect_error(
-    stabilize_weights(df, weights = w),
+    rescale_weights(df, weights = w),
     class = "surveywts_error_weights_na"
   )
-  expect_snapshot(error = TRUE, stabilize_weights(df, weights = w))
+  expect_snapshot(error = TRUE, rescale_weights(df, weights = w))
 })
 
-test_that("stabilize_weights() rejects by variable not in data", {
+test_that("rescale_weights() rejects by variable not in data", {
   df <- make_surveywts_data(seed = 1)
   expect_error(
-    stabilize_weights(df, weights = base_weight, by = nonexistent_col),
+    rescale_weights(df, weights = base_weight, by = nonexistent_col),
     class = "surveywts_error_by_variable_not_found"
   )
   expect_snapshot(
     error = TRUE,
-    stabilize_weights(df, weights = base_weight, by = nonexistent_col)
+    rescale_weights(df, weights = base_weight, by = nonexistent_col)
   )
 })
 
-test_that("stabilize_weights() rejects by variable with NA values", {
+test_that("rescale_weights() rejects by variable with NA values", {
   df <- make_surveywts_data(seed = 1)
   df$age_group[1] <- NA
   expect_error(
-    stabilize_weights(df, weights = base_weight, by = age_group),
+    rescale_weights(df, weights = base_weight, by = age_group),
     class = "surveywts_error_variable_has_na"
   )
   expect_snapshot(
     error = TRUE,
-    stabilize_weights(df, weights = base_weight, by = age_group)
+    rescale_weights(df, weights = base_weight, by = age_group)
   )
 })
 
-test_that("stabilize_weights() rejects wt_name = 1L (plain df + NULL weights)", {
+test_that("rescale_weights() rejects wt_name = 1L (plain df + NULL weights)", {
   df <- make_surveywts_data(seed = 1)
   expect_error(
-    stabilize_weights(df, wt_name = 1L),
+    rescale_weights(df, wt_name = 1L),
     class = "surveywts_error_wt_name_not_scalar"
   )
   expect_snapshot(
     error = TRUE,
-    stabilize_weights(df, wt_name = 1L)
+    rescale_weights(df, wt_name = 1L)
   )
 })
 
-test_that("stabilize_weights() rejects wt_name = '' (plain df + NULL weights)", {
+test_that("rescale_weights() rejects wt_name = '' (plain df + NULL weights)", {
   df <- make_surveywts_data(seed = 1)
   expect_error(
-    stabilize_weights(df, wt_name = ""),
+    rescale_weights(df, wt_name = ""),
     class = "surveywts_error_wt_name_empty"
   )
   expect_snapshot(
     error = TRUE,
-    stabilize_weights(df, wt_name = "")
+    rescale_weights(df, wt_name = "")
   )
 })
 
-test_that("stabilize_weights() surveywts_error_empty_data: S7 class invariant prevents 0-row survey_nonprob", {
+test_that("rescale_weights() surveywts_error_empty_data: S7 class invariant prevents 0-row survey_nonprob", {
   # The surveycore survey_nonprob S7 class validator rejects @data assignment
   # when the resulting weight column is empty (0 rows => all-NA weights => error).
   # A 0-row survey_nonprob with repweights is therefore unrepresentable; the
-  # surveywts_error_empty_data path in stabilize_weights() for this combination
+  # surveywts_error_empty_data path in rescale_weights() for this combination
   # is structurally unreachable via the public API.
   # This test documents that constraint and verifies the S7 rejection itself.
   n <- 10L
@@ -1069,22 +1069,22 @@ test_that("stabilize_weights() surveywts_error_empty_data: S7 class invariant pr
   )
 })
 
-# 4. History correctness — stabilize_weights() -----------------------------
+# 4. History correctness — rescale_weights() -----------------------------
 
-test_that("stabilize_weights() history entry has all required fields", {
+test_that("rescale_weights() history entry has all required fields", {
   df <- make_surveywts_data(seed = 70)
-  result <- stabilize_weights(df, weights = base_weight)
+  result <- rescale_weights(df, weights = base_weight)
   hist_entry <- attr(result, "weighting_history")[[1]]
 
-  expect_identical(hist_entry$operation, "stabilize_weights")
+  expect_identical(hist_entry$operation, "rescale_weights")
   expect_true("by" %in% names(hist_entry$parameters))
   expect_true("scale_factor" %in% names(hist_entry$parameters))
   expect_null(hist_entry$parameters$by)
 })
 
-test_that("stabilize_weights() by history: named scale_factor vector with ' | ' separator", {
+test_that("rescale_weights() by history: named scale_factor vector with ' | ' separator", {
   df <- make_surveywts_data(seed = 71)
-  result <- stabilize_weights(df, weights = base_weight, by = c(age_group, sex))
+  result <- rescale_weights(df, weights = base_weight, by = c(age_group, sex))
   hist_entry <- attr(result, "weighting_history")[[1]]
   expect_false(is.null(hist_entry$parameters$by))
   expect_true(is.numeric(hist_entry$parameters$scale_factor))
@@ -1094,56 +1094,56 @@ test_that("stabilize_weights() by history: named scale_factor vector with ' | ' 
   expect_true(all(grepl(" | ", sf_names, fixed = TRUE)))
 })
 
-test_that("stabilize_weights() step number correct when chained after trim_weights()", {
+test_that("rescale_weights() step number correct when chained after trim_weights()", {
   df <- make_surveywts_data(seed = 72)
   trimmed <- trim_weights(df, weights = base_weight, upper = 0.9, type = "percentile")
-  result <- stabilize_weights(trimmed)
+  result <- rescale_weights(trimmed)
   hist <- attr(result, "weighting_history")
   expect_equal(length(hist), 2L)
   expect_equal(hist[[2L]]$step, 2L)
-  expect_identical(hist[[2L]]$operation, "stabilize_weights")
+  expect_identical(hist[[2L]]$operation, "rescale_weights")
 })
 
-# 5. Edge cases — stabilize_weights() -------------------------------------
+# 5. Edge cases — rescale_weights() -------------------------------------
 
-test_that("stabilize_weights() no-op when weights already sum to n", {
+test_that("rescale_weights() no-op when weights already sum to n", {
   n <- 100L
   # Create weights that already sum to n
   w <- rep(1, n)  # uniform weights already sum to n
   df <- data.frame(x = seq_len(n), w = w)
-  result <- stabilize_weights(df, weights = w)
+  result <- rescale_weights(df, weights = w)
   hist_entry <- attr(result, "weighting_history")[[1]]
   expect_equal(hist_entry$parameters$scale_factor, 1.0, tolerance = 1e-10)
   expect_equal(sum(result[["w"]]), n, tolerance = 1e-10)
 })
 
-test_that("stabilize_weights() single-row data: weight set to 1", {
+test_that("rescale_weights() single-row data: weight set to 1", {
   one_row <- data.frame(x = 1, w = 5.0)
-  result <- stabilize_weights(one_row, weights = w)
+  result <- rescale_weights(one_row, weights = w)
   expect_equal(result[["w"]], 1.0, tolerance = 1e-10)
 })
 
-test_that("stabilize_weights() by with one group: equivalent to global stabilization", {
+test_that("rescale_weights() by with one group: equivalent to global stabilization", {
   df <- make_surveywts_data(seed = 75)
   # Use a variable with only one level
   df$const_group <- "all"
 
-  result_global <- stabilize_weights(df, weights = base_weight)
-  result_by <- stabilize_weights(df, weights = base_weight, by = const_group)
+  result_global <- rescale_weights(df, weights = base_weight)
+  result_by <- rescale_weights(df, weights = base_weight, by = const_group)
 
   expect_equal(result_global[["base_weight"]],
                result_by[["base_weight"]],
                tolerance = 1e-10)
 })
 
-test_that("stabilize_weights() by with group of size 1: weight for that observation set to 1", {
+test_that("rescale_weights() by with group of size 1: weight for that observation set to 1", {
   n <- 20L
   df <- data.frame(
     x = seq_len(n),
     w = exp(stats::rnorm(n, 0, 0.4)),
     grp = c("A", rep("B", n - 1L))
   )
-  result <- stabilize_weights(df, weights = w, by = grp)
+  result <- rescale_weights(df, weights = w, by = grp)
   # Group "A" has 1 observation: its weight should be 1
   idx_a <- df$grp == "A"
   expect_equal(result[["w"]][idx_a], 1.0, tolerance = 1e-10)
@@ -1348,38 +1348,38 @@ test_that("trim_weights() clips a single replicate column for survey_nonprob wit
 })
 
 # ===========================================================================
-# stabilize_weights() — survey_nonprob with repweights
+# rescale_weights() — survey_nonprob with repweights
 # ===========================================================================
 
-test_that("stabilize_weights() preserves survey_nonprob class for nonprob with repweights", {
+test_that("rescale_weights() preserves survey_nonprob class for nonprob with repweights", {
   nonprob_rep <- .make_nonprob_with_repweights(seed = 20)
-  result <- stabilize_weights(nonprob_rep)
+  result <- rescale_weights(nonprob_rep)
   test_invariants(result)
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
   expect_false(S7::S7_inherits(result, surveycore::survey_replicate))
 })
 
-test_that("stabilize_weights() global: scales all rep columns by same factor for nonprob", {
+test_that("rescale_weights() global: scales all rep columns by same factor for nonprob", {
   nonprob_rep <- .make_nonprob_with_repweights(seed = 21)
   orig_main <- nonprob_rep@data[[nonprob_rep@variables$weights]]
   orig_rep <- as.matrix(nonprob_rep@data[nonprob_rep@variables$repweights])
   n <- nrow(nonprob_rep@data)
   scale_f <- n / sum(orig_main)
 
-  result <- stabilize_weights(nonprob_rep)
+  result <- rescale_weights(nonprob_rep)
   result_rep <- as.matrix(result@data[result@variables$repweights])
 
   expected_colsums <- colSums(orig_rep) * scale_f
   expect_equal(colSums(result_rep), expected_colsums, tolerance = 1e-10)
 })
 
-test_that("stabilize_weights() per-group: applies per-row scale factors to rep columns for nonprob", {
+test_that("rescale_weights() per-group: applies per-row scale factors to rep columns for nonprob", {
   nonprob_rep <- .make_nonprob_with_repweights(seed = 22)
   orig_main <- nonprob_rep@data[[nonprob_rep@variables$weights]]
   orig_rep <- as.matrix(nonprob_rep@data[nonprob_rep@variables$repweights])
   data_df <- nonprob_rep@data
 
-  result <- stabilize_weights(nonprob_rep, by = age_group)
+  result <- rescale_weights(nonprob_rep, by = age_group)
   result_rep <- as.matrix(result@data[result@variables$repweights])
 
   for (grp in unique(data_df$age_group)) {
@@ -1395,22 +1395,22 @@ test_that("stabilize_weights() per-group: applies per-row scale factors to rep c
   }
 })
 
-test_that("stabilize_weights() appends history entry for survey_nonprob with repweights", {
+test_that("rescale_weights() appends history entry for survey_nonprob with repweights", {
   nonprob_rep <- .make_nonprob_with_repweights(seed = 23)
-  result <- stabilize_weights(nonprob_rep)
+  result <- rescale_weights(nonprob_rep)
   hist <- result@metadata@weighting_history
   expect_true(length(hist) >= 1L)
   last_entry <- hist[[length(hist)]]
-  expect_identical(last_entry$operation, "stabilize_weights")
+  expect_identical(last_entry$operation, "rescale_weights")
 })
 
-test_that("stabilize_weights() does not scale replicates for survey_nonprob WITHOUT repweights", {
+test_that("rescale_weights() does not scale replicates for survey_nonprob WITHOUT repweights", {
   nonprob_no_rep <- .make_nonprob_no_repweights(seed = 24)
-  result <- stabilize_weights(nonprob_no_rep)
+  result <- rescale_weights(nonprob_no_rep)
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
 })
 
-test_that("stabilize_weights() nonprob + repweights: scale_factor == 1.0 when weights already sum to n", {
+test_that("rescale_weights() nonprob + repweights: scale_factor == 1.0 when weights already sum to n", {
   set.seed(42)
   n <- 50L
   n_rep <- 5L
@@ -1434,13 +1434,13 @@ test_that("stabilize_weights() nonprob + repweights: scale_factor == 1.0 when we
     mse = TRUE
   )
   orig_rep <- as.matrix(nonprob_rep@data[nonprob_rep@variables$repweights])
-  result <- stabilize_weights(nonprob_rep)
+  result <- rescale_weights(nonprob_rep)
   result_rep <- as.matrix(result@data[result@variables$repweights])
   # scale factor is 1.0, so rep columns are unchanged
   expect_equal(result_rep, orig_rep, tolerance = 1e-10)
 })
 
-test_that("stabilize_weights() nonprob + repweights: two rep columns scale correctly", {
+test_that("rescale_weights() nonprob + repweights: two rep columns scale correctly", {
   set.seed(99)
   n <- 30L
   df <- make_surveywts_data(n = n, seed = 99)
@@ -1457,6 +1457,6 @@ test_that("stabilize_weights() nonprob + repweights: two rep columns scale corre
   orig_main <- nonprob_rep@data[["base_weight"]]
   orig_rep1 <- nonprob_rep@data[["rep_1"]]
   scale_f <- n / sum(orig_main)
-  result <- stabilize_weights(nonprob_rep)
+  result <- rescale_weights(nonprob_rep)
   expect_equal(result@data[["rep_1"]], orig_rep1 * scale_f, tolerance = 1e-10)
 })

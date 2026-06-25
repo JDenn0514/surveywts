@@ -235,98 +235,98 @@
       Error in `.validate_wt_name()`:
       x `wt_name` must be a non-empty, non-NA string.
 
-# stabilize_weights() rejects list input
+# rescale_weights() rejects list input
 
     Code
-      stabilize_weights(list(x = 1:5))
+      rescale_weights(list(x = 1:5))
     Condition
       Error in `.check_weight_utils_class()`:
       x `data` must be a data frame or a supported survey design object.
       i Got <list>.
       v See package documentation for supported input types.
 
-# stabilize_weights() rejects 0-row data frame
+# rescale_weights() rejects 0-row data frame
 
     Code
-      stabilize_weights(empty, weights = w)
+      rescale_weights(empty, weights = w)
     Condition
-      Error in `stabilize_weights()`:
+      Error in `rescale_weights()`:
       x `data` has 0 rows.
-      i Weight stabilization requires at least one observation.
+      i Weight rescaling requires at least one observation.
 
-# stabilize_weights() rejects missing weight column
+# rescale_weights() rejects missing weight column
 
     Code
-      stabilize_weights(df, weights = missing_col)
+      rescale_weights(df, weights = missing_col)
     Condition
       Error in `.validate_weights()`:
       x Weight column missing_col not found in `data`.
       i Available columns: x.
       v Pass the column name as a bare name, e.g., `weights = wt_col`.
 
-# stabilize_weights() rejects non-numeric weight column
+# rescale_weights() rejects non-numeric weight column
 
     Code
-      stabilize_weights(df, weights = w)
+      rescale_weights(df, weights = w)
     Condition
       Error in `.validate_weights()`:
       x Weight column w must be numeric.
       i Got <character>.
       v Use `as.numeric(w)` to convert.
 
-# stabilize_weights() rejects negative weight values
+# rescale_weights() rejects negative weight values
 
     Code
-      stabilize_weights(df, weights = w)
+      rescale_weights(df, weights = w)
     Condition
       Error in `.validate_weights()`:
       x Weight column w contains 1 non-positive value(s).
       i All starting weights must be strictly positive (> 0).
       v Remove or replace non-positive weights before proceeding.
 
-# stabilize_weights() rejects NA weight values
+# rescale_weights() rejects NA weight values
 
     Code
-      stabilize_weights(df, weights = w)
+      rescale_weights(df, weights = w)
     Condition
       Error in `.validate_weights()`:
       x Weight column w contains 1 NA value(s).
       i Weights must be fully observed.
       v Remove rows with missing weights before proceeding.
 
-# stabilize_weights() rejects by variable not in data
+# rescale_weights() rejects by variable not in data
 
     Code
-      stabilize_weights(df, weights = base_weight, by = nonexistent_col)
+      rescale_weights(df, weights = base_weight, by = nonexistent_col)
     Condition
       Error in `value[[3L]]()`:
       x `by` variable nonexistent_col not found in `data`.
       i Can't select columns that don't exist. x Column `nonexistent_col` doesn't exist.
       v Check that all grouping variables exist as columns in `data`.
 
-# stabilize_weights() rejects by variable with NA values
+# rescale_weights() rejects by variable with NA values
 
     Code
-      stabilize_weights(df, weights = base_weight, by = age_group)
+      rescale_weights(df, weights = base_weight, by = age_group)
     Condition
-      Error in `stabilize_weights()`:
+      Error in `rescale_weights()`:
       x `by` variable age_group contains 1 NA value(s).
       i Grouping variables must be fully observed.
-      v Remove rows with missing age_group before calling `stabilize_weights()`.
+      v Remove rows with missing age_group before calling `rescale_weights()`.
 
-# stabilize_weights() rejects wt_name = 1L (plain df + NULL weights)
+# rescale_weights() rejects wt_name = 1L (plain df + NULL weights)
 
     Code
-      stabilize_weights(df, wt_name = 1L)
+      rescale_weights(df, wt_name = 1L)
     Condition
       Error in `.validate_wt_name()`:
       x `wt_name` must be a single character string.
       i Got <integer> of length 1.
 
-# stabilize_weights() rejects wt_name = '' (plain df + NULL weights)
+# rescale_weights() rejects wt_name = '' (plain df + NULL weights)
 
     Code
-      stabilize_weights(df, wt_name = "")
+      rescale_weights(df, wt_name = "")
     Condition
       Error in `.validate_wt_name()`:
       x `wt_name` must be a non-empty, non-NA string.

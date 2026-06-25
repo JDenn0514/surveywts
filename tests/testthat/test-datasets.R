@@ -42,8 +42,8 @@ test_that("retired datasets no longer exist in the package", {
   expect_false("npors_2025_clean_ref" %in% pkg_data)
   expect_false("acs_ipw_ref" %in% pkg_data)
   expect_false("ns_wave1_ipw" %in% pkg_data)
-  # acs_wy_2022 tibble is retained; only acs_wy_2022_svy is retired
   expect_false("acs_wy_2022_svy" %in% pkg_data)
+  expect_false("acs_wy_2022" %in% pkg_data)
 })
 
 # ============================================================================

@@ -48,11 +48,14 @@
 #'   American Statistical Association*, 489--494.
 #'
 #' @examples
-#' # standard BRR (gss_2024_svy has 67 strata x 2 PSUs) ------------------
-#' create_brr_weights(gss_2024_svy)
+#' # standard BRR on a stratified 2-PSU-per-stratum design ----------------
+#' gss_svy <- surveycore::as_survey(
+#'   gss_2024, weights = wtssps, strata = vstrat, ids = vpsu, nest = TRUE
+#' )
+#' create_brr_weights(gss_svy)
 #'
 #' # Fay's BRR with damping coefficient -----------------------------------
-#' create_brr_weights(gss_2024_svy, rho = 0.5)
+#' create_brr_weights(gss_svy, rho = 0.5)
 #'
 #' @seealso [create_bootstrap_weights()], [create_jackknife_weights()],
 #'   [create_gen_boot_weights()], [create_gen_rep_weights()],

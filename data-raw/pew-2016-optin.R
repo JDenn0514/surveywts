@@ -1,9 +1,9 @@
 ## data-raw/pew-2016-optin.R
 ##
 ## Produces:
-##   pew_2016_optin     — 31,863 opt-in respondents (3 vendors), 104 variables
-##   pew_2016_optin_svy — survey_nonprob raked to pew_2016_synth_pop targets
-##                        + 200 quasi-randomization bootstrap replicate weights
+##   pew_2016_optin — 2,000 opt-in respondents (3 vendors), 305 variables:
+##                    104 original SPSS columns + calibrated weight + 200
+##                    quasi-randomization bootstrap replicate weights.
 ##
 ## Source: Pew Research Center (used in Mercer, Lau & Kennedy 2018
 ##         "For Weighting Online Opt-In Samples, What Matters Most?")
@@ -321,8 +321,21 @@ synth_ideo3 <- factor(
 
 ## ---- 8. Keep only 2000 random respondents ----
 
-optin_for_svy <- optin_for_svy[sample(nrow(optin_for_svy), 2000), ]
-pew_2016_optin <- optin_for_svy
+# Sample within optin_for_svy (complete-case subset of pew_2016_optin).
+# Track which rows we picked so we can subset the original 104-col
+# pew_2016_optin to exactly the same respondents — without accidentally
+# inheriting the extra cal columns (cal_division, cal_ideo3, weight)
+# that optin_for_svy carries.
+set.seed(42)
+sampled_rows <- sample(nrow(optin_for_svy), 2000)
+optin_for_svy <- optin_for_svy[sampled_rows, ]
+# optin_for_svy rownames are preserved original row indices from pew_2016_optin
+# (rownames were "1".."31863" after section 2's rownames(pew_2016_optin) <- NULL).
+original_rows <- as.integer(rownames(optin_for_svy))
+# Subset the original 104-col pew_2016_optin to the same respondents.
+# Do NOT use optin_for_svy here — it has extra cal columns.
+pew_2016_optin <- pew_2016_optin[original_rows, ]
+rownames(pew_2016_optin) <- NULL
 
 ## ---- 9. Build survey_nonprob ----
 
@@ -358,7 +371,46 @@ pew_2016_optin_svy <- create_bootstrap_weights(
   type = "quasi-randomization"
 )
 
-## ---- 12. Remove objects ----
+## ---- 12. Promote calibrated weight and replicate weights into tibble ----
+
+# pew_2016_optin is the 104-col tibble (104 original SPSS columns with
+# derived demographic factors). Bind in the calibrated weight + 200 repwts.
+pew_2016_optin$weight <- pew_2016_optin_svy@data$weight
+repwt_cols <- pew_2016_optin_svy@variables$repweights # "repwt_1" ... "repwt_200"
+pew_2016_optin[repwt_cols] <- pew_2016_optin_svy@data[repwt_cols]
+
+# Add "label" attributes to derived factor columns
+attr(pew_2016_optin$sex, "label") <- "Sex (factor, derived from gender: 1=Male, 2=Female)"
+attr(pew_2016_optin$race_f4, "label") <- "Race/ethnicity (4 levels: White, Black, Hispanic, Other)"
+attr(pew_2016_optin$edu_f3, "label") <- "Educational attainment (3 levels)"
+attr(pew_2016_optin$pid_f3, "label") <- "Party identification (3 levels: Republican, Independent, Democrat)"
+attr(pew_2016_optin$age_f3, "label") <- "Age group (3 levels: 18-34, 35-54, 55+)"
+attr(pew_2016_optin$weight, "label") <- "Calibrated survey weight (raked to synth_pop targets, 5th/95th percentile trim)"
+for (col in repwt_cols) {
+  attr(pew_2016_optin[[col]], "label") <- paste0(
+    "Quasi-randomization bootstrap replicate weight ",
+    sub("repwt_", "", col)
+  )
+}
+
+# Add "question_preface" to select-all race battery
+race_acs_cols <- grep("^race_acs_", names(pew_2016_optin), value = TRUE)
+race_preface <- "Which of the following describes your race? (Mark all that apply.)"
+for (col in race_acs_cols) {
+  attr(pew_2016_optin[[col]], "question_preface") <- race_preface
+}
+
+pew_2016_optin <- tibble::as_tibble(pew_2016_optin)
+
+# 104 original cols + 1 (weight) + 200 (repwt_1..repwt_200) = 305
+stopifnot(ncol(pew_2016_optin) == 305L)
+stopifnot(nrow(pew_2016_optin) == 2000L)
+stopifnot("weight" %in% names(pew_2016_optin))
+stopifnot("repwt_1" %in% names(pew_2016_optin))
+stopifnot("repwt_200" %in% names(pew_2016_optin))
+stopifnot(all(pew_2016_optin$weight > 0))
+
+## ---- 13. Remove intermediate objects ----
 
 rm(
   .cal_vars,
@@ -366,14 +418,22 @@ rm(
   .div_lvls,
   .ideo3_lvls,
   optin_for_svy,
+  pew_2016_optin_svy,
   synth_division,
-  synth_ideo3
+  synth_ideo3,
+  original_rows,
+  repwt_cols,
+  race_acs_cols,
+  race_preface,
+  col,
+  sampled_rows,
+  n_dropped
 )
 
 ## ---- 14. Save data ----
 
-usethis::use_data(pew_2016_optin, pew_2016_optin_svy, overwrite = TRUE)
+usethis::use_data(pew_2016_optin, overwrite = TRUE)
 message(
-  "Saved pew_2016_optin_svy ",
-  "(raked to synth_pop targets + 200 bootstrap replicate weights)"
+  "Saved pew_2016_optin ",
+  "(2000 rows x 305 cols; calibrated weight + 200 bootstrap repwts)"
 )

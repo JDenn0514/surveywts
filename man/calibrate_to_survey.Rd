@@ -229,16 +229,14 @@ weights were constructed.
 }
 
 \examples{
-# calibrate pew NPS to NPORS control survey on age_f3 and pid_f3 -------
-control <- create_bootstrap_weights(
-  npors_2025_clean_svy,
-  replicates = 50L
+# calibrate ns_wave1 NPS to NPORS probability survey on age_f3 and sex ----
+ns_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
+primary <- create_bootstrap_weights(ns_svy, replicates = 50L)
+npors_design <- surveycore::as_survey(
+  npors_2025_clean, weights = weight, strata = stratum
 )
-result <- calibrate_to_survey(
-  pew_2016_optin_svy,
-  control,
-  variables = c(age_f3, pid_f3)
-)
+control <- create_bootstrap_weights(npors_design, replicates = 50L)
+result <- calibrate_to_survey(primary, control, variables = c(age_f3, sex))
 
 }
 \references{

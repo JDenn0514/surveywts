@@ -1939,6 +1939,7 @@ test_that("doubly-robust Level B path still works after routing refactor", {
 
 test_that("create_jackknife_weights() type = 'jkn' returns survey_replicate with @variables$type == 'JKn'", {
   skip_if_not_installed("survey")
+  gss_2024_svy <- surveycore::as_survey(gss_2024, weights = wtssps, strata = vstrat, ids = vpsu, nest = TRUE)
   result <- create_jackknife_weights(gss_2024_svy, type = "jkn")
   test_invariants(result)
   expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
@@ -1974,6 +1975,7 @@ test_that("create_jackknife_weights() type = 'grouped' returns survey_replicate 
 
 test_that("create_jackknife_weights() jkn replicate count matches survey::as.svrepdesign oracle", {
   skip_if_not_installed("survey")
+  gss_2024_svy <- surveycore::as_survey(gss_2024, weights = wtssps, strata = vstrat, ids = vpsu, nest = TRUE)
   direct <- survey::as.svrepdesign(
     surveycore::as_svydesign(gss_2024_svy), type = "JKn", mse = TRUE
   )
@@ -2001,6 +2003,7 @@ test_that("create_jackknife_weights() jk1 replicate count matches survey::as.svr
 
 test_that("create_jackknife_weights() jkn scale factor matches survey::as.svrepdesign oracle", {
   skip_if_not_installed("survey")
+  gss_2024_svy <- surveycore::as_survey(gss_2024, weights = wtssps, strata = vstrat, ids = vpsu, nest = TRUE)
   direct <- survey::as.svrepdesign(
     surveycore::as_svydesign(gss_2024_svy), type = "JKn", mse = TRUE
   )
@@ -2012,6 +2015,7 @@ test_that("create_jackknife_weights() jkn scale factor matches survey::as.svrepd
 
 test_that("create_jackknife_weights() jkn history entry has operation='replicate_creation', method='jackknife', parameters$type='jkn'", {
   skip_if_not_installed("survey")
+  gss_2024_svy <- surveycore::as_survey(gss_2024, weights = wtssps, strata = vstrat, ids = vpsu, nest = TRUE)
   result <- create_jackknife_weights(gss_2024_svy, type = "jkn")
   history <- result@metadata@weighting_history
   entry <- history[[length(history)]]
@@ -2064,6 +2068,7 @@ test_that("create_jackknife_weights() type = 'jkn' fails on unstratified survey_
 
 test_that("replicates is silently ignored for type = 'jkn'", {
   skip_if_not_installed("survey")
+  gss_2024_svy <- surveycore::as_survey(gss_2024, weights = wtssps, strata = vstrat, ids = vpsu, nest = TRUE)
   result <- create_jackknife_weights(gss_2024_svy, type = "jkn", replicates = 99L)
   expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
   expect_true(length(result@variables$repweights) != 99L)
@@ -2081,6 +2086,7 @@ test_that("replicates is silently ignored for type = 'jk1'", {
 
 test_that("seed is silently ignored for type = 'jkn'", {
   skip_if_not_installed("survey")
+  gss_2024_svy <- surveycore::as_survey(gss_2024, weights = wtssps, strata = vstrat, ids = vpsu, nest = TRUE)
   expect_no_error(
     create_jackknife_weights(gss_2024_svy, type = "jkn", seed = 42L)
   )
@@ -2088,6 +2094,7 @@ test_that("seed is silently ignored for type = 'jkn'", {
 
 test_that("reference_sample is silently ignored for type = 'jkn'", {
   skip_if_not_installed("survey")
+  gss_2024_svy <- surveycore::as_survey(gss_2024, weights = wtssps, strata = vstrat, ids = vpsu, nest = TRUE)
   ref <- make_nps_reference(n = 100L, seed = 1L)
   expect_no_error(
     create_jackknife_weights(gss_2024_svy, type = "jkn", reference_sample = ref)
@@ -2142,6 +2149,7 @@ test_that("create_jackknife_weights() rejects survey_nonprob with type = 'jk1'",
 })
 
 test_that("create_jackknife_weights() errors when type = 'grouped' and replicates = NULL, survey_taylor input", {
+  gss_2024_svy <- surveycore::as_survey(gss_2024, weights = wtssps, strata = vstrat, ids = vpsu, nest = TRUE)
   expect_error(
     create_jackknife_weights(gss_2024_svy, type = "grouped"),
     class = "surveywts_error_jackknife_replicates_required"

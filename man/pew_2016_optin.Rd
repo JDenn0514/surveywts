@@ -3,10 +3,9 @@
 \docType{data}
 \name{pew_2016_optin}
 \alias{pew_2016_optin}
-\alias{pew_2016_optin_svy}
 \title{Pew 2016 ATP opt-in sample}
 \format{
-A data frame with 2,000 rows and 104 columns:
+A data frame with 2,000 rows and 305 columns:
 \describe{
 \item{rid}{Character. Respondent ID with vendor prefix (e.g., \code{"V1_7"}).}
 \item{vendor}{Numeric. Opt-in panel vendor: \code{1} = Vendor 1, \code{2} = Vendor 2,
@@ -186,20 +185,215 @@ party): \code{1} = \code{"Republican"}, \code{2} = \code{"Democrat"}, \code{3} =
 \item{age_f3}{Factor. Derived from \code{agecat6}: \code{1:2} = \code{"18-34"},
 \code{3:4} = \code{"35-54"}, \code{5:6} = \code{"55+"}. Levels:
 \code{c("18-34", "35-54", "55+")}.}
+\item{weight}{Numeric. Calibrated survey weight produced by raking to
+unweighted proportions from \link{pew_2016_synth_pop} (Newton-Raphson,
+7 marginal dimensions: \code{sex}, \code{age_f3}, \code{race_f4}, \code{edu_f3},
+\code{division}, \code{pid_f3}, \code{ideo3}; 5th/95th percentile trim). All values
+are positive. Use with \code{weights = weight} when constructing a survey
+object.}
+\item{repwt_1}{Numeric. Quasi-randomization bootstrap replicate weight 1.
+Pass all 200 \verb{repwt_*} columns to \code{surveycore::as_survey_nonprob()} as
+\code{repweights} for variance estimation.}
+\item{repwt_2}{Numeric. Quasi-randomization bootstrap replicate weight 2.}
+\item{repwt_3}{Numeric. Quasi-randomization bootstrap replicate weight 3.}
+\item{repwt_4}{Numeric. Quasi-randomization bootstrap replicate weight 4.}
+\item{repwt_5}{Numeric. Quasi-randomization bootstrap replicate weight 5.}
+\item{repwt_6}{Numeric. Quasi-randomization bootstrap replicate weight 6.}
+\item{repwt_7}{Numeric. Quasi-randomization bootstrap replicate weight 7.}
+\item{repwt_8}{Numeric. Quasi-randomization bootstrap replicate weight 8.}
+\item{repwt_9}{Numeric. Quasi-randomization bootstrap replicate weight 9.}
+\item{repwt_10}{Numeric. Quasi-randomization bootstrap replicate weight 10.}
+\item{repwt_11}{Numeric. Quasi-randomization bootstrap replicate weight 11.}
+\item{repwt_12}{Numeric. Quasi-randomization bootstrap replicate weight 12.}
+\item{repwt_13}{Numeric. Quasi-randomization bootstrap replicate weight 13.}
+\item{repwt_14}{Numeric. Quasi-randomization bootstrap replicate weight 14.}
+\item{repwt_15}{Numeric. Quasi-randomization bootstrap replicate weight 15.}
+\item{repwt_16}{Numeric. Quasi-randomization bootstrap replicate weight 16.}
+\item{repwt_17}{Numeric. Quasi-randomization bootstrap replicate weight 17.}
+\item{repwt_18}{Numeric. Quasi-randomization bootstrap replicate weight 18.}
+\item{repwt_19}{Numeric. Quasi-randomization bootstrap replicate weight 19.}
+\item{repwt_20}{Numeric. Quasi-randomization bootstrap replicate weight 20.}
+\item{repwt_21}{Numeric. Quasi-randomization bootstrap replicate weight 21.}
+\item{repwt_22}{Numeric. Quasi-randomization bootstrap replicate weight 22.}
+\item{repwt_23}{Numeric. Quasi-randomization bootstrap replicate weight 23.}
+\item{repwt_24}{Numeric. Quasi-randomization bootstrap replicate weight 24.}
+\item{repwt_25}{Numeric. Quasi-randomization bootstrap replicate weight 25.}
+\item{repwt_26}{Numeric. Quasi-randomization bootstrap replicate weight 26.}
+\item{repwt_27}{Numeric. Quasi-randomization bootstrap replicate weight 27.}
+\item{repwt_28}{Numeric. Quasi-randomization bootstrap replicate weight 28.}
+\item{repwt_29}{Numeric. Quasi-randomization bootstrap replicate weight 29.}
+\item{repwt_30}{Numeric. Quasi-randomization bootstrap replicate weight 30.}
+\item{repwt_31}{Numeric. Quasi-randomization bootstrap replicate weight 31.}
+\item{repwt_32}{Numeric. Quasi-randomization bootstrap replicate weight 32.}
+\item{repwt_33}{Numeric. Quasi-randomization bootstrap replicate weight 33.}
+\item{repwt_34}{Numeric. Quasi-randomization bootstrap replicate weight 34.}
+\item{repwt_35}{Numeric. Quasi-randomization bootstrap replicate weight 35.}
+\item{repwt_36}{Numeric. Quasi-randomization bootstrap replicate weight 36.}
+\item{repwt_37}{Numeric. Quasi-randomization bootstrap replicate weight 37.}
+\item{repwt_38}{Numeric. Quasi-randomization bootstrap replicate weight 38.}
+\item{repwt_39}{Numeric. Quasi-randomization bootstrap replicate weight 39.}
+\item{repwt_40}{Numeric. Quasi-randomization bootstrap replicate weight 40.}
+\item{repwt_41}{Numeric. Quasi-randomization bootstrap replicate weight 41.}
+\item{repwt_42}{Numeric. Quasi-randomization bootstrap replicate weight 42.}
+\item{repwt_43}{Numeric. Quasi-randomization bootstrap replicate weight 43.}
+\item{repwt_44}{Numeric. Quasi-randomization bootstrap replicate weight 44.}
+\item{repwt_45}{Numeric. Quasi-randomization bootstrap replicate weight 45.}
+\item{repwt_46}{Numeric. Quasi-randomization bootstrap replicate weight 46.}
+\item{repwt_47}{Numeric. Quasi-randomization bootstrap replicate weight 47.}
+\item{repwt_48}{Numeric. Quasi-randomization bootstrap replicate weight 48.}
+\item{repwt_49}{Numeric. Quasi-randomization bootstrap replicate weight 49.}
+\item{repwt_50}{Numeric. Quasi-randomization bootstrap replicate weight 50.}
+\item{repwt_51}{Numeric. Quasi-randomization bootstrap replicate weight 51.}
+\item{repwt_52}{Numeric. Quasi-randomization bootstrap replicate weight 52.}
+\item{repwt_53}{Numeric. Quasi-randomization bootstrap replicate weight 53.}
+\item{repwt_54}{Numeric. Quasi-randomization bootstrap replicate weight 54.}
+\item{repwt_55}{Numeric. Quasi-randomization bootstrap replicate weight 55.}
+\item{repwt_56}{Numeric. Quasi-randomization bootstrap replicate weight 56.}
+\item{repwt_57}{Numeric. Quasi-randomization bootstrap replicate weight 57.}
+\item{repwt_58}{Numeric. Quasi-randomization bootstrap replicate weight 58.}
+\item{repwt_59}{Numeric. Quasi-randomization bootstrap replicate weight 59.}
+\item{repwt_60}{Numeric. Quasi-randomization bootstrap replicate weight 60.}
+\item{repwt_61}{Numeric. Quasi-randomization bootstrap replicate weight 61.}
+\item{repwt_62}{Numeric. Quasi-randomization bootstrap replicate weight 62.}
+\item{repwt_63}{Numeric. Quasi-randomization bootstrap replicate weight 63.}
+\item{repwt_64}{Numeric. Quasi-randomization bootstrap replicate weight 64.}
+\item{repwt_65}{Numeric. Quasi-randomization bootstrap replicate weight 65.}
+\item{repwt_66}{Numeric. Quasi-randomization bootstrap replicate weight 66.}
+\item{repwt_67}{Numeric. Quasi-randomization bootstrap replicate weight 67.}
+\item{repwt_68}{Numeric. Quasi-randomization bootstrap replicate weight 68.}
+\item{repwt_69}{Numeric. Quasi-randomization bootstrap replicate weight 69.}
+\item{repwt_70}{Numeric. Quasi-randomization bootstrap replicate weight 70.}
+\item{repwt_71}{Numeric. Quasi-randomization bootstrap replicate weight 71.}
+\item{repwt_72}{Numeric. Quasi-randomization bootstrap replicate weight 72.}
+\item{repwt_73}{Numeric. Quasi-randomization bootstrap replicate weight 73.}
+\item{repwt_74}{Numeric. Quasi-randomization bootstrap replicate weight 74.}
+\item{repwt_75}{Numeric. Quasi-randomization bootstrap replicate weight 75.}
+\item{repwt_76}{Numeric. Quasi-randomization bootstrap replicate weight 76.}
+\item{repwt_77}{Numeric. Quasi-randomization bootstrap replicate weight 77.}
+\item{repwt_78}{Numeric. Quasi-randomization bootstrap replicate weight 78.}
+\item{repwt_79}{Numeric. Quasi-randomization bootstrap replicate weight 79.}
+\item{repwt_80}{Numeric. Quasi-randomization bootstrap replicate weight 80.}
+\item{repwt_81}{Numeric. Quasi-randomization bootstrap replicate weight 81.}
+\item{repwt_82}{Numeric. Quasi-randomization bootstrap replicate weight 82.}
+\item{repwt_83}{Numeric. Quasi-randomization bootstrap replicate weight 83.}
+\item{repwt_84}{Numeric. Quasi-randomization bootstrap replicate weight 84.}
+\item{repwt_85}{Numeric. Quasi-randomization bootstrap replicate weight 85.}
+\item{repwt_86}{Numeric. Quasi-randomization bootstrap replicate weight 86.}
+\item{repwt_87}{Numeric. Quasi-randomization bootstrap replicate weight 87.}
+\item{repwt_88}{Numeric. Quasi-randomization bootstrap replicate weight 88.}
+\item{repwt_89}{Numeric. Quasi-randomization bootstrap replicate weight 89.}
+\item{repwt_90}{Numeric. Quasi-randomization bootstrap replicate weight 90.}
+\item{repwt_91}{Numeric. Quasi-randomization bootstrap replicate weight 91.}
+\item{repwt_92}{Numeric. Quasi-randomization bootstrap replicate weight 92.}
+\item{repwt_93}{Numeric. Quasi-randomization bootstrap replicate weight 93.}
+\item{repwt_94}{Numeric. Quasi-randomization bootstrap replicate weight 94.}
+\item{repwt_95}{Numeric. Quasi-randomization bootstrap replicate weight 95.}
+\item{repwt_96}{Numeric. Quasi-randomization bootstrap replicate weight 96.}
+\item{repwt_97}{Numeric. Quasi-randomization bootstrap replicate weight 97.}
+\item{repwt_98}{Numeric. Quasi-randomization bootstrap replicate weight 98.}
+\item{repwt_99}{Numeric. Quasi-randomization bootstrap replicate weight 99.}
+\item{repwt_100}{Numeric. Quasi-randomization bootstrap replicate weight 100.}
+\item{repwt_101}{Numeric. Quasi-randomization bootstrap replicate weight 101.}
+\item{repwt_102}{Numeric. Quasi-randomization bootstrap replicate weight 102.}
+\item{repwt_103}{Numeric. Quasi-randomization bootstrap replicate weight 103.}
+\item{repwt_104}{Numeric. Quasi-randomization bootstrap replicate weight 104.}
+\item{repwt_105}{Numeric. Quasi-randomization bootstrap replicate weight 105.}
+\item{repwt_106}{Numeric. Quasi-randomization bootstrap replicate weight 106.}
+\item{repwt_107}{Numeric. Quasi-randomization bootstrap replicate weight 107.}
+\item{repwt_108}{Numeric. Quasi-randomization bootstrap replicate weight 108.}
+\item{repwt_109}{Numeric. Quasi-randomization bootstrap replicate weight 109.}
+\item{repwt_110}{Numeric. Quasi-randomization bootstrap replicate weight 110.}
+\item{repwt_111}{Numeric. Quasi-randomization bootstrap replicate weight 111.}
+\item{repwt_112}{Numeric. Quasi-randomization bootstrap replicate weight 112.}
+\item{repwt_113}{Numeric. Quasi-randomization bootstrap replicate weight 113.}
+\item{repwt_114}{Numeric. Quasi-randomization bootstrap replicate weight 114.}
+\item{repwt_115}{Numeric. Quasi-randomization bootstrap replicate weight 115.}
+\item{repwt_116}{Numeric. Quasi-randomization bootstrap replicate weight 116.}
+\item{repwt_117}{Numeric. Quasi-randomization bootstrap replicate weight 117.}
+\item{repwt_118}{Numeric. Quasi-randomization bootstrap replicate weight 118.}
+\item{repwt_119}{Numeric. Quasi-randomization bootstrap replicate weight 119.}
+\item{repwt_120}{Numeric. Quasi-randomization bootstrap replicate weight 120.}
+\item{repwt_121}{Numeric. Quasi-randomization bootstrap replicate weight 121.}
+\item{repwt_122}{Numeric. Quasi-randomization bootstrap replicate weight 122.}
+\item{repwt_123}{Numeric. Quasi-randomization bootstrap replicate weight 123.}
+\item{repwt_124}{Numeric. Quasi-randomization bootstrap replicate weight 124.}
+\item{repwt_125}{Numeric. Quasi-randomization bootstrap replicate weight 125.}
+\item{repwt_126}{Numeric. Quasi-randomization bootstrap replicate weight 126.}
+\item{repwt_127}{Numeric. Quasi-randomization bootstrap replicate weight 127.}
+\item{repwt_128}{Numeric. Quasi-randomization bootstrap replicate weight 128.}
+\item{repwt_129}{Numeric. Quasi-randomization bootstrap replicate weight 129.}
+\item{repwt_130}{Numeric. Quasi-randomization bootstrap replicate weight 130.}
+\item{repwt_131}{Numeric. Quasi-randomization bootstrap replicate weight 131.}
+\item{repwt_132}{Numeric. Quasi-randomization bootstrap replicate weight 132.}
+\item{repwt_133}{Numeric. Quasi-randomization bootstrap replicate weight 133.}
+\item{repwt_134}{Numeric. Quasi-randomization bootstrap replicate weight 134.}
+\item{repwt_135}{Numeric. Quasi-randomization bootstrap replicate weight 135.}
+\item{repwt_136}{Numeric. Quasi-randomization bootstrap replicate weight 136.}
+\item{repwt_137}{Numeric. Quasi-randomization bootstrap replicate weight 137.}
+\item{repwt_138}{Numeric. Quasi-randomization bootstrap replicate weight 138.}
+\item{repwt_139}{Numeric. Quasi-randomization bootstrap replicate weight 139.}
+\item{repwt_140}{Numeric. Quasi-randomization bootstrap replicate weight 140.}
+\item{repwt_141}{Numeric. Quasi-randomization bootstrap replicate weight 141.}
+\item{repwt_142}{Numeric. Quasi-randomization bootstrap replicate weight 142.}
+\item{repwt_143}{Numeric. Quasi-randomization bootstrap replicate weight 143.}
+\item{repwt_144}{Numeric. Quasi-randomization bootstrap replicate weight 144.}
+\item{repwt_145}{Numeric. Quasi-randomization bootstrap replicate weight 145.}
+\item{repwt_146}{Numeric. Quasi-randomization bootstrap replicate weight 146.}
+\item{repwt_147}{Numeric. Quasi-randomization bootstrap replicate weight 147.}
+\item{repwt_148}{Numeric. Quasi-randomization bootstrap replicate weight 148.}
+\item{repwt_149}{Numeric. Quasi-randomization bootstrap replicate weight 149.}
+\item{repwt_150}{Numeric. Quasi-randomization bootstrap replicate weight 150.}
+\item{repwt_151}{Numeric. Quasi-randomization bootstrap replicate weight 151.}
+\item{repwt_152}{Numeric. Quasi-randomization bootstrap replicate weight 152.}
+\item{repwt_153}{Numeric. Quasi-randomization bootstrap replicate weight 153.}
+\item{repwt_154}{Numeric. Quasi-randomization bootstrap replicate weight 154.}
+\item{repwt_155}{Numeric. Quasi-randomization bootstrap replicate weight 155.}
+\item{repwt_156}{Numeric. Quasi-randomization bootstrap replicate weight 156.}
+\item{repwt_157}{Numeric. Quasi-randomization bootstrap replicate weight 157.}
+\item{repwt_158}{Numeric. Quasi-randomization bootstrap replicate weight 158.}
+\item{repwt_159}{Numeric. Quasi-randomization bootstrap replicate weight 159.}
+\item{repwt_160}{Numeric. Quasi-randomization bootstrap replicate weight 160.}
+\item{repwt_161}{Numeric. Quasi-randomization bootstrap replicate weight 161.}
+\item{repwt_162}{Numeric. Quasi-randomization bootstrap replicate weight 162.}
+\item{repwt_163}{Numeric. Quasi-randomization bootstrap replicate weight 163.}
+\item{repwt_164}{Numeric. Quasi-randomization bootstrap replicate weight 164.}
+\item{repwt_165}{Numeric. Quasi-randomization bootstrap replicate weight 165.}
+\item{repwt_166}{Numeric. Quasi-randomization bootstrap replicate weight 166.}
+\item{repwt_167}{Numeric. Quasi-randomization bootstrap replicate weight 167.}
+\item{repwt_168}{Numeric. Quasi-randomization bootstrap replicate weight 168.}
+\item{repwt_169}{Numeric. Quasi-randomization bootstrap replicate weight 169.}
+\item{repwt_170}{Numeric. Quasi-randomization bootstrap replicate weight 170.}
+\item{repwt_171}{Numeric. Quasi-randomization bootstrap replicate weight 171.}
+\item{repwt_172}{Numeric. Quasi-randomization bootstrap replicate weight 172.}
+\item{repwt_173}{Numeric. Quasi-randomization bootstrap replicate weight 173.}
+\item{repwt_174}{Numeric. Quasi-randomization bootstrap replicate weight 174.}
+\item{repwt_175}{Numeric. Quasi-randomization bootstrap replicate weight 175.}
+\item{repwt_176}{Numeric. Quasi-randomization bootstrap replicate weight 176.}
+\item{repwt_177}{Numeric. Quasi-randomization bootstrap replicate weight 177.}
+\item{repwt_178}{Numeric. Quasi-randomization bootstrap replicate weight 178.}
+\item{repwt_179}{Numeric. Quasi-randomization bootstrap replicate weight 179.}
+\item{repwt_180}{Numeric. Quasi-randomization bootstrap replicate weight 180.}
+\item{repwt_181}{Numeric. Quasi-randomization bootstrap replicate weight 181.}
+\item{repwt_182}{Numeric. Quasi-randomization bootstrap replicate weight 182.}
+\item{repwt_183}{Numeric. Quasi-randomization bootstrap replicate weight 183.}
+\item{repwt_184}{Numeric. Quasi-randomization bootstrap replicate weight 184.}
+\item{repwt_185}{Numeric. Quasi-randomization bootstrap replicate weight 185.}
+\item{repwt_186}{Numeric. Quasi-randomization bootstrap replicate weight 186.}
+\item{repwt_187}{Numeric. Quasi-randomization bootstrap replicate weight 187.}
+\item{repwt_188}{Numeric. Quasi-randomization bootstrap replicate weight 188.}
+\item{repwt_189}{Numeric. Quasi-randomization bootstrap replicate weight 189.}
+\item{repwt_190}{Numeric. Quasi-randomization bootstrap replicate weight 190.}
+\item{repwt_191}{Numeric. Quasi-randomization bootstrap replicate weight 191.}
+\item{repwt_192}{Numeric. Quasi-randomization bootstrap replicate weight 192.}
+\item{repwt_193}{Numeric. Quasi-randomization bootstrap replicate weight 193.}
+\item{repwt_194}{Numeric. Quasi-randomization bootstrap replicate weight 194.}
+\item{repwt_195}{Numeric. Quasi-randomization bootstrap replicate weight 195.}
+\item{repwt_196}{Numeric. Quasi-randomization bootstrap replicate weight 196.}
+\item{repwt_197}{Numeric. Quasi-randomization bootstrap replicate weight 197.}
+\item{repwt_198}{Numeric. Quasi-randomization bootstrap replicate weight 198.}
+\item{repwt_199}{Numeric. Quasi-randomization bootstrap replicate weight 199.}
+\item{repwt_200}{Numeric. Quasi-randomization bootstrap replicate weight 200.}
 }
-\subsection{\code{pew_2016_optin_svy}}{
-
-A \code{survey_nonprob} object wrapping \code{pew_2016_optin}. The \code{weight} column
-contains calibrated weights produced by raking to \link{pew_2016_synth_pop}
-targets (Newton-Raphson, 7 margins: sex, age_f3, race_f4, edu_f3,
-division, pid_f3, ideo3; 5th/95th percentile trim). Carries 200
-quasi-randomization bootstrap replicate weights (\code{repwt_1}–\code{repwt_200} in
-\verb{@data}; \verb{@variables$repweights} populated). The \code{weight} column exists
-only in the object's \verb{@data} — it is not stored in the \code{pew_2016_optin}
-tibble.
-}
-
-An object of class \code{surveycore::survey_nonprob} (inherits from \code{surveycore::survey_base}, \code{S7_object}) of length 1.
 }
 \source{
 Derived from the Pew Research Center 2016 opt-in sample SPSS file.
@@ -207,8 +401,6 @@ See \code{data-raw/pew-2016-optin.R} for the preparation script.
 }
 \usage{
 pew_2016_optin
-
-pew_2016_optin_svy
 }
 \description{
 A 2,000-respondent random sample drawn from a 2016 Pew Research
@@ -225,19 +417,20 @@ Value labels are preserved as named numeric attributes on each column
 (accessible via \code{attr(pew_2016_optin$gender, "labels")}). Variable labels
 are stored in the \code{"label"} attribute of each column.
 
-\code{pew_2016_optin_svy} is a \code{survey_nonprob} object whose \code{weight} column
-is produced by raking to targets computed as unweighted proportions from
-\link{pew_2016_synth_pop} (Newton-Raphson algorithm, 7 marginal dimensions:
-sex, age_f3, race_f4, edu_f3, division, pid_f3, and ideology;
-5th/95th percentile trim). It carries 200 quasi-randomization bootstrap
-replicate weights (\code{repwt_1}–\code{repwt_200}). The \code{weight} column is stored
-in the object's \verb{@data} slot only; it is not present in the
-\code{pew_2016_optin} tibble.
+To construct a \code{survey_nonprob} for analysis, use the promoted \code{weight}
+column directly from the tibble:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{data(pew_2016_optin)
+pew_design <- surveycore::survey_nonprob(
+  pew_2016_optin, variables = list(weights = "weight",
+  repweights = grep("^repwt_", names(pew_2016_optin), value = TRUE))
+)
+}\if{html}{\out{</div>}}
 }
 \details{
 Pew 2016 ATP opt-in sample
 }
 \seealso{
-\link{pew_2016_optin_svy}, \link{pew_2016_synth_pop}
+\link{pew_2016_synth_pop}
 }
 \keyword{datasets}

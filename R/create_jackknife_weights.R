@@ -252,23 +252,28 @@
 #'
 #' @examples
 #' # JKn (stratified delete-one) on a probability sample --------------------
-#' data(gss_2024_svy)
-#' jkn_design <- create_jackknife_weights(gss_2024_svy, type = "jkn")
+#' gss_svy <- surveycore::as_survey(
+#'   gss_2024, weights = wtssps, strata = vstrat, ids = vpsu, nest = TRUE
+#' )
+#' jkn_design <- create_jackknife_weights(gss_svy, type = "jkn")
 #'
 #' # Grouped jackknife on a probability sample -------------------------------
 #' grouped_design <- create_jackknife_weights(
-#'   gss_2024_svy,
+#'   gss_svy,
 #'   replicates = 2L,
 #'   type = "grouped",
 #'   seed = 42L
 #' )
 #'
-#' # DAGJK on a non-probability sample (Level A calibration-only) -----------
-#' # ns_wave1_svy has a calibrate_rake history entry with targets_from_reference
-#' # = FALSE, so no reference sample is needed.
-#' data(ns_wave1_svy)
+#' # DAGJK on a calibrated non-probability sample ----------------------------
+#' targets_a <- list(
+#'   sex    = c("Male" = 0.49, "Female" = 0.51),
+#'   age_f3 = c("18-34" = 0.30, "35-54" = 0.33, "55+" = 0.37)
+#' )
+#' ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
+#' ns_wave1_cal <- calibrate_rake(ns_wave1_svy, targets = targets_a)
 #' dagjk_design <- create_jackknife_weights(
-#'   ns_wave1_svy,
+#'   ns_wave1_cal,
 #'   replicates = 50L,
 #'   type = "grouped",
 #'   seed = 42L

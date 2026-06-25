@@ -742,7 +742,7 @@ test_that("create_jackknife_weights() type='grouped' svrep args warning fires on
 })
 
 test_that("create_jackknife_weights() warns when adj_method overridden for DAGJK", {
-  data(ns_wave1_svy)
+  ns_wave1_svy <- datasets$A
   expect_warning(
     create_jackknife_weights(
       ns_wave1_svy, replicates = 5L, type = "grouped",
@@ -753,7 +753,7 @@ test_that("create_jackknife_weights() warns when adj_method overridden for DAGJK
 })
 
 test_that("multiple non-default svrep args together emit exactly one warning for DAGJK", {
-  data(ns_wave1_svy)
+  ns_wave1_svy <- datasets$A
   n_warnings <- 0L
   withCallingHandlers(
     create_jackknife_weights(
@@ -772,7 +772,7 @@ test_that("multiple non-default svrep args together emit exactly one warning for
 })
 
 test_that("create_jackknife_weights() does not warn for svrep args when all at default for DAGJK", {
-  data(ns_wave1_svy)
+  ns_wave1_svy <- datasets$A
   expect_no_warning(
     create_jackknife_weights(ns_wave1_svy, replicates = 5L, type = "grouped")
   )

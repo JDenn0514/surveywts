@@ -52,7 +52,10 @@
 #'
 #' @examples
 #' # generalized replication with reproducible seed -----------------------
-#' create_gen_rep_weights(gss_2024_svy, seed = 42L)
+#' gss_svy <- surveycore::as_survey(
+#'   gss_2024, weights = wtssps, strata = vstrat, ids = vpsu, nest = TRUE
+#' )
+#' create_gen_rep_weights(gss_svy, seed = 42L)
 #'
 #' @seealso [create_bootstrap_weights()], [create_jackknife_weights()],
 #'   [create_brr_weights()], [create_gen_boot_weights()],

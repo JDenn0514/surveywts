@@ -3,7 +3,6 @@
 \docType{data}
 \name{npors_2025_clean}
 \alias{npors_2025_clean}
-\alias{npors_2025_clean_svy}
 \title{Pew NPORS 2025 complete cases only}
 \format{
 \subsection{\code{npors_2025_clean}}{
@@ -93,14 +92,6 @@ values. Levels: \code{c("18-34", "35-54", "55+")}.}
 \item{wt_pop}{Numeric. Population-scaled weight: \code{weight * (260000000 / 5022)}. Weights are not re-normalized after row removal.}
 }
 }
-
-\subsection{\code{npors_2025_clean_svy}}{
-
-A \code{survey_taylor} object wrapping \code{npors_2025_clean}. Constructed with
-\code{weights = weight}. For IPW workflows, use \code{wt_pop} from the tibble.
-}
-
-An object of class \code{surveycore::survey_taylor} (inherits from \code{surveycore::survey_base}, \code{S7_object}) of length 1.
 }
 \source{
 Derived from \link{npors_2025}.
@@ -108,8 +99,6 @@ See \verb{data-raw/npors-2025.R} for the construction script.
 }
 \usage{
 npors_2025_clean
-
-npors_2025_clean_svy
 }
 \description{
 A filtered version of \link{npors_2025} with rows removed where any of
@@ -118,14 +107,32 @@ A filtered version of \link{npors_2025} with rows removed where any of
 one \code{NA} in the five derived columns). Weights are not re-normalized after
 row removal.
 
+NPORS is a national address-based probability sample with stratified random
+sampling and differential probabilities of selection across strata. Always
+include \code{strata = stratum} when constructing a survey design from this data.
+To construct a survey design for standard estimation:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{data(npors_2025_clean)
+npors_design <- surveycore::as_survey(
+  npors_2025_clean, weights = weight, strata = stratum
+)
+}\if{html}{\out{</div>}}
+
+For IPW use, construct a reference design using \code{wt_pop}:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{ref <- surveycore::as_survey(
+  npors_2025_clean, weights = wt_pop, strata = stratum
+)
+ipw(ns_wave1, ref,
+    selection = ~sex + age_f3 + race_f4 + edu_f3,
+    missing_method = "omit")
+}\if{html}{\out{</div>}}
+
 Use this object when passing to \code{ipw()} to avoid the
 \code{surveywts_warning_ipw_reference_na_omitted} warning. Use \link{npors_2025}
 when downstream code handles missingness itself.
-
-\code{npors_2025_clean_svy} is a \code{survey_taylor} object using \code{weight} as the
-weight column.
 }
 \seealso{
-\link{npors_2025_clean_svy}, \link{npors_2025}, \link{ns_wave1}
+\link{npors_2025}, \link{ns_wave1}
 }
 \keyword{datasets}

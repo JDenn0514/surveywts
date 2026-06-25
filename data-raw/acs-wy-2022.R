@@ -1,8 +1,7 @@
 ## data-raw/acs-wy-2022.R
 ##
 ## Produces:
-##   acs_wy_2022     — surveycore::acs_pums_wy adults with derived cols
-##   acs_wy_2022_svy — survey_replicate companion (SDR, mse = TRUE)
+##   acs_wy_2022 — surveycore::acs_pums_wy adults with derived cols (tibble)
 ##
 ## Run from the package root: source("data-raw/acs-wy-2022.R")
 
@@ -27,8 +26,7 @@ edu_f3_levels  <- c("Less than HS", "HS/Some college", "College+")
 ## NOTE: pwgtp is the ACS person weight (population-scaled by design).
 ## Use pwgtp directly with ipw() — no wt_pop column needed.
 ##
-## acs_wy_2022_svy is survey_replicate (SDR). For ipw() use, construct a
-## simple Taylor design from the tibble:
+## For ipw() use, construct a simple Taylor design from the tibble:
 ##   ref <- surveycore::as_survey(acs_wy_2022, weights = pwgtp)
 ##   ipw(ns_wave1, ref, selection = ~sex + age_f3 + race_f4 + edu_f3)
 
@@ -88,28 +86,19 @@ stopifnot(sum(is.na(acs_wy_2022$age_f3)) == 0L)
 stopifnot(sum(is.na(acs_wy_2022$race_f4)) == 0L)
 stopifnot(sum(is.na(acs_wy_2022$edu_f3)) == 0L)
 
-## ---- acs_wy_2022_svy --------------------------------------------------------
-## survey_replicate companion using successive-difference replication (SDR).
-## Uses pwgtp1:pwgtp80 as replicate weights.
-##
-## Use grep("^pwgtp[0-9]", ...) NOT starts_with("pwgtp") to exclude the main
-## pwgtp column from the replicate weight set.
-rep_cols <- grep("^pwgtp[0-9]", names(acs_wy_2022), value = TRUE)
-stopifnot(length(rep_cols) == 80L) # pwgtp1:pwgtp80
+# Add "label" attributes to derived columns (ACS source columns already labeled by surveycore)
+attr(acs_wy_2022$sex, "label")    <- "Sex (factor, derived from raw sex: 1=Male, 2=Female)"
+attr(acs_wy_2022$age_f3, "label") <- "Age group (3 levels: 18-34, 35-54, 55+)"
+attr(acs_wy_2022$race_f4, "label") <- "Race/ethnicity (4 levels: White, Black, Hispanic, Other)"
+attr(acs_wy_2022$edu_f3, "label") <- "Educational attainment (3 levels)"
 
-acs_wy_2022_svy <- surveycore::as_survey_replicate(
-  acs_wy_2022,
-  weights = pwgtp,
-  repweights = dplyr::all_of(rep_cols),
-  type = "successive-difference",
-  mse = TRUE
-)
+acs_wy_2022 <- tibble::as_tibble(acs_wy_2022)
 
-usethis::use_data(acs_wy_2022, acs_wy_2022_svy, overwrite = TRUE)
+usethis::use_data(acs_wy_2022, overwrite = TRUE)
 message(
   "Saved acs_wy_2022 (",
   nrow(acs_wy_2022),
   " rows x ",
   ncol(acs_wy_2022),
-  " cols) and acs_wy_2022_svy"
+  " cols)"
 )

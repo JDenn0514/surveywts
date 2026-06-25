@@ -3,7 +3,6 @@
 \docType{data}
 \name{ns_wave1}
 \alias{ns_wave1}
-\alias{ns_wave1_svy}
 \title{National Survey Wave 1 with harmonized demographic columns}
 \format{
 \subsection{\code{ns_wave1}}{
@@ -188,7 +187,10 @@ retained, used to derive \code{race_f4}).}
 used to derive \code{edu_f3}).}
 \item{state}{Character. State of residence.}
 \item{congress_district}{Numeric. Congressional district.}
-\item{weight}{Numeric. Survey weight. Used by \code{ns_wave1_svy}.}
+\item{weight}{Numeric. Raked survey weight replicating the Nationscape
+weighting procedure (Newton-Raphson, 10 marginal dimensions, 5th/95th
+percentile trim). Pearson r = 0.996 vs. the original published
+Nationscape weight. All values are positive.}
 \item{wave_id}{Numeric. Wave identifier.}
 \item{sex}{Factor. Derived from \code{gender}: \code{1} = \code{"Male"}, \code{2} =
 \code{"Female"}, other = \code{NA}. Levels: \code{c("Male", "Female")}.}
@@ -237,18 +239,6 @@ Levels: \code{c("<$20k", "$20-35k", "$35-50k", "$50-65k", "$65-80k", "$80-100k",
 \code{c("Trump", "Clinton", "Other", "No vote")}. No \code{NA} values.}
 }
 }
-
-\subsection{\code{ns_wave1_svy}}{
-
-A \code{survey_nonprob} object wrapping \code{ns_wave1}. The \code{weight} column contains
-replicated Nationscape survey weights produced by raking to ACS 2017 targets
-(Newton-Raphson, 10 marginal dimensions, 5th/95th percentile trim). Carries
-no replicate weights — intended as a starting point for demonstrating
-\code{create_bootstrap_weights()}, \code{create_jackknife_weights()}, and related
-functions. Weighting history: \code{calibrate_rake} -> \code{trim_weights}.
-}
-
-An object of class \code{surveycore::survey_nonprob} (inherits from \code{surveycore::survey_base}, \code{S7_object}) of length 1.
 }
 \source{
 Derived from \code{surveycore::ns_wave1}.
@@ -256,8 +246,6 @@ See \code{data-raw/ns-wave1.R} for the construction script.
 }
 \usage{
 ns_wave1
-
-ns_wave1_svy
 }
 \description{
 The National Survey Wave 1 dataset, obtained from \code{surveycore::ns_wave1}.
@@ -270,18 +258,21 @@ recode columns (\verb{ns_*}) are also added as calibration variables used to
 replicate Nationscape's weighting procedure. Original source columns are
 kept unchanged.
 
-\code{ns_wave1_svy} is a \code{survey_nonprob} object whose \code{weight} column replicates
-Nationscape's published survey weights via raking to ACS 2017 targets
-(Newton-Raphson algorithm, 10 marginal dimensions, 5th/95th percentile
-trimming; Pearson r = 0.996 vs. published weights). It carries no replicate
-weights, making it a ready-made input for demonstrating
-\code{create_bootstrap_weights()}, \code{create_jackknife_weights()}, and related
-functions.
+The \code{weight} column contains the raked+trimmed survey weight that replicates
+Nationscape's published weighting procedure (Newton-Raphson, 10 marginal
+dimensions, 5th/95th percentile trim; Pearson r = 0.996 vs. published
+weights). To construct a \code{survey_nonprob} for analysis:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{data(ns_wave1)
+ns_design <- surveycore::survey_nonprob(
+  ns_wave1, variables = list(weights = "weight")
+)
+}\if{html}{\out{</div>}}
 
 Some respondents have \code{NA} in \code{race_f4} (those who reported "some other
 race" with no Hispanic origin, which cannot be mapped to a standard category).
 }
 \seealso{
-\link{ns_wave1_svy}, \link{gss_2024}, \link{npors_2025_clean}, \link{cps_2023}
+\link{gss_2024}, \link{npors_2025_clean}, \link{cps_2023}
 }
 \keyword{datasets}

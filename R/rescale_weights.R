@@ -83,7 +83,7 @@ rescale_weights <- function(
     cli::cli_abort(
       c(
         "x" = "{.arg data} has 0 rows.",
-        "i" = "Weight stabilization requires at least one observation."
+        "i" = "Weight rescaling requires at least one observation."
       ),
       class = "surveywts_error_empty_data"
     )
@@ -137,7 +137,7 @@ rescale_weights <- function(
 
   # Steps 4-5: compute scale factors and apply
   if (length(by_names) == 0L) {
-    # Global stabilization
+    # Global rescaling
     scale_factor <- n / sum(weights_vec)
     weights_new <- weights_vec * scale_factor
     scale_factor_record <- scale_factor
@@ -148,7 +148,7 @@ rescale_weights <- function(
       rep_weights_new <- rep_weights * scale_factor
     }
   } else {
-    # Per-group stabilization
+    # Per-group rescaling
     cell_keys <- do.call(
       paste,
       c(lapply(by_names, function(v) as.character(data_df[[v]])), sep = " | ")

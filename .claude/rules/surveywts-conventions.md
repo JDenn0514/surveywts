@@ -48,7 +48,7 @@ with surveywts-specific examples and detailed guidance.
 | `nonresponse` | `adjust_nonresponse()`, `redistribute_weights()` |
 | `diagnostics` | `effective_sample_size()`, `weight_variability()`, `summarize_weights()` |
 | `replicate-weights` | `create_bootstrap_weights()`, `create_jackknife_weights()`, `create_brr_weights()`, `create_gen_boot_weights()`, `create_gen_rep_weights()`, `create_sdr_weights()`, `create_replicate_weights()`, `as_taylor_design()` |
-| `utilities` | `trim_weights()`, `stabilize_weights()` |
+| `utilities` | `trim_weights()`, `rescale_weights()` |
 | `propensity` | `ipw()` |
 
 Use `@family calibration`, `@family sample-calibration`, `@family nonresponse`, `@family diagnostics`, `@family replicate-weights`, `@family utilities`, `@family propensity` in roxygen2.
@@ -82,7 +82,7 @@ Use `@family calibration`, `@family sample-calibration`, `@family nonresponse`, 
 | `nonresponse-utils.R` | `adjust_nonresponse()`, `redistribute_weights()` |
 | `replicate-utils.R` | All `create_*_weights()` functions + `as_taylor_design()` |
 | `jackknife-dagjk-utils.R` | DAGJK engine internals for `create_jackknife_weights()` |
-| `weight-utils.R` | `trim_weights()`, `stabilize_weights()` |
+| `weight-utils.R` | `trim_weights()`, `rescale_weights()` |
 
 ### File mapping (R/ → export)
 
@@ -109,7 +109,7 @@ Use `@family calibration`, `@family sample-calibration`, `@family nonresponse`, 
 | `effective_sample_size.R` | `effective_sample_size()` |
 | `ipw.R` | `ipw()` |
 | `redistribute_weights.R` | `redistribute_weights()` |
-| `stabilize_weights.R` | `stabilize_weights()` |
+| `rescale_weights.R` | `rescale_weights()` |
 | `summarize_weights.R` | `summarize_weights()` |
 | `trim_weights.R` | `trim_weights()` |
 | `weight_variability.R` | `weight_variability()` |
@@ -213,7 +213,7 @@ the weight column is removed.
 | `adjust_nonresponse()` | `data, response_status, weights = NULL, by = NULL, wt_name = "wts", method = c("weighting-class", "propensity-cell", "propensity"), formula = NULL, control = list(min_cell = 20, max_adjust = 2.0, n_cells = 5)` |
 | `redistribute_weights()` | `data, reduce_if, increase_if, weights = NULL, by = NULL, wt_name = "wts", control = list()` |
 | `trim_weights()` | `data, weights = NULL, lower = NULL, upper = NULL, k = 5, type = c("absolute", "percentile"), strict = FALSE, wt_name = "wts"` |
-| `stabilize_weights()` | `data, weights = NULL, by = NULL, wt_name = "wts"` |
+| `rescale_weights()` | `data, weights = NULL, by = NULL, wt_name = "wts"` |
 | `calibrate_to_survey()` | `primary_design, control_design, variables, method = c("rake", "linear", "logit"), bounds = c(-Inf, Inf), unit_scale = NULL, reference_design = NULL, control = list()` |
 | `calibrate_to_estimate()` | `design, targets, vcov_estimate, method = c("rake", "linear", "logit"), bounds = c(-Inf, Inf), unit_scale = NULL, reference_design = NULL, control = list()` |
 | `effective_sample_size()` | `x, weights = NULL` |

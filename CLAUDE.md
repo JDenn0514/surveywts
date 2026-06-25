@@ -12,7 +12,7 @@ surveywts provides tools for survey weighting and calibration.
 |---------|-----|--------|-------|
 | Calibration | `v0.1.0` | ✅ Complete | `survey_nonprob`, `calibrate()`, `rake()`, `poststratify()`, basic diagnostics |
 | Replicate | minor bump | ✅ Complete | All `create_*_weights()` functions; `as_taylor_design()` |
-| Utilities | minor bump | ✅ Complete | `trim_weights()`, `stabilize_weights()` |
+| Utilities | minor bump | ✅ Complete | `trim_weights()`, `rescale_weights()` |
 | Nonresponse | minor bump | ✅ Complete | `calibrate_to_survey()`, `calibrate_to_estimate()`, `adjust_nonresponse()`, `redistribute_weights()` |
 | Propensity | minor bump | ✅ Complete | Non-probability sample IPW; unlocks propensity nonresponse |
 | Diagnostics | minor bump | 🔜 Next | Balance assessment, `check_balance()`, `diagnose_propensity()`, `compare_weighted_estimates()` |

@@ -14,7 +14,7 @@ into a single tidyverse-compatible, S7-based package.
 |---------|-----|-------|--------|
 | Calibration | `v0.1.0` | `survey_nonprob` class, calibration methods, basic diagnostics | ✅ Complete |
 | Replicate | minor bump | All `create_*_weights()` functions; unlocks bootstrap variance in `survey_nonprob` | ✅ Complete |
-| Utilities | minor bump | `trim_weights()`, `stabilize_weights()` | 🔜 Next |
+| Utilities | minor bump | `trim_weights()`, `rescale_weights()` | 🔜 Next |
 | Nonresponse | minor bump | Sample-based calibration, weighting-class nonresponse | ✅ Complete |
 | Propensity | minor bump | Non-probability sample IPW; unlocks propensity nonresponse | ⬜ Pending |
 | Diagnostics | minor bump | Balance assessment, visual diagnostics | ⬜ Pending |
@@ -155,14 +155,14 @@ weighting step.
 - `trim_weights(svy, lower, upper)` — exported wrapper around
   `.trim_weights_internal()` (available since Propensity); appends to
   `@metadata@weighting_history`
-- `stabilize_weights(svy, by = NULL)` — rescale weights to sum to n (or
+- `rescale_weights(svy, by = NULL)` — rescale weights to sum to n (or
   group n); appends to `@metadata@weighting_history`
 
 ### Source File Map
 
 | File | Contents |
 |------|----------|
-| `R/10-weight-utils.R` | `trim_weights()`, `stabilize_weights()` |
+| `R/10-weight-utils.R` | `trim_weights()`, `rescale_weights()` |
 
 ### Notes
 

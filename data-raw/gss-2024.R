@@ -1,8 +1,7 @@
 ## data-raw/gss-2024.R
 ##
 ## Produces:
-##   gss_2024     — full surveycore::gss_2024 with derived demographic cols
-##   gss_2024_svy — survey_taylor companion
+##   gss_2024 — full surveycore::gss_2024 with derived demographic cols
 ##
 ## Run from the package root: source("data-raw/gss-2024.R")
 
@@ -102,14 +101,15 @@ stopifnot(is.factor(gss_2024$pid_f3))
 stopifnot(is.factor(gss_2024$edu_f3))
 stopifnot(is.numeric(gss_2024$wt_pop))
 
-## ---- gss_2024_svy -----------------------------------------------------------
-gss_2024_svy <- surveycore::as_survey(
-  gss_2024,
-  weights = wtssps,
-  strata = vstrat,
-  ids = vpsu,
-  nest = TRUE
-)
+# Add "label" attributes to derived columns (surveycore sets labels on originals)
+attr(gss_2024$sex, "label")    <- "Sex of respondent (factor, derived from raw integer sex)"
+attr(gss_2024$age_f3, "label") <- "Age group (3 levels: 18-34, 35-54, 55+)"
+attr(gss_2024$race_f4, "label") <- "Race/ethnicity (4 levels: White, Black, Hispanic, Other)"
+attr(gss_2024$pid_f3, "label") <- "Party identification (3 levels: Republican, Independent, Democrat)"
+attr(gss_2024$edu_f3, "label") <- "Educational attainment (3 levels)"
+attr(gss_2024$wt_pop, "label") <- "Population-scaled weight: wtssps * (260000000 / nrow(gss_2024))"
 
-usethis::use_data(gss_2024, gss_2024_svy, overwrite = TRUE)
-message("Saved gss_2024 (", nrow(gss_2024), " rows x ", ncol(gss_2024), " cols) and gss_2024_svy")
+gss_2024 <- tibble::as_tibble(gss_2024)
+
+usethis::use_data(gss_2024, overwrite = TRUE)
+message("Saved gss_2024 (", nrow(gss_2024), " rows x ", ncol(gss_2024), " cols)")

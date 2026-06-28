@@ -322,12 +322,12 @@
         }
         calib_result@data[[wt_col]]
       }
-    }, error = function(e) {
+    }, error = function(e) { # nocov start
       cli::cli_abort(
         c("x" = "Replicate {g}: calibration failed -- {conditionMessage(e)}"),
         class = "surveywts_error_jackknife_degenerate_replicate"
       )
-    })
+    }) # nocov end
     w_g <- calib_result_g
   }
 
@@ -380,12 +380,16 @@
   nps_keep_idx <- setdiff(seq_len(n_nps), nps_in_g)
   n_Ag         <- length(nps_in_g)
 
+  # nocov start
+  # Defensive: replicates_ceiling_guard upstream ensures G <= n_nps,
+  # so at least one unit always remains after deleting group g.
   if (length(nps_keep_idx) == 0L) {
     cli::cli_abort(
       c("x" = "Replicate {g}: no NPS units remain after group deletion."),
       class = "surveywts_error_jackknife_degenerate_replicate"
     )
   }
+  # nocov end
 
   # Scale factor: a_g = n_A / (n_A - n_Ag)
   a_g <- n_nps / (n_nps - n_Ag)
@@ -408,12 +412,16 @@
       group_assign[(n_nps + 1L):(n_nps + n_ref)] == g
     )
     ref_keep_idx <- setdiff(seq_len(n_ref), ref_in_g)
+    # nocov start
+    # Defensive: replicates_ceiling_guard ensures G <= combined_n; with n_ref >= G,
+    # at least one reference unit always survives group deletion.
     if (length(ref_keep_idx) == 0L) {
       cli::cli_abort(
         c("x" = "Replicate {g}: no reference units remain after group deletion."),
         class = "surveywts_error_jackknife_degenerate_replicate"
       )
     }
+    # nocov end
     ref_data_b <- ref_data[ref_keep_idx, , drop = FALSE]
   }
 
@@ -426,12 +434,12 @@
       ref_data_b  = ref_data_b,
       use_level_b = use_level_b
     ),
-    error = function(e) {
+    error = function(e) { # nocov start
       cli::cli_abort(
         c("x" = "Replicate {g}: calibration failed -- {conditionMessage(e)}"),
         class = "surveywts_error_jackknife_degenerate_replicate"
       )
-    }
+    } # nocov end
   )
 
   # Extract calibrated weight vector

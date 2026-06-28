@@ -21,7 +21,6 @@
 #   .validate_formula()               — validates one-sided formula object
 #   .validate_formula_variables()     — validates formula variables exist in data
 #   .trim_weights_internal()          — clip-and-redistribute primitive for trim_weights()
-#   .to_svyrep_design()               — converts survey_replicate to svyrep.design
 #
 # NOTE (GAP #6 departure): .make_history_entry() adds a `step` parameter not
 # in the spec signature. The step number must be computed by the calling
@@ -113,8 +112,10 @@
   if (S7::S7_inherits(x, surveycore::survey_base)) {
     return(x@variables$weights)
   }
-
+  # nocov start
+  # Unreachable via public API: callers validate survey_base class first.
   ".weight"
+  # nocov end
 }
 
 # ============================================================================
@@ -672,11 +673,11 @@
 # Returns: list (possibly empty) of history entries.
 .get_history <- function(x) {
   if (S7::S7_inherits(x, surveycore::survey_base)) {
-    wh <- x@metadata@weighting_history
-    if (is.null(wh)) list() else wh # nocov
-  } else {
+    x@metadata@weighting_history
+  } else { # nocov start
+    # Unreachable via public API: all callers validate survey_base class first.
     list()
-  }
+  } # nocov end
 }
 
 
@@ -766,56 +767,6 @@
     weights_new[can_adjust] <- weights_new[can_adjust] + sum(trimmings) / sum(can_adjust)
   }
   list(weights = weights_new, has_trimmed = outside | has_trimmed)
-}
-
-# ============================================================================
-# .to_svyrep_design()
-# ============================================================================
-
-# Converts a survey_replicate object to a survey::svyrep.design for use with
-# svrep calibration functions.
-#
-# surveywts stores replicate weights as scale factors (combined.weights = FALSE),
-# matching svrep::as_bootstrap_design() and survey::as.svrepdesign(). The
-# survey::svrepdesign() default is combined.weights = TRUE, which would
-# misinterpret scale factors as full sampling weights. This function always
-# passes combined.weights = FALSE.
-#
-# Arguments:
-#   design : survey_replicate object
-#
-# Returns: svyrep.design object
-.to_svyrep_design <- function(design) {
-  vars <- design@variables
-  weights_vec <- design@data[[vars$weights]]
-  repweights_df <- design@data[vars$repweights]
-  mse_val <- if (!is.null(vars$mse)) vars$mse else TRUE
-
-  type_map <- c(
-    "bootstrap" = "bootstrap",
-    "BRR" = "BRR",
-    "Fay" = "Fay",
-    "JK1" = "JK1",
-    "JK2" = "JK2",
-    "JKn" = "JKn",
-    "successive-difference" = "successive-difference",
-    "ACS" = "ACS",
-    "Random-groups jackknife" = "JK1",
-    "other" = "other"
-  )
-  svyrep_type <- type_map[vars$type]
-  if (is.na(svyrep_type)) svyrep_type <- "other"
-
-  survey::svrepdesign(
-    data = design@data,
-    weights = weights_vec,
-    repweights = repweights_df,
-    type = svyrep_type,
-    scale = vars$scale,
-    rscales = vars$rscales,
-    combined.weights = FALSE,
-    mse = mse_val
-  )
 }
 
 # ============================================================================

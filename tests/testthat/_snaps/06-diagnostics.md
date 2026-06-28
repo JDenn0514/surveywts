@@ -1,80 +1,50 @@
-# effective_sample_size() throws unsupported_class for matrix input
-
-    Code
-      effective_sample_size(m)
-    Condition
-      Error in `.diag_validate_input()`:
-      x `x` must be a data frame or a supported survey design object.
-      i Got <matrix>.
-      v See package documentation for supported input types.
-
-# weight_variability() throws unsupported_class for list input
-
-    Code
-      weight_variability(x)
-    Condition
-      Error in `.diag_validate_input()`:
-      x `x` must be a data frame or a supported survey design object.
-      i Got <list>.
-      v See package documentation for supported input types.
-
-# effective_sample_size() throws weights_required for plain df with no weights
+# effective_sample_size() throws not_survey_base for plain data.frame input
 
     Code
       effective_sample_size(df)
     Condition
       Error in `.diag_validate_input()`:
-      x `weights` is required when `x` is a plain data frame.
-      i For <weighted_df> and survey objects, the weight column is detected automatically.
-      v Pass the column name as a bare name, e.g., `weights = wt_col`.
+      x `x` must be a <survey_nonprob>, <survey_taylor>, or <survey_replicate>.
+      i Got <data.frame>.
+      v Use `surveycore::as_survey_nonprob()`, `surveycore::as_survey()`, or `surveycore::as_survey_replicate()` to construct a survey object.
 
-# summarize_weights() throws weights_required for plain df with no weights
+# weight_variability() throws not_survey_base for plain data.frame input
+
+    Code
+      weight_variability(df)
+    Condition
+      Error in `.diag_validate_input()`:
+      x `x` must be a <survey_nonprob>, <survey_taylor>, or <survey_replicate>.
+      i Got <data.frame>.
+      v Use `surveycore::as_survey_nonprob()`, `surveycore::as_survey()`, or `surveycore::as_survey_replicate()` to construct a survey object.
+
+# summarize_weights() throws not_survey_base for plain data.frame input
 
     Code
       summarize_weights(df)
     Condition
       Error in `.diag_validate_input()`:
-      x `weights` is required when `x` is a plain data frame.
-      i For <weighted_df> and survey objects, the weight column is detected automatically.
-      v Pass the column name as a bare name, e.g., `weights = wt_col`.
+      x `x` must be a <survey_nonprob>, <survey_taylor>, or <survey_replicate>.
+      i Got <data.frame>.
+      v Use `surveycore::as_survey_nonprob()`, `surveycore::as_survey()`, or `surveycore::as_survey_replicate()` to construct a survey object.
 
-# effective_sample_size() throws weights_not_found for missing column
-
-    Code
-      effective_sample_size(df, weights = nonexistent_col)
-    Condition
-      Error in `.validate_weights()`:
-      x Weight column nonexistent_col not found in `data`.
-      i Available columns: x.
-      v Pass the column name as a bare name, e.g., `weights = wt_col`.
-
-# effective_sample_size() throws weights_not_numeric for character weight column
+# effective_sample_size() throws not_survey_base for matrix input
 
     Code
-      effective_sample_size(df, weights = w)
+      effective_sample_size(m)
     Condition
-      Error in `.validate_weights()`:
-      x Weight column w must be numeric.
-      i Got <character>.
-      v Use `as.numeric(w)` to convert.
+      Error in `.diag_validate_input()`:
+      x `x` must be a <survey_nonprob>, <survey_taylor>, or <survey_replicate>.
+      i Got <matrix>.
+      v Use `surveycore::as_survey_nonprob()`, `surveycore::as_survey()`, or `surveycore::as_survey_replicate()` to construct a survey object.
 
-# effective_sample_size() throws weights_nonpositive for negative weight value
+# weight_variability() throws not_survey_base for list input
 
     Code
-      effective_sample_size(df, weights = w)
+      weight_variability(x)
     Condition
-      Error in `.validate_weights()`:
-      x Weight column w contains 1 non-positive value(s).
-      i All starting weights must be strictly positive (> 0).
-      v Remove or replace non-positive weights before proceeding.
-
-# effective_sample_size() throws weights_na for NA in weight column
-
-    Code
-      effective_sample_size(df, weights = w)
-    Condition
-      Error in `.validate_weights()`:
-      x Weight column w contains 1 NA value(s).
-      i Weights must be fully observed.
-      v Remove rows with missing weights before proceeding.
+      Error in `.diag_validate_input()`:
+      x `x` must be a <survey_nonprob>, <survey_taylor>, or <survey_replicate>.
+      i Got <list>.
+      v Use `surveycore::as_survey_nonprob()`, `surveycore::as_survey()`, or `surveycore::as_survey_replicate()` to construct a survey object.
 

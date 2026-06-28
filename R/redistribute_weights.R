@@ -13,21 +13,21 @@
 #' redistributes their weight to rows satisfying `increase_if` within groups
 #' defined by `by`. Rows matching neither condition are unchanged.
 #'
-#' @param data A `data.frame`, `weighted_df`, `survey_taylor`, or
-#'   `survey_nonprob`. `survey_replicate` -> error.
+#' @param data A `survey_taylor` or `survey_nonprob`. `survey_replicate` ->
+#'   error. Any other class -> error.
 #' @param reduce_if Bare name (NSE). Binary indicator column (`logical` or
 #'   integer `0`/`1`). Rows where this is `TRUE`/`1` have their weight set
 #'   to 0 and their weight redistributed.
 #' @param increase_if Bare name (NSE). Binary indicator column. Rows where
 #'   this is `TRUE`/`1` receive the redistributed weight.
 #' @param weights Bare name (NSE). Weight column. Auto-detected from
-#'   `weighted_df` attribute or `@variables$weights`. For plain `data.frame`
-#'   with `weights = NULL`, uniform starting weights are used.
+#'   `@variables$weights`.
 #' @param by <[`tidy-select`][tidyselect::language]> Grouping variable(s).
 #'   Redistribution is performed within each group. `NULL` -> global
 #'   redistribution.
-#' @param wt_name Character scalar. Name of the output weight column in the
-#'   returned `weighted_df`. Default `"wts"`. Ignored for survey objects.
+#' @param wt_name `NULL` (default) or a character scalar. When `NULL`,
+#'   adjusted weights overwrite the existing weight column in place. When a
+#'   character string, a new column is added and `@variables$weights` updated.
 #' @param control Named list of warning thresholds. Merged with defaults
 #'   `list(min_cell = 20, max_adjust = 2.0)`. `min_cell`: warn when a
 #'   group has fewer than this many `increase_if` rows. `max_adjust`: warn
@@ -43,8 +43,6 @@
 #' Rows matching neither indicator are unchanged.
 #'
 #' @returns
-#'   - `data.frame` or `weighted_df` input -> `weighted_df` (all rows
-#'     retained; `reduce_if` rows have weight 0).
 #'   - `survey_nonprob` or `survey_taylor` input -> same class as input,
 #'     with `reduce_if` rows removed (zero weights violate survey validators).
 #'
@@ -59,21 +57,7 @@
 #'   because it is currently the only call site; refactor if a second emerges.
 #'
 #' @examples
-#' # data.frame path: add reduce_if and increase_if columns ----------------
-#' gss <- gss_2024[!is.na(gss_2024$sex), ]
-#' gss$excluded <- sample(
-#'   c(0L, 1L), nrow(gss), replace = TRUE, prob = c(0.8, 0.2)
-#' )
-#' gss$retained <- as.integer(!gss$excluded)
-#' result <- redistribute_weights(
-#'   gss,
-#'   reduce_if   = excluded,
-#'   increase_if = retained,
-#'   weights     = wtssps,
-#'   by          = sex
-#' )
-#'
-#' # survey_taylor path: mutate the tibble first, then construct the design --
+#' # survey_taylor: mutate the tibble first, then construct the design -------
 #' gss_excl <- gss_2024[!is.na(gss_2024$sex), ]
 #' gss_excl$excluded <- sample(
 #'   c(0L, 1L), nrow(gss_excl), replace = TRUE, prob = c(0.8, 0.2)
@@ -82,7 +66,7 @@
 #' gss_svy <- surveycore::as_survey(
 #'   gss_excl, weights = wtssps, strata = vstrat, ids = vpsu, nest = TRUE
 #' )
-#' result <- redistribute_weights(
+#' redistribute_weights(
 #'   gss_svy, reduce_if = excluded, increase_if = retained, by = sex
 #' )
 #'
@@ -95,7 +79,7 @@ redistribute_weights <- function(
   increase_if,
   weights = NULL,
   by = NULL,
-  wt_name = "wts",
+  wt_name = NULL,
   control = list()
 ) {
   # ---- Capture call and quosures -------------------------------------------
@@ -121,7 +105,7 @@ redistribute_weights <- function(
   }
 
   # ---- 2. Extract plain data frame ------------------------------------------
-  data_df <- if (inherits(data, "data.frame")) as.data.frame(data) else data@data
+  data_df <- data@data
 
   # ---- 3. Empty data check --------------------------------------------------
   if (nrow(data_df) == 0L) {
@@ -141,38 +125,7 @@ redistribute_weights <- function(
   # ---- 5. Weight column name ------------------------------------------------
   weight_col <- .get_weight_col_name(data, weights_quo)
 
-  # ---- 6. wt_name conflict check (data.frame / weighted_df only) ------------
-  # For plain data.frame + weights = NULL, weight_col is the sentinel ".weight"
-  # which never appears in user data, so any existing column with wt_name
-  # is treated as a conflict.
-  if (inherits(data, "data.frame") &&
-      wt_name %in% names(data_df) &&
-      !identical(wt_name, weight_col)) {
-    cli::cli_abort(
-      c(
-        "x" = paste0(
-          "{.arg wt_name} {.val {wt_name}} conflicts with an existing ",
-          "column in {.arg data}."
-        ),
-        "i" = paste0(
-          "{.field {wt_name}} is already present and is not the weight ",
-          "column."
-        ),
-        "v" = "Choose a different name for the output weight column."
-      ),
-      class = "surveywts_error_wt_name_conflict"
-    )
-  }
-
-  # ---- 7. Create uniform starting weights for plain data.frame + NULL -------
-  if (inherits(data, "data.frame") && rlang::quo_is_null(weights_quo) &&
-      !inherits(data, "weighted_df")) {
-    data_df[[wt_name]] <- rep(1 / nrow(data_df), nrow(data_df))
-    weight_col <- wt_name
-  }
-
-  # Sync plain_df after potentially adding uniform weights
-  plain_df <- if (inherits(data, "data.frame")) data_df else data@data
+  plain_df <- data_df
 
   # ---- 8. Validate weights --------------------------------------------------
   .validate_weights(plain_df, weight_col)
@@ -399,23 +352,14 @@ redistribute_weights <- function(
     new_weights[reduce_idx]   <- 0
   }
 
-  # ---- 22. Build output data frame ------------------------------------------
-  out_col <- if (inherits(data, "data.frame")) wt_name else weight_col
-  out_df  <- plain_df
-  out_df[[out_col]] <- new_weights
-
-  # ---- 23. Build history entry ----------------------------------------------
+  # ---- 22. Build history entry ---------------------------------------------
   after_stats     <- .compute_weight_stats(new_weights[is_increase])
   current_history <- .get_history(data)
 
   history_entry <- .make_history_entry(
     step        = length(current_history) + 1L,
     operation   = "redistribute_weights",
-    weight_col  = if (inherits(data, "data.frame")) {
-      wt_name
-    } else {
-      data@variables$weights
-    },
+    weight_col  = if (is.null(wt_name)) data@variables$weights else wt_name,
     call_str    = call_str,
     parameters  = list(
       reduce_col   = reduce_col,
@@ -428,17 +372,12 @@ redistribute_weights <- function(
     convergence  = NULL
   )
 
-  # ---- 24. Return output ----------------------------------------------------
-  if (inherits(data, "data.frame")) {
-    new_history <- c(current_history, list(history_entry))
-    .make_weighted_df(out_df, wt_name, new_history)
-  } else {
-    # For survey objects: filter out reduce_if rows (zero weights violate
-    # the strictly-positive-weights validator on survey_taylor, and for
-    # consistency, survey_nonprob follows the same contract here).
-    keep_rows         <- which(!is_reduce)
-    filtered_design   <- data
-    filtered_design@data <- out_df[keep_rows, , drop = FALSE]
-    .update_survey_weights(filtered_design, new_weights[keep_rows], history_entry)
-  }
+  # ---- 23. Return output ----------------------------------------------------
+  # Filter out reduce_if rows (zero weights violate the strictly-positive-weights
+  # validator on survey_taylor; survey_nonprob follows the same contract here).
+  keep_rows <- which(!is_reduce)
+  filtered_design <- data
+  filtered_design@data <- plain_df[keep_rows, , drop = FALSE]
+  .update_survey_weights(filtered_design, new_weights[keep_rows], history_entry,
+                         wt_name = wt_name)
 }

@@ -1,67 +1,37 @@
-# calibrate_rake() rejects unsupported class
+# calibrate_rake() aborts with cli error for data.frame input
+
+    Code
+      calibrate_rake(make_surveywts_data(), targets = targets_a)
+    Condition
+      Error in `.check_input_class()`:
+      x `data` must be a <survey_nonprob>, <survey_taylor>, or <survey_replicate>.
+      i Got <data.frame>.
+      v Use `surveycore::as_survey_nonprob()`, `surveycore::as_survey()`, or `surveycore::as_survey_replicate()` to construct a survey object.
+
+# calibrate_rake() rejects list (not a survey_base)
 
     Code
       calibrate_rake(list(x = 1), targets = targets)
     Condition
       Error in `.check_input_class()`:
-      x `data` must be a data frame or a supported survey design object.
+      x `data` must be a <survey_nonprob>, <survey_taylor>, or <survey_replicate>.
       i Got <list>.
-      v See package documentation for supported input types.
+      v Use `surveycore::as_survey_nonprob()`, `surveycore::as_survey()`, or `surveycore::as_survey_replicate()` to construct a survey object.
 
-# calibrate_rake() rejects 0-row data
+# calibrate_rake() rejects 0-row survey_taylor
 
     Code
-      calibrate_rake(empty_df, targets = targets)
+      calibrate_rake(empty_design, targets = targets)
     Condition
       Error in `calibrate_rake()`:
       x `data` has 0 rows.
       i This operation is undefined on empty data.
       v Ensure `data` has at least one row.
 
-# calibrate_rake() rejects nonexistent weight column
-
-    Code
-      calibrate_rake(df, targets = targets, weights = nonexistent_wt)
-    Condition
-      Error in `.validate_weights()`:
-      x Weight column nonexistent_wt not found in `data`.
-      i Available columns: id, age_group, sex, education, region, and base_weight.
-      v Pass the column name as a bare name, e.g., `weights = wt_col`.
-
-# calibrate_rake() rejects character weight column
-
-    Code
-      calibrate_rake(df, targets = targets, weights = bad_wt)
-    Condition
-      Error in `.validate_weights()`:
-      x Weight column bad_wt must be numeric.
-      i Got <character>.
-      v Use `as.numeric(bad_wt)` to convert.
-
-# calibrate_rake() rejects weight column with 0
-
-    Code
-      calibrate_rake(df, targets = targets, weights = base_weight)
-    Condition
-      Error in `.validate_weights()`:
-      x Weight column base_weight contains 1 non-positive value(s).
-      i All starting weights must be strictly positive (> 0).
-      v Remove or replace non-positive weights before proceeding.
-
-# calibrate_rake() rejects weight column with NA
-
-    Code
-      calibrate_rake(df, targets = targets, weights = base_weight)
-    Condition
-      Error in `.validate_weights()`:
-      x Weight column base_weight contains 1 NA value(s).
-      i Weights must be fully observed.
-      v Remove rows with missing weights before proceeding.
-
 # calibrate_rake() rejects wt_name = c('a', 'b')
 
     Code
-      calibrate_rake(df, targets = targets, wt_name = c("a", "b"))
+      calibrate_rake(design, targets = targets, wt_name = c("a", "b"))
     Condition
       Error in `.validate_wt_name()`:
       x `wt_name` must be a single character string.
@@ -70,7 +40,7 @@
 # calibrate_rake() rejects wt_name = ''
 
     Code
-      calibrate_rake(df, targets = targets, wt_name = "")
+      calibrate_rake(design, targets = targets, wt_name = "")
     Condition
       Error in `.validate_wt_name()`:
       x `wt_name` must be a non-empty, non-NA string.
@@ -78,7 +48,7 @@
 # calibrate_rake() rejects non-taylor reference_design
 
     Code
-      calibrate_rake(df, targets = targets, reference_design = "bad")
+      calibrate_rake(design, targets = targets, reference_design = "bad")
     Condition
       Error in `.validate_reference_design()`:
       x `reference_design` must be a <survey_taylor>.
@@ -88,7 +58,7 @@
 # calibrate_rake() rejects targets = 42
 
     Code
-      calibrate_rake(df, targets = 42)
+      calibrate_rake(design, targets = 42)
     Condition
       Error in `.parse_margins()`:
       x `targets` must be a named list or a data frame with columns variable, level, and target.
@@ -98,7 +68,7 @@
 # calibrate_rake() rejects Format B data frame missing 'level' column
 
     Code
-      calibrate_rake(df, targets = bad_df)
+      calibrate_rake(design, targets = bad_df)
     Condition
       Error in `.parse_margins()`:
       x `targets` must be a named list or a data frame with columns variable, level, and target.
@@ -108,7 +78,7 @@
 # calibrate_rake() rejects targets naming absent column
 
     Code
-      calibrate_rake(df, targets = targets, weights = base_weight)
+      calibrate_rake(design, targets = targets)
     Condition
       Error in `calibrate_rake()`:
       x Raking variable not_a_column not found in `data`.
@@ -117,7 +87,7 @@
 # calibrate_rake() rejects numeric raking variable
 
     Code
-      calibrate_rake(df, targets = targets, weights = base_weight)
+      calibrate_rake(design, targets = targets)
     Condition
       Error in `.validate_calibration_variables()`:
       x Raking variable income is <numeric>.
@@ -127,7 +97,7 @@
 # calibrate_rake() rejects raking variable with NA
 
     Code
-      calibrate_rake(df, targets = targets, weights = base_weight)
+      calibrate_rake(design, targets = targets)
     Condition
       Error in `.validate_calibration_variables()`:
       x Raking variable age_group contains 1 NA value(s).
@@ -137,7 +107,7 @@
 # calibrate_rake() rejects targets missing a data level
 
     Code
-      calibrate_rake(df, targets = targets, weights = base_weight)
+      calibrate_rake(design, targets = targets)
     Condition
       Error in `.validate_population_marginals()`:
       x Level "55+" of variable age_group is present in `data` but not in `targets`.
@@ -147,7 +117,7 @@
 # calibrate_rake() rejects targets with level not in data
 
     Code
-      calibrate_rake(df, targets = targets, weights = base_weight)
+      calibrate_rake(design, targets = targets)
     Condition
       Error in `.validate_population_marginals()`:
       x Level "65+" of variable age_group is present in `targets` but not in `data`.
@@ -157,7 +127,7 @@
 # calibrate_rake() rejects proportions summing to 1.1
 
     Code
-      calibrate_rake(df, targets = targets, weights = base_weight)
+      calibrate_rake(design, targets = targets)
     Condition
       Error in `.validate_population_marginals()`:
       x Population totals for age_group sum to 1.1, not 1.0.
@@ -167,7 +137,7 @@
 # calibrate_rake() rejects type='count' with inconsistent marginal sums
 
     Code
-      calibrate_rake(df, targets = targets, weights = base_weight, type = "count")
+      calibrate_rake(design, targets = targets, type = "count")
     Condition
       Error in `.validate_count_marginal_consistency()`:
       x When `type = "count"`, all marginal vectors must sum to the same population total N (within 1e-3 tolerance).
@@ -177,8 +147,8 @@
 # calibrate_rake() throws calibration_not_converged hitting maxit (nr)
 
     Code
-      calibrate_rake(df, targets = targets, weights = base_weight, algorithm = "nr",
-        control = list(maxit = 1L, epsilon = 1e-20))
+      calibrate_rake(design, targets = targets, algorithm = "nr", control = list(
+        maxit = 1L, epsilon = 1e-20))
     Condition
       Error in `.calibrate_nr_engine()`:
       x Calibration did not converge after 1 iteration.
@@ -188,8 +158,7 @@
 # calibrate_rake() rejects cap with algorithm = 'nr'
 
     Code
-      calibrate_rake(df, targets = targets, weights = base_weight, algorithm = "nr",
-        cap = 3)
+      calibrate_rake(design, targets = targets, algorithm = "nr", cap = 3)
     Condition
       Error in `calibrate_rake()`:
       x `cap` is not supported when `algorithm = "nr"`.
@@ -199,8 +168,7 @@
 # calibrate_rake() rejects cap = 0
 
     Code
-      calibrate_rake(df, targets = targets, weights = base_weight, cap = 0,
-        algorithm = "classic_ipf")
+      calibrate_rake(design, targets = targets, cap = 0, algorithm = "classic_ipf")
     Condition
       Error in `calibrate_rake()`:
       x `cap` must be a positive finite numeric scalar.
@@ -210,52 +178,64 @@
 # calibrate_rake() warns for classic_ipf-specific control param with algorithm='nr'
 
     Code
-      calibrate_rake(df, targets = targets, weights = base_weight, algorithm = "nr",
-        control = list(pval = 0.01))
+      calibrate_rake(design, targets = targets, algorithm = "nr", control = list(
+        pval = 0.01))
     Condition
       Warning:
       ! `control$pval` is not used when `algorithm = "nr"` and will be ignored.
       i For `algorithm = "classic_ipf"`, valid `control` keys are: `maxit`, `improvement`, `pval`, `min_cell_n`, `variable_select`.
       i For `algorithm = "nr"`, valid `control` keys are: `maxit`, `epsilon`.
+    Message
+      
+      -- Survey Design ---------------------------------------------------------------
+      <survey_taylor> (Taylor series linearization)
+      Sample size: 500
+      
     Output
-      # A tibble: 500 x 7
-            id age_group sex   education region    base_weight   wts
-       * <int> <chr>     <chr> <chr>     <chr>           <dbl> <dbl>
-       1     1 35-54     F     Graduate  South           0.677 0.601
-       2     2 55+       F     HS        South           1.24  1.35 
-       3     3 35-54     M     Graduate  Northeast       1.09  0.947
-       4     4 55+       F     College   Northeast       0.950 1.03 
-       5     5 35-54     F     College   Northeast       1.06  0.944
-       6     6 35-54     M     College   South           1.01  0.873
-       7     7 18-34     M     Graduate  Northeast       0.757 0.846
-       8     8 35-54     F     College   Midwest         0.832 0.738
-       9     9 18-34     M     College   West            1.05  1.17 
-      10    10 35-54     F     Graduate  West            1.06  0.939
+      # A tibble: 500 x 6
+            id age_group sex   education region    base_weight
+         <int> <chr>     <chr> <chr>     <chr>           <dbl>
+       1     1 35-54     F     Graduate  South           0.601
+       2     2 55+       F     HS        South           1.35 
+       3     3 35-54     M     Graduate  Northeast       0.947
+       4     4 55+       F     College   Northeast       1.03 
+       5     5 35-54     F     College   Northeast       0.944
+       6     6 35-54     M     College   South           0.873
+       7     7 18-34     M     Graduate  Northeast       0.846
+       8     8 35-54     F     College   Midwest         0.738
+       9     9 18-34     M     College   West            1.17 
+      10    10 35-54     F     Graduate  West            0.939
       # i 490 more rows
 
 # calibrate_rake() warns for nr-specific control param with algorithm='classic_ipf'
 
     Code
-      calibrate_rake(df, targets = targets, weights = base_weight, algorithm = "classic_ipf",
-        control = list(epsilon = 1e-09))
+      calibrate_rake(design, targets = targets, algorithm = "classic_ipf", control = list(
+        epsilon = 1e-09))
     Condition
       Warning:
       ! `control$epsilon` is not used when `algorithm = "classic_ipf"` and will be ignored.
       i For `algorithm = "classic_ipf"`, valid `control` keys are: `maxit`, `improvement`, `pval`, `min_cell_n`, `variable_select`.
       i For `algorithm = "nr"`, valid `control` keys are: `maxit`, `epsilon`.
+    Message
+      
+      -- Survey Design ---------------------------------------------------------------
+      <survey_taylor> (Taylor series linearization)
+      Sample size: 500
+      
     Output
-      # A tibble: 500 x 7
-            id age_group sex   education region    base_weight   wts
-       * <int> <chr>     <chr> <chr>     <chr>           <dbl> <dbl>
-       1     1 55+       F     College   South           0.730 0.650
-       2     2 18-34     M     College   Midwest         0.852 0.781
-       3     3 55+       F     Graduate  West            0.904 0.805
-       4     4 55+       M     <HS       Midwest         0.803 0.694
-       5     5 18-34     M     Graduate  Midwest         0.861 0.790
-       6     6 55+       M     College   Northeast       1.01  0.876
-       7     7 18-34     M     <HS       West            0.648 0.594
-       8     8 35-54     F     <HS       Midwest         1.22  1.18 
-       9     9 18-34     F     HS        Northeast       0.739 0.699
-      10    10 35-54     F     Graduate  Northeast       0.775 0.751
+      # A tibble: 500 x 6
+            id age_group sex   education region    base_weight
+         <int> <chr>     <chr> <chr>     <chr>           <dbl>
+       1     1 55+       F     College   South           0.650
+       2     2 18-34     M     College   Midwest         0.781
+       3     3 55+       F     Graduate  West            0.805
+       4     4 55+       M     <HS       Midwest         0.694
+       5     5 18-34     M     Graduate  Midwest         0.790
+       6     6 55+       M     College   Northeast       0.876
+       7     7 18-34     M     <HS       West            0.594
+       8     8 35-54     F     <HS       Midwest         1.18 
+       9     9 18-34     F     HS        Northeast       0.699
+      10    10 35-54     F     Graduate  Northeast       0.751
       # i 490 more rows
 

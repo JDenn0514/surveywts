@@ -610,30 +610,18 @@ test_that(".build_calibration_provenance() computes g_weights correctly", {
 # (Smoke test: calibrate_rake() still works with the "anesrake" algorithm)
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_rake() with algorithm = 'anesrake' still works after PR 1", {
-  df <- make_surveywts_data(n = 100L, seed = 99L)
+test_that("NR raking engine aborts with cli error for data.frame input", {
   targets <- list(
     age_group = c("18-34" = 0.33, "35-54" = 0.34, "55+" = 0.33),
     sex       = c("M" = 0.50, "F" = 0.50)
   )
-  result <- calibrate_rake(
-    df,
-    targets  = targets,
-    weights  = base_weight,
-    wt_name  = "wts",
-    type     = "prop",
-    algorithm = "classic_ipf"
-  )
-  test_invariants(result)
-  expect_true(inherits(result, "weighted_df"))
-  # Check calibration constraint: weighted proportions match targets
-  total_w <- sum(result$wts)
-  age_props_arr <- tapply(result$wts, df$age_group, sum) / total_w
-  age_props <- as.numeric(age_props_arr[c("18-34", "35-54", "55+")])
-  expect_equal(
-    age_props,
-    c(0.33, 0.34, 0.33),
-    tolerance = 0.01
+  expect_error(
+    calibrate_rake(
+      make_surveywts_data(n = 100L, seed = 99L),
+      targets   = targets,
+      algorithm = "nr"
+    ),
+    class = "surveywts_error_not_survey_base"
   )
 })
 

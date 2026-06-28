@@ -9,32 +9,31 @@ adjust_nonresponse(
   response_status,
   weights = NULL,
   by = NULL,
-  wt_name = "wts",
+  wt_name = NULL,
   method = c("weighting-class", "propensity-cell", "propensity"),
   formula = NULL,
   control = list(min_cell = 20, max_adjust = 2, n_cells = 5)
 )
 }
 \arguments{
-\item{data}{A \code{data.frame}, \code{weighted_df}, \code{survey_taylor}, or
-\code{survey_nonprob}. Must include BOTH respondents and nonrespondents.
-\code{survey_replicate} -> error. Any other class -> error.}
+\item{data}{A \code{survey_taylor} or \code{survey_nonprob}. Must include BOTH
+respondents and nonrespondents. \code{survey_replicate} -> error. Any other
+class -> error.}
 
 \item{response_status}{Bare name (NSE). Binary response indicator column.
 Must be \code{logical} or integer \code{0}/\code{1}. \code{1} / \code{TRUE} = respondent.}
 
 \item{weights}{Bare name (NSE). Weight column. \code{NULL} -> auto-detected from
-\code{weighted_df} attribute or survey object \verb{@variables$weights}. For plain
-\code{data.frame} with \code{weights = NULL}, uniform starting weights are used.}
+survey object \verb{@variables$weights}.}
 
 \item{by}{<\code{\link[tidyselect:language]{tidy-select}}> Weighting class variables.
 Redistribution is performed within each cell defined by the joint
 combination of these variables. \code{NULL} -> global redistribution across
 all rows.}
 
-\item{wt_name}{Character scalar. Name of the output weight column in the
-returned \code{weighted_df}. Default \code{"wts"}. Ignored when \code{data} is a survey
-object (\code{survey_taylor} or \code{survey_nonprob}).}
+\item{wt_name}{\code{NULL} (default) or a character scalar. When \code{NULL},
+adjusted weights overwrite the existing weight column in place. When a
+character string, a new column is added and \verb{@variables$weights} updated.}
 
 \item{method}{Character scalar. Adjustment method. One of
 \code{"weighting-class"} (default), \code{"propensity-cell"}, or \code{"propensity"}.
@@ -73,7 +72,6 @@ All rows (respondents and nonrespondents) are returned. Nonrespondent
 weights are set to 0; respondent weights are adjusted upward to conserve
 the total weight within each cell.
 \itemize{
-\item \code{data.frame} or \code{weighted_df} input -> \code{weighted_df}
 \item \code{survey_nonprob} input -> \code{survey_nonprob} (same class)
 \item \code{survey_taylor} input -> \code{survey_taylor} (same class; respondent
 rows only, because \code{survey_taylor} does not support zero weights)
@@ -129,16 +127,7 @@ sums respondent weights only. Each respondent weight becomes
 }
 
 \examples{
-# data.frame path: add response_status column ---------------------------
-gss <- gss_2024[!is.na(gss_2024$sex), ]
-gss$responded <- sample(
-  c(0L, 1L), nrow(gss), replace = TRUE, prob = c(0.2, 0.8)
-)
-result <- adjust_nonresponse(
-  gss, response_status = responded, weights = wtssps, by = sex
-)
-
-# survey_taylor path: mutate the tibble first, then construct the design --
+# survey_taylor: mutate the tibble first, then construct the design -------
 gss_with_resp <- gss_2024[!is.na(gss_2024$sex), ]
 gss_with_resp$responded <- sample(
   c(0L, 1L), nrow(gss_with_resp), replace = TRUE, prob = c(0.2, 0.8)

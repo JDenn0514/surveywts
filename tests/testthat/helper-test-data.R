@@ -423,6 +423,19 @@ q_unequal <- {
 q_all_twos <- rep(2, 500)
 q_all_ones <- rep(1, 500)
 
+taylor_500 <- surveycore::survey_taylor(
+  data = df_500,
+  variables = list(
+    ids = NULL, strata = NULL, fpc = NULL, weights = "base_weight", nest = FALSE
+  )
+)
+taylor_200 <- surveycore::survey_taylor(
+  data = df_200,
+  variables = list(
+    ids = NULL, strata = NULL, fpc = NULL, weights = "base_weight", nest = FALSE
+  )
+)
+
 # Pin all weighting history timestamps to a fixed date for stable snapshots.
 .pin_ts <- function(obj, ts = as.POSIXct("2025-01-15 10:00:00", tz = "UTC")) {
   if (S7::S7_inherits(obj, surveycore::survey_nonprob) ||

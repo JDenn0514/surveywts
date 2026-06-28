@@ -8,7 +8,7 @@ calibrate(
   data,
   targets,
   weights = NULL,
-  wt_name = "wts",
+  wt_name = NULL,
   type = c("prop", "count"),
   reference_design = NULL,
   ...,
@@ -16,11 +16,11 @@ calibrate(
 )
 }
 \arguments{
-\item{data}{A \code{data.frame}, \code{weighted_df}, \code{survey_taylor}, \code{survey_nonprob},
-or \code{survey_replicate}. Forwarded unchanged to the dispatched function. For
-\code{survey_replicate} inputs, calibration is applied to every replicate weight
-column using the same \code{targets}; see the dispatched function for replicate
-weight handling details.}
+\item{data}{A \code{survey_nonprob}, \code{survey_taylor}, or \code{survey_replicate}.
+Forwarded unchanged to the dispatched function. For \code{survey_replicate}
+inputs, calibration is applied to every replicate weight column using the
+same \code{targets}; see the dispatched function for replicate weight handling
+details.}
 
 \item{targets}{Target specification. Forwarded to the dispatched function.
 Two formats are accepted:
@@ -48,12 +48,12 @@ for per-method target validation rules.}
 
 \item{weights}{<\code{\link[tidyselect:language]{tidy-select}}> Weight column
 (bare name). Forwarded to the dispatched function. \code{NULL} (the default)
-auto-detects the weight column from \code{weighted_df} attributes or survey
-object \verb{@variables$weights}.}
+auto-detects the weight column from survey object \verb{@variables$weights}.}
 
-\item{wt_name}{\code{character(1)}. Name of the output weight column in the
-returned \code{weighted_df}. \code{"wts"} (the default). Ignored when \code{data} is a
-survey object.}
+\item{wt_name}{\code{NULL} (the default) or a \code{character(1)}. When \code{NULL},
+calibrated weights overwrite the existing weight column in place. When a
+character string, a new column is added and \verb{@variables$weights} updated.
+Forwarded to the dispatched function.}
 
 \item{type}{\code{character(1)}. \code{"prop"} (the default): \code{targets} values are
 proportions. \code{"count"}: \code{targets} values are population counts. Forwarded
@@ -125,27 +125,29 @@ replicate-weight handling, see \code{\link[=calibrate_rake]{calibrate_rake()}},
 \code{\link[=calibrate_linear]{calibrate_linear()}}, and \code{\link[=calibrate_logit]{calibrate_logit()}}.
 }
 \examples{
+ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
+
 targets_a <- list(
-  sex   = c("Male" = 0.49, "Female" = 0.51),
+  sex    = c("Male" = 0.49, "Female" = 0.51),
   age_f3 = c("18-34" = 0.30, "35-54" = 0.33, "55+" = 0.37)
 )
 
-# Format A + rake (default) ------------------------------------
-calibrate(ns_wave1, targets = targets_a, weights = weight)
+# Format A + rake (default) --------------------------------------------
+calibrate(ns_wave1_svy, targets = targets_a)
 
-# Format A + linear -------------------------------------------------
-calibrate(ns_wave1, targets = targets_a, weights = weight, method = "linear")
+# Format A + linear ----------------------------------------------------
+calibrate(ns_wave1_svy, targets = targets_a, method = "linear")
 
-# Format A + logit -----------------------------------------------
-calibrate(ns_wave1, targets = targets_a, weights = weight, method = "logit")
+# Format A + logit -----------------------------------------------------
+calibrate(ns_wave1_svy, targets = targets_a, method = "logit")
 
-# Format B + rake -------------------------------------------------------
+# Format B + rake ------------------------------------------------------
 targets_b <- data.frame(
   variable = c("sex", "sex", "age_f3", "age_f3", "age_f3"),
   level    = c("Male", "Female", "18-34", "35-54", "55+"),
   target   = c(0.49, 0.51, 0.30, 0.33, 0.37)
 )
-calibrate(ns_wave1, targets = targets_b, weights = weight)
+calibrate(ns_wave1_svy, targets = targets_b)
 }
 \references{
 DeBell, M. and Krosnick, J.A. (2009). Computing Weights for American

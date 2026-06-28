@@ -18,17 +18,17 @@
 #' This operation preserves ratio estimators (means, proportions) but changes
 #' population total estimates by the factor `n / W`.
 #'
-#' @param data A `data.frame`, `weighted_df`, `survey_taylor`, `survey_nonprob`,
-#'   or `survey_replicate`. All survey classes supported. For inputs carrying
-#'   replicate weight columns, see the **Replicate Weights** section.
+#' @param data A `survey_taylor`, `survey_nonprob`, or `survey_replicate`. For
+#'   inputs carrying replicate weight columns, see the **Replicate Weights**
+#'   section.
 #' @param weights <[`tidy-select`][tidyselect::language]> Weight column.
-#'   Auto-detected for `weighted_df` and survey objects. For plain `data.frame`
-#'   with `weights = NULL`, uniform weights (all 1) are used.
+#'   Auto-detected from survey object `@variables$weights`.
 #' @param by <[`tidy-select`][tidyselect::language]> Grouping variable(s).
 #'   Rescaling is performed within each group (weights in group `h` sum to
 #'   `n_h`). `NULL` → global rescaling (all weights sum to `n`).
-#' @param wt_name `character(1)`. Output weight column name. Used only when
-#'   `data` is a plain `data.frame` with `weights = NULL`. Default `"wts"`.
+#' @param wt_name `NULL` (default) or a `character(1)`. When `NULL`, rescaled
+#'   weights overwrite the existing weight column in place. When a character
+#'   string, a new column is added and `@variables$weights` updated.
 #'
 #' @returns An object of the same class as `data` with rescaled weights. A
 #'   new entry with `operation = "rescale_weights"` is appended to the
@@ -45,40 +45,33 @@
 #' @family utilities
 #' @export
 #' @examples
-#' # Rescale weights to unit mean (default)
-#' summarize_weights(ns_wave1, weights = weight)
+#' ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
 #'
-#' result <- rescale_weights(ns_wave1, weights = weight)
-#' summarize_weights(result, weights = weight)
+#' # Rescale weights to unit mean (default) -----------------------------------
+#' summarize_weights(ns_wave1_svy)
 #'
-#' # Rescale within groups using by =
-#' result_by <- rescale_weights(ns_wave1, weights = weight, by = ns_region)
-#' summarize_weights(result_by, weights = weight, by = ns_region)
+#' result <- rescale_weights(ns_wave1_svy)
+#' summarize_weights(result)
+#'
+#' # Rescale within groups using by = -----------------------------------------
+#' result_by <- rescale_weights(ns_wave1_svy, by = ns_region)
+#' summarize_weights(result_by, by = ns_region)
 rescale_weights <- function(
   data,
   weights = NULL,
   by = NULL,
-  wt_name = "wts"
+  wt_name = NULL
 ) {
   weights_quo <- rlang::enquo(weights)
   by_quo <- rlang::enquo(by)
   call_str <- deparse(match.call())
 
-  # Step 0: validate wt_name for plain data.frame + NULL weights case
-  is_plain_df <- !inherits(data, "weighted_df") &&
-    !S7::S7_inherits(data, surveycore::survey_base)
-  is_null_wt_df <- is_plain_df && rlang::quo_is_null(weights_quo)
-  if (is_null_wt_df) {
-    .validate_wt_name(wt_name)
-  }
+  # Step 0: validate wt_name
+  .validate_wt_name(wt_name)
 
   # Step 1: validate class and check nrow
   .check_weight_utils_class(data)
-  data_df <- if (S7::S7_inherits(data, surveycore::survey_base)) {
-    data@data
-  } else {
-    as.data.frame(data)
-  }
+  data_df <- data@data
   if (nrow(data_df) == 0L) {
     cli::cli_abort(
       c(
@@ -89,15 +82,10 @@ rescale_weights <- function(
     )
   }
 
-  # Step 2a: extract weight vector; 2b: validate
-  if (is_null_wt_df) {
-    weights_vec <- rep(1, nrow(data_df))
-    wt_col_name <- wt_name
-  } else {
-    wt_col_name <- .get_weight_col_name(data, weights_quo)
-    weights_vec <- .get_weight_vec(data, weights_quo)
-    .validate_weights(data_df, wt_col_name)
-  }
+  # Step 2: extract weight vector and validate
+  wt_col_name <- .get_weight_col_name(data, weights_quo)
+  weights_vec <- .get_weight_vec(data, weights_quo)
+  .validate_weights(data_df, wt_col_name)
 
   # Step 3: by resolution and validation
   if (rlang::quo_is_null(by_quo)) {
@@ -189,24 +177,20 @@ rescale_weights <- function(
   history_entry <- .make_history_entry(
     step = length(old_history) + 1L,
     operation = "rescale_weights",
-    weight_col = wt_col_name,
+    weight_col = if (is.null(wt_name)) wt_col_name else wt_name,
     call_str = call_str,
     parameters = hist_params,
     before_stats = before_stats,
     after_stats = after_stats
   )
 
-  # Construct output by class
-  if (inherits(data, "data.frame") && !S7::S7_inherits(data, surveycore::survey_base)) {
-    updated_data <- as.data.frame(data)
-    updated_data[[wt_col_name]] <- weights_new
-    new_history <- c(old_history, list(history_entry))
-    .make_weighted_df(updated_data, wt_col_name, new_history)
-  } else if (.has_repweights(data)) {
-    result_design <- .update_survey_weights(data, weights_new, history_entry)
+  # Construct output
+  if (.has_repweights(data)) {
+    result_design <- .update_survey_weights(data, weights_new, history_entry,
+                                            wt_name = wt_name)
     result_design@data[data@variables$repweights] <- as.data.frame(rep_weights_new)
     result_design
   } else {
-    .update_survey_weights(data, weights_new, history_entry)
+    .update_survey_weights(data, weights_new, history_entry, wt_name = wt_name)
   }
 }

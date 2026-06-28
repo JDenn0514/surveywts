@@ -15,10 +15,9 @@
 #   .validate_population_marginals()  — validates named-list population targets
 #   .compute_weight_stats()           — computes 11-key weight statistics
 #   .make_history_entry()             — creates one weighting history entry
-#   .make_weighted_df()               — internal weighted_df constructor
 #   .update_survey_weights()          — updates survey object weights + history
-#   .check_input_class()             — validates input class (4 callers)
-#   .get_history()                   — extracts weighting history from any class
+#   .check_input_class()             — validates input class (survey_base only)
+#   .get_history()                   — extracts weighting history from survey_base
 #   .validate_formula()               — validates one-sided formula object
 #   .validate_formula_variables()     — validates formula variables exist in data
 #   .trim_weights_internal()          — clip-and-redistribute primitive for trim_weights()
@@ -34,8 +33,7 @@
 # ============================================================================
 
 # Format one history entry as a single display line.
-# Used by print.weighted_df() (classes.R) and the S7 print method
-# for survey_nonprob (methods-print.R). Moved from classes.R in PR 4.
+# Used by the S7 print method for survey_nonprob (methods-print.R).
 .format_history_step <- function(entry) {
   op     <- entry$operation
   params <- entry$parameters
@@ -101,11 +99,9 @@
 # ============================================================================
 
 # Returns the name of the weight column as a character(1).
-# For a plain data.frame with weights_quo = NULL, returns ".weight" —
-# this is the authoritative default per spec §II.d.
 #
 # Arguments:
-#   x           : data.frame, weighted_df, survey_taylor, or survey_nonprob
+#   x           : survey_taylor, survey_nonprob, or survey_replicate
 #   weights_quo : quosure from rlang::enquo(weights) in the calling function
 #
 # Returns: character(1)
@@ -114,15 +110,10 @@
     return(rlang::as_name(weights_quo))
   }
 
-  if (inherits(x, "weighted_df")) {
-    return(attr(x, "weight_col"))
-  }
-
   if (S7::S7_inherits(x, surveycore::survey_base)) {
     return(x@variables$weights)
   }
 
-  # Plain data.frame with no weights argument: default column name
   ".weight"
 }
 
@@ -137,6 +128,7 @@
 #
 # Returns: invisible(TRUE) on success (errors otherwise).
 .validate_wt_name <- function(wt_name) {
+  if (is.null(wt_name)) return(invisible(TRUE))
   if (!is.character(wt_name) || length(wt_name) != 1) {
     cli::cli_abort(
       c(
@@ -188,42 +180,21 @@
 # ============================================================================
 
 # Extracts the weight vector from any supported input class.
-# For a plain data.frame with weights_quo = NULL, returns uniform weights
-# (1 / nrow(x)) — these are the starting weights before calibration.
 #
 # Arguments:
-#   x           : data.frame, weighted_df, survey_taylor, survey_nonprob,
-#                 or survey_replicate
+#   x           : survey_taylor, survey_nonprob, or survey_replicate
 #   weights_quo : quosure from rlang::enquo(weights) in the calling function
 #
-# Returns: numeric vector (length nrow(data))
+# Returns: numeric vector (length nrow(x@data))
 .get_weight_vec <- function(x, weights_quo) {
-  data_df <- if (inherits(x, "data.frame")) {
-    x
-  } else {
-    x@data
-  }
+  data_df <- x@data
 
   if (!rlang::quo_is_null(weights_quo)) {
     col_name <- rlang::as_name(weights_quo)
     return(data_df[[col_name]])
   }
 
-  if (inherits(x, "weighted_df")) {
-    return(data_df[[attr(x, "weight_col")]])
-  }
-
-  if (S7::S7_inherits(x, surveycore::survey_taylor) ||
-      S7::S7_inherits(x, surveycore::survey_nonprob)) {
-    return(data_df[[x@variables$weights]])
-  }
-
-  if (S7::S7_inherits(x, surveycore::survey_replicate)) {
-    return(data_df[[x@variables$weights]])
-  }
-
-  # Plain data.frame with no weights: uniform starting weights
-  rep(1 / nrow(data_df), nrow(data_df))
+  data_df[[x@variables$weights]]
 }
 
 # ============================================================================
@@ -590,49 +561,14 @@
 }
 
 # ============================================================================
-# .make_weighted_df()
-# ============================================================================
-
-# Internal constructor for weighted_df. Sets class vector and attributes.
-# Errors if weight_col is not a column name in data.
-#
-# Arguments:
-#   data       : data.frame (must already contain weight_col)
-#   weight_col : character(1) — name of the weight column
-#   history    : list of history entries to attach (default: empty list)
-#
-# Returns: weighted_df
-.make_weighted_df <- function(data, weight_col, history = list()) {
-  # nocov start
-  if (!weight_col %in% names(data)) {
-    cli::cli_abort(
-      c(
-        "x" = "Internal error: weight column {.field {weight_col}} not in data.",
-        "i" = "This is a bug in surveywts. Please report it."
-      ),
-      class = "surveywts_error_internal"
-    )
-  }
-  # nocov end
-
-  structure(
-    tibble::as_tibble(data),
-    class = c("weighted_df", "tbl_df", "tbl", "data.frame"),
-    weight_col = weight_col,
-    weighting_history = history
-  )
-}
-
-# ============================================================================
 # .update_survey_weights()
 # ============================================================================
 
 # Updates a survey object's weight column and appends a history entry to
 # @metadata@weighting_history. Returns a new survey object of the SAME class
-# as the input (no class promotion). Used by calibrate_rake(),
-# calibrate_linear(), calibrate_logit(), calibrate_poststrat(), calibrate(), and
-# adjust_nonresponse(). Supported input classes: survey_taylor, survey_nonprob,
-# and survey_replicate (for calibration functions).
+# as the input. Used by calibrate_rake(), calibrate_linear(), calibrate_logit(),
+# poststratify(), calibrate(), adjust_nonresponse(), redistribute_weights(),
+# trim_weights(), and rescale_weights().
 #
 # Arguments:
 #   design          : survey_taylor, survey_nonprob, or survey_replicate
@@ -640,6 +576,9 @@
 #                     full-sample weight column is updated. Replicate weight
 #                     columns are written directly by the caller before this call.
 #   history_entry   : list from .make_history_entry()
+#   wt_name         : NULL (default) or character(1). NULL → overwrite the
+#                     existing weight column in-place; non-NULL → write to a new
+#                     column named wt_name and update @variables$weights.
 #   caldata         : named list or NULL. When non-NULL, a fully constructed
 #                     @calibration list. Written to design@calibration before
 #                     returning. NULL (default) leaves @calibration unchanged.
@@ -649,14 +588,34 @@
   design,
   new_weights_vec,
   history_entry,
+  wt_name = NULL,
   caldata = NULL
 ) {
-  weight_col <- design@variables$weights
-
-  # Update data
   updated_data <- design@data
-  updated_data[[weight_col]] <- new_weights_vec
-  design@data <- updated_data
+
+  if (is.null(wt_name)) {
+    # Overwrite existing weight column in-place
+    weight_col <- design@variables$weights
+    updated_data[[weight_col]] <- new_weights_vec
+    design@data <- updated_data
+  } else {
+    # Check for conflict: wt_name already exists as a non-weight column
+    if (wt_name %in% names(design@data) && wt_name != design@variables$weights) {
+      cli::cli_abort(
+        c(
+          "x" = "{.arg wt_name} {.field {wt_name}} already exists as a non-weight column in {.arg data}.",
+          "i" = "To avoid overwriting data, choose a new output column name.",
+          "v" = "Specify a {.arg wt_name} that does not conflict with existing columns."
+        ),
+        class = "surveywts_error_wt_name_conflict"
+      )
+    }
+    # Write data first (so the new column exists before @variables is updated),
+    # then update @variables$weights — S7 validator fires on the latter assignment.
+    updated_data[[wt_name]] <- new_weights_vec
+    design@data <- updated_data
+    design@variables$weights <- wt_name
+  }
 
   # Append history entry (must go through intermediate variable for S7 nested
   # property assignment)
@@ -677,49 +636,42 @@
 # .check_input_class()
 # ============================================================================
 
-# Validates that `data` is a supported input class for the four calibrate
-# functions (calibrate_rake, calibrate_linear, calibrate_logit, calibrate_poststrat, calibrate).
-# survey_replicate is now a supported class for these functions.
-# adjust_nonresponse() and sample-calibration functions continue to reject
-# survey_replicate via their own validation logic.
+# Validates that `data` is a survey_base object (survey_nonprob, survey_taylor,
+# or survey_replicate). Used by all calibration, nonresponse, utility, and
+# diagnostic functions. Throws surveywts_error_not_survey_base otherwise.
 #
 # Arguments:
-#   data : object passed as the `data` argument to a calibration function
+#   data : object passed as the `data` argument to a weighting function
 #
-# Returns: invisible(TRUE) on success. Throws on unsupported class.
+# Returns: invisible(TRUE) on success. Throws on non-survey_base input.
 .check_input_class <- function(data) {
-  is_supported <- inherits(data, "data.frame") ||
-    S7::S7_inherits(data, surveycore::survey_base)
-
-  if (!is_supported) {
+  if (!S7::S7_inherits(data, surveycore::survey_base)) {
     cls <- class(data)[[1L]]
     cli::cli_abort(
       c(
-        "x" = "{.arg data} must be a data frame or a supported survey design object.",
+        "x" = "{.arg data} must be a {.cls survey_nonprob}, {.cls survey_taylor}, or {.cls survey_replicate}.",
         "i" = "Got {.cls {cls}}.",
-        "v" = "See package documentation for supported input types."
+        "v" = "Use {.fn surveycore::as_survey_nonprob}, {.fn surveycore::as_survey}, or {.fn surveycore::as_survey_replicate} to construct a survey object."
       ),
-      class = "surveywts_error_unsupported_class"
+      class = "surveywts_error_not_survey_base"
     )
   }
+  invisible(TRUE)
 }
 
 # ============================================================================
 # .get_history()
 # ============================================================================
 
-# Extracts weighting history from any supported input class.
+# Extracts weighting history from a survey_base object.
 # Used by calibrate(), rake(), poststratify(), and adjust_nonresponse().
 #
 # Arguments:
-#   x : data.frame, weighted_df, survey_taylor, or survey_nonprob
+#   x : survey_taylor, survey_nonprob, or survey_replicate
 #
 # Returns: list (possibly empty) of history entries.
 .get_history <- function(x) {
-  if (inherits(x, "weighted_df")) {
-    wh <- attr(x, "weighting_history")
-    if (is.null(wh)) list() else wh # nocov
-  } else if (S7::S7_inherits(x, surveycore::survey_base)) {
+  if (S7::S7_inherits(x, surveycore::survey_base)) {
     wh <- x@metadata@weighting_history
     if (is.null(wh)) list() else wh # nocov
   } else {

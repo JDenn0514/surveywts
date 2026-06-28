@@ -69,82 +69,123 @@ test_that("old calibrate() with variables + population args no longer exists", {
 # ===========================================================================
 
 # ---------------------------------------------------------------------------
-# D1. Happy path — method = "rake" (explicit)
+# D1. Happy path — method = "rake" (survey_taylor)
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() with method = 'rake' returns same result as calibrate_rake()", {
   df      <- make_surveywts_data(seed = 101)
+  design  <- .make_test_taylor_greg(df)
   targets <- .make_targets()
 
-  direct     <- calibrate_rake(df, targets = targets)
-  dispatcher <- calibrate(df, targets = targets, method = "rake")
+  direct     <- calibrate_rake(design, targets = targets)
+  dispatcher <- calibrate(design, targets = targets, method = "rake")
 
   test_invariants(dispatcher)
-  expect_true(inherits(dispatcher, "weighted_df"))
-  expect_equal(dispatcher[["wts"]], direct[["wts"]], tolerance = 1e-10)
+  expect_true(S7::S7_inherits(dispatcher, surveycore::survey_taylor))
+  expect_equal(
+    dispatcher@data[[dispatcher@variables$weights]],
+    direct@data[[direct@variables$weights]],
+    tolerance = 1e-10
+  )
 })
 
 # ---------------------------------------------------------------------------
-# D2. Happy path — method = "linear"
+# D2. Happy path — method = "linear" (survey_taylor)
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() with method = 'linear' returns same result as calibrate_linear()", {
   df      <- make_surveywts_data(seed = 102)
+  design  <- .make_test_taylor_greg(df)
   targets <- .make_targets()
 
-  direct     <- calibrate_linear(df, targets = targets)
-  dispatcher <- calibrate(df, targets = targets, method = "linear")
+  direct     <- calibrate_linear(design, targets = targets)
+  dispatcher <- calibrate(design, targets = targets, method = "linear")
 
   test_invariants(dispatcher)
-  expect_true(inherits(dispatcher, "weighted_df"))
-  expect_equal(dispatcher[["wts"]], direct[["wts"]], tolerance = 1e-10)
+  expect_true(S7::S7_inherits(dispatcher, surveycore::survey_taylor))
+  expect_equal(
+    dispatcher@data[[dispatcher@variables$weights]],
+    direct@data[[direct@variables$weights]],
+    tolerance = 1e-10
+  )
 })
 
 # ---------------------------------------------------------------------------
-# D3. Happy path — method = "logit"
+# D3. Happy path — method = "logit" (survey_taylor)
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() with method = 'logit' returns same result as calibrate_logit()", {
   df      <- make_surveywts_data(seed = 103)
+  design  <- .make_test_taylor_greg(df)
   targets <- .make_targets()
 
-  direct     <- calibrate_logit(df, targets = targets)
-  dispatcher <- calibrate(df, targets = targets, method = "logit")
+  direct     <- calibrate_logit(design, targets = targets)
+  dispatcher <- calibrate(design, targets = targets, method = "logit")
 
   test_invariants(dispatcher)
-  expect_true(inherits(dispatcher, "weighted_df"))
-  expect_equal(dispatcher[["wts"]], direct[["wts"]], tolerance = 1e-10)
+  expect_true(S7::S7_inherits(dispatcher, surveycore::survey_taylor))
+  expect_equal(
+    dispatcher@data[[dispatcher@variables$weights]],
+    direct@data[[direct@variables$weights]],
+    tolerance = 1e-10
+  )
 })
 
 # ---------------------------------------------------------------------------
-# D4. Happy path — default method = "rake"
+# D4. Happy path — default method = "rake" (survey_taylor)
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() default method dispatches to calibrate_rake()", {
   df      <- make_surveywts_data(seed = 104)
+  design  <- .make_test_taylor_greg(df)
   targets <- .make_targets()
 
-  direct     <- calibrate_rake(df, targets = targets)
-  dispatcher <- calibrate(df, targets = targets)  # no method arg
+  direct     <- calibrate_rake(design, targets = targets)
+  dispatcher <- calibrate(design, targets = targets)
 
   test_invariants(dispatcher)
-  expect_true(inherits(dispatcher, "weighted_df"))
-  expect_equal(dispatcher[["wts"]], direct[["wts"]], tolerance = 1e-10)
+  expect_true(S7::S7_inherits(dispatcher, surveycore::survey_taylor))
+  expect_equal(
+    dispatcher@data[[dispatcher@variables$weights]],
+    direct@data[[direct@variables$weights]],
+    tolerance = 1e-10
+  )
 })
 
 # ---------------------------------------------------------------------------
-# D5. Happy path — NSE weights forwarded correctly
+# D5. Happy path — NSE weights forwarded correctly (survey_taylor)
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() forwards NSE weights correctly to dispatched function", {
   df      <- make_surveywts_data(seed = 105)
+  design  <- .make_test_taylor_greg(df)
   targets <- .make_targets()
 
-  direct     <- calibrate_rake(df, targets = targets, weights = base_weight)
-  dispatcher <- calibrate(df, targets = targets, weights = base_weight)
+  direct     <- calibrate_rake(design, targets = targets)
+  dispatcher <- calibrate(design, targets = targets)
 
   test_invariants(dispatcher)
-  expect_equal(dispatcher[["wts"]], direct[["wts"]], tolerance = 1e-10)
+  expect_equal(
+    dispatcher@data[[dispatcher@variables$weights]],
+    direct@data[[direct@variables$weights]],
+    tolerance = 1e-10
+  )
+})
+
+# ---------------------------------------------------------------------------
+# D-NB. Error — data.frame input aborts with surveywts_error_not_survey_base
+# ---------------------------------------------------------------------------
+
+test_that("calibrate() aborts with cli error for data.frame input", {
+  targets_a <- .make_targets()
+  expect_error(
+    calibrate(make_surveywts_data(), targets = targets_a),
+    class = "surveywts_error_not_survey_base"
+  )
+  expect_snapshot(
+    error = TRUE,
+    calibrate(make_surveywts_data(), targets = targets_a)
+  )
 })
 
 # ---------------------------------------------------------------------------
@@ -153,11 +194,11 @@ test_that("calibrate() forwards NSE weights correctly to dispatched function", {
 
 test_that("calibrate() with invalid method triggers arg_match error", {
   df      <- make_surveywts_data(seed = 106)
+  design  <- .make_test_taylor_greg(df)
   targets <- .make_targets()
 
-  # rlang::arg_match() error — no class= snapshot needed (not a cli_abort())
   expect_error(
-    calibrate(df, targets = targets, method = "bad_method")
+    calibrate(design, targets = targets, method = "bad_method")
   )
 })
 
@@ -167,11 +208,11 @@ test_that("calibrate() with invalid method triggers arg_match error", {
 
 test_that("calibrate() with method = 'greg' triggers arg_match error (removed in PR 4)", {
   df      <- make_surveywts_data(seed = 107)
+  design  <- .make_test_taylor_greg(df)
   targets <- .make_targets()
 
-  # "greg" was removed from method choices in PR 4
   expect_error(
-    calibrate(df, targets = targets, method = "greg")
+    calibrate(design, targets = targets, method = "greg")
   )
 })
 
@@ -181,57 +222,12 @@ test_that("calibrate() with method = 'greg' triggers arg_match error (removed in
 
 test_that("calibrate() with method = 'poststrat' triggers arg_match error (removed in PR 4)", {
   df      <- make_surveywts_data(seed = 108)
+  design  <- .make_test_taylor_greg(df)
   targets <- .make_targets()
 
-  # "poststrat" was removed from method choices in PR 4
   expect_error(
-    calibrate(df, targets = targets, method = "poststrat")
+    calibrate(design, targets = targets, method = "poststrat")
   )
-})
-
-# ---------------------------------------------------------------------------
-# CX1. calibrate(method="rake") == calibrate_rake() directly (1e-10)
-# ---------------------------------------------------------------------------
-
-test_that("calibrate(method='rake') == calibrate_rake() directly (1e-10)", {
-  df      <- make_surveywts_data(seed = 151)
-  targets <- .make_targets()
-
-  direct     <- calibrate_rake(df, targets = targets, weights = base_weight)
-  dispatcher <- calibrate(df, targets = targets, weights = base_weight,
-                          method = "rake")
-
-  expect_equal(dispatcher[["wts"]], direct[["wts"]], tolerance = 1e-10)
-})
-
-# ---------------------------------------------------------------------------
-# CX2. calibrate(method="linear") == calibrate_linear() directly (1e-10)
-# ---------------------------------------------------------------------------
-
-test_that("calibrate(method='linear') == calibrate_linear() directly (1e-10)", {
-  df      <- make_surveywts_data(seed = 152)
-  targets <- .make_targets()
-
-  direct     <- calibrate_linear(df, targets = targets, weights = base_weight)
-  dispatcher <- calibrate(df, targets = targets, weights = base_weight,
-                          method = "linear")
-
-  expect_equal(dispatcher[["wts"]], direct[["wts"]], tolerance = 1e-10)
-})
-
-# ---------------------------------------------------------------------------
-# CX3. calibrate(method="logit") == calibrate_logit() directly (1e-10)
-# ---------------------------------------------------------------------------
-
-test_that("calibrate(method='logit') == calibrate_logit() directly (1e-10)", {
-  df      <- make_surveywts_data(seed = 153)
-  targets <- .make_targets()
-
-  direct     <- calibrate_logit(df, targets = targets, weights = base_weight)
-  dispatcher <- calibrate(df, targets = targets, weights = base_weight,
-                          method = "logit")
-
-  expect_equal(dispatcher[["wts"]], direct[["wts"]], tolerance = 1e-10)
 })
 
 # ===========================================================================

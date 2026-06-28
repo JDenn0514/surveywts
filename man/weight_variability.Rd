@@ -7,12 +7,11 @@
 weight_variability(x, weights = NULL)
 }
 \arguments{
-\item{x}{A \code{data.frame}, \code{weighted_df}, \code{survey_taylor}, or
-\code{survey_nonprob}. For \code{weighted_df} and survey objects, the weight
-column is auto-detected.}
+\item{x}{A \code{survey_taylor}, \code{survey_nonprob}, or \code{survey_replicate}. The
+weight column is auto-detected from \verb{@variables$weights}.}
 
-\item{weights}{Bare name (NSE). Weight column. Auto-detected for
-\code{weighted_df} and survey objects. Required for plain \code{data.frame}.}
+\item{weights}{Bare name (NSE). Weight column. Auto-detected from survey
+object \verb{@variables$weights}.}
 }
 \value{
 A named numeric scalar: \verb{c(cv = <value>)}. The name \code{"cv"} is
@@ -31,10 +30,6 @@ are excluded before computing CV.
 }
 
 \examples{
-# data.frame with explicit weight column ---------------------------------
-weight_variability(ns_wave1, weights = weight)
-
-# survey_nonprob — weight column auto-detected ---------------------------
 ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
 weight_variability(ns_wave1_svy)
 }

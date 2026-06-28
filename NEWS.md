@@ -2,6 +2,29 @@
 
 ## Breaking changes
 
+### All weighting functions now require survey objects
+
+All calibration, nonresponse, utility, and diagnostic functions
+(`calibrate()`, `calibrate_rake()`, `calibrate_linear()`, `calibrate_logit()`,
+`poststratify()`, `adjust_nonresponse()`, `redistribute_weights()`,
+`trim_weights()`, `rescale_weights()`, `effective_sample_size()`,
+`weight_variability()`, `summarize_weights()`) now require a `survey_taylor`,
+`survey_nonprob`, or `survey_replicate` object as the `data` (or `x`) argument.
+Plain `data.frame` and `weighted_df` inputs now throw
+`surveywts_error_not_survey_base`.
+
+The `weighted_df` S3 class and all associated infrastructure have been
+removed: `.make_weighted_df()`, `dplyr_reconstruct.weighted_df()`,
+`print.weighted_df()`, and the `weight_col` / `weighting_history` attributes
+are no longer part of the package.
+
+### `wt_name` default changed from `"wts"` to `NULL`
+
+All weighting functions that accept a `wt_name` argument now default to
+`wt_name = NULL`. When `NULL`, calibrated / adjusted weights overwrite the
+existing weight column in-place. When a character scalar, a new column is
+created and `@variables$weights` is updated to point to it.
+
 ### `calibrate_to_survey()` — native Opsomer algorithm replaces svrep delegation
 
 `calibrate_to_survey()` now implements the Opsomer & Erciulescu (2022)

@@ -34,16 +34,6 @@
       i The quasi-randomization bootstrap is designed for non-probability samples.
       v Use `ipw()` or `calibrate_rake()` to create a <survey_nonprob>, then call `create_bootstrap_weights()`.
 
-# create_bootstrap_weights() rejects weighted_df with quasi-randomization
-
-    Code
-      create_bootstrap_weights(wd, type = "quasi-randomization")
-    Condition
-      Error in `create_bootstrap_weights()`:
-      x `type = 'quasi-randomization'` requires a <survey_nonprob>; got <weighted_df>.
-      i The quasi-randomization bootstrap is designed for non-probability samples.
-      v Use `ipw()` or `calibrate_rake()` to create a <survey_nonprob>, then call `create_bootstrap_weights()`.
-
 # create_bootstrap_weights() rejects survey_taylor with hybrid
 
     Code

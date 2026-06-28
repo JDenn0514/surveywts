@@ -194,23 +194,6 @@ test_that("create_jackknife_weights() type='grouped' rejects data.frame input", 
   )
 })
 
-test_that("create_jackknife_weights() type='grouped' rejects weighted_df input", {
-  df <- data.frame(
-    x = sample(c("a", "b", "c"), 20L, replace = TRUE),
-    w = rep(1, 20L)
-  )
-  wdf <- surveywts::calibrate_rake(
-    df,
-    targets  = list(x = c(a = 0.33, b = 0.33, c = 0.34)),
-    weights  = w,
-    type     = "prop"
-  )
-  if (!inherits(wdf, "weighted_df")) skip("Could not construct weighted_df for test")
-  expect_error(
-    create_jackknife_weights(wdf, replicates = 10L, type = "grouped"),
-    class = "surveywts_error_not_survey_design"
-  )
-})
 
 test_that("create_jackknife_weights() type='grouped' rejects survey_replicate input", {
   skip_if_not_installed("svrep")

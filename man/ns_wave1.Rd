@@ -264,8 +264,8 @@ dimensions, 5th/95th percentile trim; Pearson r = 0.996 vs. published
 weights). To construct a \code{survey_nonprob} for analysis:
 
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{data(ns_wave1)
-ns_design <- surveycore::survey_nonprob(
-  ns_wave1, variables = list(weights = "weight")
+ns_design <- surveycore::as_survey_nonprob(
+  ns_wave1, weights = "weight"
 )
 }\if{html}{\out{</div>}}
 

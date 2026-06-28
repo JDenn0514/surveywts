@@ -1,67 +1,37 @@
+# poststratify() aborts with cli error for data.frame input
+
+    Code
+      poststratify(make_surveywts_data(), targets = pop, type = "count")
+    Condition
+      Error in `.check_input_class()`:
+      x `data` must be a <survey_nonprob>, <survey_taylor>, or <survey_replicate>.
+      i Got <data.frame>.
+      v Use `surveycore::as_survey_nonprob()`, `surveycore::as_survey()`, or `surveycore::as_survey_replicate()` to construct a survey object.
+
 # poststratify() rejects unsupported input class (SE-1)
 
     Code
       poststratify(list(x = 1), targets = pop, type = "count")
     Condition
       Error in `.check_input_class()`:
-      x `data` must be a data frame or a supported survey design object.
+      x `data` must be a <survey_nonprob>, <survey_taylor>, or <survey_replicate>.
       i Got <list>.
-      v See package documentation for supported input types.
+      v Use `surveycore::as_survey_nonprob()`, `surveycore::as_survey()`, or `surveycore::as_survey_replicate()` to construct a survey object.
 
-# poststratify() rejects 0-row data frame (SE-3)
+# poststratify() rejects 0-row survey_taylor (SE-3)
 
     Code
-      poststratify(df0, targets = pop, type = "count")
+      poststratify(design0, targets = pop, type = "count")
     Condition
       Error in `poststratify()`:
       x `data` has 0 rows.
       i This operation is undefined on empty data.
       v Ensure `data` has at least one row.
 
-# poststratify() rejects missing named weight column (SE-4)
-
-    Code
-      poststratify(df, targets = pop, weights = no_such_col, type = "count")
-    Condition
-      Error in `.validate_weights()`:
-      x Weight column no_such_col not found in `data`.
-      i Available columns: id, age_group, sex, education, region, and base_weight.
-      v Pass the column name as a bare name, e.g., `weights = wt_col`.
-
-# poststratify() rejects non-numeric weight column (SE-5)
-
-    Code
-      poststratify(df, targets = pop, weights = bad_wt, type = "count")
-    Condition
-      Error in `.validate_weights()`:
-      x Weight column bad_wt must be numeric.
-      i Got <character>.
-      v Use `as.numeric(bad_wt)` to convert.
-
-# poststratify() rejects non-positive weight column (SE-6)
-
-    Code
-      poststratify(df, targets = pop, weights = base_weight, type = "count")
-    Condition
-      Error in `.validate_weights()`:
-      x Weight column base_weight contains 1 non-positive value(s).
-      i All starting weights must be strictly positive (> 0).
-      v Remove or replace non-positive weights before proceeding.
-
-# poststratify() rejects NA weight column (SE-7)
-
-    Code
-      poststratify(df, targets = pop, weights = base_weight, type = "count")
-    Condition
-      Error in `.validate_weights()`:
-      x Weight column base_weight contains 1 NA value(s).
-      i Weights must be fully observed.
-      v Remove rows with missing weights before proceeding.
-
 # poststratify() rejects non-character wt_name
 
     Code
-      poststratify(df, targets = pop, type = "count", wt_name = 42)
+      poststratify(design, targets = pop, type = "count", wt_name = 42)
     Condition
       Error in `.validate_wt_name()`:
       x `wt_name` must be a single character string.
@@ -70,7 +40,7 @@
 # poststratify() rejects empty wt_name
 
     Code
-      poststratify(df, targets = pop, type = "count", wt_name = "")
+      poststratify(design, targets = pop, type = "count", wt_name = "")
     Condition
       Error in `.validate_wt_name()`:
       x `wt_name` must be a non-empty, non-NA string.
@@ -78,7 +48,7 @@
 # poststratify() rejects non-taylor reference_design
 
     Code
-      poststratify(df, targets = pop, type = "count", reference_design = list(x = 1))
+      poststratify(design, targets = pop, type = "count", reference_design = list(x = 1))
     Condition
       Error in `.validate_reference_design()`:
       x `reference_design` must be a <survey_taylor>.
@@ -88,7 +58,7 @@
 # poststratify() rejects targets that is not a data.frame
 
     Code
-      poststratify(df, targets = bad_targets, type = "prop")
+      poststratify(design, targets = bad_targets, type = "prop")
     Condition
       Error in `poststratify()`:
       x `targets` must be a <data.frame> with one column per stratification variable and one column named target.
@@ -98,7 +68,7 @@
 # poststratify() rejects targets with zero strata columns
 
     Code
-      poststratify(df, targets = targets_bad, type = "prop")
+      poststratify(design, targets = targets_bad, type = "prop")
     Condition
       Error in `poststratify()`:
       x `targets` has no stratification variable columns (only a target column was found).
@@ -108,7 +78,7 @@
 # poststratify() rejects targets with column absent from data
 
     Code
-      poststratify(df, targets = targets_bad, type = "prop")
+      poststratify(design, targets = targets_bad, type = "prop")
     Condition
       Error in `poststratify()`:
       x Stratification variable no_such_col from `targets` not found in `data`.
@@ -118,7 +88,7 @@
 # poststratify() rejects NA in strata variable
 
     Code
-      poststratify(df, targets = pop, type = "count", weights = base_weight)
+      poststratify(design, targets = pop, type = "count")
     Condition
       Error in `poststratify()`:
       x Strata variable age_group contains 1 NA value(s).
@@ -128,7 +98,7 @@
 # poststratify() rejects prop targets that don't sum to 1
 
     Code
-      poststratify(df, targets = pop_bad, type = "prop", weights = base_weight)
+      poststratify(design, targets = pop_bad, type = "prop")
     Condition
       Error in `.validate_population_cells()`:
       x Population targets sum to 0.98, not 1.0.
@@ -138,7 +108,7 @@
 # poststratify() rejects count targets that are non-positive
 
     Code
-      poststratify(df, targets = pop_bad, type = "count", weights = base_weight)
+      poststratify(design, targets = pop_bad, type = "count")
     Condition
       Error in `.validate_population_cells()`:
       x Population targets contain 1 non-positive value(s).
@@ -148,7 +118,7 @@
 # poststratify() rejects duplicate rows in targets
 
     Code
-      poststratify(df, targets = pop_dup, type = "count", weights = base_weight)
+      poststratify(design, targets = pop_dup, type = "count")
     Condition
       Error in `.validate_population_cells()`:
       x Population cell "18-34//M" appears 2 times in `targets`.
@@ -158,7 +128,7 @@
 # poststratify() rejects targets missing a data cell
 
     Code
-      poststratify(df, targets = pop_missing, type = "count", weights = base_weight)
+      poststratify(design, targets = pop_missing, type = "count")
     Condition
       Error in `.validate_population_cells()`:
       x Cell "55+//F" is present in `data` but has no matching row in `targets`.
@@ -168,7 +138,7 @@
 # poststratify() rejects targets missing the 'target' column
 
     Code
-      poststratify(df, targets = pop_no_target, type = "count", weights = base_weight)
+      poststratify(design, targets = pop_no_target, type = "count")
     Condition
       Error in `.validate_population_cells()`:
       x `targets` is missing required column target.
@@ -178,20 +148,10 @@
 # poststratify() rejects targets cells absent from data
 
     Code
-      poststratify(df, targets = pop_extra, type = "count", weights = base_weight)
+      poststratify(design, targets = pop_extra, type = "count")
     Condition
       Error in `.validate_population_cells()`:
       x Population cell "65+//M" has no observations in `data`.
       i Extra cells in `targets` are not allowed -- they may indicate a misspecified population.
       v Remove rows for "65+//M" from `targets` before calling `poststratify()`.
-
-# poststratify() zero-weight stratum produces weights_nonpositive (SX-2)
-
-    Code
-      poststratify(df, targets = pop, weights = base_weight, type = "count")
-    Condition
-      Error in `.validate_weights()`:
-      x Weight column base_weight contains 55 non-positive value(s).
-      i All starting weights must be strictly positive (> 0).
-      v Remove or replace non-positive weights before proceeding.
 

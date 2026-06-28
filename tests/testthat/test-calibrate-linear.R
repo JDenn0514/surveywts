@@ -51,55 +51,41 @@
 }
 
 # ---------------------------------------------------------------------------
-# H1: Happy path — plain data.frame, type = "prop", bounds = NULL
+# H1: Error — data.frame input rejects with not_survey_base
 # ---------------------------------------------------------------------------
 
-test_that("H1: calibrate_linear() returns weighted_df for data.frame (prop, no bounds)", {
+test_that("H1: calibrate_linear() aborts with cli error for data.frame input", {
   df <- make_surveywts_data(seed = 1)
   targets <- .make_linear_targets()
 
-  result <- calibrate_linear(df, targets = targets, weights = base_weight)
-
-  test_invariants(result)
-  expect_true(inherits(result, "weighted_df"))
-  expect_identical(attr(result, "weight_col"), "wts")
-
-  # Calibration constraint check
-  w <- result[["wts"]]
-  total_w <- sum(w)
-  for (var in names(targets)) {
-    for (lev in names(targets[[var]])) {
-      obs_prop <- sum(w[result[[var]] == lev]) / total_w
-      expect_equal(obs_prop, targets[[var]][[lev]], tolerance = 1e-8,
-                   label = paste0(var, "=", lev))
-    }
-  }
-
-  # History entry check
-  h <- attr(result, "weighting_history")
-  expect_equal(length(h), 1L)
-  expect_identical(h[[1L]]$operation, "calibrate_linear")
+  expect_error(
+    calibrate_linear(df, targets = targets),
+    class = "surveywts_error_not_survey_base"
+  )
+  expect_snapshot(
+    error = TRUE,
+    calibrate_linear(df, targets = targets)
+  )
 })
 
 # ---------------------------------------------------------------------------
-# H2: Happy path — type = "count"
+# H2: Happy path — type = "count" (survey_taylor input)
 # ---------------------------------------------------------------------------
 
-test_that("H2: calibrate_linear() returns weighted_df for data.frame (count)", {
+test_that("H2: calibrate_linear() handles type='count' with survey_taylor input", {
   df <- make_surveywts_data(n = 500, seed = 2)
+  taylor <- .make_test_taylor_linear(df)
   targets <- .make_linear_targets("count")
 
-  result <- calibrate_linear(
-    df, targets = targets, weights = base_weight, type = "count"
-  )
+  result <- calibrate_linear(taylor, targets = targets, type = "count")
 
   test_invariants(result)
-  expect_true(inherits(result, "weighted_df"))
+  expect_true(S7::S7_inherits(result, surveycore::survey_taylor))
 
-  w <- result[["wts"]]
+  w <- result@data[[result@variables$weights]]
   for (var in names(targets)) {
     for (lev in names(targets[[var]])) {
-      obs_count <- sum(w[result[[var]] == lev])
+      obs_count <- sum(w[result@data[[var]] == lev])
       expect_equal(obs_count, targets[[var]][[lev]], tolerance = 1e-6,
                    label = paste0(var, "=", lev))
     }
@@ -150,23 +136,24 @@ test_that("H4: calibrate_linear() preserves survey_nonprob class", {
 })
 
 # ---------------------------------------------------------------------------
-# H5: Happy path — weighted_df input: history entry appended
+# H5: Happy path — second calibration appends history entry
 # ---------------------------------------------------------------------------
 
-test_that("H5: calibrate_linear() accepts weighted_df and appends history entry", {
+test_that("H5: calibrate_linear() appends history entry on second calibration", {
   df <- make_surveywts_data(seed = 5)
+  taylor <- .make_test_taylor_linear(df)
   targets <- .make_linear_targets()
 
-  # First pass: make a weighted_df via calibrate_linear itself
-  wdf <- calibrate_linear(df, targets = targets, weights = base_weight)
+  # First calibration
+  result1 <- calibrate_linear(taylor, targets = targets)
 
-  # Second pass: calibrate the weighted_df
-  result <- calibrate_linear(wdf, targets = targets)
+  # Second calibration on the already-calibrated result
+  result2 <- calibrate_linear(result1, targets = targets)
 
-  test_invariants(result)
-  expect_true(inherits(result, "weighted_df"))
+  test_invariants(result2)
+  expect_true(S7::S7_inherits(result2, surveycore::survey_taylor))
 
-  h <- attr(result, "weighting_history")
+  h <- result2@metadata@weighting_history
   expect_equal(length(h), 2L)
   expect_identical(h[[2L]]$operation, "calibrate_linear")
 })
@@ -191,22 +178,7 @@ test_that("H6: bounds = c(0.3, 3) gives method='truncated'; @calibration$bounds_
   expect_identical(result@calibration$bounds_scale, "multiplicative")
 })
 
-test_that("H6b: data.frame with bounds produces valid weighted_df", {
-  df <- make_surveywts_data(seed = 6)
-  targets <- .make_linear_targets()
-
-  result <- calibrate_linear(
-    df,
-    targets = targets,
-    weights = base_weight,
-    bounds = c(0.3, 3)
-  )
-
-  test_invariants(result)
-  expect_true(inherits(result, "weighted_df"))
-  w <- result[["wts"]]
-  expect_true(all(is.finite(w)))
-})
+# H6b removed — data.frame input is no longer accepted
 
 # ---------------------------------------------------------------------------
 # H7: Happy path — unit_scale provided; @calibration$q_weights matches
@@ -245,6 +217,7 @@ test_that("H8: unit_scale = NULL gives is.null(@calibration$q_weights) = TRUE", 
 
 test_that("H9: calibrate_linear() accepts Format B (long data frame) targets", {
   df <- make_surveywts_data(seed = 9)
+  taylor <- .make_test_taylor_linear(df)
   targets_b <- data.frame(
     variable = c(
       "age_group", "age_group", "age_group",
@@ -255,36 +228,44 @@ test_that("H9: calibrate_linear() accepts Format B (long data frame) targets", {
     stringsAsFactors = FALSE
   )
 
-  result <- calibrate_linear(df, targets = targets_b, weights = base_weight)
+  result <- calibrate_linear(taylor, targets = targets_b)
 
   test_invariants(result)
-  expect_true(inherits(result, "weighted_df"))
+  expect_true(S7::S7_inherits(result, surveycore::survey_taylor))
 })
 
 # ---------------------------------------------------------------------------
 # H10: Happy path — plain linear may produce negative weights -> warning emitted
 # ---------------------------------------------------------------------------
 
-test_that("H10: extreme targets produce negative weights warning for plain linear", {
-  # Two independent variables with extreme targets force negative g-weights
-  # Sample: 90% young/M; targets: 5% young, 5% M — GREG extrapolates outside [0,1]
+test_that("H10: extreme targets producing negative weights error for S7 input", {
+  # Two independent variables with extreme targets force negative g-weights.
+  # Sample: 90% young/M; targets: 5% young, 5% M.
+  # With S7 inputs, negative calibrated weights cannot be stored (S7 validator
+  # enforces positivity). calibrate_linear() must abort before writing to @data.
   set.seed(123)
   n <- 200
   age <- sample(c("young", "old"), n, replace = TRUE, prob = c(0.90, 0.10))
   sex <- sample(c("M", "F"), n, replace = TRUE, prob = c(0.90, 0.10))
   df <- data.frame(age = age, sex = sex, wt = rep(1, n), stringsAsFactors = FALSE)
+  design <- surveycore::survey_taylor(
+    data = df,
+    variables = list(ids = NULL, strata = NULL, fpc = NULL, weights = "wt", nest = FALSE)
+  )
 
   targets <- list(
     age = c("young" = 0.05, "old" = 0.95),
     sex = c("M" = 0.05, "F" = 0.95)
   )
 
-  expect_warning(
-    result <- calibrate_linear(df, targets = targets, weights = wt),
-    class = "surveywts_warning_negative_calibrated_weights"
+  expect_error(
+    calibrate_linear(design, targets = targets),
+    class = "surveywts_error_negative_calibrated_weights"
   )
-  test_invariants(result)
-  expect_true(inherits(result, "weighted_df"))
+  expect_snapshot(
+    error = TRUE,
+    calibrate_linear(design, targets = targets)
+  )
 })
 
 # ---------------------------------------------------------------------------
@@ -295,14 +276,15 @@ test_that("N1: calibrate_linear() matches survey::calibrate(calfun='linear') wit
   skip_if_not_installed("survey")
 
   df <- make_surveywts_data(n = 200, seed = 101)
+  taylor <- .make_test_taylor_linear(df)
 
   # Single variable to keep matrix construction simple and comparable
   targets_a <- list(
     age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30)
   )
 
-  result <- calibrate_linear(df, targets = targets_a, weights = base_weight)
-  wts_ours <- result[["wts"]]
+  result <- calibrate_linear(taylor, targets = targets_a)
+  wts_ours <- result@data[[result@variables$weights]]
 
   # Build survey::calibrate equivalent.
   # Note: survey::svydesign() converts '-' to '.' in column names in some
@@ -345,16 +327,14 @@ test_that("N2: calibrate_linear(bounds=c(0.3,3)) matches survey::calibrate(calfu
   skip_if_not_installed("survey")
 
   df <- make_surveywts_data(n = 200, seed = 102)
+  taylor <- .make_test_taylor_linear(df)
 
   targets_a <- list(
     age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30)
   )
 
-  result <- calibrate_linear(
-    df, targets = targets_a, weights = base_weight,
-    bounds = c(0.3, 3)
-  )
-  wts_ours <- result[["wts"]]
+  result <- calibrate_linear(taylor, targets = targets_a, bounds = c(0.3, 3))
+  wts_ours <- result@data[[result@variables$weights]]
 
   # survey::calibrate() implements truncated-linear via calfun = "linear" + bounds.
   # The survey package uses "." for "-" in factor level names in some contexts;
@@ -389,10 +369,10 @@ test_that("N2: calibrate_linear(bounds=c(0.3,3)) matches survey::calibrate(calfu
 # E1: Error — unsupported input class
 # ---------------------------------------------------------------------------
 
-test_that("E1: calibrate_linear() throws surveywts_error_unsupported_class for bad input", {
+test_that("E1: calibrate_linear() throws surveywts_error_not_survey_base for bad input", {
   expect_error(
     calibrate_linear(list(x = 1:3), targets = list()),
-    class = "surveywts_error_unsupported_class"
+    class = "surveywts_error_not_survey_base"
   )
   expect_snapshot(
     error = TRUE,
@@ -405,20 +385,17 @@ test_that("E1: calibrate_linear() throws surveywts_error_unsupported_class for b
 # ---------------------------------------------------------------------------
 
 test_that("E2: calibrate_linear() throws surveywts_error_empty_data for 0-row input", {
-  empty_df <- data.frame(
-    age_group = character(0),
-    base_weight = numeric(0),
-    stringsAsFactors = FALSE
-  )
+  empty_df <- make_surveywts_data(seed = 2)[0, ]
+  empty_taylor <- .make_test_taylor_linear(empty_df)
   targets <- list(age_group = c("18-34" = 1.0))
 
   expect_error(
-    calibrate_linear(empty_df, targets = targets, weights = base_weight),
+    calibrate_linear(empty_taylor, targets = targets),
     class = "surveywts_error_empty_data"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_linear(empty_df, targets = targets, weights = base_weight)
+    calibrate_linear(empty_taylor, targets = targets)
   )
 })
 
@@ -428,21 +405,16 @@ test_that("E2: calibrate_linear() throws surveywts_error_empty_data for 0-row in
 
 test_that("E3: calibrate_linear() throws surveywts_error_wt_name_not_scalar", {
   df <- make_surveywts_data(n = 50, seed = 3)
+  taylor <- .make_test_taylor_linear(df)
   targets <- .make_linear_targets()
 
   expect_error(
-    calibrate_linear(
-      df, targets = targets, weights = base_weight,
-      wt_name = c("a", "b")
-    ),
+    calibrate_linear(taylor, targets = targets, wt_name = c("a", "b")),
     class = "surveywts_error_wt_name_not_scalar"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_linear(
-      df, targets = targets, weights = base_weight,
-      wt_name = c("a", "b")
-    )
+    calibrate_linear(taylor, targets = targets, wt_name = c("a", "b"))
   )
 })
 
@@ -452,33 +424,26 @@ test_that("E3: calibrate_linear() throws surveywts_error_wt_name_not_scalar", {
 
 test_that("E4: calibrate_linear() throws surveywts_error_wt_name_empty for NA wt_name", {
   df <- make_surveywts_data(n = 50, seed = 4)
+  taylor <- .make_test_taylor_linear(df)
   targets <- .make_linear_targets()
 
   expect_error(
-    calibrate_linear(
-      df, targets = targets, weights = base_weight,
-      wt_name = NA_character_
-    ),
+    calibrate_linear(taylor, targets = targets, wt_name = NA_character_),
     class = "surveywts_error_wt_name_empty"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_linear(
-      df, targets = targets, weights = base_weight,
-      wt_name = NA_character_
-    )
+    calibrate_linear(taylor, targets = targets, wt_name = NA_character_)
   )
 })
 
 test_that("E4b: calibrate_linear() throws surveywts_error_wt_name_empty for empty string", {
   df <- make_surveywts_data(n = 50, seed = 4)
+  taylor <- .make_test_taylor_linear(df)
   targets <- .make_linear_targets()
 
   expect_error(
-    calibrate_linear(
-      df, targets = targets, weights = base_weight,
-      wt_name = ""
-    ),
+    calibrate_linear(taylor, targets = targets, wt_name = ""),
     class = "surveywts_error_wt_name_empty"
   )
 })
@@ -489,98 +454,21 @@ test_that("E4b: calibrate_linear() throws surveywts_error_wt_name_empty for empt
 
 test_that("E5: calibrate_linear() throws surveywts_error_reference_design_not_taylor", {
   df <- make_surveywts_data(n = 50, seed = 5)
+  taylor <- .make_test_taylor_linear(df)
   targets <- .make_linear_targets()
 
   expect_error(
-    calibrate_linear(
-      df, targets = targets, weights = base_weight,
-      reference_design = "not_a_design"
-    ),
+    calibrate_linear(taylor, targets = targets, reference_design = "not_a_design"),
     class = "surveywts_error_reference_design_not_taylor"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_linear(
-      df, targets = targets, weights = base_weight,
-      reference_design = "not_a_design"
-    )
+    calibrate_linear(taylor, targets = targets, reference_design = "not_a_design")
   )
 })
 
-# ---------------------------------------------------------------------------
-# E6: Error — weight column not found
-# ---------------------------------------------------------------------------
-
-test_that("E6: calibrate_linear() throws surveywts_error_weights_not_found", {
-  df <- make_surveywts_data(n = 50, seed = 6)
-  targets <- .make_linear_targets()
-
-  expect_error(
-    calibrate_linear(df, targets = targets, weights = nonexistent_col),
-    class = "surveywts_error_weights_not_found"
-  )
-  expect_snapshot(
-    error = TRUE,
-    calibrate_linear(df, targets = targets, weights = nonexistent_col)
-  )
-})
-
-# ---------------------------------------------------------------------------
-# E7: Error — weight column not numeric
-# ---------------------------------------------------------------------------
-
-test_that("E7: calibrate_linear() throws surveywts_error_weights_not_numeric", {
-  df <- make_surveywts_data(n = 50, seed = 7)
-  df$bad_wt <- as.character(df$base_weight)
-  targets <- .make_linear_targets()
-
-  expect_error(
-    calibrate_linear(df, targets = targets, weights = bad_wt),
-    class = "surveywts_error_weights_not_numeric"
-  )
-  expect_snapshot(
-    error = TRUE,
-    calibrate_linear(df, targets = targets, weights = bad_wt)
-  )
-})
-
-# ---------------------------------------------------------------------------
-# E8: Error — weight column has non-positive values
-# ---------------------------------------------------------------------------
-
-test_that("E8: calibrate_linear() throws surveywts_error_weights_nonpositive", {
-  df <- make_surveywts_data(n = 50, seed = 8)
-  df$base_weight[1] <- 0
-  targets <- .make_linear_targets()
-
-  expect_error(
-    calibrate_linear(df, targets = targets, weights = base_weight),
-    class = "surveywts_error_weights_nonpositive"
-  )
-  expect_snapshot(
-    error = TRUE,
-    calibrate_linear(df, targets = targets, weights = base_weight)
-  )
-})
-
-# ---------------------------------------------------------------------------
-# E9: Error — weight column has NA
-# ---------------------------------------------------------------------------
-
-test_that("E9: calibrate_linear() throws surveywts_error_weights_na", {
-  df <- make_surveywts_data(n = 50, seed = 9)
-  df$base_weight[3] <- NA_real_
-  targets <- .make_linear_targets()
-
-  expect_error(
-    calibrate_linear(df, targets = targets, weights = base_weight),
-    class = "surveywts_error_weights_na"
-  )
-  expect_snapshot(
-    error = TRUE,
-    calibrate_linear(df, targets = targets, weights = base_weight)
-  )
-})
+# E6-E9 removed — weight validation is now enforced by S7 class validator
+# at construction time; these errors are no longer reachable via the public API.
 
 # ---------------------------------------------------------------------------
 # E10: Error — targets variable not found in data
@@ -588,17 +476,16 @@ test_that("E9: calibrate_linear() throws surveywts_error_weights_na", {
 
 test_that("E10: calibrate_linear() throws surveywts_error_targets_variable_not_found", {
   df <- make_surveywts_data(n = 50, seed = 10)
-  targets <- list(
-    nonexistent_var = c("A" = 0.5, "B" = 0.5)
-  )
+  taylor <- .make_test_taylor_linear(df)
+  targets <- list(nonexistent_var = c("A" = 0.5, "B" = 0.5))
 
   expect_error(
-    calibrate_linear(df, targets = targets, weights = base_weight),
+    calibrate_linear(taylor, targets = targets),
     class = "surveywts_error_targets_variable_not_found"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_linear(df, targets = targets, weights = base_weight)
+    calibrate_linear(taylor, targets = targets)
   )
 })
 
@@ -608,16 +495,17 @@ test_that("E10: calibrate_linear() throws surveywts_error_targets_variable_not_f
 
 test_that("E11: calibrate_linear() throws surveywts_error_variable_not_categorical", {
   df <- make_surveywts_data(n = 50, seed = 11)
+  taylor <- .make_test_taylor_linear(df)
   # Use id (integer) as a calibration variable
   targets <- list(id = c(`1` = 0.5, `2` = 0.5))
 
   expect_error(
-    calibrate_linear(df, targets = targets, weights = base_weight),
+    calibrate_linear(taylor, targets = targets),
     class = "surveywts_error_variable_not_categorical"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_linear(df, targets = targets, weights = base_weight)
+    calibrate_linear(taylor, targets = targets)
   )
 })
 
@@ -628,15 +516,16 @@ test_that("E11: calibrate_linear() throws surveywts_error_variable_not_categoric
 test_that("E12: calibrate_linear() throws surveywts_error_variable_has_na", {
   df <- make_surveywts_data(n = 50, seed = 12)
   df$age_group[1] <- NA_character_
+  taylor <- .make_test_taylor_linear(df)
   targets <- .make_linear_targets()
 
   expect_error(
-    calibrate_linear(df, targets = targets, weights = base_weight),
+    calibrate_linear(taylor, targets = targets),
     class = "surveywts_error_variable_has_na"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_linear(df, targets = targets, weights = base_weight)
+    calibrate_linear(taylor, targets = targets)
   )
 })
 
@@ -646,18 +535,17 @@ test_that("E12: calibrate_linear() throws surveywts_error_variable_has_na", {
 
 test_that("E13: calibrate_linear() throws surveywts_error_population_level_missing", {
   df <- make_surveywts_data(n = 50, seed = 13)
+  taylor <- .make_test_taylor_linear(df)
   # Missing "55+" level in targets
-  targets <- list(
-    age_group = c("18-34" = 0.50, "35-54" = 0.50)
-  )
+  targets <- list(age_group = c("18-34" = 0.50, "35-54" = 0.50))
 
   expect_error(
-    calibrate_linear(df, targets = targets, weights = base_weight),
+    calibrate_linear(taylor, targets = targets),
     class = "surveywts_error_population_level_missing"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_linear(df, targets = targets, weights = base_weight)
+    calibrate_linear(taylor, targets = targets)
   )
 })
 
@@ -667,18 +555,19 @@ test_that("E13: calibrate_linear() throws surveywts_error_population_level_missi
 
 test_that("E14: calibrate_linear() throws surveywts_error_population_level_extra", {
   df <- make_surveywts_data(n = 50, seed = 14)
+  taylor <- .make_test_taylor_linear(df)
   # Extra level "65+" not in data
   targets <- list(
     age_group = c("18-34" = 0.25, "35-54" = 0.40, "55+" = 0.25, "65+" = 0.10)
   )
 
   expect_error(
-    calibrate_linear(df, targets = targets, weights = base_weight),
+    calibrate_linear(taylor, targets = targets),
     class = "surveywts_error_population_level_extra"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_linear(df, targets = targets, weights = base_weight)
+    calibrate_linear(taylor, targets = targets)
   )
 })
 
@@ -688,17 +577,18 @@ test_that("E14: calibrate_linear() throws surveywts_error_population_level_extra
 
 test_that("E15: calibrate_linear() throws surveywts_error_population_totals_invalid (prop != 1)", {
   df <- make_surveywts_data(n = 50, seed = 15)
+  taylor <- .make_test_taylor_linear(df)
   targets <- list(
     age_group = c("18-34" = 0.40, "35-54" = 0.40, "55+" = 0.40) # sums to 1.2
   )
 
   expect_error(
-    calibrate_linear(df, targets = targets, weights = base_weight),
+    calibrate_linear(taylor, targets = targets),
     class = "surveywts_error_population_totals_invalid"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_linear(df, targets = targets, weights = base_weight)
+    calibrate_linear(taylor, targets = targets)
   )
 })
 
@@ -708,23 +598,16 @@ test_that("E15: calibrate_linear() throws surveywts_error_population_totals_inva
 
 test_that("E16: calibrate_linear() throws surveywts_error_population_totals_invalid (count <= 0)", {
   df <- make_surveywts_data(n = 50, seed = 16)
-  targets <- list(
-    age_group = c("18-34" = -10, "35-54" = 200, "55+" = 150)
-  )
+  taylor <- .make_test_taylor_linear(df)
+  targets <- list(age_group = c("18-34" = -10, "35-54" = 200, "55+" = 150))
 
   expect_error(
-    calibrate_linear(
-      df, targets = targets, weights = base_weight,
-      type = "count"
-    ),
+    calibrate_linear(taylor, targets = targets, type = "count"),
     class = "surveywts_error_population_totals_invalid"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_linear(
-      df, targets = targets, weights = base_weight,
-      type = "count"
-    )
+    calibrate_linear(taylor, targets = targets, type = "count")
   )
 })
 
@@ -734,14 +617,15 @@ test_that("E16: calibrate_linear() throws surveywts_error_population_totals_inva
 
 test_that("E17: calibrate_linear() throws surveywts_error_margins_format_invalid for bad targets", {
   df <- make_surveywts_data(n = 50, seed = 17)
+  taylor <- .make_test_taylor_linear(df)
 
   expect_error(
-    calibrate_linear(df, targets = 42, weights = base_weight),
+    calibrate_linear(taylor, targets = 42),
     class = "surveywts_error_margins_format_invalid"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_linear(df, targets = 42, weights = base_weight)
+    calibrate_linear(taylor, targets = 42)
   )
 })
 
@@ -751,21 +635,16 @@ test_that("E17: calibrate_linear() throws surveywts_error_margins_format_invalid
 
 test_that("E18: calibrate_linear() throws surveywts_error_bounds_invalid_calibration (L >= 1)", {
   df <- make_surveywts_data(n = 50, seed = 18)
+  taylor <- .make_test_taylor_linear(df)
   targets <- .make_linear_targets()
 
   expect_error(
-    calibrate_linear(
-      df, targets = targets, weights = base_weight,
-      bounds = c(1.0, 3.0)
-    ),
+    calibrate_linear(taylor, targets = targets, bounds = c(1.0, 3.0)),
     class = "surveywts_error_bounds_invalid_calibration"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_linear(
-      df, targets = targets, weights = base_weight,
-      bounds = c(1.0, 3.0)
-    )
+    calibrate_linear(taylor, targets = targets, bounds = c(1.0, 3.0))
   )
 })
 
@@ -775,21 +654,16 @@ test_that("E18: calibrate_linear() throws surveywts_error_bounds_invalid_calibra
 
 test_that("E19: calibrate_linear() throws surveywts_error_bounds_invalid_calibration (U <= 1)", {
   df <- make_surveywts_data(n = 50, seed = 19)
+  taylor <- .make_test_taylor_linear(df)
   targets <- .make_linear_targets()
 
   expect_error(
-    calibrate_linear(
-      df, targets = targets, weights = base_weight,
-      bounds = c(0.3, 0.9)
-    ),
+    calibrate_linear(taylor, targets = targets, bounds = c(0.3, 0.9)),
     class = "surveywts_error_bounds_invalid_calibration"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_linear(
-      df, targets = targets, weights = base_weight,
-      bounds = c(0.3, 0.9)
-    )
+    calibrate_linear(taylor, targets = targets, bounds = c(0.3, 0.9))
   )
 })
 
@@ -799,21 +673,16 @@ test_that("E19: calibrate_linear() throws surveywts_error_bounds_invalid_calibra
 
 test_that("E20: calibrate_linear() throws surveywts_error_unit_scale_invalid (not numeric)", {
   df <- make_surveywts_data(n = 50, seed = 20)
+  taylor <- .make_test_taylor_linear(df)
   targets <- .make_linear_targets()
 
   expect_error(
-    calibrate_linear(
-      df, targets = targets, weights = base_weight,
-      unit_scale = rep("1", nrow(df))
-    ),
+    calibrate_linear(taylor, targets = targets, unit_scale = rep("1", nrow(df))),
     class = "surveywts_error_unit_scale_invalid"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_linear(
-      df, targets = targets, weights = base_weight,
-      unit_scale = rep("1", nrow(df))
-    )
+    calibrate_linear(taylor, targets = targets, unit_scale = rep("1", nrow(df)))
   )
 })
 
@@ -823,13 +692,11 @@ test_that("E20: calibrate_linear() throws surveywts_error_unit_scale_invalid (no
 
 test_that("E21: calibrate_linear() throws surveywts_error_unit_scale_invalid (wrong length)", {
   df <- make_surveywts_data(n = 50, seed = 21)
+  taylor <- .make_test_taylor_linear(df)
   targets <- .make_linear_targets()
 
   expect_error(
-    calibrate_linear(
-      df, targets = targets, weights = base_weight,
-      unit_scale = rep(1, nrow(df) - 1)
-    ),
+    calibrate_linear(taylor, targets = targets, unit_scale = rep(1, nrow(df) - 1)),
     class = "surveywts_error_unit_scale_invalid"
   )
 })
@@ -848,6 +715,12 @@ test_that("E22: calibrate_linear() throws surveywts_error_calibration_singular_s
     stringsAsFactors = FALSE
   )
   df$sex2 <- df$sex
+  design <- surveycore::survey_taylor(
+    data = df,
+    variables = list(
+      ids = NULL, strata = NULL, fpc = NULL, weights = "base_weight", nest = FALSE
+    )
+  )
   # Both sex and sex2 are identical — model matrix is rank-deficient
   targets <- list(
     sex = c("M" = 0.50, "F" = 0.50),
@@ -855,7 +728,7 @@ test_that("E22: calibrate_linear() throws surveywts_error_calibration_singular_s
   )
 
   expect_error(
-    calibrate_linear(df, targets = targets, weights = base_weight),
+    calibrate_linear(design, targets = targets),
     class = "surveywts_error_calibration_singular_system"
   )
 })
@@ -866,6 +739,7 @@ test_that("E22: calibrate_linear() throws surveywts_error_calibration_singular_s
 
 test_that("E23: calibrate_linear() throws surveywts_error_population_totals_invalid for inconsistent count marginals", {
   df <- make_surveywts_data(n = 100, seed = 23)
+  taylor <- .make_test_taylor_linear(df)
   # Two variables with inconsistent total N
   targets <- list(
     age_group = c("18-34" = 150, "35-54" = 200, "55+" = 150), # N = 500
@@ -873,10 +747,7 @@ test_that("E23: calibrate_linear() throws surveywts_error_population_totals_inva
   )
 
   expect_error(
-    calibrate_linear(
-      df, targets = targets, weights = base_weight,
-      type = "count"
-    ),
+    calibrate_linear(taylor, targets = targets, type = "count"),
     class = "surveywts_error_population_totals_invalid"
   )
 })
@@ -887,15 +758,16 @@ test_that("E23: calibrate_linear() throws surveywts_error_population_totals_inva
 
 test_that("calibrate_linear() throws surveywts_error_bounds_invalid_calibration for bounds length != 2", {
   df <- make_surveywts_data(n = 50, seed = 191)
+  taylor <- .make_test_taylor_linear(df)
   targets <- .make_linear_targets()
 
   expect_error(
-    calibrate_linear(df, targets = targets, weights = base_weight, bounds = c(0.5, 2, 3)),
+    calibrate_linear(taylor, targets = targets, bounds = c(0.5, 2, 3)),
     class = "surveywts_error_bounds_invalid_calibration"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_linear(df, targets = targets, weights = base_weight, bounds = c(0.5, 2, 3))
+    calibrate_linear(taylor, targets = targets, bounds = c(0.5, 2, 3))
   )
 })
 
@@ -905,15 +777,16 @@ test_that("calibrate_linear() throws surveywts_error_bounds_invalid_calibration 
 
 test_that("calibrate_linear() throws surveywts_error_bounds_invalid_calibration for bounds with NA", {
   df <- make_surveywts_data(n = 50, seed = 201)
+  taylor <- .make_test_taylor_linear(df)
   targets <- .make_linear_targets()
 
   expect_error(
-    calibrate_linear(df, targets = targets, weights = base_weight, bounds = c(NA, 2)),
+    calibrate_linear(taylor, targets = targets, bounds = c(NA, 2)),
     class = "surveywts_error_bounds_invalid_calibration"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_linear(df, targets = targets, weights = base_weight, bounds = c(NA, 2))
+    calibrate_linear(taylor, targets = targets, bounds = c(NA, 2))
   )
 })
 
@@ -923,6 +796,7 @@ test_that("calibrate_linear() throws surveywts_error_bounds_invalid_calibration 
 
 test_that("calibrate_linear() throws surveywts_error_calibration_not_converged for infeasible tight bounds", {
   df <- make_surveywts_data(n = 200, seed = 211)
+  taylor <- .make_test_taylor_linear(df)
   # Targets impossible to reach within the tiny window bounds = c(0.999, 1.001)
   targets <- list(
     age_group = c("18-34" = 0.01, "35-54" = 0.01, "55+" = 0.98)
@@ -930,7 +804,7 @@ test_that("calibrate_linear() throws surveywts_error_calibration_not_converged f
 
   expect_error(
     calibrate_linear(
-      df, targets = targets, weights = base_weight,
+      taylor, targets = targets,
       bounds = c(0.999, 1.001), control = list(maxit = 25L)
     ),
     class = "surveywts_error_calibration_not_converged"
@@ -938,51 +812,47 @@ test_that("calibrate_linear() throws surveywts_error_calibration_not_converged f
   expect_snapshot(
     error = TRUE,
     calibrate_linear(
-      df, targets = targets, weights = base_weight,
+      taylor, targets = targets,
       bounds = c(0.999, 1.001), control = list(maxit = 25L)
     )
   )
 })
 
-# ---------------------------------------------------------------------------
-# W1: Warning — SRS assumption for plain data.frame + weights = NULL
-# ---------------------------------------------------------------------------
-
-test_that("W1: calibrate_linear() emits surveywts_warning_srs_no_weights for data.frame + weights=NULL", {
-  df <- make_surveywts_data(n = 100, seed = 31)
-  targets <- list(
-    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30)
-  )
-
-  expect_warning(
-    result <- calibrate_linear(df, targets = targets),
-    class = "surveywts_warning_srs_no_weights"
-  )
-  test_invariants(result)
-  expect_true(inherits(result, "weighted_df"))
-})
+# W1 removed — data.frame input now throws surveywts_error_not_survey_base
+# before any SRS warning could fire.
 
 # ---------------------------------------------------------------------------
-# W2: Warning — negative calibrated weights for plain linear
+# W2: Error — negative calibrated weights aborts for S7 input
 # ---------------------------------------------------------------------------
 
-test_that("W2: calibrate_linear() emits surveywts_warning_negative_calibrated_weights", {
+test_that("W2: calibrate_linear() errors with surveywts_error_negative_calibrated_weights for S7 input", {
+  # With S7 inputs, negative calibrated weights cannot be stored (S7 validator
+  # enforces positivity). calibrate_linear() must abort before writing to @data.
   set.seed(123)
   n <- 200
   age <- sample(c("young", "old"), n, replace = TRUE, prob = c(0.90, 0.10))
   sex <- sample(c("M", "F"), n, replace = TRUE, prob = c(0.90, 0.10))
   df <- data.frame(age = age, sex = sex, wt = rep(1, n), stringsAsFactors = FALSE)
+  design_w2 <- surveycore::survey_taylor(
+    data = df,
+    variables = list(
+      ids = NULL, strata = NULL, fpc = NULL, weights = "wt", nest = FALSE
+    )
+  )
 
   targets <- list(
     age = c("young" = 0.05, "old" = 0.95),
     sex = c("M" = 0.05, "F" = 0.95)
   )
 
-  expect_warning(
-    result <- calibrate_linear(df, targets = targets, weights = wt),
-    class = "surveywts_warning_negative_calibrated_weights"
+  expect_error(
+    calibrate_linear(design_w2, targets = targets),
+    class = "surveywts_error_negative_calibrated_weights"
   )
-  test_invariants(result)
+  expect_snapshot(
+    error = TRUE,
+    calibrate_linear(design_w2, targets = targets)
+  )
 })
 
 # ---------------------------------------------------------------------------
@@ -991,11 +861,12 @@ test_that("W2: calibrate_linear() emits surveywts_warning_negative_calibrated_we
 
 test_that("W3: calibrate_linear() emits surveywts_warning_control_param_ignored for unknown key", {
   df <- make_surveywts_data(n = 100, seed = 32)
+  taylor <- .make_test_taylor_linear(df)
   targets <- .make_linear_targets()
 
   expect_warning(
     result <- calibrate_linear(
-      df, targets = targets, weights = base_weight,
+      taylor, targets = targets,
       control = list(epsilon = 1e-7, unknown_key = 42)
     ),
     class = "surveywts_warning_control_param_ignored"
@@ -1025,16 +896,13 @@ test_that("W4: calibrate_linear() emits surveywts_warning_replicate_calibration_
 # EC1: Edge case — nrow(data) == 0 throws error before computation
 # ---------------------------------------------------------------------------
 
-test_that("EC1: empty data.frame triggers surveywts_error_empty_data", {
-  empty_df <- data.frame(
-    age_group = character(0),
-    base_weight = numeric(0),
-    stringsAsFactors = FALSE
-  )
+test_that("EC1: empty survey_taylor triggers surveywts_error_empty_data", {
+  empty_df <- make_surveywts_data(seed = 1)[0, ]
+  empty_taylor <- .make_test_taylor_linear(empty_df)
   targets <- list(age_group = c("18-34" = 1.0))
 
   expect_error(
-    calibrate_linear(empty_df, targets = targets, weights = base_weight),
+    calibrate_linear(empty_taylor, targets = targets),
     class = "surveywts_error_empty_data"
   )
 })
@@ -1043,17 +911,20 @@ test_that("EC1: empty data.frame triggers surveywts_error_empty_data", {
 # EC2: Edge case — single-row data
 # ---------------------------------------------------------------------------
 
-test_that("EC2: single-row data.frame with single-level variable proceeds without error", {
-  df <- data.frame(
-    grp = "A",
-    wt = 1,
-    stringsAsFactors = FALSE
+test_that("EC2: single-row survey_taylor with single-level variable proceeds without error", {
+  df <- data.frame(grp = "A", wt = 1, stringsAsFactors = FALSE)
+  design_ec2 <- surveycore::survey_taylor(
+    data = df,
+    variables = list(
+      ids = NULL, strata = NULL, fpc = NULL, weights = "wt", nest = FALSE
+    )
   )
   targets <- list(grp = c("A" = 1.0))
 
   # Single-row with single level: model matrix is intercept-only (trivially calibrated)
-  result <- calibrate_linear(df, targets = targets, weights = wt)
-  expect_true(inherits(result, "weighted_df"))
+  result <- calibrate_linear(design_ec2, targets = targets)
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_taylor))
 })
 
 # ---------------------------------------------------------------------------
@@ -1062,16 +933,18 @@ test_that("EC2: single-row data.frame with single-level variable proceeds withou
 
 test_that("EC3: already-calibrated data returns weights unchanged (within tolerance)", {
   df <- make_surveywts_data(n = 100, seed = 35)
+  taylor <- .make_test_taylor_linear(df)
   targets <- .make_linear_targets()
 
   # First calibration
-  result1 <- calibrate_linear(df, targets = targets, weights = base_weight)
+  result1 <- calibrate_linear(taylor, targets = targets)
 
   # Second calibration on the already-calibrated result — weights should not change
   result2 <- calibrate_linear(result1, targets = targets)
 
-  w1 <- result1[["wts"]]
-  w2 <- result2[["wts"]]
+  wt_col <- result1@variables$weights
+  w1 <- result1@data[[wt_col]]
+  w2 <- result2@data[[result2@variables$weights]]
   expect_equal(w1, w2, tolerance = 1e-8)
 })
 
@@ -1084,14 +957,16 @@ test_that("EC4: bounds_scale = 'absolute' is accepted with valid absolute bounds
   # base_weight is log-normal with mean ~1, so [0.3, 3] is a sensible
   # absolute constraint on the output weights.
   df <- make_surveywts_data(n = 100, seed = 36)
+  taylor <- .make_test_taylor_linear(df)
   targets <- .make_linear_targets()
 
   result <- calibrate_linear(
-    df, targets = targets, weights = base_weight,
+    taylor, targets = targets,
     bounds = c(0.3, 3),
     bounds_scale = "absolute"
   )
-  expect_true(inherits(result, "weighted_df"))
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_taylor))
 })
 
 # ---------------------------------------------------------------------------
@@ -1115,15 +990,13 @@ test_that("EC5: survey_replicate output has same class as input", {
 
 test_that("EC6: reference_design stored in history entry parameters", {
   df <- make_surveywts_data(n = 100, seed = 38)
+  taylor <- .make_test_taylor_linear(df)
   ref <- .make_test_taylor_linear(df)
   targets <- .make_linear_targets()
 
-  result <- calibrate_linear(
-    df, targets = targets, weights = base_weight,
-    reference_design = ref
-  )
+  result <- calibrate_linear(taylor, targets = targets, reference_design = ref)
   test_invariants(result)
-  h <- attr(result, "weighting_history")
+  h <- result@metadata@weighting_history
   expect_true(h[[1L]]$parameters$targets_from_reference)
 })
 
@@ -1156,14 +1029,13 @@ test_that("EC7: g-weights (wt / base_wt) are in [L, U] for multiplicative bounds
 
 test_that("EC8: weight conservation for type='count' within 1e-10", {
   df <- make_surveywts_data(n = 200, seed = 40)
+  taylor <- .make_test_taylor_linear(df)
   targets <- .make_linear_targets("count")
 
-  result <- calibrate_linear(
-    df, targets = targets, weights = base_weight, type = "count"
-  )
+  result <- calibrate_linear(taylor, targets = targets, type = "count")
   test_invariants(result)
 
-  w_new <- result[["wts"]]
+  w_new <- result@data[[result@variables$weights]]
   # The sum of calibrated weights should equal the common population total N
   N_expected <- sum(targets$age_group) # 500
   expect_equal(sum(w_new), N_expected, tolerance = 1e-10)
@@ -1175,14 +1047,13 @@ test_that("EC8: weight conservation for type='count' within 1e-10", {
 
 test_that("EC9: weight conservation for type='prop' within 1e-10", {
   df <- make_surveywts_data(n = 200, seed = 41)
+  taylor <- .make_test_taylor_linear(df)
   targets <- .make_linear_targets()
 
-  result <- calibrate_linear(
-    df, targets = targets, weights = base_weight, type = "prop"
-  )
+  result <- calibrate_linear(taylor, targets = targets, type = "prop")
   test_invariants(result)
 
-  w_new <- result[["wts"]]
+  w_new <- result@data[[result@variables$weights]]
   w_orig <- df$base_weight
   # For prop targets, sum of calibrated weights = sum of design weights
   expect_equal(sum(w_new), sum(w_orig), tolerance = 1e-10)
@@ -1236,19 +1107,19 @@ test_that("H_abs: bounds = c(0.3, 3) with bounds_scale='absolute' keeps output w
   # base weights normalized to 1, pop totals scaled by n/total_w,
   # bounds [0.3, 3] apply directly to the output weights.
   df <- make_surveywts_data(n = 200, seed = 44)
+  taylor <- .make_test_taylor_linear(df)
   targets <- .make_linear_targets()
 
   result <- calibrate_linear(
-    df,
+    taylor,
     targets = targets,
-    weights = base_weight,
     bounds = c(0.3, 3),
     bounds_scale = "absolute"
   )
   test_invariants(result)
-  expect_true(inherits(result, "weighted_df"))
+  expect_true(S7::S7_inherits(result, surveycore::survey_taylor))
 
-  wts <- result[["wts"]]
+  wts <- result@data[[result@variables$weights]]
   expect_true(all(wts >= 0.3 - 1e-6))
   expect_true(all(wts <= 3 + 1e-6))
 })
@@ -1259,11 +1130,12 @@ test_that("H_abs: bounds = c(0.3, 3) with bounds_scale='absolute' keeps output w
 
 test_that("E_abs: bounds = c(-1, 2) with bounds_scale='absolute' throws surveywts_error_bounds_invalid_calibration", {
   df <- make_surveywts_data(n = 50, seed = 45)
+  taylor <- .make_test_taylor_linear(df)
   targets <- .make_linear_targets()
 
   expect_error(
     calibrate_linear(
-      df, targets = targets, weights = base_weight,
+      taylor, targets = targets,
       bounds = c(-1, 2),
       bounds_scale = "absolute"
     ),
@@ -1272,7 +1144,7 @@ test_that("E_abs: bounds = c(-1, 2) with bounds_scale='absolute' throws surveywt
   expect_snapshot(
     error = TRUE,
     calibrate_linear(
-      df, targets = targets, weights = base_weight,
+      taylor, targets = targets,
       bounds = c(-1, 2),
       bounds_scale = "absolute"
     )
@@ -1316,22 +1188,20 @@ test_that("bounds_scale = 'multiplicative' when bounds = c(0.3, 3) in @calibrati
 
 test_that("HL-1: unit_scale = rep(1, n) produces weights identical to unit_scale = NULL within 1e-14", {
   targets <- .make_linear_targets()
-  n <- nrow(df_500)
 
-  result_null <- calibrate_linear(
-    df_500, targets = targets, weights = base_weight
-  )
+  result_null <- calibrate_linear(taylor_500, targets = targets)
   result_ones <- calibrate_linear(
-    df_500, targets = targets, weights = base_weight,
-    unit_scale = q_all_ones
+    taylor_500, targets = targets, unit_scale = q_all_ones
   )
 
   test_invariants(result_null)
   test_invariants(result_ones)
 
+  wt_col_null <- result_null@variables$weights
+  wt_col_ones <- result_ones@variables$weights
   expect_equal(
-    result_ones[["wts"]],
-    result_null[["wts"]],
+    result_ones@data[[wt_col_ones]],
+    result_null@data[[wt_col_null]],
     tolerance = 1e-14,
     label = "unit_scale = rep(1, n) identical to unit_scale = NULL"
   )
@@ -1345,14 +1215,9 @@ test_that("HL-2: unbounded linear with q_unequal matches survey::calibrate(varia
   skip_if_not_installed("survey")
 
   targets <- .make_linear_targets()
-  n <- nrow(df_500)
   total_w <- sum(df_500$base_weight)
 
-  result <- calibrate_linear(
-    df_500, targets = targets,
-    weights = base_weight,
-    unit_scale = q_unequal
-  )
+  result <- calibrate_linear(taylor_500, targets = targets, unit_scale = q_unequal)
 
   # Build survey::calibrate reference
   svy_design <- survey::svydesign(
@@ -1378,7 +1243,7 @@ test_that("HL-2: unbounded linear with q_unequal matches survey::calibrate(varia
 
   test_invariants(result)
   expect_equal(
-    result[["wts"]],
+    result@data[[result@variables$weights]],
     survey_weights,
     tolerance = 1e-8,
     label = "HL-2: unbounded linear with q_unequal matches survey::calibrate"
@@ -1396,8 +1261,7 @@ test_that("HL-3: multiplicative-bounded linear with q_unequal matches survey::ca
   total_w <- sum(df_500$base_weight)
 
   result <- calibrate_linear(
-    df_500, targets = targets,
-    weights = base_weight,
+    taylor_500, targets = targets,
     bounds = c(0.3, 3),
     unit_scale = q_unequal
   )
@@ -1423,7 +1287,7 @@ test_that("HL-3: multiplicative-bounded linear with q_unequal matches survey::ca
 
   test_invariants(result)
   expect_equal(
-    result[["wts"]],
+    result@data[[result@variables$weights]],
     survey_weights,
     tolerance = 1e-8,
     label = "HL-3: multiplicative-bounded with q_unequal matches survey::calibrate"
@@ -1440,11 +1304,7 @@ test_that("HL-4: unbounded linear with q_all_twos matches survey::calibrate(vari
   targets <- .make_linear_targets()
   total_w <- sum(df_500$base_weight)
 
-  result <- calibrate_linear(
-    df_500, targets = targets,
-    weights = base_weight,
-    unit_scale = q_all_twos
-  )
+  result <- calibrate_linear(taylor_500, targets = targets, unit_scale = q_all_twos)
 
   svy_design <- survey::svydesign(
     ids = ~1, data = df_500, weights = ~base_weight
@@ -1466,7 +1326,7 @@ test_that("HL-4: unbounded linear with q_all_twos matches survey::calibrate(vari
 
   test_invariants(result)
   expect_equal(
-    result[["wts"]],
+    result@data[[result@variables$weights]],
     survey_weights,
     tolerance = 1e-8,
     label = "HL-4: unbounded linear with q_all_twos matches survey::calibrate"
@@ -1480,19 +1340,16 @@ test_that("HL-4: unbounded linear with q_all_twos matches survey::calibrate(vari
 test_that("HL-5: calibration constraint satisfied within 1e-8 when unit_scale != NULL", {
   targets <- .make_linear_targets()
 
-  result <- calibrate_linear(
-    df_500, targets = targets,
-    weights = base_weight,
-    unit_scale = q_unequal
-  )
+  result <- calibrate_linear(taylor_500, targets = targets, unit_scale = q_unequal)
 
   test_invariants(result)
-  w <- result[["wts"]]
+  wt_col <- result@variables$weights
+  w <- result@data[[wt_col]]
   total_w <- sum(w)
 
   for (var in names(targets)) {
     for (lev in names(targets[[var]])) {
-      obs_prop <- sum(w[result[[var]] == lev]) / total_w
+      obs_prop <- sum(w[result@data[[var]] == lev]) / total_w
       expect_equal(
         obs_prop, targets[[var]][[lev]],
         tolerance = 1e-8,
@@ -1509,14 +1366,10 @@ test_that("HL-5: calibration constraint satisfied within 1e-8 when unit_scale !=
 test_that("HL-6: weighting_history entry records unit_scale vector", {
   targets <- .make_linear_targets()
 
-  result <- calibrate_linear(
-    df_500, targets = targets,
-    weights = base_weight,
-    unit_scale = q_unequal
-  )
+  result <- calibrate_linear(taylor_500, targets = targets, unit_scale = q_unequal)
 
   test_invariants(result)
-  h <- attr(result, "weighting_history")
+  h <- result@metadata@weighting_history
   expect_equal(length(h), 1L)
   expect_equal(
     h[[1L]]$parameters$unit_scale,
@@ -1536,13 +1389,10 @@ test_that("HL-7: bounded and unbounded calibration produce different weights wit
   targets <- .make_linear_targets()
 
   result_unbounded <- calibrate_linear(
-    df_500, targets = targets,
-    weights = base_weight,
-    unit_scale = q_unequal
+    taylor_500, targets = targets, unit_scale = q_unequal
   )
   result_bounded <- calibrate_linear(
-    df_500, targets = targets,
-    weights = base_weight,
+    taylor_500, targets = targets,
     bounds = c(0.85, 1.15),
     unit_scale = q_unequal
   )
@@ -1550,7 +1400,10 @@ test_that("HL-7: bounded and unbounded calibration produce different weights wit
   test_invariants(result_unbounded)
   test_invariants(result_bounded)
 
-  diff_max <- max(abs(result_bounded[["wts"]] - result_unbounded[["wts"]]))
+  wt_col <- result_bounded@variables$weights
+  diff_max <- max(abs(
+    result_bounded@data[[wt_col]] - result_unbounded@data[[result_unbounded@variables$weights]]
+  ))
   expect_true(
     diff_max > 1e-6,
     label = "HL-7: bounded vs unbounded outputs differ with same q"
@@ -1576,8 +1429,7 @@ test_that("HL-8: absolute-bounds linear matches survey::calibrate(bounds.const=T
   total_w <- sum(df_200$base_weight)
 
   result <- calibrate_linear(
-    df_200, targets = targets,
-    weights = base_weight,
+    taylor_200, targets = targets,
     bounds = c(abs_L, abs_U),
     bounds_scale = "absolute",
     control = list(epsilon = 1e-10)
@@ -1603,7 +1455,7 @@ test_that("HL-8: absolute-bounds linear matches survey::calibrate(bounds.const=T
 
   test_invariants(result)
   expect_equal(
-    result[["wts"]],
+    result@data[[result@variables$weights]],
     survey_weights,
     tolerance = 1e-8,
     label = "HL-8: absolute-bounds linear oracle"
@@ -1633,15 +1485,20 @@ test_that("HL-9: absolute-bounds with equal base weights gives identical output 
   abs_L <- 0.5
   abs_U <- 6.0
 
+  design_eq <- surveycore::survey_taylor(
+    data = df_eq,
+    variables = list(
+      ids = NULL, strata = NULL, fpc = NULL, weights = "base_weight", nest = FALSE
+    )
+  )
   result <- calibrate_linear(
-    df_eq, targets = targets,
-    weights = base_weight,
+    design_eq, targets = targets,
     bounds = c(abs_L, abs_U),
     bounds_scale = "absolute"
   )
 
   test_invariants(result)
-  w <- result[["wts"]]
+  w <- result@data[[result@variables$weights]]
   expect_true(all(w >= abs_L - 1e-6) && all(w <= abs_U + 1e-6),
               label = "HL-9: equal-weights abs bounds satisfied")
 })
@@ -1660,8 +1517,7 @@ test_that("HL-10: absolute-bounds with unequal d_k differs from old mean-based a
 
   # New per-unit approach
   result_new <- calibrate_linear(
-    df_200, targets = targets,
-    weights = base_weight,
+    taylor_200, targets = targets,
     bounds = c(abs_L, abs_U),
     bounds_scale = "absolute"
   )
@@ -1691,7 +1547,9 @@ test_that("HL-10: absolute-bounds with unequal d_k differs from old mean-based a
 
   test_invariants(result_new)
   # With unequal base weights, the per-unit approach gives a different result
-  max_diff <- max(abs(result_new[["wts"]] - old_weights))
+  max_diff <- max(abs(
+    result_new@data[[result_new@variables$weights]] - old_weights
+  ))
   expect_true(
     max_diff > 0,
     label = "HL-10: per-unit and mean-based differ for unequal base weights"
@@ -1718,8 +1576,7 @@ test_that("HL-11: absolute-bounds + unit_scale=q_unequal[1:200] matches survey::
   q_200 <- q_unequal[seq_len(nrow(df_200))]
 
   result <- calibrate_linear(
-    df_200, targets = targets,
-    weights = base_weight,
+    taylor_200, targets = targets,
     bounds = c(abs_L, abs_U),
     bounds_scale = "absolute",
     unit_scale = q_200,
@@ -1747,7 +1604,7 @@ test_that("HL-11: absolute-bounds + unit_scale=q_unequal[1:200] matches survey::
 
   test_invariants(result)
   expect_equal(
-    result[["wts"]],
+    result@data[[result@variables$weights]],
     survey_weights,
     tolerance = 1e-8,
     label = "HL-11: absolute-bounds + unit_scale oracle"
@@ -1777,14 +1634,13 @@ test_that("HL-12: unbounded linear with q_unequal converges in exactly 1 NR iter
 })
 
 # ---------------------------------------------------------------------------
-# HLW-1: Warning — negative weights still fires when unit_scale != NULL
+# HLW-1: Error — negative weights error fires even when unit_scale != NULL
 # ---------------------------------------------------------------------------
 
-test_that("HLW-1: negative-weights warning fires even when unit_scale != NULL", {
-  # Two variables with extreme cross-classified targets push GREG g-weights
-  # well below 0 (sample: 90% young/M; targets: 5% young, 5% M).
-  # This same setup is used by H10 and works without unit_scale; here we
-  # verify the warning still fires when unit_scale != NULL.
+test_that("HLW-1: negative-weights error fires even when unit_scale != NULL", {
+  # Same extreme setup as H10, but verifying that unit_scale != NULL does not
+  # suppress the error. With S7 inputs, negative calibrated weights cannot be
+  # stored and calibrate_linear() must abort regardless of unit_scale.
   set.seed(123)
   n <- 200L
   age <- sample(c("young", "old"), n, replace = TRUE, prob = c(0.90, 0.10))
@@ -1793,20 +1649,24 @@ test_that("HLW-1: negative-weights warning fires even when unit_scale != NULL", 
     age = age, sex = sex, wt = rep(1, n),
     stringsAsFactors = FALSE
   )
+  design_neg <- surveycore::survey_taylor(
+    data = df_neg,
+    variables = list(
+      ids = NULL, strata = NULL, fpc = NULL, weights = "wt", nest = FALSE
+    )
+  )
   targets_neg <- list(
     age = c("young" = 0.05, "old" = 0.95),
     sex = c("M" = 0.05, "F" = 0.95)
   )
 
-  expect_warning(
-    result <- calibrate_linear(
-      df_neg, targets = targets_neg,
-      weights = wt,
+  expect_error(
+    calibrate_linear(
+      design_neg, targets = targets_neg,
       unit_scale = rep(1.5, n)
     ),
-    class = "surveywts_warning_negative_calibrated_weights"
+    class = "surveywts_error_negative_calibrated_weights"
   )
-  test_invariants(result)
 })
 
 # ---------------------------------------------------------------------------
@@ -1818,7 +1678,7 @@ test_that("HLE-1: calibrate_linear() rejects unit_scale with non-numeric type", 
 
   expect_error(
     calibrate_linear(
-      df_500, targets = targets, weights = base_weight,
+      taylor_500, targets = targets,
       unit_scale = as.character(q_unequal)
     ),
     class = "surveywts_error_unit_scale_invalid"
@@ -1826,7 +1686,7 @@ test_that("HLE-1: calibrate_linear() rejects unit_scale with non-numeric type", 
   expect_snapshot(
     error = TRUE,
     calibrate_linear(
-      df_500, targets = targets, weights = base_weight,
+      taylor_500, targets = targets,
       unit_scale = as.character(q_unequal)
     )
   )
@@ -1837,7 +1697,7 @@ test_that("HLE-2: calibrate_linear() rejects unit_scale with wrong length", {
 
   expect_error(
     calibrate_linear(
-      df_500, targets = targets, weights = base_weight,
+      taylor_500, targets = targets,
       unit_scale = q_unequal[-1L]
     ),
     class = "surveywts_error_unit_scale_invalid"
@@ -1845,7 +1705,7 @@ test_that("HLE-2: calibrate_linear() rejects unit_scale with wrong length", {
   expect_snapshot(
     error = TRUE,
     calibrate_linear(
-      df_500, targets = targets, weights = base_weight,
+      taylor_500, targets = targets,
       unit_scale = q_unequal[-1L]
     )
   )
@@ -1857,18 +1717,12 @@ test_that("HLE-3: calibrate_linear() rejects unit_scale with NA values", {
   q_na[5L] <- NA_real_
 
   expect_error(
-    calibrate_linear(
-      df_500, targets = targets, weights = base_weight,
-      unit_scale = q_na
-    ),
+    calibrate_linear(taylor_500, targets = targets, unit_scale = q_na),
     class = "surveywts_error_unit_scale_invalid"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_linear(
-      df_500, targets = targets, weights = base_weight,
-      unit_scale = q_na
-    )
+    calibrate_linear(taylor_500, targets = targets, unit_scale = q_na)
   )
 })
 
@@ -1878,18 +1732,12 @@ test_that("HLE-4: calibrate_linear() rejects unit_scale with non-positive values
   q_nonpos[3L] <- -0.5
 
   expect_error(
-    calibrate_linear(
-      df_500, targets = targets, weights = base_weight,
-      unit_scale = q_nonpos
-    ),
+    calibrate_linear(taylor_500, targets = targets, unit_scale = q_nonpos),
     class = "surveywts_error_unit_scale_invalid"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_linear(
-      df_500, targets = targets, weights = base_weight,
-      unit_scale = q_nonpos
-    )
+    calibrate_linear(taylor_500, targets = targets, unit_scale = q_nonpos)
   )
 })
 
@@ -1909,6 +1757,7 @@ test_that("HLE-5: calibrate_linear() throws surveywts_error_calibration_not_conv
   # We need a case that starts converging but never finishes
   # Use calibrate_linear with extremely tight epsilon and very low maxit
   df_tight <- make_surveywts_data(n = 200, seed = 55)
+  taylor_tight <- .make_test_taylor_linear(df_tight)
   targets_tight <- list(
     age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
     sex = c("M" = 0.48, "F" = 0.52)
@@ -1916,7 +1765,7 @@ test_that("HLE-5: calibrate_linear() throws surveywts_error_calibration_not_conv
 
   expect_error(
     calibrate_linear(
-      df_tight, targets = targets_tight, weights = base_weight,
+      taylor_tight, targets = targets_tight,
       bounds = c(0.999, 1.001),
       control = list(maxit = 1L, epsilon = 1e-15)
     ),
@@ -1925,7 +1774,7 @@ test_that("HLE-5: calibrate_linear() throws surveywts_error_calibration_not_conv
   expect_snapshot(
     error = TRUE,
     calibrate_linear(
-      df_tight, targets = targets_tight, weights = base_weight,
+      taylor_tight, targets = targets_tight,
       bounds = c(0.999, 1.001),
       control = list(maxit = 1L, epsilon = 1e-15)
     )
@@ -1957,14 +1806,13 @@ test_that("RL-1: replicate linear calibration full-sample weights match oracle w
 
   # Full-sample weights should match the non-replicate calibration
   result_full <- calibrate_linear(
-    df_200, targets = targets,
-    weights = base_weight,
+    taylor_200, targets = targets,
     unit_scale = q_200
   )
 
   expect_equal(
     result@data[[result@variables$weights]],
-    result_full[["wts"]],
+    result_full@data[[result_full@variables$weights]],
     tolerance = 1e-8,
     label = "RL-1: replicate full-sample matches non-replicate oracle"
   )
@@ -2055,16 +1903,20 @@ test_that("EC-1: single-row data with q = 2 produces valid calibrated weight", {
     base_weight = 1.5,
     stringsAsFactors = FALSE
   )
+  design_1 <- surveycore::survey_taylor(
+    data = df_1,
+    variables = list(ids = NULL, strata = NULL, fpc = NULL, weights = "base_weight", nest = FALSE)
+  )
   targets_1 <- list(age_group = c("18-34" = 1.0))
 
   result <- calibrate_linear(
-    df_1, targets = targets_1, weights = base_weight,
+    design_1, targets = targets_1,
     type = "count",
     unit_scale = 2.0
   )
 
   test_invariants(result)
-  expect_true(is.finite(result[["wts"]]))
+  expect_true(is.finite(result@data[[result@variables$weights]]))
 })
 
 # ---------------------------------------------------------------------------
@@ -2077,16 +1929,15 @@ test_that("EC-2: uniform small q = 0.01 converges for calibrate_linear()", {
   )
 
   result <- calibrate_linear(
-    df_200, targets = targets,
-    weights = base_weight,
+    taylor_200, targets = targets,
     unit_scale = rep(0.01, nrow(df_200))
   )
 
   test_invariants(result)
-  w <- result[["wts"]]
+  w <- result@data[[result@variables$weights]]
   total_w <- sum(w)
   for (lev in names(targets$age_group)) {
-    obs <- sum(w[result$age_group == lev]) / total_w
+    obs <- sum(w[result@data$age_group == lev]) / total_w
     expect_equal(obs, targets$age_group[[lev]], tolerance = 1e-8)
   }
 })
@@ -2101,16 +1952,15 @@ test_that("EC-3: uniform large q = 100 converges for calibrate_linear()", {
   )
 
   result <- calibrate_linear(
-    df_200, targets = targets,
-    weights = base_weight,
+    taylor_200, targets = targets,
     unit_scale = rep(100, nrow(df_200))
   )
 
   test_invariants(result)
-  w <- result[["wts"]]
+  w <- result@data[[result@variables$weights]]
   total_w <- sum(w)
   for (lev in names(targets$age_group)) {
-    obs <- sum(w[result$age_group == lev]) / total_w
+    obs <- sum(w[result@data$age_group == lev]) / total_w
     expect_equal(obs, targets$age_group[[lev]], tolerance = 1e-8)
   }
 })
@@ -2127,6 +1977,10 @@ test_that("EC-4: one extreme q_k = 1e8 on a 20-unit dataset either errors with s
     base_weight = exp(rnorm(n, 0, 0.3)),
     stringsAsFactors = FALSE
   )
+  design_small <- surveycore::survey_taylor(
+    data = df_small,
+    variables = list(ids = NULL, strata = NULL, fpc = NULL, weights = "base_weight", nest = FALSE)
+  )
   targets_small <- list(
     age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30)
   )
@@ -2135,8 +1989,7 @@ test_that("EC-4: one extreme q_k = 1e8 on a 20-unit dataset either errors with s
 
   result <- tryCatch(
     calibrate_linear(
-      df_small, targets = targets_small,
-      weights = base_weight,
+      design_small, targets = targets_small,
       unit_scale = q_extreme
     ),
     error = function(e) e
@@ -2147,10 +2000,10 @@ test_that("EC-4: one extreme q_k = 1e8 on a 20-unit dataset either errors with s
   } else {
     test_invariants(result)
     # Check non-extreme units satisfy calibration constraint
-    w <- result[["wts"]]
+    w <- result@data[[result@variables$weights]]
     total_w <- sum(w)
     for (lev in names(targets_small$age_group)) {
-      obs <- sum(w[result$age_group == lev]) / total_w
+      obs <- sum(w[result@data$age_group == lev]) / total_w
       expect_equal(obs, targets_small$age_group[[lev]], tolerance = 1e-6)
     }
   }
@@ -2164,11 +2017,9 @@ test_that("EC-5: explicit rep(1, n) is numerically identical to unit_scale = NUL
   targets <- .make_linear_targets()
   n <- nrow(df_500)
 
-  result_null <- calibrate_linear(
-    df_500, targets = targets, weights = base_weight
-  )
+  result_null <- calibrate_linear(taylor_500, targets = targets)
   result_explicit <- calibrate_linear(
-    df_500, targets = targets, weights = base_weight,
+    taylor_500, targets = targets,
     unit_scale = rep(1, n)
   )
 
@@ -2176,8 +2027,8 @@ test_that("EC-5: explicit rep(1, n) is numerically identical to unit_scale = NUL
   test_invariants(result_explicit)
 
   expect_equal(
-    result_explicit[["wts"]],
-    result_null[["wts"]],
+    result_explicit@data[[result_explicit@variables$weights]],
+    result_null@data[[result_null@variables$weights]],
     tolerance = 1e-14
   )
 })
@@ -2193,14 +2044,13 @@ test_that("EC-6: multiplicative-bounds calibration with q_unequal satisfies cons
   q_200 <- q_unequal[seq_len(nrow(df_200))]
 
   result <- calibrate_linear(
-    df_200, targets = targets,
-    weights = base_weight,
+    taylor_200, targets = targets,
     bounds = c(0.3, 3),
     unit_scale = q_200
   )
 
   test_invariants(result)
-  w <- result[["wts"]]
+  w <- result@data[[result@variables$weights]]
   d <- df_200$base_weight
   g <- w / d
   expect_true(all(g >= 0.3 - 1e-6) && all(g <= 3 + 1e-6),
@@ -2219,6 +2069,10 @@ test_that("EC-8: absolute-bounds with equal base weights: pre-fix and post-fix g
     base_weight = rep(1.5, n),
     stringsAsFactors = FALSE
   )
+  design_eq <- surveycore::survey_taylor(
+    data = df_eq,
+    variables = list(ids = NULL, strata = NULL, fpc = NULL, weights = "base_weight", nest = FALSE)
+  )
   targets <- list(
     age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30)
   )
@@ -2226,12 +2080,12 @@ test_that("EC-8: absolute-bounds with equal base weights: pre-fix and post-fix g
   abs_U <- 5.0
 
   result <- calibrate_linear(
-    df_eq, targets = targets, weights = base_weight,
+    design_eq, targets = targets,
     bounds = c(abs_L, abs_U), bounds_scale = "absolute"
   )
 
   test_invariants(result)
-  w <- result[["wts"]]
+  w <- result@data[[result@variables$weights]]
   expect_true(all(w >= abs_L - 1e-6) && all(w <= abs_U + 1e-6))
 })
 
@@ -2247,12 +2101,12 @@ test_that("EC-9: absolute-bounds linear: all final weights satisfy w_k in [L_abs
   )
 
   result <- calibrate_linear(
-    df_200, targets = targets, weights = base_weight,
+    taylor_200, targets = targets,
     bounds = c(abs_L, abs_U), bounds_scale = "absolute"
   )
 
   test_invariants(result)
-  w <- result[["wts"]]
+  w <- result@data[[result@variables$weights]]
   expect_true(
     all(w >= abs_L - 1e-6),
     label = "EC-9: all weights >= L_abs"

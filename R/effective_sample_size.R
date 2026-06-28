@@ -14,11 +14,10 @@
 #' weighted estimates. Rows with zero weights (typically produced by
 #' [adjust_nonresponse()]) are excluded before computing ESS.
 #'
-#' @param x A `data.frame`, `weighted_df`, `survey_taylor`, or
-#'   `survey_nonprob`. For `weighted_df` and survey objects, the weight
-#'   column is auto-detected.
-#' @param weights Bare name (NSE). Weight column. Auto-detected for
-#'   `weighted_df` and survey objects. Required for plain `data.frame`.
+#' @param x A `survey_taylor`, `survey_nonprob`, or `survey_replicate`. The
+#'   weight column is auto-detected from `@variables$weights`.
+#' @param weights Bare name (NSE). Weight column. Auto-detected from survey
+#'   object `@variables$weights`.
 #'
 #' @returns A named numeric scalar: `c(n_eff = <value>)`. The name `"n_eff"`
 #'   is part of the API contract.
@@ -34,10 +33,6 @@
 #' @export
 #'
 #' @examples
-#' # data.frame with explicit weight column ---------------------------------
-#' effective_sample_size(ns_wave1, weights = weight)
-#'
-#' # survey_nonprob — weight column auto-detected ---------------------------
 #' ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
 #' effective_sample_size(ns_wave1_svy)
 effective_sample_size <- function(x, weights = NULL) {

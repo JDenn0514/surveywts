@@ -27,15 +27,13 @@
 #' @export
 #'
 #' @examples
+#' ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
+#'
 #' # overall summary --------------------------------------------------------
-#' summarize_weights(ns_wave1, weights = weight)
+#' summarize_weights(ns_wave1_svy)
 #'
 #' # grouped by sex ---------------------------------------------------------
-#' summarize_weights(ns_wave1, weights = weight, by = sex)
-#'
-#' # survey_nonprob — weight column auto-detected ---------------------------
-#' ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
-#' summarize_weights(ns_wave1_svy)
+#' summarize_weights(ns_wave1_svy, by = sex)
 summarize_weights <- function(x, weights = NULL, by = NULL) {
   weights_quo <- rlang::enquo(weights)
   by_quo <- rlang::enquo(by)

@@ -4,23 +4,23 @@
 \alias{rescale_weights}
 \title{Rescale survey weights to a target mean or sum}
 \usage{
-rescale_weights(data, weights = NULL, by = NULL, wt_name = "wts")
+rescale_weights(data, weights = NULL, by = NULL, wt_name = NULL)
 }
 \arguments{
-\item{data}{A \code{data.frame}, \code{weighted_df}, \code{survey_taylor}, \code{survey_nonprob},
-or \code{survey_replicate}. All survey classes supported. For inputs carrying
-replicate weight columns, see the \strong{Replicate Weights} section.}
+\item{data}{A \code{survey_taylor}, \code{survey_nonprob}, or \code{survey_replicate}. For
+inputs carrying replicate weight columns, see the \strong{Replicate Weights}
+section.}
 
 \item{weights}{<\code{\link[tidyselect:language]{tidy-select}}> Weight column.
-Auto-detected for \code{weighted_df} and survey objects. For plain \code{data.frame}
-with \code{weights = NULL}, uniform weights (all 1) are used.}
+Auto-detected from survey object \verb{@variables$weights}.}
 
 \item{by}{<\code{\link[tidyselect:language]{tidy-select}}> Grouping variable(s).
 Rescaling is performed within each group (weights in group \code{h} sum to
 \code{n_h}). \code{NULL} → global rescaling (all weights sum to \code{n}).}
 
-\item{wt_name}{\code{character(1)}. Output weight column name. Used only when
-\code{data} is a plain \code{data.frame} with \code{weights = NULL}. Default \code{"wts"}.}
+\item{wt_name}{\code{NULL} (default) or a \code{character(1)}. When \code{NULL}, rescaled
+weights overwrite the existing weight column in place. When a character
+string, a new column is added and \verb{@variables$weights} updated.}
 }
 \value{
 An object of the same class as \code{data} with rescaled weights. A
@@ -49,15 +49,17 @@ same scalar (global) or per-group scalar that was applied to the main weight.
 }
 
 \examples{
-# Rescale weights to unit mean (default)
-summarize_weights(ns_wave1, weights = weight)
+ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
 
-result <- rescale_weights(ns_wave1, weights = weight)
-summarize_weights(result, weights = weight)
+# Rescale weights to unit mean (default) -----------------------------------
+summarize_weights(ns_wave1_svy)
 
-# Rescale within groups using by =
-result_by <- rescale_weights(ns_wave1, weights = weight, by = ns_region)
-summarize_weights(result_by, weights = weight, by = ns_region)
+result <- rescale_weights(ns_wave1_svy)
+summarize_weights(result)
+
+# Rescale within groups using by = -----------------------------------------
+result_by <- rescale_weights(ns_wave1_svy, by = ns_region)
+summarize_weights(result_by, by = ns_region)
 }
 \seealso{
 \code{\link[=trim_weights]{trim_weights()}}

@@ -8,19 +8,19 @@ poststratify(
   data,
   targets,
   weights = NULL,
-  wt_name = "wts",
+  wt_name = NULL,
   type = c("prop", "count"),
   reference_design = NULL
 )
 }
 \arguments{
-\item{data}{A \code{data.frame}, \code{weighted_df}, \code{survey_taylor},
-\code{survey_nonprob}, or \code{survey_replicate}. Any other class -> error.
-When \code{data} is a \code{survey_replicate}, post-stratification is applied
-independently to every replicate weight column using the same population
-\code{targets}. Replicate columns where any cell has zero or negative total
-weight fail calibration; a \code{surveywts_warning_replicate_calibration_failed}
-warning is emitted and the original replicate weights are kept.}
+\item{data}{A \code{survey_nonprob}, \code{survey_taylor}, or \code{survey_replicate}. Any
+other class -> error. When \code{data} is a \code{survey_replicate},
+post-stratification is applied independently to every replicate weight
+column using the same population \code{targets}. Replicate columns where any
+cell has zero or negative total weight fail calibration; a
+\code{surveywts_warning_replicate_calibration_failed} warning is emitted and
+the original replicate weights are kept.}
 
 \item{targets}{A \code{data.frame} with one column per stratification variable
 (column names must match column names in \code{data}), plus a column named
@@ -37,13 +37,12 @@ For \code{type = "count"}: values in \code{target} must be strictly positive.
 For \code{type = "prop"}: values in \code{target} must sum to 1.0 (within \code{1e-6}).}
 
 \item{weights}{<\code{\link[tidyselect:language]{tidy-select}}> Weight column name
-(bare name). \code{NULL} -> auto-detected from \code{weighted_df} attribute or
-survey object \verb{@variables$weights}. For plain \code{data.frame} with
-\code{weights = NULL}, uniform starting weights are used.}
+(bare name). \code{NULL} -> auto-detected from survey object
+\verb{@variables$weights}.}
 
-\item{wt_name}{Character scalar. Name of the output weight column in the
-returned \code{weighted_df}. Default \code{"wts"}. Ignored when \code{data} is a survey
-object (\code{survey_taylor} or \code{survey_nonprob}).}
+\item{wt_name}{\code{NULL} (default) or a character scalar. When \code{NULL},
+calibrated weights overwrite the existing weight column in place. When a
+character string, a new column is added and \verb{@variables$weights} updated.}
 
 \item{type}{Character scalar. \code{"prop"} (default): \code{target} values are
 proportions summing to 1.0. \code{"count"}: \code{target} values are population
@@ -57,10 +56,8 @@ non-\code{survey_taylor} value triggers
 }
 \value{
 \itemize{
-\item \code{data.frame} or \code{weighted_df} input -> \code{weighted_df}
 \item \code{survey_taylor} or \code{survey_nonprob} input -> same class as input
-(\code{survey_taylor} or \code{survey_nonprob}; class is preserved);
-\verb{@calibration} slot is populated
+(class preserved); \verb{@calibration} slot is populated
 \item \code{survey_replicate} input -> \code{survey_replicate} (class preserved);
 \verb{@calibration} slot is populated, including \code{replicate_converged}
 }
@@ -92,16 +89,14 @@ exact in one pass — no iteration is required.
 }
 
 \examples{
+ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
+
 # joint cell proportions (sex x age_f3, 6 cells, sum = 1.000) --------
 ps_cells <- data.frame(
   sex    = rep(c("Male", "Female"), each = 3),
   age_f3 = rep(c("18-34", "35-54", "55+"), times = 2),
   target = c(0.1470, 0.1617, 0.1813, 0.1530, 0.1683, 0.1887)
 )
-poststratify(ns_wave1, targets = ps_cells, weights = weight)
-
-# survey_nonprob — weight column auto-detected -----------------
-ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
 poststratify(ns_wave1_svy, targets = ps_cells)
 
 # type = "count" with US adult population counts (260 million) ------------
@@ -110,9 +105,7 @@ ps_counts <- data.frame(
   age_f3 = rep(c("18-34", "35-54", "55+"), times = 2),
   target = c(0.1470, 0.1617, 0.1813, 0.1530, 0.1683, 0.1887) * 260000000
 )
-poststratify(
-  ns_wave1, targets = ps_counts, weights = weight, type = "count"
-)
+poststratify(ns_wave1_svy, targets = ps_counts, type = "count")
 }
 \references{
 Valliant, R. (1993). Poststratification and conditional variance

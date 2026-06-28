@@ -368,7 +368,6 @@
 "npors_2025_clean"
 
 
-
 # ============================================================================
 # pew_2016_optin + pew_2016_optin_svy
 # ============================================================================
@@ -395,8 +394,9 @@
 #'   ```r
 #'   data(pew_2016_optin)
 #'   pew_design <- surveycore::survey_nonprob(
-#'     pew_2016_optin, variables = list(weights = "weight",
-#'     repweights = grep("^repwt_", names(pew_2016_optin), value = TRUE))
+#'     pew_2016_optin,
+#'     weights = "weight",
+#'     repwts = contains("repwt_")
 #'   )
 #'   ```
 #'
@@ -928,8 +928,8 @@
 #' weights). To construct a `survey_nonprob` for analysis:
 #' ```r
 #' data(ns_wave1)
-#' ns_design <- surveycore::survey_nonprob(
-#'   ns_wave1, variables = list(weights = "weight")
+#' ns_design <- surveycore::as_survey_nonprob(
+#'   ns_wave1, weights = "weight"
 #' )
 #' ```
 #'

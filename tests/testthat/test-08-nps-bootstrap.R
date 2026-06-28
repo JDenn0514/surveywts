@@ -303,22 +303,6 @@ test_that("create_bootstrap_weights() rejects survey_taylor with quasi-randomiza
   )
 })
 
-# E2: weighted_df + quasi-randomization
-test_that("create_bootstrap_weights() rejects weighted_df with quasi-randomization", {
-  df <- make_surveywts_data(seed = 1)
-  wd <- calibrate_rake(df, targets = list(
-    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
-    sex       = c("M" = 0.48, "F" = 0.52)
-  ))
-  expect_error(
-    create_bootstrap_weights(wd, type = "quasi-randomization"),
-    class = "surveywts_error_qr_bootstrap_requires_nonprob"
-  )
-  expect_snapshot(
-    error = TRUE,
-    create_bootstrap_weights(wd, type = "quasi-randomization")
-  )
-})
 
 # E3: survey_taylor + hybrid
 test_that("create_bootstrap_weights() rejects survey_taylor with hybrid", {

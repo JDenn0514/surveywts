@@ -10,7 +10,8 @@ templates (organized by function in subsections XII.A through XII.G).
 
 | Class | Thrown by | Condition |
 |-------|-----------|-----------|
-| `surveywts_error_unsupported_class` | All calibration / NR functions | `data` is not a supported class |
+| `surveywts_error_not_survey_base` | All calibration, NR, utility, and diagnostic functions | Input is not a `survey_base` object (e.g., a plain `data.frame`); replaces `surveywts_error_unsupported_class` for non-replicate functions |
+| ~~`surveywts_error_unsupported_class`~~ | ~~All calibration / NR functions~~ | **RETIRED** — replaced by `surveywts_error_not_survey_base` for calibration, nonresponse, utility, and diagnostic functions; still used by `create_*_weights()` and `as_taylor_design()` |
 | ~~`surveywts_error_replicate_not_supported`~~ | ~~All calibration / NR functions~~ | **RETIRED** — Replicate release complete; `survey_replicate` now accepted by diagnostic functions (`effective_sample_size()`, `weight_variability()`, `summarize_weights()`) |
 | `surveywts_error_empty_data` | All calibration / NR functions | `nrow(data) == 0` |
 | `surveywts_error_weights_not_found` | All functions accepting `weights` | Named weight column missing from `data` |
@@ -61,6 +62,7 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_error_population_level_extra` | `calibrate()` | A `population` level absent from `data` |
 | `surveywts_error_population_totals_invalid` | `calibrate()` | `type = "prop"` proportions don't sum to 1, or `type = "count"` target ≤ 0 |
 | `surveywts_error_calibration_not_converged` | `.calibrate_engine()` | Max iterations reached without convergence |
+| `surveywts_error_negative_calibrated_weights` | `calibrate_linear()`, `calibrate_logit()`, `calibrate()` | GREG calibration produced negative calibrated weights; cannot store in S7 survey object |
 
 ### `rake()`
 

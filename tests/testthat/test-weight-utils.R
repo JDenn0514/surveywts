@@ -38,33 +38,17 @@
   )
 }
 
-.make_test_wdf <- function(df) {
-  targets <- list(age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30))
-  calibrate_linear(df, targets = targets, weights = base_weight)
-}
-
 # trim_weights() -------------------------------------------------------
 
 # 1. Happy path — trim_weights() ----------------------------------------
 
-test_that("trim_weights() returns weighted_df for data.frame + named weights", {
+test_that("trim_weights() rejects plain data.frame input", {
   df <- make_surveywts_data(seed = 1)
-  result <- trim_weights(df, weights = base_weight, upper = 0.9, type = "percentile")
-  test_invariants(result)
-  expect_true(inherits(result, "weighted_df"))
-  expect_identical(attr(result, "weight_col"), "base_weight")
-  expect_true(all(result[["base_weight"]] > 0))
-})
-
-test_that("trim_weights() preserves weighted_df class and weight column name", {
-  df <- make_surveywts_data(seed = 2)
-  wdf <- .make_test_wdf(df)
-  col_name <- attr(wdf, "weight_col")
-
-  result <- trim_weights(wdf, upper = 0.9, type = "percentile")
-  test_invariants(result)
-  expect_true(inherits(result, "weighted_df"))
-  expect_identical(attr(result, "weight_col"), col_name)
+  expect_error(
+    trim_weights(df),
+    class = "surveywts_error_not_survey_base"
+  )
+  expect_snapshot(error = TRUE, trim_weights(df))
 })
 
 test_that("trim_weights() preserves survey_taylor class", {
@@ -104,21 +88,12 @@ test_that("trim_weights() preserves survey_replicate class and trims rep weights
   expect_false(all(result_rep == orig_rep))
 })
 
-test_that("trim_weights() returns weighted_df with wt_name column for data.frame + NULL weights", {
-  df <- make_surveywts_data(seed = 5)
-  result <- trim_weights(df, wt_name = "my_weight")
-  test_invariants(result)
-  expect_true(inherits(result, "weighted_df"))
-  expect_identical(attr(result, "weight_col"), "my_weight")
-  expect_true("my_weight" %in% names(result))
-  expect_true(all(result[["my_weight"]] == 1))
-})
-
 test_that("trim_weights() default upper_abs = median(w) + 5 * IQR(w), lower_abs = -Inf", {
   df <- make_surveywts_data(seed = 6)
   w <- df$base_weight
-  result <- trim_weights(df, weights = base_weight)
-  hist_entry <- attr(result, "weighting_history")[[1]]
+  taylor <- .make_test_taylor_wt(df)
+  result <- trim_weights(taylor)
+  hist_entry <- result@metadata@weighting_history[[1]]
   expect_equal(hist_entry$parameters$upper_abs,
                stats::median(w) + 5 * stats::IQR(w),
                tolerance = 1e-10)
@@ -128,8 +103,9 @@ test_that("trim_weights() default upper_abs = median(w) + 5 * IQR(w), lower_abs 
 test_that("trim_weights() k = 6 produces upper_abs = median(w) + 6 * IQR(w)", {
   df <- make_surveywts_data(seed = 7)
   w <- df$base_weight
-  result <- trim_weights(df, weights = base_weight, k = 6)
-  hist_entry <- attr(result, "weighting_history")[[1]]
+  taylor <- .make_test_taylor_wt(df)
+  result <- trim_weights(taylor, k = 6)
+  hist_entry <- result@metadata@weighting_history[[1]]
   expect_equal(hist_entry$parameters$upper_abs,
                stats::median(w) + 6 * stats::IQR(w),
                tolerance = 1e-10)
@@ -140,8 +116,9 @@ test_that("trim_weights() type='absolute' with both tails explicit", {
   w <- df$base_weight
   lo <- stats::quantile(w, 0.05, names = FALSE)
   hi <- stats::quantile(w, 0.95, names = FALSE)
-  result <- trim_weights(df, weights = base_weight, lower = lo, upper = hi)
-  hist_entry <- attr(result, "weighting_history")[[1]]
+  taylor <- .make_test_taylor_wt(df)
+  result <- trim_weights(taylor, lower = lo, upper = hi)
+  hist_entry <- result@metadata@weighting_history[[1]]
   expect_equal(hist_entry$parameters$lower_abs, lo)
   expect_equal(hist_entry$parameters$upper_abs, hi)
   # Both tails trimmed
@@ -153,8 +130,9 @@ test_that("trim_weights() type='absolute' upper only (lower = NULL)", {
   df <- make_surveywts_data(seed = 9)
   w <- df$base_weight
   hi <- stats::quantile(w, 0.9, names = FALSE)
-  result <- trim_weights(df, weights = base_weight, upper = hi)
-  hist_entry <- attr(result, "weighting_history")[[1]]
+  taylor <- .make_test_taylor_wt(df)
+  result <- trim_weights(taylor, upper = hi)
+  hist_entry <- result@metadata@weighting_history[[1]]
   expect_equal(hist_entry$parameters$lower_abs, -Inf)
   expect_equal(hist_entry$parameters$upper_abs, hi)
   expect_equal(hist_entry$parameters$n_trimmed_lower, 0L)
@@ -165,8 +143,9 @@ test_that("trim_weights() type='absolute' lower only (upper = Inf)", {
   df <- make_surveywts_data(seed = 10)
   w <- df$base_weight
   lo <- stats::quantile(w, 0.1, names = FALSE)
-  result <- trim_weights(df, weights = base_weight, lower = lo, upper = Inf)
-  hist_entry <- attr(result, "weighting_history")[[1]]
+  taylor <- .make_test_taylor_wt(df)
+  result <- trim_weights(taylor, lower = lo, upper = Inf)
+  hist_entry <- result@metadata@weighting_history[[1]]
   # lower trimming only (upper = Inf so no upper trimming)
   expect_gt(hist_entry$parameters$n_trimmed_lower, 0L)
   expect_equal(hist_entry$parameters$n_trimmed_upper, 0L)
@@ -175,8 +154,9 @@ test_that("trim_weights() type='absolute' lower only (upper = Inf)", {
 test_that("trim_weights() type='percentile' upper=0.99 sets upper_abs to 99th percentile", {
   df <- make_surveywts_data(seed = 11)
   w <- df$base_weight
-  result <- trim_weights(df, weights = base_weight, upper = 0.99, type = "percentile")
-  hist_entry <- attr(result, "weighting_history")[[1]]
+  taylor <- .make_test_taylor_wt(df)
+  result <- trim_weights(taylor, upper = 0.99, type = "percentile")
+  hist_entry <- result@metadata@weighting_history[[1]]
   expect_equal(hist_entry$parameters$upper_abs,
                stats::quantile(w, 0.99, type = 7, names = FALSE),
                tolerance = 1e-10)
@@ -185,19 +165,21 @@ test_that("trim_weights() type='percentile' upper=0.99 sets upper_abs to 99th pe
 
 test_that("trim_weights() type='percentile' upper only (no lower)", {
   df <- make_surveywts_data(seed = 12)
-  result <- trim_weights(df, weights = base_weight, upper = 0.95, type = "percentile")
-  hist_entry <- attr(result, "weighting_history")[[1]]
+  taylor <- .make_test_taylor_wt(df)
+  result <- trim_weights(taylor, upper = 0.95, type = "percentile")
+  hist_entry <- result@metadata@weighting_history[[1]]
   expect_equal(hist_entry$parameters$lower_abs, -Inf)
   expect_gt(hist_entry$parameters$n_trimmed_upper, 0L)
 })
 
 test_that("trim_weights() explicit no-op (upper = Inf): history appended, warning fires", {
   df <- make_surveywts_data(seed = 13)
+  taylor <- .make_test_taylor_wt(df)
   expect_warning(
-    result <- trim_weights(df, weights = base_weight, upper = Inf),
+    result <- trim_weights(taylor, upper = Inf),
     class = "surveywts_warning_no_weights_trimmed"
   )
-  hist_entry <- attr(result, "weighting_history")[[1]]
+  hist_entry <- result@metadata@weighting_history[[1]]
   expect_identical(hist_entry$operation, "trim_weights")
   expect_equal(hist_entry$parameters$upper_abs, Inf)
 })
@@ -205,9 +187,9 @@ test_that("trim_weights() explicit no-op (upper = Inf): history appended, warnin
 test_that("trim_weights() strict=FALSE: weight sum preserved after single pass", {
   df <- make_surveywts_data(seed = 14)
   w <- df$base_weight
-  result <- trim_weights(df, weights = base_weight, upper = 0.9, type = "percentile",
-                         strict = FALSE)
-  result_w <- result[["base_weight"]]
+  taylor <- .make_test_taylor_wt(df)
+  result <- trim_weights(taylor, upper = 0.9, type = "percentile", strict = FALSE)
+  result_w <- result@data[[result@variables$weights]]
   expect_equal(sum(result_w), sum(w), tolerance = 1e-10)
 })
 
@@ -215,10 +197,10 @@ test_that("trim_weights() strict=TRUE: all main weights within [lower_abs, upper
   df <- make_surveywts_data(seed = 15)
   w <- df$base_weight
   upper_pct <- 0.85
-  result <- trim_weights(df, weights = base_weight, upper = upper_pct,
-                         type = "percentile", strict = TRUE)
+  taylor <- .make_test_taylor_wt(df)
+  result <- trim_weights(taylor, upper = upper_pct, type = "percentile", strict = TRUE)
   upper_abs <- stats::quantile(w, upper_pct, type = 7, names = FALSE)
-  result_w <- result[["base_weight"]]
+  result_w <- result@data[[result@variables$weights]]
   expect_true(all(result_w <= upper_abs + .Machine$double.eps))
   expect_equal(sum(result_w), sum(w), tolerance = 1e-10)
 })
@@ -228,8 +210,9 @@ test_that("trim_weights() strict=TRUE: all main weights within [lower_abs, upper
 test_that("trim_weights() weight sum preserved when trimming succeeds (strict=FALSE)", {
   df <- make_surveywts_data(seed = 20)
   w <- df$base_weight
-  result <- trim_weights(df, weights = base_weight, upper = 0.9, type = "percentile")
-  expect_equal(sum(result[["base_weight"]]), sum(w), tolerance = 1e-10)
+  taylor <- .make_test_taylor_wt(df)
+  result <- trim_weights(taylor, upper = 0.9, type = "percentile")
+  expect_equal(sum(result@data[[result@variables$weights]]), sum(w), tolerance = 1e-10)
 })
 
 test_that("trim_weights() strict=TRUE: all weights in [lower_abs, upper_abs] + epsilon", {
@@ -237,12 +220,12 @@ test_that("trim_weights() strict=TRUE: all weights in [lower_abs, upper_abs] + e
   w <- df$base_weight
   lo_pct <- 0.05
   hi_pct <- 0.90
-  result <- trim_weights(df, weights = base_weight,
-                         lower = lo_pct, upper = hi_pct,
-                         type = "percentile", strict = TRUE)
+  taylor <- .make_test_taylor_wt(df)
+  result <- trim_weights(taylor, lower = lo_pct, upper = hi_pct,
+    type = "percentile", strict = TRUE)
   lower_abs <- stats::quantile(w, lo_pct, type = 7, names = FALSE)
   upper_abs <- stats::quantile(w, hi_pct, type = 7, names = FALSE)
-  result_w <- result[["base_weight"]]
+  result_w <- result@data[[result@variables$weights]]
   expect_true(all(result_w >= lower_abs - .Machine$double.eps))
   expect_true(all(result_w <= upper_abs + .Machine$double.eps))
 })
@@ -250,22 +233,13 @@ test_that("trim_weights() strict=TRUE: all weights in [lower_abs, upper_abs] + e
 test_that("trim_weights() strict=FALSE: sum preserved but not all weights in bounds", {
   df <- make_surveywts_data(seed = 22)
   w <- df$base_weight
-  # Use a tight bound that ensures redistribution pushes some weights out
   lo_pct <- 0.45
   hi_pct <- 0.55
-  result <- trim_weights(df, weights = base_weight,
-                         lower = lo_pct, upper = hi_pct,
-                         type = "percentile", strict = FALSE)
-  result_w <- result[["base_weight"]]
-  # Sum is preserved
+  taylor <- .make_test_taylor_wt(df)
+  result <- trim_weights(taylor, lower = lo_pct, upper = hi_pct,
+    type = "percentile", strict = FALSE)
+  result_w <- result@data[[result@variables$weights]]
   expect_equal(sum(result_w), sum(w), tolerance = 1e-10)
-  # With strict=FALSE, redistribution may push some weights out of bounds
-  lower_abs <- stats::quantile(w, lo_pct, type = 7, names = FALSE)
-  upper_abs <- stats::quantile(w, hi_pct, type = 7, names = FALSE)
-  outside <- result_w < lower_abs | result_w > upper_abs
-  # Not all weights guaranteed in bounds after redistribution
-  # (if redistribution occurred, some may be pushed out)
-  # We just check sum is preserved — that's the guarantee of strict=FALSE
   expect_true(is.numeric(result_w))
 })
 
@@ -274,8 +248,9 @@ test_that("trim_weights() n_trimmed_upper equals count of original weights above
   w <- df$base_weight
   upper_pct <- 0.9
   upper_abs <- stats::quantile(w, upper_pct, type = 7, names = FALSE)
-  result <- trim_weights(df, weights = base_weight, upper = upper_pct, type = "percentile")
-  hist_entry <- attr(result, "weighting_history")[[1]]
+  taylor <- .make_test_taylor_wt(df)
+  result <- trim_weights(taylor, upper = upper_pct, type = "percentile")
+  hist_entry <- result@metadata@weighting_history[[1]]
   expect_equal(hist_entry$parameters$n_trimmed_upper, sum(w > upper_abs))
 })
 
@@ -284,21 +259,21 @@ test_that("trim_weights() n_trimmed_lower equals count of original weights below
   w <- df$base_weight
   lower_pct <- 0.1
   lower_abs <- stats::quantile(w, lower_pct, type = 7, names = FALSE)
-  result <- trim_weights(df, weights = base_weight,
-                         lower = lower_pct, upper = 0.9,
-                         type = "percentile")
-  hist_entry <- attr(result, "weighting_history")[[1]]
+  taylor <- .make_test_taylor_wt(df)
+  result <- trim_weights(taylor, lower = lower_pct, upper = 0.9, type = "percentile")
+  hist_entry <- result@metadata@weighting_history[[1]]
   expect_equal(hist_entry$parameters$n_trimmed_lower, sum(w < lower_abs))
 })
 
 test_that("trim_weights() type='percentile' upper=0.99: history upper_abs == quantile(w, 0.99)", {
   df <- make_surveywts_data(seed = 25)
   w <- df$base_weight
-  result <- trim_weights(df, weights = base_weight, upper = 0.99, type = "percentile")
-  hist_entry <- attr(result, "weighting_history")[[1]]
+  taylor <- .make_test_taylor_wt(df)
+  result <- trim_weights(taylor, upper = 0.99, type = "percentile")
+  hist_entry <- result@metadata@weighting_history[[1]]
   expect_equal(hist_entry$parameters$upper_abs,
-               stats::quantile(w, 0.99, type = 7, names = FALSE),
-               tolerance = 1e-10)
+    stats::quantile(w, 0.99, type = 7, names = FALSE),
+    tolerance = 1e-10)
 })
 
 test_that("trim_weights() survey_replicate: colSums preserved per column", {
@@ -318,55 +293,14 @@ test_that("trim_weights() survey_replicate: colSums preserved per column", {
 test_that("trim_weights() rejects list input", {
   expect_error(
     trim_weights(list(x = 1:5)),
-    class = "surveywts_error_unsupported_class"
+    class = "surveywts_error_not_survey_base"
   )
   expect_snapshot(error = TRUE, trim_weights(list(x = 1:5)))
 })
 
-test_that("trim_weights() rejects 0-row data frame", {
-  empty <- data.frame(x = numeric(0), w = numeric(0))
-  expect_error(
-    trim_weights(empty, weights = w),
-    class = "surveywts_error_empty_data"
-  )
-  expect_snapshot(error = TRUE, trim_weights(empty, weights = w))
-})
-
-test_that("trim_weights() rejects missing weight column", {
-  df <- data.frame(x = 1:5)
-  expect_error(
-    trim_weights(df, weights = missing_col),
-    class = "surveywts_error_weights_not_found"
-  )
-  expect_snapshot(error = TRUE, trim_weights(df, weights = missing_col))
-})
-
-test_that("trim_weights() rejects non-numeric weight column", {
-  df <- data.frame(x = 1:5, w = letters[1:5])
-  expect_error(
-    trim_weights(df, weights = w),
-    class = "surveywts_error_weights_not_numeric"
-  )
-  expect_snapshot(error = TRUE, trim_weights(df, weights = w))
-})
-
-test_that("trim_weights() rejects negative weight values", {
-  df <- data.frame(x = 1:5, w = c(1, 2, -1, 2, 1))
-  expect_error(
-    trim_weights(df, weights = w),
-    class = "surveywts_error_weights_nonpositive"
-  )
-  expect_snapshot(error = TRUE, trim_weights(df, weights = w))
-})
-
-test_that("trim_weights() rejects NA weight values", {
-  df <- data.frame(x = 1:5, w = c(1, 2, NA, 2, 1))
-  expect_error(
-    trim_weights(df, weights = w),
-    class = "surveywts_error_weights_na"
-  )
-  expect_snapshot(error = TRUE, trim_weights(df, weights = w))
-})
+# E6-E9 removed — weight validation (not_found, not_numeric, nonpositive, na)
+# is now enforced by the S7 class validator at construction time; these errors
+# are no longer reachable via the public API.
 
 test_that("trim_weights() surveywts_error_empty_data: S7 class invariant prevents 0-row survey_nonprob", {
   # The surveycore survey_nonprob S7 class validator rejects @data assignment
@@ -425,233 +359,248 @@ test_that("trim_weights() fires surveywts_error_weights_nonpositive for survey_n
 
 test_that("trim_weights() rejects upper = NULL with type = 'percentile'", {
   df <- make_surveywts_data(seed = 1)
+  taylor <- .make_test_taylor_wt(df)
   expect_error(
-    trim_weights(df, weights = base_weight, type = "percentile"),
+    trim_weights(taylor, type = "percentile"),
     class = "surveywts_error_null_bound_percentile"
   )
   expect_snapshot(
     error = TRUE,
-    trim_weights(df, weights = base_weight, type = "percentile")
+    trim_weights(taylor, type = "percentile")
   )
 })
 
 test_that("trim_weights() rejects k = character scalar", {
   df <- make_surveywts_data(seed = 1)
+  taylor <- .make_test_taylor_wt(df)
   expect_error(
-    trim_weights(df, weights = base_weight, k = "5"),
+    trim_weights(taylor, k = "5"),
     class = "surveywts_error_k_not_scalar"
   )
   expect_snapshot(
     error = TRUE,
-    trim_weights(df, weights = base_weight, k = "5")
+    trim_weights(taylor, k = "5")
   )
 })
 
 test_that("trim_weights() rejects k = NA_real_", {
   df <- make_surveywts_data(seed = 1)
+  taylor <- .make_test_taylor_wt(df)
   expect_error(
-    trim_weights(df, weights = base_weight, k = NA_real_),
+    trim_weights(taylor, k = NA_real_),
     class = "surveywts_error_k_not_scalar"
   )
   expect_snapshot(
     error = TRUE,
-    trim_weights(df, weights = base_weight, k = NA_real_)
+    trim_weights(taylor, k = NA_real_)
   )
 })
 
 test_that("trim_weights() rejects k = length-2 numeric", {
   df <- make_surveywts_data(seed = 1)
+  taylor <- .make_test_taylor_wt(df)
   expect_error(
-    trim_weights(df, weights = base_weight, k = c(1, 2)),
+    trim_weights(taylor, k = c(1, 2)),
     class = "surveywts_error_k_not_scalar"
   )
   expect_snapshot(
     error = TRUE,
-    trim_weights(df, weights = base_weight, k = c(1, 2))
+    trim_weights(taylor, k = c(1, 2))
   )
 })
 
 test_that("trim_weights() rejects k = -1", {
   df <- make_surveywts_data(seed = 1)
+  taylor <- .make_test_taylor_wt(df)
   expect_error(
-    trim_weights(df, weights = base_weight, k = -1),
+    trim_weights(taylor, k = -1),
     class = "surveywts_error_k_nonpositive"
   )
   expect_snapshot(
     error = TRUE,
-    trim_weights(df, weights = base_weight, k = -1)
+    trim_weights(taylor, k = -1)
   )
 })
 
 test_that("trim_weights() rejects k = 0", {
   df <- make_surveywts_data(seed = 1)
+  taylor <- .make_test_taylor_wt(df)
   expect_error(
-    trim_weights(df, weights = base_weight, k = 0),
+    trim_weights(taylor, k = 0),
     class = "surveywts_error_k_nonpositive"
   )
   expect_snapshot(
     error = TRUE,
-    trim_weights(df, weights = base_weight, k = 0)
+    trim_weights(taylor, k = 0)
   )
 })
 
 test_that("trim_weights() rejects lower = character scalar", {
   df <- make_surveywts_data(seed = 1)
+  taylor <- .make_test_taylor_wt(df)
   expect_error(
-    trim_weights(df, weights = base_weight, lower = "0.5"),
+    trim_weights(taylor, lower = "0.5"),
     class = "surveywts_error_lower_not_scalar"
   )
   expect_snapshot(
     error = TRUE,
-    trim_weights(df, weights = base_weight, lower = "0.5")
+    trim_weights(taylor, lower = "0.5")
   )
 })
 
 test_that("trim_weights() rejects lower = NA_real_", {
   df <- make_surveywts_data(seed = 1)
+  taylor <- .make_test_taylor_wt(df)
   expect_error(
-    trim_weights(df, weights = base_weight, lower = NA_real_),
+    trim_weights(taylor, lower = NA_real_),
     class = "surveywts_error_lower_not_scalar"
   )
   expect_snapshot(
     error = TRUE,
-    trim_weights(df, weights = base_weight, lower = NA_real_)
+    trim_weights(taylor, lower = NA_real_)
   )
 })
 
 test_that("trim_weights() rejects upper = length-2 numeric", {
   df <- make_surveywts_data(seed = 1)
+  taylor <- .make_test_taylor_wt(df)
   expect_error(
-    trim_weights(df, weights = base_weight, upper = c(1, 2)),
+    trim_weights(taylor, upper = c(1, 2)),
     class = "surveywts_error_upper_not_scalar"
   )
   expect_snapshot(
     error = TRUE,
-    trim_weights(df, weights = base_weight, upper = c(1, 2))
+    trim_weights(taylor, upper = c(1, 2))
   )
 })
 
 test_that("trim_weights() rejects upper = NA_real_", {
   df <- make_surveywts_data(seed = 1)
+  taylor <- .make_test_taylor_wt(df)
   expect_error(
-    trim_weights(df, weights = base_weight, upper = NA_real_),
+    trim_weights(taylor, upper = NA_real_),
     class = "surveywts_error_upper_not_scalar"
   )
   expect_snapshot(
     error = TRUE,
-    trim_weights(df, weights = base_weight, upper = NA_real_)
+    trim_weights(taylor, upper = NA_real_)
   )
 })
 
 test_that("trim_weights() rejects equal resolved bounds (lower = upper)", {
   df <- make_surveywts_data(seed = 1)
+  taylor <- .make_test_taylor_wt(df)
   expect_error(
-    trim_weights(df, weights = base_weight, lower = 3, upper = 3),
+    trim_weights(taylor, lower = 3, upper = 3),
     class = "surveywts_error_bounds_invalid"
   )
   expect_snapshot(
     error = TRUE,
-    trim_weights(df, weights = base_weight, lower = 3, upper = 3)
+    trim_weights(taylor, lower = 3, upper = 3)
   )
 })
 
 test_that("trim_weights() rejects reversed bounds (lower > upper)", {
   df <- make_surveywts_data(seed = 1)
+  taylor <- .make_test_taylor_wt(df)
   expect_error(
-    trim_weights(df, weights = base_weight, lower = 5, upper = 3),
+    trim_weights(taylor, lower = 5, upper = 3),
     class = "surveywts_error_bounds_invalid"
   )
   expect_snapshot(
     error = TRUE,
-    trim_weights(df, weights = base_weight, lower = 5, upper = 3)
+    trim_weights(taylor, lower = 5, upper = 3)
   )
 })
 
 test_that("trim_weights() rejects reversed percentile bounds", {
   df <- make_surveywts_data(seed = 1)
+  taylor <- .make_test_taylor_wt(df)
   expect_error(
-    trim_weights(df, weights = base_weight,
-                 lower = 0.99, upper = 0.01, type = "percentile"),
+    trim_weights(taylor, lower = 0.99, upper = 0.01, type = "percentile"),
     class = "surveywts_error_bounds_invalid"
   )
   expect_snapshot(
     error = TRUE,
-    trim_weights(df, weights = base_weight,
-                 lower = 0.99, upper = 0.01, type = "percentile")
+    trim_weights(taylor, lower = 0.99, upper = 0.01, type = "percentile")
   )
 })
 
 test_that("trim_weights() rejects upper = 0 (absolute, non-positive)", {
   df <- make_surveywts_data(seed = 1)
+  taylor <- .make_test_taylor_wt(df)
   expect_error(
-    trim_weights(df, weights = base_weight, upper = 0),
+    trim_weights(taylor, upper = 0),
     class = "surveywts_error_upper_nonpositive"
   )
   expect_snapshot(
     error = TRUE,
-    trim_weights(df, weights = base_weight, upper = 0)
+    trim_weights(taylor, upper = 0)
   )
 })
 
 test_that("trim_weights() rejects upper = -1 (absolute, negative)", {
   df <- make_surveywts_data(seed = 1)
+  taylor <- .make_test_taylor_wt(df)
   expect_error(
-    trim_weights(df, weights = base_weight, upper = -1),
+    trim_weights(taylor, upper = -1),
     class = "surveywts_error_upper_nonpositive"
   )
   expect_snapshot(
     error = TRUE,
-    trim_weights(df, weights = base_weight, upper = -1)
+    trim_weights(taylor, upper = -1)
   )
 })
 
 test_that("trim_weights() rejects lower = -0.1 with type = 'percentile'", {
   df <- make_surveywts_data(seed = 1)
+  taylor <- .make_test_taylor_wt(df)
   expect_error(
-    trim_weights(df, weights = base_weight,
-                 lower = -0.1, upper = 0.99, type = "percentile"),
+    trim_weights(taylor, lower = -0.1, upper = 0.99, type = "percentile"),
     class = "surveywts_error_percentile_out_of_range"
   )
   expect_snapshot(
     error = TRUE,
-    trim_weights(df, weights = base_weight,
-                 lower = -0.1, upper = 0.99, type = "percentile")
+    trim_weights(taylor, lower = -0.1, upper = 0.99, type = "percentile")
   )
 })
 
 test_that("trim_weights() rejects upper = 1.1 with type = 'percentile'", {
   df <- make_surveywts_data(seed = 1)
+  taylor <- .make_test_taylor_wt(df)
   expect_error(
-    trim_weights(df, weights = base_weight, upper = 1.1, type = "percentile"),
+    trim_weights(taylor, upper = 1.1, type = "percentile"),
     class = "surveywts_error_percentile_out_of_range"
   )
   expect_snapshot(
     error = TRUE,
-    trim_weights(df, weights = base_weight, upper = 1.1, type = "percentile")
+    trim_weights(taylor, upper = 1.1, type = "percentile")
   )
 })
 
-test_that("trim_weights() rejects wt_name = 1L (plain df + NULL weights)", {
+test_that("trim_weights() rejects wt_name = 1L", {
   df <- make_surveywts_data(seed = 1)
+  taylor <- .make_test_taylor_wt(df)
   expect_error(
-    trim_weights(df, wt_name = 1L),
+    trim_weights(taylor, wt_name = 1L),
     class = "surveywts_error_wt_name_not_scalar"
   )
   expect_snapshot(
     error = TRUE,
-    trim_weights(df, wt_name = 1L)
+    trim_weights(taylor, wt_name = 1L)
   )
 })
 
-test_that("trim_weights() rejects wt_name = '' (plain df + NULL weights)", {
+test_that("trim_weights() rejects wt_name = ''", {
   df <- make_surveywts_data(seed = 1)
+  taylor <- .make_test_taylor_wt(df)
   expect_error(
-    trim_weights(df, wt_name = ""),
+    trim_weights(taylor, wt_name = ""),
     class = "surveywts_error_wt_name_empty"
   )
   expect_snapshot(
     error = TRUE,
-    trim_weights(df, wt_name = "")
+    trim_weights(taylor, wt_name = "")
   )
 })
 
@@ -659,35 +608,37 @@ test_that("trim_weights() rejects wt_name = '' (plain df + NULL weights)", {
 
 test_that("trim_weights() warns when all main weights already within bounds", {
   df <- make_surveywts_data(seed = 30)
-  # Set very wide bounds that all log-normal weights fall within
+  taylor <- .make_test_taylor_wt(df)
   expect_warning(
-    result <- trim_weights(df, weights = base_weight, lower = 0.01, upper = 100),
+    result <- trim_weights(taylor, lower = 0.01, upper = 100),
     class = "surveywts_warning_no_weights_trimmed"
   )
-  # Result is still returned
-  expect_true(inherits(result, "weighted_df"))
-  # History is still appended
-  hist_entry <- attr(result, "weighting_history")[[1]]
+  expect_true(S7::S7_inherits(result, surveycore::survey_taylor))
+  hist_entry <- result@metadata@weighting_history[[1]]
   expect_identical(hist_entry$operation, "trim_weights")
 })
 
 test_that("trim_weights() warns when all units are outside bounds (trimming failed)", {
-  # Two units: weights c(1, 10), both outside [3, 7]
   two_row <- data.frame(x = 1:2, w = c(1, 10))
+  design_two_row <- .make_test_taylor_wt(two_row, weight_col = "w")
   expect_warning(
-    result <- trim_weights(two_row, weights = w, lower = 3, upper = 7),
+    result <- trim_weights(design_two_row, lower = 3, upper = 7),
     class = "surveywts_warning_trimming_failed"
   )
-  # Sum changes because redistribution failed
-  expect_false(isTRUE(abs(sum(result[["w"]]) - sum(c(1, 10))) < 1e-10))
+  expect_false(
+    isTRUE(
+      abs(sum(result@data[[result@variables$weights]]) - sum(c(1, 10))) < 1e-10
+    )
+  )
 })
 
 # 5. History correctness — trim_weights() -----------------------------------
 
 test_that("trim_weights() history entry has all required fields", {
   df <- make_surveywts_data(seed = 40)
-  result <- trim_weights(df, weights = base_weight, upper = 0.9, type = "percentile")
-  hist_entry <- attr(result, "weighting_history")[[1]]
+  taylor <- .make_test_taylor_wt(df)
+  result <- trim_weights(taylor, upper = 0.9, type = "percentile")
+  hist_entry <- result@metadata@weighting_history[[1]]
 
   expect_identical(hist_entry$operation, "trim_weights")
   expect_true(!is.null(hist_entry$parameters$type))
@@ -702,9 +653,9 @@ test_that("trim_weights() history entry has all required fields", {
 
 test_that("trim_weights() type='percentile': lower_input != lower_abs", {
   df <- make_surveywts_data(seed = 41)
-  result <- trim_weights(df, weights = base_weight,
-                         lower = 0.05, upper = 0.95, type = "percentile")
-  hist_entry <- attr(result, "weighting_history")[[1]]
+  taylor <- .make_test_taylor_wt(df)
+  result <- trim_weights(taylor, lower = 0.05, upper = 0.95, type = "percentile")
+  hist_entry <- result@metadata@weighting_history[[1]]
   # Percentile input (0.05) != resolved absolute value (quantile)
   expect_false(isTRUE(hist_entry$parameters$lower_input == hist_entry$parameters$lower_abs))
 })
@@ -712,10 +663,11 @@ test_that("trim_weights() type='percentile': lower_input != lower_abs", {
 test_that("trim_weights() step number is correct when chained after calibrate_linear()", {
   df <- make_surveywts_data(seed = 42)
   targets <- list(age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30))
-  wdf <- calibrate_linear(df, targets = targets, weights = base_weight)
+  taylor <- .make_test_taylor_wt(df)
+  calibrated <- calibrate_linear(taylor, targets = targets)
 
-  result <- trim_weights(wdf, upper = 0.9, type = "percentile")
-  hist <- attr(result, "weighting_history")
+  result <- trim_weights(calibrated, upper = 0.9, type = "percentile")
+  hist <- result@metadata@weighting_history
   expect_equal(length(hist), 2L)
   expect_equal(hist[[2L]]$step, 2L)
   expect_identical(hist[[2L]]$operation, "trim_weights")
@@ -723,34 +675,36 @@ test_that("trim_weights() step number is correct when chained after calibrate_li
 
 # 6. Edge cases — trim_weights() --------------------------------------------
 
-test_that("trim_weights() works on single-row data frame", {
+test_that("trim_weights() works on single-row survey_taylor", {
   one_row <- data.frame(x = 1, w = 2.5)
+  design_one <- .make_test_taylor_wt(one_row, weight_col = "w")
   expect_warning(
-    result <- trim_weights(one_row, weights = w),
+    result <- trim_weights(design_one),
     class = "surveywts_warning_no_weights_trimmed"
   )
-  expect_true(inherits(result, "weighted_df"))
-  expect_equal(nrow(result), 1L)
+  expect_true(S7::S7_inherits(result, surveycore::survey_taylor))
+  expect_equal(nrow(result@data), 1L)
 })
 
 test_that("trim_weights() warns and is a no-op when all weights are equal", {
   df <- data.frame(x = 1:10, w = rep(1, 10))
+  design <- .make_test_taylor_wt(df, weight_col = "w")
   expect_warning(
-    result <- trim_weights(df, weights = w),
+    result <- trim_weights(design),
     class = "surveywts_warning_no_weights_trimmed"
   )
-  expect_equal(result[["w"]], rep(1, 10), tolerance = 1e-10)
+  expect_equal(result@data[[result@variables$weights]], rep(1, 10), tolerance = 1e-10)
 })
 
 test_that("trim_weights() counts exactly 1 trimmed at each bound", {
-  # Place exactly one weight at each extreme
-  w_vec <- c(0.1, rep(1, 8), 10)  # 10 observations
+  w_vec <- c(0.1, rep(1, 8), 10)
   df <- data.frame(x = seq_along(w_vec), w = w_vec)
-  lo <- 0.5   # 0.1 is below
-  hi <- 5.0   # 10 is above
+  design <- .make_test_taylor_wt(df, weight_col = "w")
+  lo <- 0.5
+  hi <- 5.0
 
-  result <- trim_weights(df, weights = w, lower = lo, upper = hi)
-  hist_entry <- attr(result, "weighting_history")[[1]]
+  result <- trim_weights(design, lower = lo, upper = hi)
+  hist_entry <- result@metadata@weighting_history[[1]]
   expect_equal(hist_entry$parameters$n_trimmed_lower, 1L)
   expect_equal(hist_entry$parameters$n_trimmed_upper, 1L)
 })
@@ -771,23 +725,13 @@ test_that("trim_weights() survey_replicate + percentile: cutoffs from main weigh
 
 # 1. Happy path — rescale_weights() -----------------------------------
 
-test_that("rescale_weights() returns weighted_df for data.frame + named weights", {
+test_that("rescale_weights() rejects plain data.frame input", {
   df <- make_surveywts_data(seed = 50)
-  result <- rescale_weights(df, weights = base_weight)
-  test_invariants(result)
-  expect_true(inherits(result, "weighted_df"))
-  expect_identical(attr(result, "weight_col"), "base_weight")
-})
-
-test_that("rescale_weights() preserves weighted_df class and weight column name", {
-  df <- make_surveywts_data(seed = 51)
-  wdf <- .make_test_wdf(df)
-  col_name <- attr(wdf, "weight_col")
-
-  result <- rescale_weights(wdf)
-  test_invariants(result)
-  expect_true(inherits(result, "weighted_df"))
-  expect_identical(attr(result, "weight_col"), col_name)
+  expect_error(
+    rescale_weights(df),
+    class = "surveywts_error_not_survey_base"
+  )
+  expect_snapshot(error = TRUE, rescale_weights(df))
 })
 
 test_that("rescale_weights() preserves survey_taylor class", {
@@ -827,27 +771,22 @@ test_that("rescale_weights() preserves survey_replicate class and scales rep wei
   expect_identical(dim(result_rep), dim(orig_rep))
 })
 
-test_that("rescale_weights() returns weighted_df with wt_name column for data.frame + NULL weights", {
-  df <- make_surveywts_data(seed = 54)
-  result <- rescale_weights(df, wt_name = "my_stable_weight")
-  test_invariants(result)
-  expect_true(inherits(result, "weighted_df"))
-  expect_identical(attr(result, "weight_col"), "my_stable_weight")
-  # Uniform weights -> stabilize -> still all equal
-  n <- nrow(df)
-  expect_equal(sum(result[["my_stable_weight"]]), n, tolerance = 1e-10)
-})
-
 test_that("rescale_weights() global: sum(result_weights) == nrow(data)", {
   df <- make_surveywts_data(seed = 55)
-  result <- rescale_weights(df, weights = base_weight)
-  expect_equal(sum(result[["base_weight"]]), nrow(df), tolerance = 1e-10)
+  taylor <- .make_test_taylor_wt(df)
+  result <- rescale_weights(taylor)
+  expect_equal(
+    sum(result@data[[result@variables$weights]]),
+    nrow(df),
+    tolerance = 1e-10
+  )
 })
 
 test_that("rescale_weights() by = col: each group sums to group n", {
   df <- make_surveywts_data(seed = 56)
-  result <- rescale_weights(df, weights = base_weight, by = age_group)
-  w_new <- result[["base_weight"]]
+  taylor <- .make_test_taylor_wt(df)
+  result <- rescale_weights(taylor, by = age_group)
+  w_new <- result@data[[result@variables$weights]]
   for (grp in unique(df$age_group)) {
     idx <- df$age_group == grp
     expect_equal(sum(w_new[idx]), sum(idx), tolerance = 1e-10)
@@ -856,8 +795,9 @@ test_that("rescale_weights() by = col: each group sums to group n", {
 
 test_that("rescale_weights() by = c(col1, col2): multi-variable grouping works", {
   df <- make_surveywts_data(seed = 57)
-  result <- rescale_weights(df, weights = base_weight, by = c(age_group, sex))
-  w_new <- result[["base_weight"]]
+  taylor <- .make_test_taylor_wt(df)
+  result <- rescale_weights(taylor, by = c(age_group, sex))
+  w_new <- result@data[[result@variables$weights]]
   for (ag in unique(df$age_group)) {
     for (sx in unique(df$sex)) {
       idx <- df$age_group == ag & df$sex == sx
@@ -872,14 +812,20 @@ test_that("rescale_weights() by = c(col1, col2): multi-variable grouping works",
 
 test_that("rescale_weights() global: sum(w_new) == n to machine precision", {
   df <- make_surveywts_data(seed = 60)
-  result <- rescale_weights(df, weights = base_weight)
-  expect_equal(sum(result[["base_weight"]]), nrow(df), tolerance = 1e-10)
+  taylor <- .make_test_taylor_wt(df)
+  result <- rescale_weights(taylor)
+  expect_equal(
+    sum(result@data[[result@variables$weights]]),
+    nrow(df),
+    tolerance = 1e-10
+  )
 })
 
 test_that("rescale_weights() within-group: each group sums to group n (tolerance 1e-10)", {
   df <- make_surveywts_data(seed = 61)
-  result <- rescale_weights(df, weights = base_weight, by = age_group)
-  w_new <- result[["base_weight"]]
+  taylor <- .make_test_taylor_wt(df)
+  result <- rescale_weights(taylor, by = age_group)
+  w_new <- result@data[[result@variables$weights]]
   for (grp in unique(df$age_group)) {
     idx <- df$age_group == grp
     expect_equal(sum(w_new[idx]), sum(idx), tolerance = 1e-10)
@@ -890,8 +836,9 @@ test_that("rescale_weights() scale factor n/sum(w) matches history", {
   df <- make_surveywts_data(seed = 62)
   w <- df$base_weight
   n <- nrow(df)
-  result <- rescale_weights(df, weights = base_weight)
-  hist_entry <- attr(result, "weighting_history")[[1]]
+  taylor <- .make_test_taylor_wt(df)
+  result <- rescale_weights(taylor)
+  hist_entry <- result@metadata@weighting_history[[1]]
   expected_sf <- n / sum(w)
   expect_equal(hist_entry$parameters$scale_factor, expected_sf, tolerance = 1e-10)
 })
@@ -939,102 +886,65 @@ test_that("rescale_weights() survey_replicate with by: per-group factors applied
 test_that("rescale_weights() rejects list input", {
   expect_error(
     rescale_weights(list(x = 1:5)),
-    class = "surveywts_error_unsupported_class"
+    class = "surveywts_error_not_survey_base"
   )
   expect_snapshot(error = TRUE, rescale_weights(list(x = 1:5)))
 })
 
-test_that("rescale_weights() rejects 0-row data frame", {
-  empty <- data.frame(x = numeric(0), w = numeric(0))
-  expect_error(
-    rescale_weights(empty, weights = w),
-    class = "surveywts_error_empty_data"
-  )
-  expect_snapshot(error = TRUE, rescale_weights(empty, weights = w))
-})
-
-test_that("rescale_weights() rejects missing weight column", {
-  df <- data.frame(x = 1:5)
-  expect_error(
-    rescale_weights(df, weights = missing_col),
-    class = "surveywts_error_weights_not_found"
-  )
-  expect_snapshot(error = TRUE, rescale_weights(df, weights = missing_col))
-})
-
-test_that("rescale_weights() rejects non-numeric weight column", {
-  df <- data.frame(x = 1:5, w = letters[1:5])
-  expect_error(
-    rescale_weights(df, weights = w),
-    class = "surveywts_error_weights_not_numeric"
-  )
-  expect_snapshot(error = TRUE, rescale_weights(df, weights = w))
-})
-
-test_that("rescale_weights() rejects negative weight values", {
-  df <- data.frame(x = 1:5, w = c(1, 2, -1, 2, 1))
-  expect_error(
-    rescale_weights(df, weights = w),
-    class = "surveywts_error_weights_nonpositive"
-  )
-  expect_snapshot(error = TRUE, rescale_weights(df, weights = w))
-})
-
-test_that("rescale_weights() rejects NA weight values", {
-  df <- data.frame(x = 1:5, w = c(1, 2, NA, 2, 1))
-  expect_error(
-    rescale_weights(df, weights = w),
-    class = "surveywts_error_weights_na"
-  )
-  expect_snapshot(error = TRUE, rescale_weights(df, weights = w))
-})
+# E6-E9 removed — weight validation (not_found, not_numeric, nonpositive, na)
+# is now enforced by the S7 class validator at construction time; these errors
+# are no longer reachable via the public API.
 
 test_that("rescale_weights() rejects by variable not in data", {
   df <- make_surveywts_data(seed = 1)
+  taylor <- .make_test_taylor_wt(df)
   expect_error(
-    rescale_weights(df, weights = base_weight, by = nonexistent_col),
+    rescale_weights(taylor, by = nonexistent_col),
     class = "surveywts_error_by_variable_not_found"
   )
   expect_snapshot(
     error = TRUE,
-    rescale_weights(df, weights = base_weight, by = nonexistent_col)
+    rescale_weights(taylor, by = nonexistent_col)
   )
 })
 
 test_that("rescale_weights() rejects by variable with NA values", {
   df <- make_surveywts_data(seed = 1)
   df$age_group[1] <- NA
+  taylor <- .make_test_taylor_wt(df)
   expect_error(
-    rescale_weights(df, weights = base_weight, by = age_group),
+    rescale_weights(taylor, by = age_group),
     class = "surveywts_error_variable_has_na"
   )
   expect_snapshot(
     error = TRUE,
-    rescale_weights(df, weights = base_weight, by = age_group)
+    rescale_weights(taylor, by = age_group)
   )
 })
 
-test_that("rescale_weights() rejects wt_name = 1L (plain df + NULL weights)", {
+test_that("rescale_weights() rejects wt_name = 1L", {
   df <- make_surveywts_data(seed = 1)
+  taylor <- .make_test_taylor_wt(df)
   expect_error(
-    rescale_weights(df, wt_name = 1L),
+    rescale_weights(taylor, wt_name = 1L),
     class = "surveywts_error_wt_name_not_scalar"
   )
   expect_snapshot(
     error = TRUE,
-    rescale_weights(df, wt_name = 1L)
+    rescale_weights(taylor, wt_name = 1L)
   )
 })
 
-test_that("rescale_weights() rejects wt_name = '' (plain df + NULL weights)", {
+test_that("rescale_weights() rejects wt_name = ''", {
   df <- make_surveywts_data(seed = 1)
+  taylor <- .make_test_taylor_wt(df)
   expect_error(
-    rescale_weights(df, wt_name = ""),
+    rescale_weights(taylor, wt_name = ""),
     class = "surveywts_error_wt_name_empty"
   )
   expect_snapshot(
     error = TRUE,
-    rescale_weights(df, wt_name = "")
+    rescale_weights(taylor, wt_name = "")
   )
 })
 
@@ -1073,8 +983,9 @@ test_that("rescale_weights() surveywts_error_empty_data: S7 class invariant prev
 
 test_that("rescale_weights() history entry has all required fields", {
   df <- make_surveywts_data(seed = 70)
-  result <- rescale_weights(df, weights = base_weight)
-  hist_entry <- attr(result, "weighting_history")[[1]]
+  taylor <- .make_test_taylor_wt(df)
+  result <- rescale_weights(taylor)
+  hist_entry <- result@metadata@weighting_history[[1]]
 
   expect_identical(hist_entry$operation, "rescale_weights")
   expect_true("by" %in% names(hist_entry$parameters))
@@ -1084,21 +995,22 @@ test_that("rescale_weights() history entry has all required fields", {
 
 test_that("rescale_weights() by history: named scale_factor vector with ' | ' separator", {
   df <- make_surveywts_data(seed = 71)
-  result <- rescale_weights(df, weights = base_weight, by = c(age_group, sex))
-  hist_entry <- attr(result, "weighting_history")[[1]]
+  taylor <- .make_test_taylor_wt(df)
+  result <- rescale_weights(taylor, by = c(age_group, sex))
+  hist_entry <- result@metadata@weighting_history[[1]]
   expect_false(is.null(hist_entry$parameters$by))
   expect_true(is.numeric(hist_entry$parameters$scale_factor))
   expect_true(length(hist_entry$parameters$scale_factor) > 1L)
-  # Multi-variable by: names use ' | ' separator
   sf_names <- names(hist_entry$parameters$scale_factor)
   expect_true(all(grepl(" | ", sf_names, fixed = TRUE)))
 })
 
 test_that("rescale_weights() step number correct when chained after trim_weights()", {
   df <- make_surveywts_data(seed = 72)
-  trimmed <- trim_weights(df, weights = base_weight, upper = 0.9, type = "percentile")
+  taylor <- .make_test_taylor_wt(df)
+  trimmed <- trim_weights(taylor, upper = 0.9, type = "percentile")
   result <- rescale_weights(trimmed)
-  hist <- attr(result, "weighting_history")
+  hist <- result@metadata@weighting_history
   expect_equal(length(hist), 2L)
   expect_equal(hist[[2L]]$step, 2L)
   expect_identical(hist[[2L]]$operation, "rescale_weights")
@@ -1108,32 +1020,39 @@ test_that("rescale_weights() step number correct when chained after trim_weights
 
 test_that("rescale_weights() no-op when weights already sum to n", {
   n <- 100L
-  # Create weights that already sum to n
-  w <- rep(1, n)  # uniform weights already sum to n
+  w <- rep(1, n)
   df <- data.frame(x = seq_len(n), w = w)
-  result <- rescale_weights(df, weights = w)
-  hist_entry <- attr(result, "weighting_history")[[1]]
+  taylor <- .make_test_taylor_wt(df, weight_col = "w")
+  result <- rescale_weights(taylor)
+  hist_entry <- result@metadata@weighting_history[[1]]
   expect_equal(hist_entry$parameters$scale_factor, 1.0, tolerance = 1e-10)
-  expect_equal(sum(result[["w"]]), n, tolerance = 1e-10)
+  expect_equal(
+    sum(result@data[[result@variables$weights]]),
+    n,
+    tolerance = 1e-10
+  )
 })
 
 test_that("rescale_weights() single-row data: weight set to 1", {
   one_row <- data.frame(x = 1, w = 5.0)
-  result <- rescale_weights(one_row, weights = w)
-  expect_equal(result[["w"]], 1.0, tolerance = 1e-10)
+  taylor_one <- .make_test_taylor_wt(one_row, weight_col = "w")
+  result <- rescale_weights(taylor_one)
+  expect_equal(result@data[[result@variables$weights]], 1.0, tolerance = 1e-10)
 })
 
 test_that("rescale_weights() by with one group: equivalent to global stabilization", {
   df <- make_surveywts_data(seed = 75)
-  # Use a variable with only one level
   df$const_group <- "all"
+  taylor <- .make_test_taylor_wt(df)
 
-  result_global <- rescale_weights(df, weights = base_weight)
-  result_by <- rescale_weights(df, weights = base_weight, by = const_group)
+  result_global <- rescale_weights(taylor)
+  result_by <- rescale_weights(taylor, by = const_group)
 
-  expect_equal(result_global[["base_weight"]],
-               result_by[["base_weight"]],
-               tolerance = 1e-10)
+  expect_equal(
+    result_global@data[[result_global@variables$weights]],
+    result_by@data[[result_by@variables$weights]],
+    tolerance = 1e-10
+  )
 })
 
 test_that("rescale_weights() by with group of size 1: weight for that observation set to 1", {
@@ -1143,10 +1062,14 @@ test_that("rescale_weights() by with group of size 1: weight for that observatio
     w = exp(stats::rnorm(n, 0, 0.4)),
     grp = c("A", rep("B", n - 1L))
   )
-  result <- rescale_weights(df, weights = w, by = grp)
-  # Group "A" has 1 observation: its weight should be 1
+  taylor <- .make_test_taylor_wt(df, weight_col = "w")
+  result <- rescale_weights(taylor, by = grp)
   idx_a <- df$grp == "A"
-  expect_equal(result[["w"]][idx_a], 1.0, tolerance = 1e-10)
+  expect_equal(
+    result@data[[result@variables$weights]][idx_a],
+    1.0,
+    tolerance = 1e-10
+  )
 })
 
 # ===========================================================================
@@ -1215,12 +1138,6 @@ test_that(".has_repweights() returns FALSE for survey_taylor", {
   df <- make_surveywts_data(seed = 1)
   design <- .make_test_taylor_wt(df)
   expect_false(.has_repweights(design))
-})
-
-test_that(".has_repweights() returns FALSE for weighted_df", {
-  df <- make_surveywts_data(seed = 1)
-  wdf <- .make_test_wdf(df)
-  expect_false(.has_repweights(wdf))
 })
 
 test_that(".has_repweights() returns FALSE for plain data.frame", {

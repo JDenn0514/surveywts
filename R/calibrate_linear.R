@@ -12,7 +12,7 @@
 #                        .validate_calibration_variables(),
 #                        .validate_population_marginals(),
 #                        .compute_weight_stats(), .make_history_entry(),
-#                        .make_weighted_df(), .update_survey_weights(),
+#                        .update_survey_weights(),
 #                        .check_input_class(), .get_history()
 #   R/calibrate-utils.R — .parse_margins(), .validate_bounds(),
 #                         .validate_unit_scale(), .make_calfun_linear(),
@@ -29,13 +29,13 @@
 #' calibration where g-weights are constrained to `[L, U]` using
 #' Newton-Raphson iteration.
 #'
-#' @param data A `data.frame`, `weighted_df`, `survey_taylor`,
-#'   `survey_nonprob`, or `survey_replicate`. Any other class -> error.
-#'   When `data` is a `survey_replicate`, calibration is applied independently
-#'   to every replicate weight column using the same population `targets`.
-#'   Replicate columns that fail calibration are kept at their original values
-#'   and reported via `surveywts_warning_replicate_calibration_failed`; the
-#'   full-sample calibration still completes normally.
+#' @param data A `survey_taylor`, `survey_nonprob`, or `survey_replicate`. Any
+#'   other class -> error. When `data` is a `survey_replicate`, calibration is
+#'   applied independently to every replicate weight column using the same
+#'   population `targets`. Replicate columns that fail calibration are kept at
+#'   their original values and reported via
+#'   `surveywts_warning_replicate_calibration_failed`; the full-sample
+#'   calibration still completes normally.
 #' @param targets Named list of population marginal targets (Format A) or a
 #'   long data frame with columns `variable`, `level`, `target` (Format B).
 #'
@@ -60,13 +60,10 @@
 #'   element must sum to 1.0 within 1e-6. For `type = "count"`: all values
 #'   must be strictly positive and all marginal sums must agree within 1e-3.
 #' @param weights <[`tidy-select`][tidyselect::language]> Weight column name
-#'   (bare name). `NULL` -> auto-detected from `weighted_df` attribute or
-#'   survey object `@variables$weights`. For plain `data.frame` with
-#'   `weights = NULL`, uniform starting weights (all 1) are used and
-#'   `surveywts_warning_srs_no_weights` is emitted.
-#' @param wt_name Character scalar. Name of the output weight column in the
-#'   returned `weighted_df`. Default `"wts"`. Ignored when `data` is a survey
-#'   object.
+#'   (bare name). Auto-detected from survey object `@variables$weights`.
+#' @param wt_name `NULL` (default) or a `character(1)`. When `NULL`, calibrated
+#'   weights overwrite the existing weight column in place. When a character
+#'   string, a new column is added and `@variables$weights` updated.
 #' @param bounds `NULL` (default) or a length-2 numeric vector `c(L, U)`.
 #'   `NULL`: plain unbounded linear calibration. G-weights are unconstrained
 #'   and negative calibrated weights are possible. `c(L, U)`: truncated-linear
@@ -100,8 +97,6 @@
 #'   `surveywts_error_reference_design_not_taylor`.
 #'
 #' @returns
-#'   - `data.frame` or `weighted_df` input -> `weighted_df` with the calibrated
-#'     weight column named by `wt_name` and a history entry appended.
 #'   - `survey_taylor` input -> `survey_taylor` (class preserved); only
 #'     `@variables$weights` (the weight column) and `@calibration` are
 #'     modified. `@variables$ids`, `@variables$strata`, `@variables$fpc`,
@@ -155,30 +150,28 @@
 #' @export
 #'
 #' @examples
+#' ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
+#'
 #' targets_a <- list(
 #'   sex   = c("Male" = 0.49, "Female" = 0.51),
 #'   age_f3 = c("18-34" = 0.30, "35-54" = 0.33, "55+" = 0.37)
 #' )
 #'
-#' # Format A + data.frame -------------------------------------------------
-#' calibrate_linear(ns_wave1, targets = targets_a, weights = weight)
-#'
-#' # survey_nonprob — weight column auto-detected ---------------------------
-#' ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
+#' # Format A ---------------------------------------------------------------
 #' calibrate_linear(ns_wave1_svy, targets = targets_a)
 #'
-#' # Format B -------------------------------------------------------
+#' # Format B ---------------------------------------------------------------
 #' targets_b <- data.frame(
 #'   variable = c("sex", "sex", "age_f3", "age_f3", "age_f3"),
 #'   level    = c("Male", "Female", "18-34", "35-54", "55+"),
 #'   target   = c(0.49, 0.51, 0.30, 0.33, 0.37)
 #' )
-#' calibrate_linear(ns_wave1, targets = targets_b, weights = weight)
+#' calibrate_linear(ns_wave1_svy, targets = targets_b)
 calibrate_linear <- function(
   data,
   targets,
   weights = NULL,
-  wt_name = "wts",
+  wt_name = NULL,
   bounds = NULL,
   bounds_scale = c("multiplicative", "absolute"),
   unit_scale = NULL,
@@ -224,7 +217,7 @@ calibrate_linear <- function(
   .check_input_class(data)
 
   # ---- 2. Empty data check -------------------------------------------------
-  data_df <- if (inherits(data, "data.frame")) as.data.frame(data) else data@data
+  data_df <- data@data
   if (nrow(data_df) == 0L) {
     cli::cli_abort(
       c(
@@ -240,38 +233,9 @@ calibrate_linear <- function(
   targets_a <- .parse_margins(targets)
   variable_names <- names(targets_a)
 
-  # ---- 4. Determine weight column and handle SRS case ----------------------
+  # ---- 4. Determine weight column ------------------------------------------
   weight_col <- .get_weight_col_name(data, weights_quo)
-
-  # For plain data.frame with weights = NULL: uniform weights (all 1) + warning
-  is_plain_df <- inherits(data, "data.frame") && !inherits(data, "weighted_df")
-  srs_assumption <- is_plain_df && rlang::quo_is_null(weights_quo)
-
-  if (srs_assumption) {
-    cli::cli_warn(
-      c(
-        "!" = paste0(
-          "No {.arg weights} supplied for a plain {.cls data.frame}. ",
-          "Using uniform starting weights (all 1)."
-        ),
-        "i" = paste0(
-          "This assumes a simple random sample (SRS). Supply design ",
-          "weights for unequal-probability designs."
-        )
-      ),
-      class = "surveywts_warning_srs_no_weights"
-    )
-    data_df[[wt_name]] <- rep(1, nrow(data_df))
-    weight_col <- wt_name
-  }
-
-  # Extract the plain data frame for all downstream operations
-  plain_df <- if (inherits(data, "data.frame")) data_df else data@data
-
-  # For data.frame inputs: sync plain_df with the (possibly newly added) weight col
-  if (inherits(data, "data.frame") && !weight_col %in% names(plain_df)) {
-    plain_df <- data_df
-  }
+  plain_df <- data_df
 
   # ---- 5. Validate weights -------------------------------------------------
   .validate_weights(plain_df, weight_col)
@@ -312,11 +276,6 @@ calibrate_linear <- function(
 
   # ---- 10. Extract starting weights ----------------------------------------
   weights_vec <- .get_weight_vec(data, weights_quo)
-
-  # If SRS assumption was applied, override with the 1s vector
-  if (srs_assumption) {
-    weights_vec <- rep(1, nrow(plain_df))
-  }
 
   before_stats <- .compute_weight_stats(weights_vec)
 
@@ -505,19 +464,19 @@ calibrate_linear <- function(
   if (is.null(bounds)) {
     n_neg <- sum(new_weights < 0, na.rm = TRUE)
     if (n_neg > 0L) {
-      cli::cli_warn(
+      cli::cli_abort(
         c(
-          "!" = paste0(
+          "x" = paste0(
             "Linear calibration produced {n_neg} ",
             "negative calibrated weight{?s}."
           ),
-          "i" = "Negative weights can cause invalid variance estimates.",
-          "i" = paste0(
-            "Consider {.fn calibrate_logit} or {.fn calibrate_rake} ",
+          "i" = "Negative calibrated weights cannot be stored in a survey object.",
+          "v" = paste0(
+            "Use {.fn calibrate_logit} or {.fn calibrate_rake} ",
             "for bounded positive weights, or review population targets."
           )
         ),
-        class = "surveywts_warning_negative_calibrated_weights"
+        class = "surveywts_error_negative_calibrated_weights"
       )
     }
   }
@@ -658,11 +617,7 @@ calibrate_linear <- function(
   history_entry <- .make_history_entry(
     step = length(current_history) + 1L,
     operation = "calibrate_linear",
-    weight_col = if (inherits(data, "data.frame")) {
-      wt_name
-    } else {
-      data@variables$weights
-    },
+    weight_col = if (is.null(wt_name)) data@variables$weights else wt_name,
     call_str = call_str,
     parameters = list(
       variables = variable_names,
@@ -681,12 +636,5 @@ calibrate_linear <- function(
   )
 
   # ---- 18. Build output ----------------------------------------------------
-  if (inherits(data, "data.frame")) {
-    out_df <- plain_df
-    out_df[[wt_name]] <- new_weights
-    new_history <- c(current_history, list(history_entry))
-    .make_weighted_df(out_df, wt_name, new_history)
-  } else {
-    .update_survey_weights(data, new_weights, history_entry, caldata = caldata)
-  }
+  .update_survey_weights(data, new_weights, history_entry, wt_name = wt_name, caldata = caldata)
 }

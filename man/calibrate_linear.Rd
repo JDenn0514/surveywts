@@ -8,7 +8,7 @@ calibrate_linear(
   data,
   targets,
   weights = NULL,
-  wt_name = "wts",
+  wt_name = NULL,
   bounds = NULL,
   bounds_scale = c("multiplicative", "absolute"),
   unit_scale = NULL,
@@ -18,13 +18,13 @@ calibrate_linear(
 )
 }
 \arguments{
-\item{data}{A \code{data.frame}, \code{weighted_df}, \code{survey_taylor},
-\code{survey_nonprob}, or \code{survey_replicate}. Any other class -> error.
-When \code{data} is a \code{survey_replicate}, calibration is applied independently
-to every replicate weight column using the same population \code{targets}.
-Replicate columns that fail calibration are kept at their original values
-and reported via \code{surveywts_warning_replicate_calibration_failed}; the
-full-sample calibration still completes normally.}
+\item{data}{A \code{survey_taylor}, \code{survey_nonprob}, or \code{survey_replicate}. Any
+other class -> error. When \code{data} is a \code{survey_replicate}, calibration is
+applied independently to every replicate weight column using the same
+population \code{targets}. Replicate columns that fail calibration are kept at
+their original values and reported via
+\code{surveywts_warning_replicate_calibration_failed}; the full-sample
+calibration still completes normally.}
 
 \item{targets}{Named list of population marginal targets (Format A) or a
 long data frame with columns \code{variable}, \code{level}, \code{target} (Format B).
@@ -51,14 +51,11 @@ element must sum to 1.0 within 1e-6. For \code{type = "count"}: all values
 must be strictly positive and all marginal sums must agree within 1e-3.}
 
 \item{weights}{<\code{\link[tidyselect:language]{tidy-select}}> Weight column name
-(bare name). \code{NULL} -> auto-detected from \code{weighted_df} attribute or
-survey object \verb{@variables$weights}. For plain \code{data.frame} with
-\code{weights = NULL}, uniform starting weights (all 1) are used and
-\code{surveywts_warning_srs_no_weights} is emitted.}
+(bare name). Auto-detected from survey object \verb{@variables$weights}.}
 
-\item{wt_name}{Character scalar. Name of the output weight column in the
-returned \code{weighted_df}. Default \code{"wts"}. Ignored when \code{data} is a survey
-object.}
+\item{wt_name}{\code{NULL} (default) or a \code{character(1)}. When \code{NULL}, calibrated
+weights overwrite the existing weight column in place. When a character
+string, a new column is added and \verb{@variables$weights} updated.}
 
 \item{bounds}{\code{NULL} (default) or a length-2 numeric vector \code{c(L, U)}.
 \code{NULL}: plain unbounded linear calibration. G-weights are unconstrained
@@ -99,8 +96,6 @@ non-\code{NULL} non-\code{survey_taylor} value triggers
 }
 \value{
 \itemize{
-\item \code{data.frame} or \code{weighted_df} input -> \code{weighted_df} with the calibrated
-weight column named by \code{wt_name} and a history entry appended.
 \item \code{survey_taylor} input -> \code{survey_taylor} (class preserved); only
 \verb{@variables$weights} (the weight column) and \verb{@calibration} are
 modified. \verb{@variables$ids}, \verb{@variables$strata}, \verb{@variables$fpc},
@@ -152,25 +147,23 @@ Calibration non-convergence raises an error.
 }
 
 \examples{
+ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
+
 targets_a <- list(
   sex   = c("Male" = 0.49, "Female" = 0.51),
   age_f3 = c("18-34" = 0.30, "35-54" = 0.33, "55+" = 0.37)
 )
 
-# Format A + data.frame -------------------------------------------------
-calibrate_linear(ns_wave1, targets = targets_a, weights = weight)
-
-# survey_nonprob — weight column auto-detected ---------------------------
-ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
+# Format A ---------------------------------------------------------------
 calibrate_linear(ns_wave1_svy, targets = targets_a)
 
-# Format B -------------------------------------------------------
+# Format B ---------------------------------------------------------------
 targets_b <- data.frame(
   variable = c("sex", "sex", "age_f3", "age_f3", "age_f3"),
   level    = c("Male", "Female", "18-34", "35-54", "55+"),
   target   = c(0.49, 0.51, 0.30, 0.33, 0.37)
 )
-calibrate_linear(ns_wave1, targets = targets_b, weights = weight)
+calibrate_linear(ns_wave1_svy, targets = targets_b)
 }
 \references{
 Deville, J.-C. and Sarndal, C.-E. (1992). Calibration estimators in

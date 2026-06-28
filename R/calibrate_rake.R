@@ -21,13 +21,13 @@
 #' `"nr"` method (Newton-Raphson solver from Deville, Sarndal & Sautory 1993,
 #' using the multiplicative `F(u) = exp(u)` function).
 #'
-#' @param data A `data.frame`, `weighted_df`, `survey_taylor`,
-#'   `survey_nonprob`, or `survey_replicate`. Any other class -> error.
-#'   When `data` is a `survey_replicate`, raking is applied independently
-#'   to every replicate weight column using the same population `targets`.
-#'   Replicate columns that fail raking are kept at their original values
-#'   and reported via a `surveywts_warning_replicate_calibration_failed`
-#'   warning; the full-sample raking still completes normally.
+#' @param data A `survey_taylor`, `survey_nonprob`, or `survey_replicate`. Any
+#'   other class -> error. When `data` is a `survey_replicate`, raking is
+#'   applied independently to every replicate weight column using the same
+#'   population `targets`. Replicate columns that fail raking are kept at their
+#'   original values and reported via a
+#'   `surveywts_warning_replicate_calibration_failed` warning; the full-sample
+#'   raking still completes normally.
 #' @param targets Named list or data frame specifying population margin targets.
 #'
 #'   **Format A -- named list:**
@@ -50,13 +50,10 @@
 #'   ```
 #'   Format B is auto-detected and converted to Format A before use.
 #' @param weights <[`tidy-select`][tidyselect::language]> Weight column name
-#'   (bare name). `NULL` -> auto-detected from `weighted_df` attribute or
-#'   survey object `@variables$weights`. For plain `data.frame` with
-#'   `weights = NULL`, uniform starting weights are used and the output
-#'   column is named by `wt_name` (default `"wts"`).
-#' @param wt_name Character scalar. Name of the output weight column in the
-#'   returned `weighted_df`. Default `"wts"`. Ignored when `data` is a survey
-#'   object (`survey_taylor` or `survey_nonprob`).
+#'   (bare name). Auto-detected from survey object `@variables$weights`.
+#' @param wt_name `NULL` (default) or a `character(1)`. When `NULL`, raked
+#'   weights overwrite the existing weight column in place. When a character
+#'   string, a new column is added and `@variables$weights` updated.
 #' @param type Character scalar. `"prop"` (default): `targets` values are
 #'   proportions. `"count"`: `targets` values are counts.
 #' @param algorithm Character scalar. `"classic_ipf"` (default): chi-square
@@ -92,7 +89,6 @@
 #'   non-`survey_taylor` value triggers an error.
 #'
 #' @returns
-#'   - `data.frame` or `weighted_df` input -> `weighted_df`
 #'   - `survey_taylor` or `survey_nonprob` input -> same class as input
 #'     (class is preserved); `@calibration` slot is populated
 #'   - `survey_replicate` input -> `survey_replicate` (class preserved);
@@ -169,35 +165,31 @@
 #' @export
 #'
 #' @examples
+#' ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
+#'
 #' targets_a <- list(
 #'   sex   = c("Male" = 0.49, "Female" = 0.51),
 #'   age_f3 = c("18-34" = 0.30, "35-54" = 0.33, "55+" = 0.37)
 #' )
 #'
-#' # Format A + classic_ipf (default) ----------------------------
-#' calibrate_rake(ns_wave1, targets = targets_a, weights = weight)
-#'
-#' # Format A + Newton-Raphson algorithm -------------------------
-#' calibrate_rake(
-#'   ns_wave1, targets = targets_a, weights = weight, algorithm = "nr"
-#' )
-#'
-#' # survey_nonprob — weight column auto-detected -----------------
-#' ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
+#' # Format A + classic_ipf (default) ------------------------------------
 #' calibrate_rake(ns_wave1_svy, targets = targets_a)
 #'
-#' # Format B -------------------------------------------------------
+#' # Format A + Newton-Raphson algorithm ---------------------------------
+#' calibrate_rake(ns_wave1_svy, targets = targets_a, algorithm = "nr")
+#'
+#' # Format B ------------------------------------------------------------
 #' targets_b <- data.frame(
 #'   variable = c("sex", "sex", "age_f3", "age_f3", "age_f3"),
 #'   level    = c("Male", "Female", "18-34", "35-54", "55+"),
 #'   target   = c(0.49, 0.51, 0.30, 0.33, 0.37)
 #' )
-#' calibrate_rake(ns_wave1, targets = targets_b, weights = weight)
+#' calibrate_rake(ns_wave1_svy, targets = targets_b)
 calibrate_rake <- function(
   data,
   targets,
   weights = NULL,
-  wt_name = "wts",
+  wt_name = NULL,
   type = c("prop", "count"),
   algorithm = c("classic_ipf", "nr"),
   cap = NULL,
@@ -324,7 +316,7 @@ calibrate_rake <- function(
   .check_input_class(data)
 
   # ---- 2. Empty data check ------------------------------------------------
-  data_df <- if (inherits(data, "data.frame")) as.data.frame(data) else data@data
+  data_df <- data@data
   if (nrow(data_df) == 0L) {
     cli::cli_abort(
       c(
@@ -341,34 +333,7 @@ calibrate_rake <- function(
 
   # ---- 4. Weight column name and handling ---------------------------------
   weight_col <- .get_weight_col_name(data, weights_quo)
-
-  # For plain data.frame with weights = NULL: warn SRS assumption, uniform weights
-  if (inherits(data, "data.frame") && rlang::quo_is_null(weights_quo) &&
-      !inherits(data, "weighted_df")) {
-    cli::cli_warn(
-      c(
-        "!" = paste0(
-          "No {.arg weights} supplied for a plain {.cls data.frame}. ",
-          "Using uniform starting weights (all 1)."
-        ),
-        "i" = paste0(
-          "This assumes a simple random sample (SRS). Supply design ",
-          "weights for unequal-probability designs."
-        )
-      ),
-      class = "surveywts_warning_srs_no_weights"
-    )
-    data_df[[wt_name]] <- rep(1, nrow(data_df))
-    weight_col <- wt_name
-  }
-
-  # Extract the plain data frame for validation
-  plain_df <- if (inherits(data, "data.frame")) data_df else data@data
-
-  # Ensure uniform-weight column is reflected in plain_df
-  if (inherits(data, "data.frame") && !weight_col %in% names(plain_df)) {
-    plain_df <- data_df
-  }
+  plain_df <- data_df
 
   .validate_weights(plain_df, weight_col)
 
@@ -698,11 +663,7 @@ calibrate_rake <- function(
   history_entry <- .make_history_entry(
     step = length(current_history) + 1L,
     operation = "calibrate_rake",
-    weight_col = if (inherits(data, "data.frame")) {
-      wt_name
-    } else {
-      data@variables$weights
-    },
+    weight_col = if (is.null(wt_name)) data@variables$weights else wt_name,
     call_str = call_str,
     parameters = list(
       variables = target_var_names,
@@ -720,14 +681,7 @@ calibrate_rake <- function(
   )
 
   # ---- 12. Build output ---------------------------------------------------
-  if (inherits(data, "data.frame")) {
-    out_df <- plain_df
-    out_df[[wt_name]] <- new_weights
-    new_history <- c(current_history, list(history_entry))
-    .make_weighted_df(out_df, wt_name, new_history)
-  } else {
-    .update_survey_weights(data, new_weights, history_entry, caldata = caldata)
-  }
+  .update_survey_weights(data, new_weights, history_entry, wt_name = wt_name, caldata = caldata)
 }
 
 # ---------------------------------------------------------------------------

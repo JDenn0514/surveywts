@@ -10,13 +10,13 @@ redistribute_weights(
   increase_if,
   weights = NULL,
   by = NULL,
-  wt_name = "wts",
+  wt_name = NULL,
   control = list()
 )
 }
 \arguments{
-\item{data}{A \code{data.frame}, \code{weighted_df}, \code{survey_taylor}, or
-\code{survey_nonprob}. \code{survey_replicate} -> error.}
+\item{data}{A \code{survey_taylor} or \code{survey_nonprob}. \code{survey_replicate} ->
+error. Any other class -> error.}
 
 \item{reduce_if}{Bare name (NSE). Binary indicator column (\code{logical} or
 integer \code{0}/\code{1}). Rows where this is \code{TRUE}/\code{1} have their weight set
@@ -26,15 +26,15 @@ to 0 and their weight redistributed.}
 this is \code{TRUE}/\code{1} receive the redistributed weight.}
 
 \item{weights}{Bare name (NSE). Weight column. Auto-detected from
-\code{weighted_df} attribute or \verb{@variables$weights}. For plain \code{data.frame}
-with \code{weights = NULL}, uniform starting weights are used.}
+\verb{@variables$weights}.}
 
 \item{by}{<\code{\link[tidyselect:language]{tidy-select}}> Grouping variable(s).
 Redistribution is performed within each group. \code{NULL} -> global
 redistribution.}
 
-\item{wt_name}{Character scalar. Name of the output weight column in the
-returned \code{weighted_df}. Default \code{"wts"}. Ignored for survey objects.}
+\item{wt_name}{\code{NULL} (default) or a character scalar. When \code{NULL},
+adjusted weights overwrite the existing weight column in place. When a
+character string, a new column is added and \verb{@variables$weights} updated.}
 
 \item{control}{Named list of warning thresholds. Merged with defaults
 \code{list(min_cell = 20, max_adjust = 2.0)}. \code{min_cell}: warn when a
@@ -43,8 +43,6 @@ when the adjustment factor exceeds this value.}
 }
 \value{
 \itemize{
-\item \code{data.frame} or \code{weighted_df} input -> \code{weighted_df} (all rows
-retained; \code{reduce_if} rows have weight 0).
 \item \code{survey_nonprob} or \code{survey_taylor} input -> same class as input,
 with \code{reduce_if} rows removed (zero weights violate survey validators).
 }
@@ -75,21 +73,7 @@ Rows matching neither indicator are unchanged.
 }
 
 \examples{
-# data.frame path: add reduce_if and increase_if columns ----------------
-gss <- gss_2024[!is.na(gss_2024$sex), ]
-gss$excluded <- sample(
-  c(0L, 1L), nrow(gss), replace = TRUE, prob = c(0.8, 0.2)
-)
-gss$retained <- as.integer(!gss$excluded)
-result <- redistribute_weights(
-  gss,
-  reduce_if   = excluded,
-  increase_if = retained,
-  weights     = wtssps,
-  by          = sex
-)
-
-# survey_taylor path: mutate the tibble first, then construct the design --
+# survey_taylor: mutate the tibble first, then construct the design -------
 gss_excl <- gss_2024[!is.na(gss_2024$sex), ]
 gss_excl$excluded <- sample(
   c(0L, 1L), nrow(gss_excl), replace = TRUE, prob = c(0.8, 0.2)
@@ -98,7 +82,7 @@ gss_excl$retained <- as.integer(!gss_excl$excluded)
 gss_svy <- surveycore::as_survey(
   gss_excl, weights = wtssps, strata = vstrat, ids = vpsu, nest = TRUE
 )
-result <- redistribute_weights(
+redistribute_weights(
   gss_svy, reduce_if = excluded, increase_if = retained, by = sex
 )
 

@@ -11,21 +11,20 @@
 #' set to zero and respondent weights increase proportionally to preserve the
 #' total weight within each class.
 #'
-#' @param data A `data.frame`, `weighted_df`, `survey_taylor`, or
-#'   `survey_nonprob`. Must include BOTH respondents and nonrespondents.
-#'   `survey_replicate` -> error. Any other class -> error.
+#' @param data A `survey_taylor` or `survey_nonprob`. Must include BOTH
+#'   respondents and nonrespondents. `survey_replicate` -> error. Any other
+#'   class -> error.
 #' @param response_status Bare name (NSE). Binary response indicator column.
 #'   Must be `logical` or integer `0`/`1`. `1` / `TRUE` = respondent.
 #' @param weights Bare name (NSE). Weight column. `NULL` -> auto-detected from
-#'   `weighted_df` attribute or survey object `@variables$weights`. For plain
-#'   `data.frame` with `weights = NULL`, uniform starting weights are used.
+#'   survey object `@variables$weights`.
 #' @param by <[`tidy-select`][tidyselect::language]> Weighting class variables.
 #'   Redistribution is performed within each cell defined by the joint
 #'   combination of these variables. `NULL` -> global redistribution across
 #'   all rows.
-#' @param wt_name Character scalar. Name of the output weight column in the
-#'   returned `weighted_df`. Default `"wts"`. Ignored when `data` is a survey
-#'   object (`survey_taylor` or `survey_nonprob`).
+#' @param wt_name `NULL` (default) or a character scalar. When `NULL`,
+#'   adjusted weights overwrite the existing weight column in place. When a
+#'   character string, a new column is added and `@variables$weights` updated.
 #' @param method Character scalar. Adjustment method. One of
 #'   `"weighting-class"` (default), `"propensity-cell"`, or `"propensity"`.
 #'   - `"weighting-class"`: cells are defined by `by` groups; adjustment
@@ -64,7 +63,6 @@
 #'   weights are set to 0; respondent weights are adjusted upward to conserve
 #'   the total weight within each cell.
 #'
-#'   - `data.frame` or `weighted_df` input -> `weighted_df`
 #'   - `survey_nonprob` input -> `survey_nonprob` (same class)
 #'   - `survey_taylor` input -> `survey_taylor` (same class; respondent
 #'     rows only, because `survey_taylor` does not support zero weights)
@@ -106,16 +104,7 @@
 #' @seealso [redistribute_weights()]
 #'
 #' @examples
-#' # data.frame path: add response_status column ---------------------------
-#' gss <- gss_2024[!is.na(gss_2024$sex), ]
-#' gss$responded <- sample(
-#'   c(0L, 1L), nrow(gss), replace = TRUE, prob = c(0.2, 0.8)
-#' )
-#' result <- adjust_nonresponse(
-#'   gss, response_status = responded, weights = wtssps, by = sex
-#' )
-#'
-#' # survey_taylor path: mutate the tibble first, then construct the design --
+#' # survey_taylor: mutate the tibble first, then construct the design -------
 #' gss_with_resp <- gss_2024[!is.na(gss_2024$sex), ]
 #' gss_with_resp$responded <- sample(
 #'   c(0L, 1L), nrow(gss_with_resp), replace = TRUE, prob = c(0.2, 0.8)
@@ -132,7 +121,7 @@ adjust_nonresponse <- function(
   response_status,
   weights = NULL,
   by = NULL,
-  wt_name = "wts",
+  wt_name = NULL,
   method = c("weighting-class", "propensity-cell", "propensity"),
   formula = NULL,
   control = list(min_cell = 20, max_adjust = 2.0, n_cells = 5)
@@ -167,7 +156,7 @@ adjust_nonresponse <- function(
   }
 
   # ---- 2. Extract plain data frame ------------------------------------------
-  data_df <- if (inherits(data, "data.frame")) as.data.frame(data) else data@data
+  data_df <- data@data
 
   # ---- 3. Empty data check --------------------------------------------------
   if (nrow(data_df) == 0L) {
@@ -184,18 +173,7 @@ adjust_nonresponse <- function(
   # ---- 4. Weight column name ------------------------------------------------
   weight_col <- .get_weight_col_name(data, weights_quo)
 
-  # For plain data.frame with weights = NULL: create uniform starting weights
-  if (inherits(data, "data.frame") && rlang::quo_is_null(weights_quo) &&
-      !inherits(data, "weighted_df")) {
-    data_df[[wt_name]] <- rep(1 / nrow(data_df), nrow(data_df))
-    weight_col <- wt_name
-  }
-
-  # Sync plain_df when we added a uniform weight column
-  plain_df <- if (inherits(data, "data.frame")) data_df else data@data
-  if (inherits(data, "data.frame") && !weight_col %in% names(plain_df)) {
-    plain_df <- data_df
-  }
+  plain_df <- data_df
 
   # ---- 5. Validate weights --------------------------------------------------
   .validate_weights(plain_df, weight_col)
@@ -437,10 +415,6 @@ adjust_nonresponse <- function(
     # Set nonrespondent weights to 0
     new_weights_pc[!is_respondent] <- 0
 
-    out_df_pc  <- plain_df
-    out_col_pc <- if (inherits(data, "data.frame")) wt_name else weight_col
-    out_df_pc[[out_col_pc]] <- new_weights_pc
-
     # Build history entry
     after_stats_pc  <- .compute_weight_stats(new_weights_pc[is_respondent])
     current_hist_pc <- .get_history(data)
@@ -448,11 +422,7 @@ adjust_nonresponse <- function(
     history_entry_pc <- .make_history_entry(
       step        = length(current_hist_pc) + 1L,
       operation   = "nonresponse_propensity_cell",
-      weight_col  = if (inherits(data, "data.frame")) {
-        wt_name
-      } else {
-        data@variables$weights
-      },
+      weight_col  = if (is.null(wt_name)) data@variables$weights else wt_name,
       call_str    = call_str,
       parameters  = list(
         formula      = deparse(formula),
@@ -465,19 +435,17 @@ adjust_nonresponse <- function(
       convergence  = NULL
     )
 
-    # Build and return output (same class as input)
-    if (inherits(data, "data.frame")) {
-      new_history_pc <- c(current_hist_pc, list(history_entry_pc))
-      return(.make_weighted_df(out_df_pc, wt_name, new_history_pc))
-    } else if (S7::S7_inherits(data, surveycore::survey_nonprob)) {
-      return(.update_survey_weights(data, new_weights_pc, history_entry_pc))
+    # Return same class as input
+    if (S7::S7_inherits(data, surveycore::survey_nonprob)) {
+      return(.update_survey_weights(data, new_weights_pc, history_entry_pc,
+                                    wt_name = wt_name))
     } else {
-      resp_rows_pc      <- which(is_respondent)
-      filtered_design   <- data
-      filtered_design@data <- out_df_pc[resp_rows_pc, , drop = FALSE]
+      resp_rows_pc <- which(is_respondent)
+      filtered_design <- data
+      filtered_design@data <- plain_df[resp_rows_pc, , drop = FALSE]
       return(
         .update_survey_weights(filtered_design, new_weights_pc[resp_rows_pc],
-                               history_entry_pc)
+                               history_entry_pc, wt_name = wt_name)
       )
     }
   }  # end propensity-cell branch
@@ -671,11 +639,6 @@ adjust_nonresponse <- function(
       }
     }
 
-    # Prepare output data frame (all rows; nonrespondent weights = 0)
-    out_df_p  <- plain_df
-    out_col_p <- if (inherits(data, "data.frame")) wt_name else weight_col
-    out_df_p[[out_col_p]] <- new_weights_p
-
     # Build history entry
     after_stats_p  <- .compute_weight_stats(new_weights_p[is_respondent])
     current_hist_p <- .get_history(data)
@@ -683,11 +646,7 @@ adjust_nonresponse <- function(
     history_entry_p <- .make_history_entry(
       step        = length(current_hist_p) + 1L,
       operation   = "nonresponse_propensity",
-      weight_col  = if (inherits(data, "data.frame")) {
-        wt_name
-      } else {
-        data@variables$weights
-      },
+      weight_col  = if (is.null(wt_name)) data@variables$weights else wt_name,
       call_str    = call_str,
       parameters  = list(
         formula = deparse(formula),
@@ -699,18 +658,16 @@ adjust_nonresponse <- function(
     )
 
     # Return same class as input
-    if (inherits(data, "data.frame")) {
-      new_history_p <- c(current_hist_p, list(history_entry_p))
-      return(.make_weighted_df(out_df_p, wt_name, new_history_p))
-    } else if (S7::S7_inherits(data, surveycore::survey_nonprob)) {
-      return(.update_survey_weights(data, new_weights_p, history_entry_p))
+    if (S7::S7_inherits(data, surveycore::survey_nonprob)) {
+      return(.update_survey_weights(data, new_weights_p, history_entry_p,
+                                    wt_name = wt_name))
     } else {
-      resp_rows_p      <- which(is_respondent)
-      filtered_p       <- data
-      filtered_p@data  <- out_df_p[resp_rows_p, , drop = FALSE]
+      resp_rows_p <- which(is_respondent)
+      filtered_p  <- data
+      filtered_p@data <- plain_df[resp_rows_p, , drop = FALSE]
       return(
         .update_survey_weights(filtered_p, new_weights_p[resp_rows_p],
-                               history_entry_p)
+                               history_entry_p, wt_name = wt_name)
       )
     }
   }  # end propensity branch
@@ -821,11 +778,6 @@ adjust_nonresponse <- function(
 
   # ---- 14. Set nonrespondent weights to 0 ----------------------------------
   new_weights[!is_respondent] <- 0
-  out_df <- plain_df
-  # For data.frame/weighted_df: write adjusted weights into wt_name column.
-  # For survey objects: write into the original weight_col (wt_name is ignored).
-  out_col <- if (inherits(data, "data.frame")) wt_name else weight_col
-  out_df[[out_col]] <- new_weights
 
   # ---- 15. Build history entry ---------------------------------------------
   after_stats     <- .compute_weight_stats(new_weights[is_respondent])
@@ -834,11 +786,7 @@ adjust_nonresponse <- function(
   history_entry <- .make_history_entry(
     step        = length(current_history) + 1L,
     operation   = "nonresponse_weighting_class",
-    weight_col  = if (inherits(data, "data.frame")) {
-      wt_name
-    } else {
-      data@variables$weights
-    },
+    weight_col  = if (is.null(wt_name)) data@variables$weights else wt_name,
     call_str    = call_str,
     parameters  = list(
       by_variables = by_names,
@@ -850,20 +798,17 @@ adjust_nonresponse <- function(
   )
 
   # ---- 16. Build output -----------------------------------------------------
-  if (inherits(data, "data.frame")) {
-    new_history <- c(current_history, list(history_entry))
-    .make_weighted_df(out_df, wt_name, new_history)
-  } else if (S7::S7_inherits(data, surveycore::survey_nonprob)) {
+  if (S7::S7_inherits(data, surveycore::survey_nonprob)) {
     # survey_nonprob supports zero weights (validator relaxed in surveycore
     # >= 0.6.1). All rows retained; nonrespondent weights = 0.
-    .update_survey_weights(data, new_weights, history_entry)
+    .update_survey_weights(data, new_weights, history_entry, wt_name = wt_name)
   } else {
     # survey_taylor validator requires all weights > 0 — fall back to
     # respondent-only filtering to avoid S7 validation failure.
     resp_rows <- which(is_respondent)
     filtered_design <- data
-    filtered_design@data <- out_df[resp_rows, , drop = FALSE]
+    filtered_design@data <- plain_df[resp_rows, , drop = FALSE]
     .update_survey_weights(filtered_design, new_weights[resp_rows],
-                           history_entry)
+                           history_entry, wt_name = wt_name)
   }
 }

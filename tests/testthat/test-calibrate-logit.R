@@ -51,55 +51,38 @@
 }
 
 # ---------------------------------------------------------------------------
-# H1: Happy path — plain data.frame, type = "prop", default bounds
+# H1: Error path — plain data.frame now rejected (not_survey_base)
 # ---------------------------------------------------------------------------
 
-test_that("H1: calibrate_logit() returns weighted_df for data.frame (prop, default bounds)", {
+test_that("H1: calibrate_logit() aborts with cli error for data.frame input", {
   df <- make_surveywts_data(seed = 1)
   targets <- .make_logit_targets()
 
-  result <- calibrate_logit(df, targets = targets, weights = base_weight)
-
-  test_invariants(result)
-  expect_true(inherits(result, "weighted_df"))
-  expect_identical(attr(result, "weight_col"), "wts")
-
-  # Calibration constraint check
-  w <- result[["wts"]]
-  total_w <- sum(w)
-  for (var in names(targets)) {
-    for (lev in names(targets[[var]])) {
-      obs_prop <- sum(w[result[[var]] == lev]) / total_w
-      expect_equal(obs_prop, targets[[var]][[lev]], tolerance = 1e-6,
-                   label = paste0(var, "=", lev))
-    }
-  }
-
-  # History entry check
-  h <- attr(result, "weighting_history")
-  expect_equal(length(h), 1L)
-  expect_identical(h[[1L]]$operation, "calibrate_logit")
+  expect_error(
+    calibrate_logit(df, targets = targets),
+    class = "surveywts_error_not_survey_base"
+  )
+  expect_snapshot(error = TRUE, calibrate_logit(df, targets = targets))
 })
 
 # ---------------------------------------------------------------------------
-# H2: Happy path — type = "count"
+# H2: Happy path — survey_taylor input, type = "count"
 # ---------------------------------------------------------------------------
 
-test_that("H2: calibrate_logit() returns weighted_df for data.frame (count)", {
+test_that("H2: calibrate_logit() handles type='count' with survey_taylor input", {
   df <- make_surveywts_data(n = 500, seed = 2)
+  taylor <- .make_test_taylor_logit(df)
   targets <- .make_logit_targets("count")
 
-  result <- calibrate_logit(
-    df, targets = targets, weights = base_weight, type = "count"
-  )
+  result <- calibrate_logit(taylor, targets = targets, type = "count")
 
   test_invariants(result)
-  expect_true(inherits(result, "weighted_df"))
+  expect_true(S7::S7_inherits(result, surveycore::survey_taylor))
 
-  w <- result[["wts"]]
+  w <- result@data[[result@variables$weights]]
   for (var in names(targets)) {
     for (lev in names(targets[[var]])) {
-      obs_count <- sum(w[result[[var]] == lev])
+      obs_count <- sum(w[result@data[[var]] == lev])
       expect_equal(obs_count, targets[[var]][[lev]], tolerance = 1e-6,
                    label = paste0(var, "=", lev))
     }
@@ -150,23 +133,21 @@ test_that("H4: calibrate_logit() preserves survey_nonprob class", {
 })
 
 # ---------------------------------------------------------------------------
-# H5: Happy path — weighted_df input: history entry appended
+# H5: Happy path — survey_taylor chained: second calibration appends history
 # ---------------------------------------------------------------------------
 
-test_that("H5: calibrate_logit() accepts weighted_df and appends history entry", {
+test_that("H5: calibrate_logit() applied twice appends two history entries", {
   df <- make_surveywts_data(seed = 5)
+  taylor <- .make_test_taylor_logit(df)
   targets <- .make_logit_targets()
 
-  # First pass: make a weighted_df via calibrate_logit itself
-  wdf <- calibrate_logit(df, targets = targets, weights = base_weight)
+  result1 <- calibrate_logit(taylor, targets = targets)
+  result2 <- calibrate_logit(result1, targets = targets)
 
-  # Second pass: calibrate the weighted_df
-  result <- calibrate_logit(wdf, targets = targets)
+  test_invariants(result2)
+  expect_true(S7::S7_inherits(result2, surveycore::survey_taylor))
 
-  test_invariants(result)
-  expect_true(inherits(result, "weighted_df"))
-
-  h <- attr(result, "weighting_history")
+  h <- result2@metadata@weighting_history
   expect_equal(length(h), 2L)
   expect_identical(h[[2L]]$operation, "calibrate_logit")
 })
@@ -187,22 +168,7 @@ test_that("H6: calibrate_logit() method='logit'; bounds_scale='multiplicative' b
   expect_identical(result@calibration$bounds_scale, "multiplicative")
 })
 
-test_that("H6b: data.frame with default bounds produces valid weighted_df", {
-  df <- make_surveywts_data(seed = 6)
-  targets <- .make_logit_targets()
-
-  result <- calibrate_logit(
-    df,
-    targets = targets,
-    weights = base_weight
-  )
-
-  test_invariants(result)
-  expect_true(inherits(result, "weighted_df"))
-  w <- result[["wts"]]
-  expect_true(all(is.finite(w)))
-  expect_true(all(w > 0))
-})
+# H6b removed — data.frame input is no longer accepted (throws surveywts_error_not_survey_base)
 
 # ---------------------------------------------------------------------------
 # H7: Happy path — unit_scale provided; @calibration$q_weights matches
@@ -263,6 +229,7 @@ test_that("H7b: reference_design sets targets_from_reference = TRUE in weighting
 
 test_that("H9: calibrate_logit() accepts Format B (long data frame) targets", {
   df <- make_surveywts_data(seed = 9)
+  taylor <- .make_test_taylor_logit(df)
   targets_b <- data.frame(
     variable = c(
       "age_group", "age_group", "age_group",
@@ -273,10 +240,10 @@ test_that("H9: calibrate_logit() accepts Format B (long data frame) targets", {
     stringsAsFactors = FALSE
   )
 
-  result <- calibrate_logit(df, targets = targets_b, weights = base_weight)
+  result <- calibrate_logit(taylor, targets = targets_b)
 
   test_invariants(result)
-  expect_true(inherits(result, "weighted_df"))
+  expect_true(S7::S7_inherits(result, surveycore::survey_taylor))
 })
 
 # ---------------------------------------------------------------------------
@@ -314,14 +281,15 @@ test_that("N1: calibrate_logit() matches survey::calibrate(calfun='logit') withi
   skip_if_not_installed("survey")
 
   df <- make_surveywts_data(n = 200, seed = 101)
+  taylor <- .make_test_taylor_logit(df)
 
   # Single variable for clean comparison
   targets_a <- list(
     age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30)
   )
 
-  result <- calibrate_logit(df, targets = targets_a, weights = base_weight)
-  wts_ours <- result[["wts"]]
+  result <- calibrate_logit(taylor, targets = targets_a)
+  wts_ours <- result@data[[result@variables$weights]]
 
   # survey::calibrate() with calfun = "logit" uses default bounds c(1e-6, 1e6)
   total_w <- sum(df$base_weight)
@@ -354,10 +322,10 @@ test_that("N1: calibrate_logit() matches survey::calibrate(calfun='logit') withi
 # E1: Error — unsupported input class
 # ---------------------------------------------------------------------------
 
-test_that("E1: calibrate_logit() throws surveywts_error_unsupported_class for bad input", {
+test_that("E1: calibrate_logit() throws surveywts_error_not_survey_base for bad input", {
   expect_error(
     calibrate_logit(list(x = 1:3), targets = list()),
-    class = "surveywts_error_unsupported_class"
+    class = "surveywts_error_not_survey_base"
   )
   expect_snapshot(
     error = TRUE,
@@ -370,20 +338,17 @@ test_that("E1: calibrate_logit() throws surveywts_error_unsupported_class for ba
 # ---------------------------------------------------------------------------
 
 test_that("E2: calibrate_logit() throws surveywts_error_empty_data for 0-row input", {
-  empty_df <- data.frame(
-    age_group = character(0),
-    base_weight = numeric(0),
-    stringsAsFactors = FALSE
-  )
+  empty_df <- make_surveywts_data(seed = 2)[0, ]
+  empty_taylor <- .make_test_taylor_logit(empty_df)
   targets <- list(age_group = c("18-34" = 1.0))
 
   expect_error(
-    calibrate_logit(empty_df, targets = targets, weights = base_weight),
+    calibrate_logit(empty_taylor, targets = targets),
     class = "surveywts_error_empty_data"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_logit(empty_df, targets = targets, weights = base_weight)
+    calibrate_logit(empty_taylor, targets = targets)
   )
 })
 
@@ -393,21 +358,16 @@ test_that("E2: calibrate_logit() throws surveywts_error_empty_data for 0-row inp
 
 test_that("E3: calibrate_logit() throws surveywts_error_wt_name_not_scalar", {
   df <- make_surveywts_data(n = 50, seed = 3)
+  taylor <- .make_test_taylor_logit(df)
   targets <- .make_logit_targets()
 
   expect_error(
-    calibrate_logit(
-      df, targets = targets, weights = base_weight,
-      wt_name = c("a", "b")
-    ),
+    calibrate_logit(taylor, targets = targets, wt_name = c("a", "b")),
     class = "surveywts_error_wt_name_not_scalar"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_logit(
-      df, targets = targets, weights = base_weight,
-      wt_name = c("a", "b")
-    )
+    calibrate_logit(taylor, targets = targets, wt_name = c("a", "b"))
   )
 })
 
@@ -417,33 +377,26 @@ test_that("E3: calibrate_logit() throws surveywts_error_wt_name_not_scalar", {
 
 test_that("E4: calibrate_logit() throws surveywts_error_wt_name_empty for NA wt_name", {
   df <- make_surveywts_data(n = 50, seed = 4)
+  taylor <- .make_test_taylor_logit(df)
   targets <- .make_logit_targets()
 
   expect_error(
-    calibrate_logit(
-      df, targets = targets, weights = base_weight,
-      wt_name = NA_character_
-    ),
+    calibrate_logit(taylor, targets = targets, wt_name = NA_character_),
     class = "surveywts_error_wt_name_empty"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_logit(
-      df, targets = targets, weights = base_weight,
-      wt_name = NA_character_
-    )
+    calibrate_logit(taylor, targets = targets, wt_name = NA_character_)
   )
 })
 
 test_that("E4b: calibrate_logit() throws surveywts_error_wt_name_empty for empty string", {
   df <- make_surveywts_data(n = 50, seed = 4)
+  taylor <- .make_test_taylor_logit(df)
   targets <- .make_logit_targets()
 
   expect_error(
-    calibrate_logit(
-      df, targets = targets, weights = base_weight,
-      wt_name = ""
-    ),
+    calibrate_logit(taylor, targets = targets, wt_name = ""),
     class = "surveywts_error_wt_name_empty"
   )
 })
@@ -454,98 +407,21 @@ test_that("E4b: calibrate_logit() throws surveywts_error_wt_name_empty for empty
 
 test_that("E5: calibrate_logit() throws surveywts_error_reference_design_not_taylor", {
   df <- make_surveywts_data(n = 50, seed = 5)
+  taylor <- .make_test_taylor_logit(df)
   targets <- .make_logit_targets()
 
   expect_error(
-    calibrate_logit(
-      df, targets = targets, weights = base_weight,
-      reference_design = "not_a_design"
-    ),
+    calibrate_logit(taylor, targets = targets, reference_design = "not_a_design"),
     class = "surveywts_error_reference_design_not_taylor"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_logit(
-      df, targets = targets, weights = base_weight,
-      reference_design = "not_a_design"
-    )
+    calibrate_logit(taylor, targets = targets, reference_design = "not_a_design")
   )
 })
 
-# ---------------------------------------------------------------------------
-# E6: Error — weight column not found
-# ---------------------------------------------------------------------------
-
-test_that("E6: calibrate_logit() throws surveywts_error_weights_not_found", {
-  df <- make_surveywts_data(n = 50, seed = 6)
-  targets <- .make_logit_targets()
-
-  expect_error(
-    calibrate_logit(df, targets = targets, weights = nonexistent_col),
-    class = "surveywts_error_weights_not_found"
-  )
-  expect_snapshot(
-    error = TRUE,
-    calibrate_logit(df, targets = targets, weights = nonexistent_col)
-  )
-})
-
-# ---------------------------------------------------------------------------
-# E7: Error — weight column not numeric
-# ---------------------------------------------------------------------------
-
-test_that("E7: calibrate_logit() throws surveywts_error_weights_not_numeric", {
-  df <- make_surveywts_data(n = 50, seed = 7)
-  df$bad_wt <- as.character(df$base_weight)
-  targets <- .make_logit_targets()
-
-  expect_error(
-    calibrate_logit(df, targets = targets, weights = bad_wt),
-    class = "surveywts_error_weights_not_numeric"
-  )
-  expect_snapshot(
-    error = TRUE,
-    calibrate_logit(df, targets = targets, weights = bad_wt)
-  )
-})
-
-# ---------------------------------------------------------------------------
-# E8: Error — weight column has non-positive values
-# ---------------------------------------------------------------------------
-
-test_that("E8: calibrate_logit() throws surveywts_error_weights_nonpositive", {
-  df <- make_surveywts_data(n = 50, seed = 8)
-  df$base_weight[1] <- 0
-  targets <- .make_logit_targets()
-
-  expect_error(
-    calibrate_logit(df, targets = targets, weights = base_weight),
-    class = "surveywts_error_weights_nonpositive"
-  )
-  expect_snapshot(
-    error = TRUE,
-    calibrate_logit(df, targets = targets, weights = base_weight)
-  )
-})
-
-# ---------------------------------------------------------------------------
-# E9: Error — weight column has NA
-# ---------------------------------------------------------------------------
-
-test_that("E9: calibrate_logit() throws surveywts_error_weights_na", {
-  df <- make_surveywts_data(n = 50, seed = 9)
-  df$base_weight[3] <- NA_real_
-  targets <- .make_logit_targets()
-
-  expect_error(
-    calibrate_logit(df, targets = targets, weights = base_weight),
-    class = "surveywts_error_weights_na"
-  )
-  expect_snapshot(
-    error = TRUE,
-    calibrate_logit(df, targets = targets, weights = base_weight)
-  )
-})
+# E6-E9 removed — weight validation is now enforced by S7 class validator at
+# construction time; these errors are no longer reachable via the public API.
 
 # ---------------------------------------------------------------------------
 # E10: Error — targets variable not found in data
@@ -553,17 +429,18 @@ test_that("E9: calibrate_logit() throws surveywts_error_weights_na", {
 
 test_that("E10: calibrate_logit() throws surveywts_error_targets_variable_not_found", {
   df <- make_surveywts_data(n = 50, seed = 10)
+  taylor <- .make_test_taylor_logit(df)
   targets <- list(
     nonexistent_var = c("A" = 0.5, "B" = 0.5)
   )
 
   expect_error(
-    calibrate_logit(df, targets = targets, weights = base_weight),
+    calibrate_logit(taylor, targets = targets),
     class = "surveywts_error_targets_variable_not_found"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_logit(df, targets = targets, weights = base_weight)
+    calibrate_logit(taylor, targets = targets)
   )
 })
 
@@ -573,15 +450,16 @@ test_that("E10: calibrate_logit() throws surveywts_error_targets_variable_not_fo
 
 test_that("E11: calibrate_logit() throws surveywts_error_variable_not_categorical", {
   df <- make_surveywts_data(n = 50, seed = 11)
+  taylor <- .make_test_taylor_logit(df)
   targets <- list(id = c(`1` = 0.5, `2` = 0.5))
 
   expect_error(
-    calibrate_logit(df, targets = targets, weights = base_weight),
+    calibrate_logit(taylor, targets = targets),
     class = "surveywts_error_variable_not_categorical"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_logit(df, targets = targets, weights = base_weight)
+    calibrate_logit(taylor, targets = targets)
   )
 })
 
@@ -592,15 +470,16 @@ test_that("E11: calibrate_logit() throws surveywts_error_variable_not_categorica
 test_that("E12: calibrate_logit() throws surveywts_error_variable_has_na", {
   df <- make_surveywts_data(n = 50, seed = 12)
   df$age_group[1] <- NA_character_
+  taylor <- .make_test_taylor_logit(df)
   targets <- .make_logit_targets()
 
   expect_error(
-    calibrate_logit(df, targets = targets, weights = base_weight),
+    calibrate_logit(taylor, targets = targets),
     class = "surveywts_error_variable_has_na"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_logit(df, targets = targets, weights = base_weight)
+    calibrate_logit(taylor, targets = targets)
   )
 })
 
@@ -610,18 +489,19 @@ test_that("E12: calibrate_logit() throws surveywts_error_variable_has_na", {
 
 test_that("E13: calibrate_logit() throws surveywts_error_population_level_missing", {
   df <- make_surveywts_data(n = 50, seed = 13)
+  taylor <- .make_test_taylor_logit(df)
   # Missing "55+" level in targets
   targets <- list(
     age_group = c("18-34" = 0.50, "35-54" = 0.50)
   )
 
   expect_error(
-    calibrate_logit(df, targets = targets, weights = base_weight),
+    calibrate_logit(taylor, targets = targets),
     class = "surveywts_error_population_level_missing"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_logit(df, targets = targets, weights = base_weight)
+    calibrate_logit(taylor, targets = targets)
   )
 })
 
@@ -631,17 +511,18 @@ test_that("E13: calibrate_logit() throws surveywts_error_population_level_missin
 
 test_that("E14: calibrate_logit() throws surveywts_error_population_level_extra", {
   df <- make_surveywts_data(n = 50, seed = 14)
+  taylor <- .make_test_taylor_logit(df)
   targets <- list(
     age_group = c("18-34" = 0.25, "35-54" = 0.40, "55+" = 0.25, "65+" = 0.10)
   )
 
   expect_error(
-    calibrate_logit(df, targets = targets, weights = base_weight),
+    calibrate_logit(taylor, targets = targets),
     class = "surveywts_error_population_level_extra"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_logit(df, targets = targets, weights = base_weight)
+    calibrate_logit(taylor, targets = targets)
   )
 })
 
@@ -651,17 +532,18 @@ test_that("E14: calibrate_logit() throws surveywts_error_population_level_extra"
 
 test_that("E15: calibrate_logit() throws surveywts_error_population_totals_invalid (prop != 1)", {
   df <- make_surveywts_data(n = 50, seed = 15)
+  taylor <- .make_test_taylor_logit(df)
   targets <- list(
     age_group = c("18-34" = 0.40, "35-54" = 0.40, "55+" = 0.40) # sums to 1.2
   )
 
   expect_error(
-    calibrate_logit(df, targets = targets, weights = base_weight),
+    calibrate_logit(taylor, targets = targets),
     class = "surveywts_error_population_totals_invalid"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_logit(df, targets = targets, weights = base_weight)
+    calibrate_logit(taylor, targets = targets)
   )
 })
 
@@ -671,23 +553,18 @@ test_that("E15: calibrate_logit() throws surveywts_error_population_totals_inval
 
 test_that("E16: calibrate_logit() throws surveywts_error_population_totals_invalid (count <= 0)", {
   df <- make_surveywts_data(n = 50, seed = 16)
+  taylor <- .make_test_taylor_logit(df)
   targets <- list(
     age_group = c("18-34" = -10, "35-54" = 200, "55+" = 150)
   )
 
   expect_error(
-    calibrate_logit(
-      df, targets = targets, weights = base_weight,
-      type = "count"
-    ),
+    calibrate_logit(taylor, targets = targets, type = "count"),
     class = "surveywts_error_population_totals_invalid"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_logit(
-      df, targets = targets, weights = base_weight,
-      type = "count"
-    )
+    calibrate_logit(taylor, targets = targets, type = "count")
   )
 })
 
@@ -697,14 +574,15 @@ test_that("E16: calibrate_logit() throws surveywts_error_population_totals_inval
 
 test_that("E17: calibrate_logit() throws surveywts_error_margins_format_invalid for bad targets", {
   df <- make_surveywts_data(n = 50, seed = 17)
+  taylor <- .make_test_taylor_logit(df)
 
   expect_error(
-    calibrate_logit(df, targets = 42, weights = base_weight),
+    calibrate_logit(taylor, targets = 42),
     class = "surveywts_error_margins_format_invalid"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_logit(df, targets = 42, weights = base_weight)
+    calibrate_logit(taylor, targets = 42)
   )
 })
 
@@ -714,21 +592,16 @@ test_that("E17: calibrate_logit() throws surveywts_error_margins_format_invalid 
 
 test_that("E18: calibrate_logit() throws surveywts_error_bounds_invalid_calibration (L >= 1)", {
   df <- make_surveywts_data(n = 50, seed = 18)
+  taylor <- .make_test_taylor_logit(df)
   targets <- .make_logit_targets()
 
   expect_error(
-    calibrate_logit(
-      df, targets = targets, weights = base_weight,
-      bounds = c(1.0, 3.0)
-    ),
+    calibrate_logit(taylor, targets = targets, bounds = c(1.0, 3.0)),
     class = "surveywts_error_bounds_invalid_calibration"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_logit(
-      df, targets = targets, weights = base_weight,
-      bounds = c(1.0, 3.0)
-    )
+    calibrate_logit(taylor, targets = targets, bounds = c(1.0, 3.0))
   )
 })
 
@@ -738,21 +611,16 @@ test_that("E18: calibrate_logit() throws surveywts_error_bounds_invalid_calibrat
 
 test_that("E19: calibrate_logit() throws surveywts_error_bounds_invalid_calibration (U <= 1)", {
   df <- make_surveywts_data(n = 50, seed = 19)
+  taylor <- .make_test_taylor_logit(df)
   targets <- .make_logit_targets()
 
   expect_error(
-    calibrate_logit(
-      df, targets = targets, weights = base_weight,
-      bounds = c(0.3, 0.9)
-    ),
+    calibrate_logit(taylor, targets = targets, bounds = c(0.3, 0.9)),
     class = "surveywts_error_bounds_invalid_calibration"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_logit(
-      df, targets = targets, weights = base_weight,
-      bounds = c(0.3, 0.9)
-    )
+    calibrate_logit(taylor, targets = targets, bounds = c(0.3, 0.9))
   )
 })
 
@@ -762,21 +630,16 @@ test_that("E19: calibrate_logit() throws surveywts_error_bounds_invalid_calibrat
 
 test_that("E20: calibrate_logit() throws surveywts_error_unit_scale_invalid (not numeric)", {
   df <- make_surveywts_data(n = 50, seed = 20)
+  taylor <- .make_test_taylor_logit(df)
   targets <- .make_logit_targets()
 
   expect_error(
-    calibrate_logit(
-      df, targets = targets, weights = base_weight,
-      unit_scale = rep("1", nrow(df))
-    ),
+    calibrate_logit(taylor, targets = targets, unit_scale = rep("1", nrow(df))),
     class = "surveywts_error_unit_scale_invalid"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_logit(
-      df, targets = targets, weights = base_weight,
-      unit_scale = rep("1", nrow(df))
-    )
+    calibrate_logit(taylor, targets = targets, unit_scale = rep("1", nrow(df)))
   )
 })
 
@@ -786,13 +649,11 @@ test_that("E20: calibrate_logit() throws surveywts_error_unit_scale_invalid (not
 
 test_that("E21: calibrate_logit() throws surveywts_error_unit_scale_invalid (wrong length)", {
   df <- make_surveywts_data(n = 50, seed = 21)
+  taylor <- .make_test_taylor_logit(df)
   targets <- .make_logit_targets()
 
   expect_error(
-    calibrate_logit(
-      df, targets = targets, weights = base_weight,
-      unit_scale = rep(1, nrow(df) - 1)
-    ),
+    calibrate_logit(taylor, targets = targets, unit_scale = rep(1, nrow(df) - 1)),
     class = "surveywts_error_unit_scale_invalid"
   )
 })
@@ -810,13 +671,17 @@ test_that("E22: calibrate_logit() throws surveywts_error_calibration_singular_sy
     stringsAsFactors = FALSE
   )
   df$sex2 <- df$sex
+  design_e22 <- surveycore::survey_taylor(
+    data = df,
+    variables = list(ids = NULL, strata = NULL, fpc = NULL, weights = "base_weight", nest = FALSE)
+  )
   targets <- list(
     sex = c("M" = 0.50, "F" = 0.50),
     sex2 = c("M" = 0.50, "F" = 0.50)
   )
 
   expect_error(
-    calibrate_logit(df, targets = targets, weights = base_weight),
+    calibrate_logit(design_e22, targets = targets),
     class = "surveywts_error_calibration_singular_system"
   )
 })
@@ -827,16 +692,14 @@ test_that("E22: calibrate_logit() throws surveywts_error_calibration_singular_sy
 
 test_that("E23: calibrate_logit() throws surveywts_error_population_totals_invalid for inconsistent count marginals", {
   df <- make_surveywts_data(n = 100, seed = 23)
+  taylor <- .make_test_taylor_logit(df)
   targets <- list(
     age_group = c("18-34" = 150, "35-54" = 200, "55+" = 150), # N = 500
     sex       = c("M" = 300, "F" = 350)  # N = 650 -- inconsistent
   )
 
   expect_error(
-    calibrate_logit(
-      df, targets = targets, weights = base_weight,
-      type = "count"
-    ),
+    calibrate_logit(taylor, targets = targets, type = "count"),
     class = "surveywts_error_population_totals_invalid"
   )
 })
@@ -847,24 +710,19 @@ test_that("E23: calibrate_logit() throws surveywts_error_population_totals_inval
 
 test_that("E22b: calibrate_logit() throws surveywts_error_calibration_not_converged for maxit = 1", {
   df <- make_surveywts_data(n = 200, seed = 221)
+  taylor <- .make_test_taylor_logit(df)
   targets <- list(
     age_group = c("18-34" = 0.10, "35-54" = 0.80, "55+" = 0.10),
     sex       = c("M" = 0.30, "F" = 0.70)
   )
 
   expect_error(
-    calibrate_logit(
-      df, targets = targets, weights = base_weight,
-      control = list(maxit = 1L)
-    ),
+    calibrate_logit(taylor, targets = targets, control = list(maxit = 1L)),
     class = "surveywts_error_calibration_not_converged"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_logit(
-      df, targets = targets, weights = base_weight,
-      control = list(maxit = 1L)
-    )
+    calibrate_logit(taylor, targets = targets, control = list(maxit = 1L))
   )
 })
 
@@ -874,23 +732,18 @@ test_that("E22b: calibrate_logit() throws surveywts_error_calibration_not_conver
 
 test_that("E23b: calibrate_logit() throws surveywts_error_unit_scale_invalid for non-positive unit_scale", {
   df <- make_surveywts_data(n = 50, seed = 231)
+  taylor <- .make_test_taylor_logit(df)
   targets <- .make_logit_targets()
   q <- rep(1, nrow(df))
   q[1] <- -1
 
   expect_error(
-    calibrate_logit(
-      df, targets = targets, weights = base_weight,
-      unit_scale = q
-    ),
+    calibrate_logit(taylor, targets = targets, unit_scale = q),
     class = "surveywts_error_unit_scale_invalid"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_logit(
-      df, targets = targets, weights = base_weight,
-      unit_scale = q
-    )
+    calibrate_logit(taylor, targets = targets, unit_scale = q)
   )
 })
 
@@ -900,68 +753,43 @@ test_that("E23b: calibrate_logit() throws surveywts_error_unit_scale_invalid for
 
 test_that("calibrate_logit() throws surveywts_error_bounds_invalid_calibration for bounds length != 2", {
   df <- make_surveywts_data(n = 50, seed = 191)
+  taylor <- .make_test_taylor_logit(df)
   targets <- .make_logit_targets()
 
   expect_error(
-    calibrate_logit(
-      df, targets = targets, weights = base_weight,
-      bounds = c(0.5, 2, 3)
-    ),
+    calibrate_logit(taylor, targets = targets, bounds = c(0.5, 2, 3)),
     class = "surveywts_error_bounds_invalid_calibration"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_logit(
-      df, targets = targets, weights = base_weight,
-      bounds = c(0.5, 2, 3)
-    )
+    calibrate_logit(taylor, targets = targets, bounds = c(0.5, 2, 3))
   )
 })
 
 test_that("calibrate_logit() throws surveywts_error_bounds_invalid_calibration for bounds with NA", {
   df <- make_surveywts_data(n = 50, seed = 192)
+  taylor <- .make_test_taylor_logit(df)
   targets <- .make_logit_targets()
 
   expect_error(
-    calibrate_logit(
-      df, targets = targets, weights = base_weight,
-      bounds = c(0.5, NA_real_)
-    ),
+    calibrate_logit(taylor, targets = targets, bounds = c(0.5, NA_real_)),
     class = "surveywts_error_bounds_invalid_calibration"
   )
 })
 
 test_that("calibrate_logit() throws surveywts_error_bounds_invalid_calibration for non-numeric bounds", {
   df <- make_surveywts_data(n = 50, seed = 193)
+  taylor <- .make_test_taylor_logit(df)
   targets <- .make_logit_targets()
 
   expect_error(
-    calibrate_logit(
-      df, targets = targets, weights = base_weight,
-      bounds = c("0.5", "2")
-    ),
+    calibrate_logit(taylor, targets = targets, bounds = c("0.5", "2")),
     class = "surveywts_error_bounds_invalid_calibration"
   )
 })
 
-# ---------------------------------------------------------------------------
-# W1: Warning — SRS assumption for plain data.frame + weights = NULL
-# ---------------------------------------------------------------------------
-
-test_that("W1: calibrate_logit() warns surveywts_warning_srs_no_weights for plain df + NULL weights", {
-  df <- make_surveywts_data(n = 50, seed = 31)
-  targets <- .make_logit_targets()
-
-  expect_warning(
-    result <- calibrate_logit(df, targets = targets),
-    class = "surveywts_warning_srs_no_weights"
-  )
-
-  test_invariants(result)
-  expect_true(inherits(result, "weighted_df"))
-  # SRS assumption: sum of starting weights = n
-  expect_equal(sum(result[["wts"]]), nrow(df), tolerance = 1e-6)
-})
+# W1 removed — data.frame input now throws surveywts_error_not_survey_base
+# before any SRS warning could fire.
 
 # ---------------------------------------------------------------------------
 # W2: Warning — replicate calibration failed (replicate weight column error)
@@ -987,18 +815,19 @@ test_that("W2: calibrate_logit() warns surveywts_warning_replicate_calibration_f
 
 test_that("W3: calibrate_logit() warns surveywts_warning_control_param_ignored for unknown control key", {
   df <- make_surveywts_data(n = 50, seed = 33)
+  taylor <- .make_test_taylor_logit(df)
   targets <- .make_logit_targets()
 
   expect_warning(
     result <- calibrate_logit(
-      df, targets = targets, weights = base_weight,
+      taylor, targets = targets,
       control = list(epsilon = 1e-7, unknown_param = 42)
     ),
     class = "surveywts_warning_control_param_ignored"
   )
 
   test_invariants(result)
-  expect_true(inherits(result, "weighted_df"))
+  expect_true(S7::S7_inherits(result, surveycore::survey_taylor))
 })
 
 # ---------------------------------------------------------------------------
@@ -1016,16 +845,20 @@ test_that("EC1: calibrate_logit() converges trivially when weights already satis
     base_weight = rep(1, n),
     stringsAsFactors = FALSE
   )
+  design_ec1 <- surveycore::survey_taylor(
+    data = df,
+    variables = list(ids = NULL, strata = NULL, fpc = NULL, weights = "base_weight", nest = FALSE)
+  )
 
   targets <- list(
     age_group = c("18-34" = 1/3, "35-54" = 1/3, "55+" = 1/3),
     sex = c("M" = 0.50, "F" = 0.50)
   )
 
-  result <- calibrate_logit(df, targets = targets, weights = base_weight)
+  result <- calibrate_logit(design_ec1, targets = targets)
 
   test_invariants(result)
-  w <- result[["wts"]]
+  w <- result@data[[result@variables$weights]]
   expect_true(all(w > 0))
   expect_true(all(is.finite(w)))
 })
@@ -1036,11 +869,12 @@ test_that("EC1: calibrate_logit() converges trivially when weights already satis
 
 test_that("EC2: calibrate_logit() always produces strictly positive weights", {
   df <- make_surveywts_data(seed = 42)
+  taylor <- .make_test_taylor_logit(df)
   targets <- .make_logit_targets()
 
-  result <- calibrate_logit(df, targets = targets, weights = base_weight)
+  result <- calibrate_logit(taylor, targets = targets)
 
-  w <- result[["wts"]]
+  w <- result@data[[result@variables$weights]]
   expect_true(all(w > 0), label = "all output weights strictly positive")
 })
 
@@ -1122,21 +956,23 @@ test_that("H_abs: calibrate_logit() with absolute bounds produces weights in ope
   # a requirement of logit absolute bounds with per-unit g-weight bounds.
   df <- make_surveywts_data(n = 200, seed = 51)
   df$base_weight <- df$base_weight * 1000
+  design_abs <- surveycore::survey_taylor(
+    data = df,
+    variables = list(ids = NULL, strata = NULL, fpc = NULL, weights = "base_weight", nest = FALSE)
+  )
   targets <- list(
     age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30)
   )
 
   # Absolute bounds: output weights (not g-weights) in open interval (200, 3500)
   result <- calibrate_logit(
-    df,
-    targets = targets,
-    weights = base_weight,
+    design_abs, targets = targets,
     bounds = c(200, 3500),
     bounds_scale = "absolute"
   )
 
   test_invariants(result)
-  w <- result[["wts"]]
+  w <- result@data[[result@variables$weights]]
   expect_true(all(w > 200), label = "all weights > 200 (absolute lower bound)")
   expect_true(all(w < 3500), label = "all weights < 3500 (absolute upper bound)")
   expect_true(all(w > 0))
@@ -1167,36 +1003,26 @@ test_that("H_abs: calibrate_logit() absolute bounds stored in @calibration$bound
 
 test_that("E_abs: calibrate_logit() throws surveywts_error_bounds_invalid_calibration for L <= 0 (absolute)", {
   df <- make_surveywts_data(n = 50, seed = 53)
+  taylor <- .make_test_taylor_logit(df)
   targets <- .make_logit_targets()
 
   expect_error(
-    calibrate_logit(
-      df, targets = targets, weights = base_weight,
-      bounds = c(-1, 2),
-      bounds_scale = "absolute"
-    ),
+    calibrate_logit(taylor, targets = targets, bounds = c(-1, 2), bounds_scale = "absolute"),
     class = "surveywts_error_bounds_invalid_calibration"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_logit(
-      df, targets = targets, weights = base_weight,
-      bounds = c(-1, 2),
-      bounds_scale = "absolute"
-    )
+    calibrate_logit(taylor, targets = targets, bounds = c(-1, 2), bounds_scale = "absolute")
   )
 })
 
 test_that("E_abs: calibrate_logit() throws surveywts_error_bounds_invalid_calibration for L >= U (absolute)", {
   df <- make_surveywts_data(n = 50, seed = 54)
+  taylor <- .make_test_taylor_logit(df)
   targets <- .make_logit_targets()
 
   expect_error(
-    calibrate_logit(
-      df, targets = targets, weights = base_weight,
-      bounds = c(2, 1),
-      bounds_scale = "absolute"
-    ),
+    calibrate_logit(taylor, targets = targets, bounds = c(2, 1), bounds_scale = "absolute"),
     class = "surveywts_error_bounds_invalid_calibration"
   )
 })
@@ -1212,20 +1038,15 @@ test_that("E_abs: calibrate_logit() throws surveywts_error_bounds_invalid_calibr
 test_that("HG-1: unit_scale = rep(1, n) produces weights identical to unit_scale = NULL within 1e-14", {
   targets <- .make_logit_targets()
 
-  result_null <- calibrate_logit(
-    df_500, targets = targets, weights = base_weight
-  )
-  result_ones <- calibrate_logit(
-    df_500, targets = targets, weights = base_weight,
-    unit_scale = q_all_ones
-  )
+  result_null <- calibrate_logit(taylor_500, targets = targets)
+  result_ones <- calibrate_logit(taylor_500, targets = targets, unit_scale = q_all_ones)
 
   test_invariants(result_null)
   test_invariants(result_ones)
 
   expect_equal(
-    result_ones[["wts"]],
-    result_null[["wts"]],
+    result_ones@data[[result_ones@variables$weights]],
+    result_null@data[[result_null@variables$weights]],
     tolerance = 1e-14,
     label = "HG-1: unit_scale = rep(1, n) identical to unit_scale = NULL"
   )
@@ -1241,11 +1062,7 @@ test_that("HG-2: logit with q_unequal matches survey::calibrate(calfun='logit', 
   targets <- .make_logit_targets()
   total_w <- sum(df_500$base_weight)
 
-  result <- calibrate_logit(
-    df_500, targets = targets,
-    weights = base_weight,
-    unit_scale = q_unequal
-  )
+  result <- calibrate_logit(taylor_500, targets = targets, unit_scale = q_unequal)
 
   svy_design <- survey::svydesign(
     ids = ~1, data = df_500, weights = ~base_weight
@@ -1268,7 +1085,7 @@ test_that("HG-2: logit with q_unequal matches survey::calibrate(calfun='logit', 
 
   test_invariants(result)
   expect_equal(
-    result[["wts"]],
+    result@data[[result@variables$weights]],
     survey_weights,
     tolerance = 1e-8,
     label = "HG-2: logit with q_unequal matches survey::calibrate"
@@ -1285,11 +1102,7 @@ test_that("HG-3: logit with q_all_twos matches survey::calibrate(variance=0.5) w
   targets <- .make_logit_targets()
   total_w <- sum(df_500$base_weight)
 
-  result <- calibrate_logit(
-    df_500, targets = targets,
-    weights = base_weight,
-    unit_scale = q_all_twos
-  )
+  result <- calibrate_logit(taylor_500, targets = targets, unit_scale = q_all_twos)
 
   svy_design <- survey::svydesign(
     ids = ~1, data = df_500, weights = ~base_weight
@@ -1312,7 +1125,7 @@ test_that("HG-3: logit with q_all_twos matches survey::calibrate(variance=0.5) w
 
   test_invariants(result)
   expect_equal(
-    result[["wts"]],
+    result@data[[result@variables$weights]],
     survey_weights,
     tolerance = 1e-8,
     label = "HG-3: logit with q_all_twos matches survey::calibrate"
@@ -1334,8 +1147,7 @@ test_that("HG-4: multiplicative-bounded logit with q_unequal matches survey::cal
   U <- 3.0
 
   result <- calibrate_logit(
-    df_500, targets = targets,
-    weights = base_weight,
+    taylor_500, targets = targets,
     bounds = c(L, U),
     unit_scale = q_unequal
   )
@@ -1360,7 +1172,7 @@ test_that("HG-4: multiplicative-bounded logit with q_unequal matches survey::cal
 
   test_invariants(result)
   expect_equal(
-    result[["wts"]],
+    result@data[[result@variables$weights]],
     survey_weights,
     tolerance = 1e-8,
     label = "HG-4: multiplicative-bounded logit with q_unequal oracle"
@@ -1374,19 +1186,15 @@ test_that("HG-4: multiplicative-bounded logit with q_unequal matches survey::cal
 test_that("HG-5: calibration constraint satisfied within 1e-6 when unit_scale != NULL", {
   targets <- .make_logit_targets()
 
-  result <- calibrate_logit(
-    df_500, targets = targets,
-    weights = base_weight,
-    unit_scale = q_unequal
-  )
+  result <- calibrate_logit(taylor_500, targets = targets, unit_scale = q_unequal)
 
   test_invariants(result)
-  w <- result[["wts"]]
+  w <- result@data[[result@variables$weights]]
   total_w <- sum(w)
 
   for (var in names(targets)) {
     for (lev in names(targets[[var]])) {
-      obs_prop <- sum(w[result[[var]] == lev]) / total_w
+      obs_prop <- sum(w[result@data[[var]] == lev]) / total_w
       expect_equal(
         obs_prop, targets[[var]][[lev]],
         tolerance = 1e-6,
@@ -1403,14 +1211,10 @@ test_that("HG-5: calibration constraint satisfied within 1e-6 when unit_scale !=
 test_that("HG-6: weighting_history entry records unit_scale vector", {
   targets <- .make_logit_targets()
 
-  result <- calibrate_logit(
-    df_500, targets = targets,
-    weights = base_weight,
-    unit_scale = q_unequal
-  )
+  result <- calibrate_logit(taylor_500, targets = targets, unit_scale = q_unequal)
 
   test_invariants(result)
-  h <- attr(result, "weighting_history")
+  h <- result@metadata@weighting_history
   expect_equal(length(h), 1L)
   expect_equal(
     h[[1L]]$parameters$unit_scale,
@@ -1441,8 +1245,7 @@ test_that("HG-7: absolute-bounds logit matches survey::calibrate(calfun='logit',
   total_w <- sum(df_200$base_weight)
 
   result <- calibrate_logit(
-    df_200, targets = targets,
-    weights = base_weight,
+    taylor_200, targets = targets,
     bounds = c(abs_L, abs_U),
     bounds_scale = "absolute"
   )
@@ -1467,7 +1270,7 @@ test_that("HG-7: absolute-bounds logit matches survey::calibrate(calfun='logit',
 
   test_invariants(result)
   expect_equal(
-    result[["wts"]],
+    result@data[[result@variables$weights]],
     survey_weights,
     tolerance = 1e-8,
     label = "HG-7: absolute-bounds logit oracle"
@@ -1482,14 +1285,12 @@ test_that("HG-8: bounded and unbounded logit produce different weights with same
   targets <- .make_logit_targets()
 
   result_wide <- calibrate_logit(
-    df_500, targets = targets,
-    weights = base_weight,
+    taylor_500, targets = targets,
     bounds = c(1e-6, 1e6),
     unit_scale = q_unequal
   )
   result_tight <- calibrate_logit(
-    df_500, targets = targets,
-    weights = base_weight,
+    taylor_500, targets = targets,
     bounds = c(0.5, 2),
     unit_scale = q_unequal
   )
@@ -1497,7 +1298,10 @@ test_that("HG-8: bounded and unbounded logit produce different weights with same
   test_invariants(result_wide)
   test_invariants(result_tight)
 
-  diff_max <- max(abs(result_tight[["wts"]] - result_wide[["wts"]]))
+  diff_max <- max(abs(
+    result_tight@data[[result_tight@variables$weights]] -
+      result_wide@data[[result_wide@variables$weights]]
+  ))
   expect_true(
     diff_max > 1e-6,
     label = "HG-8: bounds=(0.5,2) vs wide bounds produce different weights"
@@ -1519,8 +1323,7 @@ test_that("HG-9: absolute-bounds logit with unequal d_k differs from old mean-ba
 
   # New per-unit approach
   result_new <- calibrate_logit(
-    df_200, targets = targets,
-    weights = base_weight,
+    taylor_200, targets = targets,
     bounds = c(abs_L, abs_U),
     bounds_scale = "absolute"
   )
@@ -1550,7 +1353,7 @@ test_that("HG-9: absolute-bounds logit with unequal d_k differs from old mean-ba
   old_weights <- old_engine$weights * mean_d
 
   test_invariants(result_new)
-  max_diff <- max(abs(result_new[["wts"]] - old_weights))
+  max_diff <- max(abs(result_new@data[[result_new@variables$weights]] - old_weights))
   expect_true(
     max_diff > 0,
     label = "HG-9: per-unit and mean-based logit approaches differ for unequal d_k"
@@ -1578,8 +1381,7 @@ test_that("HG-10: absolute-bounds logit + unit_scale=q_unequal[1:200] matches su
   q_200 <- q_unequal[seq_len(nrow(df_200))]
 
   result <- calibrate_logit(
-    df_200, targets = targets,
-    weights = base_weight,
+    taylor_200, targets = targets,
     bounds = c(abs_L, abs_U),
     bounds_scale = "absolute",
     unit_scale = q_200
@@ -1606,7 +1408,7 @@ test_that("HG-10: absolute-bounds logit + unit_scale=q_unequal[1:200] matches su
 
   test_invariants(result)
   expect_equal(
-    result[["wts"]],
+    result@data[[result@variables$weights]],
     survey_weights,
     tolerance = 1e-8,
     label = "HG-10: absolute-bounds logit + unit_scale oracle"
@@ -1621,18 +1423,12 @@ test_that("HGE-1: calibrate_logit() rejects unit_scale with non-numeric type", {
   targets <- .make_logit_targets()
 
   expect_error(
-    calibrate_logit(
-      df_500, targets = targets, weights = base_weight,
-      unit_scale = as.character(q_unequal)
-    ),
+    calibrate_logit(taylor_500, targets = targets, unit_scale = as.character(q_unequal)),
     class = "surveywts_error_unit_scale_invalid"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_logit(
-      df_500, targets = targets, weights = base_weight,
-      unit_scale = as.character(q_unequal)
-    )
+    calibrate_logit(taylor_500, targets = targets, unit_scale = as.character(q_unequal))
   )
 })
 
@@ -1640,18 +1436,12 @@ test_that("HGE-2: calibrate_logit() rejects unit_scale with wrong length", {
   targets <- .make_logit_targets()
 
   expect_error(
-    calibrate_logit(
-      df_500, targets = targets, weights = base_weight,
-      unit_scale = q_unequal[-1L]
-    ),
+    calibrate_logit(taylor_500, targets = targets, unit_scale = q_unequal[-1L]),
     class = "surveywts_error_unit_scale_invalid"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_logit(
-      df_500, targets = targets, weights = base_weight,
-      unit_scale = q_unequal[-1L]
-    )
+    calibrate_logit(taylor_500, targets = targets, unit_scale = q_unequal[-1L])
   )
 })
 
@@ -1661,18 +1451,12 @@ test_that("HGE-3: calibrate_logit() rejects unit_scale with NA values", {
   q_na[5L] <- NA_real_
 
   expect_error(
-    calibrate_logit(
-      df_500, targets = targets, weights = base_weight,
-      unit_scale = q_na
-    ),
+    calibrate_logit(taylor_500, targets = targets, unit_scale = q_na),
     class = "surveywts_error_unit_scale_invalid"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_logit(
-      df_500, targets = targets, weights = base_weight,
-      unit_scale = q_na
-    )
+    calibrate_logit(taylor_500, targets = targets, unit_scale = q_na)
   )
 })
 
@@ -1685,6 +1469,10 @@ test_that("HGE-4: calibrate_logit() throws bounds_invalid when d_k <= L_abs (abs
     base_weight = c(0.3, rep(1.5, n - 1L)),
     stringsAsFactors = FALSE
   )
+  design_hge4 <- surveycore::survey_taylor(
+    data = df_small,
+    variables = list(ids = NULL, strata = NULL, fpc = NULL, weights = "base_weight", nest = FALSE)
+  )
   targets_s <- list(
     age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30)
   )
@@ -1692,18 +1480,12 @@ test_that("HGE-4: calibrate_logit() throws bounds_invalid when d_k <= L_abs (abs
   abs_U <- 5.0
 
   expect_error(
-    calibrate_logit(
-      df_small, targets = targets_s, weights = base_weight,
-      bounds = c(abs_L, abs_U), bounds_scale = "absolute"
-    ),
+    calibrate_logit(design_hge4, targets = targets_s, bounds = c(abs_L, abs_U), bounds_scale = "absolute"),
     class = "surveywts_error_bounds_invalid_calibration"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_logit(
-      df_small, targets = targets_s, weights = base_weight,
-      bounds = c(abs_L, abs_U), bounds_scale = "absolute"
-    )
+    calibrate_logit(design_hge4, targets = targets_s, bounds = c(abs_L, abs_U), bounds_scale = "absolute")
   )
 })
 
@@ -1716,6 +1498,10 @@ test_that("HGE-5: calibrate_logit() throws bounds_invalid when d_k >= U_abs (abs
     base_weight = c(6.0, rep(1.5, n - 1L)),
     stringsAsFactors = FALSE
   )
+  design_hge5 <- surveycore::survey_taylor(
+    data = df_small,
+    variables = list(ids = NULL, strata = NULL, fpc = NULL, weights = "base_weight", nest = FALSE)
+  )
   targets_s <- list(
     age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30)
   )
@@ -1723,18 +1509,12 @@ test_that("HGE-5: calibrate_logit() throws bounds_invalid when d_k >= U_abs (abs
   abs_U <- 5.0
 
   expect_error(
-    calibrate_logit(
-      df_small, targets = targets_s, weights = base_weight,
-      bounds = c(abs_L, abs_U), bounds_scale = "absolute"
-    ),
+    calibrate_logit(design_hge5, targets = targets_s, bounds = c(abs_L, abs_U), bounds_scale = "absolute"),
     class = "surveywts_error_bounds_invalid_calibration"
   )
   expect_snapshot(
     error = TRUE,
-    calibrate_logit(
-      df_small, targets = targets_s, weights = base_weight,
-      bounds = c(abs_L, abs_U), bounds_scale = "absolute"
-    )
+    calibrate_logit(design_hge5, targets = targets_s, bounds = c(abs_L, abs_U), bounds_scale = "absolute")
   )
 })
 
@@ -1759,14 +1539,13 @@ test_that("RL-3: replicate logit calibration full-sample weights match oracle wi
   test_invariants(result)
 
   result_full <- calibrate_logit(
-    df_200, targets = targets,
-    weights = base_weight,
+    taylor_200, targets = targets,
     unit_scale = q_200
   )
 
   expect_equal(
     result@data[[result@variables$weights]],
-    result_full[["wts"]],
+    result_full@data[[result_full@variables$weights]],
     tolerance = 1e-8,
     label = "RL-3: replicate full-sample matches non-replicate oracle"
   )
@@ -1855,14 +1634,13 @@ test_that("EC-7: logit g-weights are strictly in open interval (L, U) with q_une
   q_200 <- q_unequal[seq_len(nrow(df_200))]
 
   result <- calibrate_logit(
-    df_200, targets = targets,
-    weights = base_weight,
+    taylor_200, targets = targets,
     bounds = c(L, U),
     unit_scale = q_200
   )
 
   test_invariants(result)
-  g <- result[["wts"]] / df_200$base_weight
+  g <- result@data[[result@variables$weights]] / df_200$base_weight
   expect_true(all(g > L), label = "EC-7: all g-weights > L")
   expect_true(all(g < U), label = "EC-7: all g-weights < U")
 })
@@ -1883,12 +1661,12 @@ test_that("EC-10: absolute-bounds logit: all final weights strictly within (L_ab
   stopifnot(all(df_200$base_weight > abs_L & df_200$base_weight < abs_U))
 
   result <- calibrate_logit(
-    df_200, targets = targets, weights = base_weight,
+    taylor_200, targets = targets,
     bounds = c(abs_L, abs_U), bounds_scale = "absolute"
   )
 
   test_invariants(result)
-  w <- result[["wts"]]
+  w <- result@data[[result@variables$weights]]
   expect_true(
     all(w > abs_L),
     label = "EC-10: all weights strictly > L_abs"

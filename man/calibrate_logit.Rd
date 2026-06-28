@@ -8,7 +8,7 @@ calibrate_logit(
   data,
   targets,
   weights = NULL,
-  wt_name = "wts",
+  wt_name = NULL,
   bounds = c(1e-06, 1e+06),
   bounds_scale = c("multiplicative", "absolute"),
   unit_scale = NULL,
@@ -18,13 +18,13 @@ calibrate_logit(
 )
 }
 \arguments{
-\item{data}{A \code{data.frame}, \code{weighted_df}, \code{survey_taylor},
-\code{survey_nonprob}, or \code{survey_replicate}. Any other class -> error.
-When \code{data} is a \code{survey_replicate}, calibration is applied independently
-to every replicate weight column using the same population \code{targets}.
-Replicate columns that fail calibration are kept at their original values
-and reported via \code{surveywts_warning_replicate_calibration_failed}; the
-full-sample calibration still completes normally.}
+\item{data}{A \code{survey_nonprob}, \code{survey_taylor}, or \code{survey_replicate}. Any
+other class -> error. When \code{data} is a \code{survey_replicate}, calibration is
+applied independently to every replicate weight column using the same
+population \code{targets}. Replicate columns that fail calibration are kept at
+their original values and reported via
+\code{surveywts_warning_replicate_calibration_failed}; the full-sample
+calibration still completes normally.}
 
 \item{targets}{Named list of population marginal targets (Format A) or a
 long data frame with columns \code{variable}, \code{level}, \code{target} (Format B).
@@ -51,14 +51,13 @@ element must sum to 1.0 within 1e-6. For \code{type = "count"}: all values
 must be strictly positive and all marginal sums must agree within 1e-3.}
 
 \item{weights}{<\code{\link[tidyselect:language]{tidy-select}}> Weight column name
-(bare name). \code{NULL} -> auto-detected from \code{weighted_df} attribute or
-survey object \verb{@variables$weights}. For plain \code{data.frame} with
-\code{weights = NULL}, uniform starting weights (all 1) are used and
-\code{surveywts_warning_srs_no_weights} is emitted.}
+(bare name). \code{NULL} -> auto-detected from survey object
+\verb{@variables$weights}.}
 
-\item{wt_name}{Character scalar. Name of the output weight column in the
-returned \code{weighted_df}. Default \code{"wts"}. Ignored when \code{data} is a survey
-object.}
+\item{wt_name}{\code{NULL} (default) or a character scalar. When \code{NULL}, the
+calibrated weights overwrite the existing weight column in place. When a
+character string, a new column with that name is added and
+\verb{@variables$weights} is updated to point to it.}
 
 \item{bounds}{Length-2 numeric vector \code{c(L, U)}. Default \code{c(1e-6, 1e6)}.
 Logit bounds constrain the g-weight ratio in the open interval \verb{(L, U)};
@@ -99,8 +98,6 @@ non-\code{NULL} non-\code{survey_taylor} value triggers
 }
 \value{
 \itemize{
-\item \code{data.frame} or \code{weighted_df} input -> \code{weighted_df} with the calibrated
-weight column named by \code{wt_name} and a history entry appended.
 \item \code{survey_taylor} input -> \code{survey_taylor} (class preserved); only
 \verb{@variables$weights} (the weight column) and \verb{@calibration} are
 modified. \verb{@variables$ids}, \verb{@variables$strata}, \verb{@variables$fpc},
@@ -148,14 +145,11 @@ non-convergence raises an error.
 
 \examples{
 targets_a <- list(
-  sex   = c("Male" = 0.49, "Female" = 0.51),
+  sex    = c("Male" = 0.49, "Female" = 0.51),
   age_f3 = c("18-34" = 0.30, "35-54" = 0.33, "55+" = 0.37)
 )
 
-# Format A + data.frame -------------------------------------------------
-calibrate_logit(ns_wave1, targets = targets_a, weights = weight)
-
-# survey_nonprob — weight column auto-detected ---------------------------
+# survey_nonprob — Format A, weight column auto-detected -----------------
 ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
 calibrate_logit(ns_wave1_svy, targets = targets_a)
 
@@ -165,7 +159,7 @@ targets_b <- data.frame(
   level    = c("Male", "Female", "18-34", "35-54", "55+"),
   target   = c(0.49, 0.51, 0.30, 0.33, 0.37)
 )
-calibrate_logit(ns_wave1, targets = targets_b, weights = weight)
+calibrate_logit(ns_wave1_svy, targets = targets_b)
 }
 \references{
 Deville, J.-C. and Sarndal, C.-E. (1992). Calibration estimators in

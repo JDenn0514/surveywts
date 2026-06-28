@@ -12,18 +12,16 @@ trim_weights(
   k = 5,
   type = c("absolute", "percentile"),
   strict = FALSE,
-  wt_name = "wts"
+  wt_name = NULL
 )
 }
 \arguments{
-\item{data}{A \code{data.frame}, \code{weighted_df}, \code{survey_taylor}, \code{survey_nonprob},
-or \code{survey_replicate}. All survey classes supported. For inputs carrying
-replicate weight columns, see the \strong{Replicate Weights} section.}
+\item{data}{A \code{survey_taylor}, \code{survey_nonprob}, or \code{survey_replicate}. For
+inputs carrying replicate weight columns, see the \strong{Replicate Weights}
+section.}
 
 \item{weights}{<\code{\link[tidyselect:language]{tidy-select}}> Weight column.
-Auto-detected for \code{weighted_df} and survey objects. For plain \code{data.frame}
-with \code{weights = NULL}, uniform weights (all 1) are used and the output
-column is named \code{wt_name}.}
+Auto-detected from survey object \verb{@variables$weights}.}
 
 \item{lower}{\code{numeric(1)} or \code{NULL}. Lower bound. \code{NULL} means no lower
 trimming. When \code{type = "percentile"}, interpreted as a quantile in
@@ -46,8 +44,9 @@ values. \code{"percentile"}: bounds are quantiles on [0, 1].}
 pass is applied. When \code{TRUE}, the loop repeats until all main weights fall
 within \verb{[lower_abs, upper_abs]}. Not applied to replicate columns.}
 
-\item{wt_name}{\code{character(1)}. Output weight column name. Used only when
-\code{data} is a plain \code{data.frame} with \code{weights = NULL}. Default \code{"wts"}.}
+\item{wt_name}{\code{NULL} (default) or a \code{character(1)}. When \code{NULL}, trimmed
+weights overwrite the existing weight column in place. When a character
+string, a new column is added and \verb{@variables$weights} updated.}
 }
 \value{
 An object of the same class as \code{data} with trimmed weights. A new
@@ -98,26 +97,16 @@ untrimmed observations so that the total weight sum is preserved. When
 }
 
 \examples{
+ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
+
 # IQR default (k = 5) ---------------------------------------------------
-trim_weights(ns_wave1, weights = weight)
+trim_weights(ns_wave1_svy)
 
 # explicit percentile bounds --------------------------------------------
-trim_weights(
-  ns_wave1,
-  weights = weight,
-  lower = 0.05,
-  upper = 0.95,
-  type = "percentile"
-)
+trim_weights(ns_wave1_svy, lower = 0.05, upper = 0.95, type = "percentile")
 
 # absolute bounds -------------------------------------------------------
-trim_weights(
-  ns_wave1,
-  weights = weight,
-  lower = 0.3,
-  upper = 3.0,
-  type = "absolute"
-)
+trim_weights(ns_wave1_svy, lower = 0.3, upper = 3.0, type = "absolute")
 
 # survey_replicate — bounds auto-applied to all replicate columns -------
 data(cps_2023)

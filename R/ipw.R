@@ -1128,7 +1128,16 @@ ipw <- function(
     }
   }
 
-  # Behavior Rule 10: validate wt_name
+  # Behavior Rule 10: validate wt_name (NULL not allowed — ipw always creates a new column)
+  if (is.null(wt_name)) {
+    cli::cli_abort(
+      c(
+        "x" = "{.arg wt_name} must be a single character string.",
+        "i" = "Got {.cls NULL} of length 0."
+      ),
+      class = "surveywts_error_wt_name_not_scalar"
+    )
+  }
   .validate_wt_name(wt_name)
 
   # Behavior Rule 11: check wt_name conflict with existing columns

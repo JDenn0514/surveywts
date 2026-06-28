@@ -8,7 +8,7 @@ calibrate_rake(
   data,
   targets,
   weights = NULL,
-  wt_name = "wts",
+  wt_name = NULL,
   type = c("prop", "count"),
   algorithm = c("classic_ipf", "nr"),
   cap = NULL,
@@ -17,13 +17,13 @@ calibrate_rake(
 )
 }
 \arguments{
-\item{data}{A \code{data.frame}, \code{weighted_df}, \code{survey_taylor},
-\code{survey_nonprob}, or \code{survey_replicate}. Any other class -> error.
-When \code{data} is a \code{survey_replicate}, raking is applied independently
-to every replicate weight column using the same population \code{targets}.
-Replicate columns that fail raking are kept at their original values
-and reported via a \code{surveywts_warning_replicate_calibration_failed}
-warning; the full-sample raking still completes normally.}
+\item{data}{A \code{survey_taylor}, \code{survey_nonprob}, or \code{survey_replicate}. Any
+other class -> error. When \code{data} is a \code{survey_replicate}, raking is
+applied independently to every replicate weight column using the same
+population \code{targets}. Replicate columns that fail raking are kept at their
+original values and reported via a
+\code{surveywts_warning_replicate_calibration_failed} warning; the full-sample
+raking still completes normally.}
 
 \item{targets}{Named list or data frame specifying population margin targets.
 
@@ -50,14 +50,11 @@ Each element can be a named numeric vector or a data frame with columns
 Format B is auto-detected and converted to Format A before use.}
 
 \item{weights}{<\code{\link[tidyselect:language]{tidy-select}}> Weight column name
-(bare name). \code{NULL} -> auto-detected from \code{weighted_df} attribute or
-survey object \verb{@variables$weights}. For plain \code{data.frame} with
-\code{weights = NULL}, uniform starting weights are used and the output
-column is named by \code{wt_name} (default \code{"wts"}).}
+(bare name). Auto-detected from survey object \verb{@variables$weights}.}
 
-\item{wt_name}{Character scalar. Name of the output weight column in the
-returned \code{weighted_df}. Default \code{"wts"}. Ignored when \code{data} is a survey
-object (\code{survey_taylor} or \code{survey_nonprob}).}
+\item{wt_name}{\code{NULL} (default) or a \code{character(1)}. When \code{NULL}, raked
+weights overwrite the existing weight column in place. When a character
+string, a new column is added and \verb{@variables$weights} updated.}
 
 \item{type}{Character scalar. \code{"prop"} (default): \code{targets} values are
 proportions. \code{"count"}: \code{targets} values are counts.}
@@ -102,7 +99,6 @@ non-\code{survey_taylor} value triggers an error.}
 }
 \value{
 \itemize{
-\item \code{data.frame} or \code{weighted_df} input -> \code{weighted_df}
 \item \code{survey_taylor} or \code{survey_nonprob} input -> same class as input
 (class is preserved); \verb{@calibration} slot is populated
 \item \code{survey_replicate} input -> \code{survey_replicate} (class preserved);
@@ -170,30 +166,26 @@ Calibration non-convergence raises an error.
 }
 
 \examples{
+ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
+
 targets_a <- list(
   sex   = c("Male" = 0.49, "Female" = 0.51),
   age_f3 = c("18-34" = 0.30, "35-54" = 0.33, "55+" = 0.37)
 )
 
-# Format A + classic_ipf (default) ----------------------------
-calibrate_rake(ns_wave1, targets = targets_a, weights = weight)
-
-# Format A + Newton-Raphson algorithm -------------------------
-calibrate_rake(
-  ns_wave1, targets = targets_a, weights = weight, algorithm = "nr"
-)
-
-# survey_nonprob — weight column auto-detected -----------------
-ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
+# Format A + classic_ipf (default) ------------------------------------
 calibrate_rake(ns_wave1_svy, targets = targets_a)
 
-# Format B -------------------------------------------------------
+# Format A + Newton-Raphson algorithm ---------------------------------
+calibrate_rake(ns_wave1_svy, targets = targets_a, algorithm = "nr")
+
+# Format B ------------------------------------------------------------
 targets_b <- data.frame(
   variable = c("sex", "sex", "age_f3", "age_f3", "age_f3"),
   level    = c("Male", "Female", "18-34", "35-54", "55+"),
   target   = c(0.49, 0.51, 0.30, 0.33, 0.37)
 )
-calibrate_rake(ns_wave1, targets = targets_b, weights = weight)
+calibrate_rake(ns_wave1_svy, targets = targets_b)
 }
 \references{
 DeBell, M. and Krosnick, J.A. (2009). Computing Weights for American

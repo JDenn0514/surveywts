@@ -422,8 +422,9 @@ column directly from the tibble:
 
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{data(pew_2016_optin)
 pew_design <- surveycore::survey_nonprob(
-  pew_2016_optin, variables = list(weights = "weight",
-  repweights = grep("^repwt_", names(pew_2016_optin), value = TRUE))
+  pew_2016_optin,
+  weights = "weight",
+  repwts = contains("repwt_")
 )
 }\if{html}{\out{</div>}}
 }

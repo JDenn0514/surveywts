@@ -169,7 +169,7 @@
       ! NPS (200 units) is 18.4% of the estimated population (N_hat = 1085).
       i Reference weights adjusted by factor 0.8157 per Valliant (2020) eq. (1): w* = w * (N_hat - n_NPS) / N_hat.
       v Set `adjust_reference = FALSE` to skip this adjustment if the NPS is known to be disjoint from the reference frame.
-      Error in `.validate_wt_name()`:
+      Error in `ipw()`:
       x `wt_name` must be a single character string.
       i Got <NULL> of length 0.
 

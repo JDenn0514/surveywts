@@ -15,7 +15,7 @@
 #' resample-reweight algorithm.
 #'
 #' @param data A `survey_taylor` or `survey_nonprob` design object.
-#'   `survey_replicate`, `data.frame`, and `weighted_df` → error.
+#'   `survey_replicate` and `data.frame` → error.
 #' @param replicates `integer(1)` or `NULL`. Number of bootstrap replicates.
 #'   Default `NULL` resolves to `200L` for `type = "quasi-randomization"` and
 #'   `type = "hybrid"`, and `500L` for all probability-sample types. Must be
@@ -156,8 +156,8 @@ create_bootstrap_weights <- function(
   replicates <- .validate_replicates_arg(replicates)
 
   # ---- Dispatch: NPS types vs. probability-sample types -------------------
-  # NPS type check runs before .validate_replicate_input() so that weighted_df
-  # and other non-design inputs get a more informative NPS-specific error.
+  # NPS type check runs before .validate_replicate_input() so that
+  # non-design inputs get a more informative NPS-specific error.
   if (type %in% c("quasi-randomization", "hybrid")) {
     if (!S7::S7_inherits(data, surveycore::survey_nonprob)) {
       cls <- class(data)[[1L]]

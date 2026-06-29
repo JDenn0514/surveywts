@@ -269,15 +269,13 @@ test_that("create_jackknife_weights() rejects survey_replicate input", {
   expect_snapshot(error = TRUE, create_jackknife_weights(rep))
 })
 
-test_that("create_jackknife_weights() rejects weighted_df input", {
-  df <- make_surveywts_data(seed = 1)
-  wdf <- structure(df, class = c("weighted_df", "tbl_df", "tbl", "data.frame"),
-                   weight_col = "base_weight", weighting_history = list())
+test_that("create_jackknife_weights() rejects data.frame input", {
+  df <- data.frame(x = 1:3, w = c(1, 1, 1))
   expect_error(
-    create_jackknife_weights(wdf),
+    create_jackknife_weights(df),
     class = "surveywts_error_not_survey_design"
   )
-  expect_snapshot(error = TRUE, create_jackknife_weights(wdf))
+  expect_snapshot(error = TRUE, create_jackknife_weights(df))
 })
 
 test_that("create_jackknife_weights() rejects unsupported class", {
@@ -441,12 +439,10 @@ test_that("create_brr_weights() rejects survey_replicate input", {
   expect_snapshot(error = TRUE, create_brr_weights(rep))
 })
 
-test_that("create_brr_weights() rejects weighted_df input", {
-  df <- make_surveywts_data(seed = 1)
-  wdf <- structure(df, class = c("weighted_df", "tbl_df", "tbl", "data.frame"),
-                   weight_col = "base_weight", weighting_history = list())
-  expect_error(create_brr_weights(wdf), class = "surveywts_error_not_survey_design")
-  expect_snapshot(error = TRUE, create_brr_weights(wdf))
+test_that("create_brr_weights() rejects data.frame input", {
+  df <- data.frame(x = 1:3, w = c(1, 1, 1))
+  expect_error(create_brr_weights(df), class = "surveywts_error_not_survey_design")
+  expect_snapshot(error = TRUE, create_brr_weights(df))
 })
 
 test_that("create_brr_weights() rejects unsupported class", {
@@ -597,12 +593,10 @@ test_that("create_gen_boot_weights() rejects survey_replicate input", {
   expect_snapshot(error = TRUE, create_gen_boot_weights(rep))
 })
 
-test_that("create_gen_boot_weights() rejects weighted_df input", {
-  df <- make_surveywts_data(seed = 1)
-  wdf <- structure(df, class = c("weighted_df", "tbl_df", "tbl", "data.frame"),
-                   weight_col = "base_weight", weighting_history = list())
-  expect_error(create_gen_boot_weights(wdf), class = "surveywts_error_not_survey_design")
-  expect_snapshot(error = TRUE, create_gen_boot_weights(wdf))
+test_that("create_gen_boot_weights() rejects data.frame input", {
+  df <- data.frame(x = 1:3, w = c(1, 1, 1))
+  expect_error(create_gen_boot_weights(df), class = "surveywts_error_not_survey_design")
+  expect_snapshot(error = TRUE, create_gen_boot_weights(df))
 })
 
 test_that("create_gen_boot_weights() rejects unsupported class", {
@@ -779,12 +773,10 @@ test_that("create_gen_rep_weights() rejects survey_replicate input", {
   expect_snapshot(error = TRUE, create_gen_rep_weights(rep))
 })
 
-test_that("create_gen_rep_weights() rejects weighted_df input", {
-  df <- make_surveywts_data(seed = 1)
-  wdf <- structure(df, class = c("weighted_df", "tbl_df", "tbl", "data.frame"),
-                   weight_col = "base_weight", weighting_history = list())
-  expect_error(create_gen_rep_weights(wdf), class = "surveywts_error_not_survey_design")
-  expect_snapshot(error = TRUE, create_gen_rep_weights(wdf))
+test_that("create_gen_rep_weights() rejects data.frame input", {
+  df <- data.frame(x = 1:3, w = c(1, 1, 1))
+  expect_error(create_gen_rep_weights(df), class = "surveywts_error_not_survey_design")
+  expect_snapshot(error = TRUE, create_gen_rep_weights(df))
 })
 
 test_that("create_gen_rep_weights() rejects unsupported class", {
@@ -954,16 +946,10 @@ test_that("create_sdr_weights() rejects survey_replicate input", {
   expect_snapshot(error = TRUE, create_sdr_weights(rep))
 })
 
-test_that("create_sdr_weights() rejects weighted_df input", {
-  df <- make_surveywts_data(seed = 1)
-  wdf <- structure(
-    df,
-    class = c("weighted_df", "tbl_df", "tbl", "data.frame"),
-    weight_col = "base_weight",
-    weighting_history = list()
-  )
-  expect_error(create_sdr_weights(wdf), class = "surveywts_error_not_survey_design")
-  expect_snapshot(error = TRUE, create_sdr_weights(wdf))
+test_that("create_sdr_weights() rejects data.frame input", {
+  df <- data.frame(x = 1:3, w = c(1, 1, 1))
+  expect_error(create_sdr_weights(df), class = "surveywts_error_not_survey_design")
+  expect_snapshot(error = TRUE, create_sdr_weights(df))
 })
 
 test_that("create_sdr_weights() rejects unsupported class", {

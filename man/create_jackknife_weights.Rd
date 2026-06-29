@@ -21,8 +21,8 @@ create_jackknife_weights(
 }
 \arguments{
 \item{data}{A \code{survey_taylor} or \code{survey_nonprob}. \code{survey_nonprob} is only
-valid with \code{type = "grouped"}. \code{data.frame}, \code{weighted_df}, and
-\code{survey_replicate} inputs all error.}
+valid with \code{type = "grouped"}. \code{data.frame} and \code{survey_replicate}
+inputs all error.}
 
 \item{replicates}{\code{integer(1)} or \code{NULL}. Number of random deletion groups
 for \code{type = "grouped"}. Required when \code{type = "grouped"} for both

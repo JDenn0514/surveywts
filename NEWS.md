@@ -1,5 +1,10 @@
 # surveywts 0.2.1 (development)
 
+## Internal
+
+* Remove stale `weighted_df` references left after PR #86 — source comments,
+  roxygen `@param` docs, and test descriptions updated throughout.
+
 ## Breaking changes
 
 ### All weighting functions now require survey objects

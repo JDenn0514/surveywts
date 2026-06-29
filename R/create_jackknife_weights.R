@@ -16,8 +16,8 @@
 #' `type = "grouped"`.
 #'
 #' @param data A `survey_taylor` or `survey_nonprob`. `survey_nonprob` is only
-#'   valid with `type = "grouped"`. `data.frame`, `weighted_df`, and
-#'   `survey_replicate` inputs all error.
+#'   valid with `type = "grouped"`. `data.frame` and `survey_replicate`
+#'   inputs all error.
 #' @param replicates `integer(1)` or `NULL`. Number of random deletion groups
 #'   for `type = "grouped"`. Required when `type = "grouped"` for both
 #'   `survey_taylor` and `survey_nonprob` inputs; errors if `NULL`. Silently
@@ -300,7 +300,7 @@ create_jackknife_weights <- function(
   # Step 1: dots must be empty
   rlang::check_dots_empty()
 
-  # Step 2: reject data.frame / weighted_df / survey_replicate / unsupported
+  # Step 2: reject data.frame / survey_replicate / unsupported
   .validate_replicate_input(data)
 
   # Step 3: resolve type

@@ -3576,3 +3576,60 @@ test_that(
     test_invariants(result)
   }
 )
+
+# ===========================================================================
+# 27. method = "logit" paths
+# ===========================================================================
+
+test_that("calibrate_to_survey() accepts method = 'logit'", {
+  skip_if_not_installed("svrep")
+  primary <- make_replicate_design(n = 200L, seed = 1L)
+  control <- make_replicate_design(n = 200L, seed = 2L)
+
+  result <- calibrate_to_survey(
+    primary_design = primary,
+    control_design = control,
+    variables      = c(sex),
+    method         = "logit"
+  )
+
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
+})
+
+test_that("calibrate_to_estimate() accepts method = 'logit'", {
+  skip_if_not_installed("svrep")
+  design   <- make_replicate_design(n = 200L, seed = 42L)
+  targets  <- list(sex = c("F" = 110, "M" = 90))
+  vcov_est <- diag(c(100, 100))
+
+  result <- calibrate_to_estimate(
+    design,
+    targets,
+    vcov_est,
+    method = "logit",
+    bounds = c(0.01, 100)
+  )
+
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
+})
+
+# ===========================================================================
+# 28. Non-matrix vcov_estimate
+# ===========================================================================
+
+test_that("calibrate_to_estimate() rejects non-matrix vcov_estimate", {
+  skip_if_not_installed("svrep")
+  primary <- make_replicate_design(n = 100L, seed = 1L)
+  targets <- list(sex = c("F" = 60, "M" = 40))
+
+  expect_error(
+    calibrate_to_estimate(primary, targets, vcov_estimate = c(1, 2, 3)),
+    class = "surveywts_error_vcov_dimension_mismatch"
+  )
+  expect_snapshot(
+    error = TRUE,
+    calibrate_to_estimate(primary, targets, vcov_estimate = c(1, 2, 3))
+  )
+})

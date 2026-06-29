@@ -63,13 +63,6 @@ make_surveywts_data <- function(
 }
 
 test_invariants <- function(obj) {
-  if (inherits(obj, "weighted_df")) {
-    wt_col <- attr(obj, "weight_col")
-    testthat::expect_true(is.character(wt_col) && length(wt_col) == 1)
-    testthat::expect_true(wt_col %in% names(obj))
-    testthat::expect_true(is.numeric(obj[[wt_col]]))
-    testthat::expect_true(is.list(attr(obj, "weighting_history")))
-  }
   if (exists("survey_nonprob") &&
         S7::S7_inherits(obj, survey_nonprob)) {
     testthat::expect_true(is.character(obj@variables$weights))

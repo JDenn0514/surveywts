@@ -87,6 +87,16 @@
       i This function requires a <survey_taylor> or <survey_nonprob> object.
       v Convert with `surveycore::as_survey()`.
 
+---
+
+    Code
+      create_jackknife_weights(df)
+    Condition
+      Error in `.validate_replicate_input()`:
+      x `data` is a <data.frame>, not a survey design.
+      i This function requires a <survey_taylor> or <survey_nonprob> object.
+      v Convert with `surveycore::as_survey()`.
+
 # create_jackknife_weights() rejects survey_replicate input
 
     Code
@@ -95,16 +105,6 @@
       Error in `.validate_replicate_input()`:
       x `data` is already a <survey_replicate>.
       i Replicate weights cannot be created from a design that already has replicates.
-
-# create_jackknife_weights() rejects weighted_df input
-
-    Code
-      create_jackknife_weights(wdf)
-    Condition
-      Error in `.validate_replicate_input()`:
-      x `data` is a <weighted_df>, not a survey design.
-      i This function requires a <survey_taylor> or <survey_nonprob> object.
-      v Convert with `surveycore::as_survey()`.
 
 # create_jackknife_weights() rejects unsupported class
 
@@ -153,6 +153,16 @@
       i This function requires a <survey_taylor> or <survey_nonprob> object.
       v Convert with `surveycore::as_survey()`.
 
+---
+
+    Code
+      create_brr_weights(df)
+    Condition
+      Error in `.validate_replicate_input()`:
+      x `data` is a <data.frame>, not a survey design.
+      i This function requires a <survey_taylor> or <survey_nonprob> object.
+      v Convert with `surveycore::as_survey()`.
+
 # create_brr_weights() rejects survey_replicate input
 
     Code
@@ -161,16 +171,6 @@
       Error in `.validate_replicate_input()`:
       x `data` is already a <survey_replicate>.
       i Replicate weights cannot be created from a design that already has replicates.
-
-# create_brr_weights() rejects weighted_df input
-
-    Code
-      create_brr_weights(wdf)
-    Condition
-      Error in `.validate_replicate_input()`:
-      x `data` is a <weighted_df>, not a survey design.
-      i This function requires a <survey_taylor> or <survey_nonprob> object.
-      v Convert with `surveycore::as_survey()`.
 
 # create_brr_weights() rejects unsupported class
 
@@ -259,6 +259,16 @@
       i This function requires a <survey_taylor> or <survey_nonprob> object.
       v Convert with `surveycore::as_survey()`.
 
+---
+
+    Code
+      create_gen_boot_weights(df)
+    Condition
+      Error in `.validate_replicate_input()`:
+      x `data` is a <data.frame>, not a survey design.
+      i This function requires a <survey_taylor> or <survey_nonprob> object.
+      v Convert with `surveycore::as_survey()`.
+
 # create_gen_boot_weights() rejects survey_replicate input
 
     Code
@@ -267,16 +277,6 @@
       Error in `.validate_replicate_input()`:
       x `data` is already a <survey_replicate>.
       i Replicate weights cannot be created from a design that already has replicates.
-
-# create_gen_boot_weights() rejects weighted_df input
-
-    Code
-      create_gen_boot_weights(wdf)
-    Condition
-      Error in `.validate_replicate_input()`:
-      x `data` is a <weighted_df>, not a survey design.
-      i This function requires a <survey_taylor> or <survey_nonprob> object.
-      v Convert with `surveycore::as_survey()`.
 
 # create_gen_boot_weights() rejects unsupported class
 
@@ -342,6 +342,16 @@
       i This function requires a <survey_taylor> or <survey_nonprob> object.
       v Convert with `surveycore::as_survey()`.
 
+---
+
+    Code
+      create_gen_rep_weights(df)
+    Condition
+      Error in `.validate_replicate_input()`:
+      x `data` is a <data.frame>, not a survey design.
+      i This function requires a <survey_taylor> or <survey_nonprob> object.
+      v Convert with `surveycore::as_survey()`.
+
 # create_gen_rep_weights() rejects survey_replicate input
 
     Code
@@ -350,16 +360,6 @@
       Error in `.validate_replicate_input()`:
       x `data` is already a <survey_replicate>.
       i Replicate weights cannot be created from a design that already has replicates.
-
-# create_gen_rep_weights() rejects weighted_df input
-
-    Code
-      create_gen_rep_weights(wdf)
-    Condition
-      Error in `.validate_replicate_input()`:
-      x `data` is a <weighted_df>, not a survey design.
-      i This function requires a <survey_taylor> or <survey_nonprob> object.
-      v Convert with `surveycore::as_survey()`.
 
 # create_gen_rep_weights() rejects unsupported class
 
@@ -400,6 +400,16 @@
       i This function requires a <survey_taylor> or <survey_nonprob> object.
       v Convert with `surveycore::as_survey()`.
 
+---
+
+    Code
+      create_sdr_weights(df)
+    Condition
+      Error in `.validate_replicate_input()`:
+      x `data` is a <data.frame>, not a survey design.
+      i This function requires a <survey_taylor> or <survey_nonprob> object.
+      v Convert with `surveycore::as_survey()`.
+
 # create_sdr_weights() rejects survey_replicate input
 
     Code
@@ -408,16 +418,6 @@
       Error in `.validate_replicate_input()`:
       x `data` is already a <survey_replicate>.
       i Replicate weights cannot be created from a design that already has replicates.
-
-# create_sdr_weights() rejects weighted_df input
-
-    Code
-      create_sdr_weights(wdf)
-    Condition
-      Error in `.validate_replicate_input()`:
-      x `data` is a <weighted_df>, not a survey design.
-      i This function requires a <survey_taylor> or <survey_nonprob> object.
-      v Convert with `surveycore::as_survey()`.
 
 # create_sdr_weights() rejects unsupported class
 

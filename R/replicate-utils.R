@@ -18,7 +18,7 @@
 # ============================================================================
 
 .validate_replicate_input <- function(data) {
-  if (inherits(data, "data.frame") || inherits(data, "weighted_df")) {
+  if (inherits(data, "data.frame")) {
     cli::cli_abort(
       c(
         "x" = "{.arg data} is a {.cls {class(data)[[1]]}}, not a survey design.",
@@ -642,7 +642,7 @@
 #                 NULL for Level A
 #   use_level_b : logical; TRUE = re-estimate targets from ref_data_b
 #
-# Returns: a weighted_df or survey_nonprob with calibrated weights
+# Returns: a survey_nonprob with calibrated weights
 .dispatch_calibration_replay <- function(
   data, calib_entry, ref_design, ref_data_b, use_level_b
 ) {
@@ -743,27 +743,15 @@
 # .extract_weight_vec()
 # ============================================================================
 
-# Extract the weight column from a calibration result, which may be a
-# survey_nonprob, weighted_df, or data.frame.
+# Extract the weight column from a calibration result.
 #
 # Arguments:
-#   result  : the output of a calibration function call
+#   result  : the output of a calibration function call (survey_nonprob)
 #   wt_col  : character(1) — name of the weight column
 #
 # Returns: numeric vector of calibrated weights
 .extract_weight_vec <- function(result, wt_col) {
-  if (S7::S7_inherits(result, surveycore::survey_nonprob)) {
-    return(result@data[[result@variables$weights]])
-  }
-  # nocov start
-  # Unreachable via public API: calibration functions always return
-  # survey_nonprob when given a survey_nonprob input.
-  if (inherits(result, "weighted_df")) {
-    result[[attr(result, "weight_col")]]
-  } else {
-    result[[wt_col]]
-  }
-  # nocov end
+  result@data[[result@variables$weights]]
 }
 
 # ============================================================================

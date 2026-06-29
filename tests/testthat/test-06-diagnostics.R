@@ -284,9 +284,6 @@ test_that("summarize_weights() handles multi-column by with dots in levels", {
   expect_identical(result$dept, c("R&D", "H.R."))
 })
 
-# §10 zero-weight tests removed — used .make_weighted_df() which is deleted
-# in this refactor. S7 validators enforce all weights > 0 at construction
-# time, so post-nonresponse zero-weight objects cannot be constructed.
 
 # ---------------------------------------------------------------------------
 # 11. survey_replicate input — accepted (Replicate release complete)
@@ -414,5 +411,3 @@ test_that("survey_replicate with equal main weights gives n_eff == n and cv == 0
   expect_equal(result_cv[["cv"]], 0, tolerance = 1e-10)
 })
 
-# summarize_weights() zero-weight test removed — used .make_weighted_df()
-# which is deleted in this refactor.

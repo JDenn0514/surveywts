@@ -5,7 +5,7 @@
 #
 # All error path tests use the dual pattern:
 #   expect_error(class = ...) + expect_snapshot(error = TRUE, ...)
-# Every test_that block creating weighted_df or survey_nonprob calls
+# Every test_that block creating a survey_nonprob calls
 # test_invariants(obj) first.
 
 # ---------------------------------------------------------------------------

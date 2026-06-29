@@ -17,7 +17,7 @@ create_bootstrap_weights(
 }
 \arguments{
 \item{data}{A \code{survey_taylor} or \code{survey_nonprob} design object.
-\code{survey_replicate}, \code{data.frame}, and \code{weighted_df} → error.}
+\code{survey_replicate} and \code{data.frame} → error.}
 
 \item{replicates}{\code{integer(1)} or \code{NULL}. Number of bootstrap replicates.
 Default \code{NULL} resolves to \code{200L} for \code{type = "quasi-randomization"} and

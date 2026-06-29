@@ -1593,7 +1593,7 @@ test_that("redistribute_weights() history step number is 1 for fresh design", {
 # ===========================================================================
 
 # ---------------------------------------------------------------------------
-# PC-1. Happy path — data.frame input → weighted_df
+
 # ---------------------------------------------------------------------------
 
 test_that("adjust_nonresponse(method='propensity-cell') returns survey_taylor for survey_taylor input", {
@@ -1981,7 +1981,7 @@ test_that("propensity-cell handles high propensity concentration (all scores nea
 # ===========================================================================
 
 # ---------------------------------------------------------------------------
-# P-1. Happy path — data.frame input returns weighted_df
+
 # ---------------------------------------------------------------------------
 
 test_that("adjust_nonresponse(propensity) accepts survey_taylor and returns respondent rows", {

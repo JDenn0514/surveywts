@@ -905,3 +905,135 @@ test_that("create_bootstrap_weights() Level B with type = 'count' margins re-est
     expect_true(is.numeric(result@data[[col]]))
   }
 })
+
+# CG5: calibrate_linear() Level B replay in .dispatch_calibration_replay()
+# (lines 668-672 of replicate-utils.R)
+test_that("create_bootstrap_weights() replays calibrate_linear() Level B correctly", {
+  skip_if_not_installed("svrep")
+  df  <- make_surveywts_data(seed = 3)
+  ref <- make_nps_ref(seed = 103)
+
+  nps_ipw <- suppressWarnings(ipw(
+    data      = df,
+    reference = ref,
+    selection = ~age_group + sex
+  ))
+  pop_targets <- list(
+    age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+    sex       = c("M" = 0.49, "F" = 0.51)
+  )
+  # reference_design → targets_from_reference = TRUE → Level B replay
+  nps_calibrated <- suppressWarnings(calibrate_linear(
+    nps_ipw,
+    targets          = pop_targets,
+    type             = "prop",
+    reference_design = ref
+  ))
+
+  result <- suppressWarnings(create_bootstrap_weights(
+    nps_calibrated,
+    type       = "quasi-randomization",
+    replicates = 20L,
+    seed       = 6L
+  ))
+
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  boot_entry <- result@metadata@weighting_history[[
+    length(result@metadata@weighting_history)
+  ]]
+  expect_identical(boot_entry$level, "B")
+})
+
+# CG6: calibrate_logit() Level B replay in .dispatch_calibration_replay()
+# (lines 692-696 of replicate-utils.R)
+test_that("create_bootstrap_weights() replays calibrate_logit() Level B correctly", {
+  skip_if_not_installed("svrep")
+  df  <- make_surveywts_data(seed = 5)
+  ref <- make_nps_ref(seed = 105)
+
+  nps_ipw <- suppressWarnings(ipw(
+    data      = df,
+    reference = ref,
+    selection = ~age_group + sex
+  ))
+  pop_targets <- list(
+    age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+    sex       = c("M" = 0.49, "F" = 0.51)
+  )
+  # reference_design → Level B replay through calibrate_logit()
+  nps_calibrated <- suppressWarnings(calibrate_logit(
+    nps_ipw,
+    targets          = pop_targets,
+    type             = "prop",
+    reference_design = ref
+  ))
+
+  result <- suppressWarnings(create_bootstrap_weights(
+    nps_calibrated,
+    type       = "quasi-randomization",
+    replicates = 20L,
+    seed       = 7L
+  ))
+
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  boot_entry <- result@metadata@weighting_history[[
+    length(result@metadata@weighting_history)
+  ]]
+  expect_identical(boot_entry$level, "B")
+})
+
+# CG7: unsupported calibration operation in .dispatch_calibration_replay()
+# CG8: calibrate_linear() with bounds_scale stored → line 687 of replicate-utils.R
+test_that("create_bootstrap_weights() passes bounds_scale when stored in history", {
+  skip_if_not_installed("svrep")
+  df  <- make_surveywts_data(seed = 3)
+  ref <- make_nps_ref(seed = 103)
+
+  nps_ipw <- suppressWarnings(ipw(
+    data      = df,
+    reference = ref,
+    selection = ~age_group + sex
+  ))
+  pop_targets <- list(
+    age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+    sex       = c("M" = 0.49, "F" = 0.51)
+  )
+  nps_calibrated <- suppressWarnings(calibrate_linear(
+    nps_ipw,
+    targets          = pop_targets,
+    type             = "prop",
+    bounds_scale     = "multiplicative",
+    reference_design = ref
+  ))
+
+  result <- suppressWarnings(create_bootstrap_weights(
+    nps_calibrated,
+    type       = "quasi-randomization",
+    replicates = 20L,
+    seed       = 7L
+  ))
+
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+})
+
+# (line 721 of replicate-utils.R) — call internal function directly
+test_that(".dispatch_calibration_replay() aborts on unknown calibration operation", {
+  df <- make_surveywts_data(n = 50, seed = 9)
+  fake_entry <- list(
+    operation  = "unknown_op",
+    parameters = list(targets = list(), type = "prop")
+  )
+  expect_error(
+    surveywts:::.dispatch_calibration_replay(
+      data        = df,
+      calib_entry = fake_entry,
+      ref_design  = NULL,
+      ref_data_b  = NULL,
+      use_level_b = FALSE
+    ),
+    class = "surveywts_error_unsupported_calibration_op"
+  )
+})

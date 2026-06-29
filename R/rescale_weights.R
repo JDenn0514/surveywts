@@ -72,6 +72,8 @@ rescale_weights <- function(
   # Step 1: validate class and check nrow
   .check_weight_utils_class(data)
   data_df <- data@data
+  # nocov start
+  # Unreachable via public API: surveycore S7 validators prevent 0-row objects.
   if (nrow(data_df) == 0L) {
     cli::cli_abort(
       c(
@@ -81,6 +83,7 @@ rescale_weights <- function(
       class = "surveywts_error_empty_data"
     )
   }
+  # nocov end
 
   # Step 2: extract weight vector and validate
   wt_col_name <- .get_weight_col_name(data, weights_quo)

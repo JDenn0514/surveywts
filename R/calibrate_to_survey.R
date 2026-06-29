@@ -1209,8 +1209,8 @@ calibrate_to_survey <- function(
   as.numeric(stats::weights(cal_result))
 }
 
-# Thin wrapper around svrep::calibrate_to_sample().
-# Exists as a named function in the surveywts namespace so tests can mock it.
-# (No longer called by calibrate_to_survey(); retained for calibrate_to_estimate()
-# compatibility — do NOT remove.)
+# Test hook — mockable binding so tests can assert this function is NOT called.
+# Not called in production code; retained as a named symbol for test mocking only.
+# nocov start
 .svrep_calibrate_to_sample <- function(...) svrep::calibrate_to_sample(...)
+# nocov end

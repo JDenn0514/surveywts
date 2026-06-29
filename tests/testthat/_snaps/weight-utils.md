@@ -253,3 +253,33 @@
       Error in `.validate_wt_name()`:
       x `wt_name` must be a non-empty, non-NA string.
 
+# rescale_weights() aborts when explicit weights column does not exist
+
+    Code
+      rescale_weights(svy, weights = nonexistent_col)
+    Condition
+      Error in `.validate_weights()`:
+      x Weight column nonexistent_col not found in `data`.
+      i Available columns: id, age_group, sex, education, region, and base_weight.
+      v Pass the column name as a bare name, e.g., `weights = wt_col`.
+
+# rescale_weights() aborts when explicit weights column is not numeric
+
+    Code
+      rescale_weights(svy, weights = str_wt)
+    Condition
+      Error in `.validate_weights()`:
+      x Weight column str_wt must be numeric.
+      i Got <character>.
+      v Use `as.numeric(str_wt)` to convert.
+
+# rescale_weights() aborts when explicit weights column contains NAs
+
+    Code
+      rescale_weights(svy, weights = na_wt)
+    Condition
+      Error in `.validate_weights()`:
+      x Weight column na_wt contains 1 NA value(s).
+      i Weights must be fully observed.
+      v Remove rows with missing weights before proceeding.
+

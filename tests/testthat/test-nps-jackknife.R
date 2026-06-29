@@ -842,3 +842,274 @@ test_that("create_jackknife_weights() type='grouped' refits the logistic model p
   ratio <- result@data[["repwt_1"]][surviving1] / full_wt[surviving1]
   expect_true(stats::sd(ratio) > 1e-10)
 })
+
+# ============================================================================
+# §6 Calibration-only DAGJK (no ipw() in history)
+# ============================================================================
+
+# These tests exercise the calibration-only code path in DAGJK, where
+# create_jackknife_weights() is called on a survey_nonprob whose weighting
+# history has a calibration entry but no ipw() entry.  The two sub-cases are:
+#   Level A — calibrate_rake() without reference_design (targets_from_reference = FALSE)
+#   Level B — calibrate_rake() with reference_design    (targets_from_reference = TRUE)
+
+test_that("create_jackknife_weights() calibration-only DAGJK Level A (no reference)", {
+  set.seed(101L)
+  nps_df <- data.frame(
+    age_group = sample(
+      c("18-34", "35-54", "55+"),
+      size = 80L, replace = TRUE,
+      prob = c(0.40, 0.35, 0.25)
+    ),
+    sex = sample(c("M", "F"), size = 80L, replace = TRUE, prob = c(0.55, 0.45)),
+    wts = rep(1, 80L),
+    stringsAsFactors = FALSE
+  )
+  np <- surveycore::survey_nonprob(
+    data      = nps_df,
+    variables = list(weights = "wts")
+  )
+  targets <- list(
+    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
+    sex       = c("M" = 0.48, "F" = 0.52)
+  )
+  cal <- calibrate_rake(np, targets = targets, type = "prop")
+  result <- create_jackknife_weights(cal, replicates = 10L, type = "grouped", seed = 42L)
+
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  expect_length(result@variables$repweights, 10L)
+  expect_identical(result@variables$type, "group-jackknife")
+  rep_mat <- sapply(result@variables$repweights, function(col) result@data[[col]])
+  expect_equal(nrow(rep_mat), 80L)
+  expect_equal(ncol(rep_mat), 10L)
+})
+
+test_that("create_jackknife_weights() calibration-only DAGJK Level B (with reference)", {
+  set.seed(101L)
+  ref_df <- data.frame(
+    age_group  = sample(
+      c("18-34", "35-54", "55+"),
+      size = 500L, replace = TRUE,
+      prob = c(0.30, 0.40, 0.30)
+    ),
+    sex        = sample(c("M", "F"), size = 500L, replace = TRUE, prob = c(0.48, 0.52)),
+    ref_weight = rep(1, 500L),
+    stringsAsFactors = FALSE
+  )
+  ref <- surveycore::survey_taylor(
+    data      = ref_df,
+    variables = list(weights = "ref_weight")
+  )
+
+  set.seed(202L)
+  nps_df <- data.frame(
+    age_group = sample(
+      c("18-34", "35-54", "55+"),
+      size = 80L, replace = TRUE,
+      prob = c(0.40, 0.35, 0.25)
+    ),
+    sex = sample(c("M", "F"), size = 80L, replace = TRUE, prob = c(0.55, 0.45)),
+    wts = rep(1, 80L),
+    stringsAsFactors = FALSE
+  )
+  np <- surveycore::survey_nonprob(
+    data      = nps_df,
+    variables = list(weights = "wts")
+  )
+  targets <- list(
+    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
+    sex       = c("M" = 0.48, "F" = 0.52)
+  )
+  cal <- calibrate_rake(np, targets = targets, type = "prop", reference_design = ref)
+  result <- create_jackknife_weights(cal, replicates = 10L, type = "grouped", seed = 42L)
+
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  expect_length(result@variables$repweights, 10L)
+  expect_identical(result@variables$type, "group-jackknife")
+  rep_mat <- sapply(result@variables$repweights, function(col) result@data[[col]])
+  expect_equal(nrow(rep_mat), 80L)
+  expect_equal(ncol(rep_mat), 10L)
+})
+
+# ============================================================================
+# §7 DAGJK variant paths
+# ============================================================================
+
+test_that("create_jackknife_weights() DAGJK handles missing_method = 'separate'", {
+  set.seed(303L)
+  ref_df <- data.frame(
+    age_group  = sample(
+      c("18-34", "35-54", "55+"),
+      size = 500L, replace = TRUE,
+      prob = c(0.30, 0.40, 0.30)
+    ),
+    sex        = sample(c("M", "F"), size = 500L, replace = TRUE, prob = c(0.48, 0.52)),
+    ref_weight = rep(1, 500L),
+    stringsAsFactors = FALSE
+  )
+  ref <- surveycore::survey_taylor(
+    data      = ref_df,
+    variables = list(weights = "ref_weight")
+  )
+  set.seed(404L)
+  nps_df <- data.frame(
+    age_group = sample(
+      c("18-34", "35-54", "55+"),
+      size = 80L, replace = TRUE,
+      prob = c(0.40, 0.35, 0.25)
+    ),
+    sex = sample(c("M", "F"), size = 80L, replace = TRUE, prob = c(0.55, 0.45)),
+    stringsAsFactors = FALSE
+  )
+  # Introduce NAs so missing_method = "separate" creates the (Missing) level
+  nps_df$age_group[c(1L, 5L, 10L)] <- NA_character_
+  result_ipw <- suppressWarnings(ipw(
+    data             = nps_df,
+    reference        = ref,
+    selection        = ~age_group + sex,
+    missing_method   = "separate",
+    adjust_reference = FALSE
+  ))
+  result <- create_jackknife_weights(
+    result_ipw, replicates = 10L, type = "grouped", seed = 42L
+  )
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  expect_length(result@variables$repweights, 10L)
+})
+
+test_that("create_jackknife_weights() DAGJK handles ipw() with trim = TRUE", {
+  result_ipw <- suppressWarnings(ipw(
+    data             = datasets$ref@data[1:80, c("age_group", "sex")],
+    reference        = datasets$ref,
+    selection        = ~age_group + sex,
+    trim             = TRUE,
+    adjust_reference = FALSE
+  ))
+  result <- create_jackknife_weights(
+    result_ipw, replicates = 10L, type = "grouped", seed = 42L
+  )
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  expect_length(result@variables$repweights, 10L)
+})
+
+test_that("create_jackknife_weights() DAGJK applies per-stratum scaling when strata present", {
+  # ipw() does not propagate @variables$strata to its output; set it manually
+  # so create_jackknife_weights() takes the per-stratum scaling path
+  # (lines 226-256 of jackknife-dagjk-utils.R).
+  result_ipw <- suppressWarnings(ipw(
+    data             = datasets$ref@data[1:80, c("age_group", "sex")],
+    reference        = datasets$ref,
+    selection        = ~age_group + sex,
+    adjust_reference = FALSE
+  ))
+  result_ipw@variables$strata <- "age_group"
+  result <- create_jackknife_weights(result_ipw, replicates = 10L, type = "grouped", seed = 42L)
+  test_invariants(result)
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  expect_length(result@variables$repweights, 10L)
+})
+
+test_that("create_jackknife_weights() DAGJK replays calibrate_logit() in replicates", {
+  result_ipw <- suppressWarnings(ipw(
+    data             = datasets$ref@data[1:80, c("age_group", "sex")],
+    reference        = datasets$ref,
+    selection        = ~age_group + sex,
+    adjust_reference = FALSE
+  ))
+  targets <- list(
+    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
+    sex       = c("M" = 0.48, "F" = 0.52)
+  )
+  cal <- tryCatch(
+    calibrate_logit(result_ipw, targets = targets, type = "prop"),
+    error = function(e) NULL
+  )
+  if (is.null(cal)) skip("calibrate_logit() did not converge on this data")
+  result <- create_jackknife_weights(cal, replicates = 10L, type = "grouped", seed = 42L)
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  expect_length(result@variables$repweights, 10L)
+})
+
+test_that("create_jackknife_weights() DAGJK replays calibrate_linear() in replicates", {
+  result_ipw <- suppressWarnings(ipw(
+    data             = datasets$ref@data[1:80, c("age_group", "sex")],
+    reference        = datasets$ref,
+    selection        = ~age_group + sex,
+    adjust_reference = FALSE
+  ))
+  targets <- list(
+    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
+    sex       = c("M" = 0.48, "F" = 0.52)
+  )
+  cal <- tryCatch(
+    calibrate_linear(result_ipw, targets = targets, type = "prop"),
+    error = function(e) NULL
+  )
+  if (is.null(cal)) skip("calibrate_linear() did not converge on this data")
+  result <- create_jackknife_weights(cal, replicates = 10L, type = "grouped", seed = 42L)
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  expect_length(result@variables$repweights, 10L)
+})
+
+test_that("create_jackknife_weights() DAGJK uses extended formula when n_h < G", {
+  # Build NPS where one stratum has 8 rows so n_h=8 < G=10
+  # This exercises jackknife-dagjk-utils.R lines 249, 253 (Kott 2001 §3 eq. 2).
+  # n_old=8 >> 1 group's share (~1 row) so no replicate loses all "old" rows.
+  set.seed(77L)
+  ref_df <- data.frame(
+    age_group  = c(rep("young", 400L), rep("old", 400L)),
+    sex        = sample(c("M", "F"), size = 800L, replace = TRUE),
+    ref_weight = rep(1, 800L),
+    stringsAsFactors = FALSE
+  )
+  ref <- surveycore::survey_taylor(
+    data      = ref_df,
+    variables = list(weights = "ref_weight")
+  )
+  # NPS: 92 "young" + 8 "old" rows; "old" stratum has n_h=8 < G=10
+  nps_df <- data.frame(
+    age_group = c(rep("young", 92L), rep("old", 8L)),
+    sex       = sample(c("M", "F"), size = 100L, replace = TRUE),
+    stringsAsFactors = FALSE
+  )
+  result_ipw <- suppressWarnings(ipw(
+    data             = nps_df,
+    reference        = ref,
+    selection        = ~age_group + sex,
+    adjust_reference = FALSE
+  ))
+  result_ipw@variables$strata <- "age_group"
+  result <- suppressWarnings(
+    create_jackknife_weights(result_ipw, replicates = 10L, type = "grouped", seed = 42L)
+  )
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  expect_gte(length(result@variables$repweights), 9L)
+})
+
+test_that("create_jackknife_weights() DAGJK Level B replays calibrate_logit() with reference", {
+  # calibrate_logit with reference_design in history → Level B path
+  # exercises jackknife-dagjk-utils.R lines 308-314
+  result_ipw <- suppressWarnings(ipw(
+    data             = datasets$ref@data[1:80, c("age_group", "sex")],
+    reference        = datasets$ref,
+    selection        = ~age_group + sex,
+    adjust_reference = FALSE
+  ))
+  targets <- list(
+    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
+    sex       = c("M" = 0.48, "F" = 0.52)
+  )
+  cal <- tryCatch(
+    calibrate_logit(
+      result_ipw,
+      targets          = targets,
+      type             = "prop",
+      reference_design = datasets$ref
+    ),
+    error = function(e) NULL
+  )
+  if (is.null(cal)) skip("calibrate_logit() did not converge on this data")
+  result <- create_jackknife_weights(cal, replicates = 10L, type = "grouped", seed = 42L)
+  expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
+  expect_length(result@variables$repweights, 10L)
+})

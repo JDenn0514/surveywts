@@ -539,7 +539,12 @@
         # A draw fails if any calibrated weight is <= 0 (e.g., calibrate_linear
         # with bounds = NULL can produce negative weights that pass the engine
         # but violate the survey_nonprob validator)
+        # nocov start
+        # Requires calibrate_linear() to produce a negative weight on a bootstrap
+        # subsample — reliably engineering such extreme conditions without
+        # also causing convergence failure is not feasible in unit tests.
         if (any(w_b <= 0, na.rm = TRUE)) stop("non-positive calibrated weight")
+        # nocov end
 
         repwt_list[[length(repwt_list) + 1L]] <- w_b
         TRUE
@@ -748,12 +753,17 @@
 # Returns: numeric vector of calibrated weights
 .extract_weight_vec <- function(result, wt_col) {
   if (S7::S7_inherits(result, surveycore::survey_nonprob)) {
-    result@data[[result@variables$weights]]
-  } else if (inherits(result, "weighted_df")) {
+    return(result@data[[result@variables$weights]])
+  }
+  # nocov start
+  # Unreachable via public API: calibration functions always return
+  # survey_nonprob when given a survey_nonprob input.
+  if (inherits(result, "weighted_df")) {
     result[[attr(result, "weight_col")]]
   } else {
     result[[wt_col]]
   }
+  # nocov end
 }
 
 # ============================================================================

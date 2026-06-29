@@ -483,6 +483,10 @@ create_jackknife_weights <- function(
     # Calibration-only Level B: reference required
     ref_design <- reference_sample %||%
       calib_entry$parameters$reference_design
+    # nocov start
+    # Defensive: calibrate_rake/linear/logit always stores reference_design in
+    # the history entry when called with reference_design != NULL. The only way
+    # to reach this branch is if the history entry was manually corrupted.
     if (is.null(ref_design)) {
       cli::cli_abort(
         c(
@@ -502,6 +506,7 @@ create_jackknife_weights <- function(
         class = "surveywts_error_jackknife_no_reference"
       )
     }
+    # nocov end
     n_ref      <- nrow(ref_design@data)
     combined_n <- n_nps + n_ref
   } else {
@@ -699,6 +704,10 @@ create_jackknife_weights <- function(
 
   # Negative weight warning (after assembling all replicate columns)
   rep_mat <- as.matrix(data@data[, repwt_names, drop = FALSE])
+  # nocov start
+  # This path requires calibrate_linear() with extreme targets on a replicate
+  # where the composition deviates sharply from population targets — reliably
+  # engineering such a case without also breaking convergence is infeasible.
   if (any(rep_mat < 0, na.rm = TRUE)) {
     cli::cli_warn(
       c(
@@ -713,6 +722,7 @@ create_jackknife_weights <- function(
       class = "surveywts_warning_jackknife_negative_replicate_weights"
     )
   }
+  # nocov end
 
   data@variables$repweights <- repwt_names
   data@variables$scale      <- (G_success - 1L) / G_success

@@ -1377,3 +1377,62 @@ test_that("rescale_weights() nonprob + repweights: two rep columns scale correct
   result <- rescale_weights(nonprob_rep)
   expect_equal(result@data[["rep_1"]], orig_rep1 * scale_f, tolerance = 1e-10)
 })
+
+# ===========================================================================
+# .validate_weights() error paths — triggered via rescale_weights()
+# S7 validators guard @variables$weights; these errors fire when an
+# *override* weight column is passed via weights = that fails validation.
+# ===========================================================================
+
+test_that("rescale_weights() aborts when explicit weights column does not exist", {
+  df <- make_surveywts_data(n = 50, seed = 1)
+  svy <- surveycore::survey_taylor(
+    data      = df,
+    variables = list(weights = "base_weight")
+  )
+  expect_error(
+    rescale_weights(svy, weights = nonexistent_col),
+    class = "surveywts_error_weights_not_found"
+  )
+  expect_snapshot(
+    error = TRUE,
+    rescale_weights(svy, weights = nonexistent_col)
+  )
+})
+
+test_that("rescale_weights() aborts when explicit weights column is not numeric", {
+  df <- make_surveywts_data(n = 50, seed = 1)
+  svy <- surveycore::survey_taylor(
+    data      = df,
+    variables = list(weights = "base_weight")
+  )
+  # Add a character column without touching @variables$weights
+  svy@data$str_wt <- as.character(svy@data$base_weight)
+  expect_error(
+    rescale_weights(svy, weights = str_wt),
+    class = "surveywts_error_weights_not_numeric"
+  )
+  expect_snapshot(
+    error = TRUE,
+    rescale_weights(svy, weights = str_wt)
+  )
+})
+
+test_that("rescale_weights() aborts when explicit weights column contains NAs", {
+  df <- make_surveywts_data(n = 50, seed = 1)
+  svy <- surveycore::survey_taylor(
+    data      = df,
+    variables = list(weights = "base_weight")
+  )
+  # Add a column with NAs without touching @variables$weights
+  svy@data$na_wt <- svy@data$base_weight
+  svy@data$na_wt[1L] <- NA_real_
+  expect_error(
+    rescale_weights(svy, weights = na_wt),
+    class = "surveywts_error_weights_na"
+  )
+  expect_snapshot(
+    error = TRUE,
+    rescale_weights(svy, weights = na_wt)
+  )
+})

@@ -2,6 +2,9 @@
 
 ## Internal
 
+* Add tests for `calibrate_to_survey()` and `calibrate_to_estimate()` edge
+  cases: `method = "logit"` and non-matrix `vcov_estimate`.
+
 * Remove stale `weighted_df` references left after PR #86 — source comments,
   roxygen `@param` docs, and test descriptions updated throughout.
 

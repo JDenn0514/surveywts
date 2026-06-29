@@ -498,3 +498,12 @@
       i With `type = "prop"`, values must sum to exactly 1 (within 1e-6).
       v Rescale or correct the values in `targets[["sex"]]`.
 
+# calibrate_to_estimate() rejects non-matrix vcov_estimate
+
+    Code
+      calibrate_to_estimate(primary, targets, vcov_estimate = c(1, 2, 3))
+    Condition
+      Error in `calibrate_to_estimate()`:
+      x `vcov_estimate` must be 2 x 2 (one row/column per element of `unlist(targets)`).
+      i Got not a matrix.
+

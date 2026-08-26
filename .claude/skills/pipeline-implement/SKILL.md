@@ -80,6 +80,10 @@ Run these 5 lenses:
 5. **File Completeness lens** — does the union of all write surfaces include
    every file implied by the spec (source, tests, NAMESPACE, man/, NEWS.md)?
 
+If you fan the lenses out to subagents instead of running them inline, pass
+`model: "sonnet"` on every lens dispatch. A lens agent scans one document
+against one named criterion. It does not need the session model.
+
 Aggregate into `plans/plan-review-{id}.md` with verdict PASS / BLOCK / HOLD.
 
 ## Stage 3 — Resolve

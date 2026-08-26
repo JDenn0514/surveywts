@@ -260,6 +260,8 @@ if they fail, builder iterates. Tester's audit is separate.
 | pkgdown::build_site() | PASS/FAIL/SKIPPED | {reason if skipped} |
 | covr::package_coverage() | {%} | {drop vs baseline} |
 
+Tree: {git tree hash at gate time — `git rev-parse 'HEAD^{tree}'`}
+
 ## CRAN cookbook violations
 | File | Line | Violation | Class |
 |------|------|-----------|-------|

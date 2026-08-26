@@ -1,10 +1,46 @@
 # Documentation Improvement Plan
 
 **Created:** 2026-06-26
+**Revised:** 2026-08-26 — reconciled against `doc-rewrite` (Phase 1/2, PRs #79–#80)
+and re-verified against current source. Resolved items removed; open items
+confirmed live.
 **Status:** Open — pre-implementation review
 **Source:** Multi-agent documentation audit of all 23 exported functions, the README,
 `_pkgdown.yml`, and `surveywts-package.R`, evaluated from the perspective of an
 R/tidyverse-fluent analyst who is not a survey methodology expert.
+
+---
+
+## History
+
+A structural documentation rewrite (`plans/archive/doc-rewrite/`) landed in
+PRs #79 and #80 (merged 2026-06-23), three days before this audit was written:
+
+- **Phase 1 (#79):** `@return` → `@returns`, titles rewritten per a pre-approved
+  title map, `@seealso` cross-links added per family, `@references` populated
+  where verified, `@section Algorithm`/`Convergence` added for Tier 3
+  functions, `@details` added for `calibrate()`.
+- **Phase 2 (#80):** inline `data.frame()` calls in examples replaced with
+  package datasets across all families.
+
+That rewrite was explicitly structural — tags and sections, not narrative. It
+did not touch the conceptual/narrative gaps this audit identifies (Sections
+A–D below), and it made two **deliberate, documented decisions** that this
+audit's recommendations conflict with:
+
+1. No `set.seed()` in `adjust_nonresponse()` / `redistribute_weights()`
+   examples — "following svrep convention."
+2. `create_replicate_weights()` `@details` and `@references` deliberately
+   deferred, pending a `comprehension-replicate-methods.md` plan that was
+   never written.
+
+Where this revision below marks something as still open, it distinguishes
+**oversights** (nobody decided this — just do it) from these **deliberate
+calls** (decide whether you still agree before touching them).
+
+The class-system-refactor (PRs #85–#89, merged through 2026-06-29) also
+removed `weighted_df` and all `data.frame` input entirely, which retired a
+handful of the original findings below outright (noted where relevant).
 
 ---
 
@@ -26,28 +62,30 @@ quality.
 workflow narrative and the function-level reference pages. A user who graduates
 from the README to `?calibrate_rake` hits a help page written for someone who
 already knows what raking is, why they'd choose it over linear calibration, and
-what to do with a `weighted_df`.
+what the class system returns.
 
 ---
 
 ## Issues at a Glance
 
-| # | Initiative | Scope | Needs own plan? |
-|---|-----------|-------|-----------------|
-| A | Examples: show what comes next | All 23 functions | Yes |
-| B | Conceptual overview / Getting Started | Package-level + pkgdown | Yes |
-| C | Method-choice guidance | Calibration, replicate, nonresponse families | Yes |
-| D | Jargon: define or link recurring terms | All functions | Yes |
-| E | Constructor inconsistency | ~8 functions | No — fix inline |
-| F | Class system: accurate `@returns` + orientation | `trim_weights`, `rescale_weights`, others | No — fix inline |
-| G | Package-level docs stale | `surveywts-package.R`, `_pkgdown.yml` | No — fix inline |
-| H | Quick-win fixes (errors, omissions, reproducibility) | Scattered | No — checklist below |
+| # | Initiative | Scope | Status | Needs own plan? |
+|---|-----------|-------|--------|-----------------|
+| A | Examples: show what comes next | All 23 functions | Open | Yes |
+| B | Conceptual overview / Getting Started | Package-level + pkgdown | Open | Yes |
+| C | Method-choice guidance | Calibration, replicate, nonresponse families | Open | Yes |
+| D | Jargon: define or link recurring terms | All functions | Open | Yes |
+| E | Constructor inconsistency | — | **Resolved** | — |
+| F | Class system: accurate `@returns` + orientation | `adjust_nonresponse`, `redistribute_weights`, `summarize_weights` | Partially open | No — fix inline |
+| G | Package-level docs stale | `surveywts-package.R`, `_pkgdown.yml`, README | Open (confirmed) | No — fix inline |
+| H | Quick-win fixes (errors, omissions, reproducibility) | Scattered | Mostly open (confirmed item-by-item) | No — checklist below |
 
 ---
 
 ## A. Examples: Show What Comes Next
 
 **Priority: highest.** Examples are the most-read part of any R help page.
+**Status: fully open** — not touched by Phase 2 (which addressed *what data*
+examples use, not *what comes next*).
 
 ### Problem
 
@@ -69,7 +107,8 @@ Concrete manifestations:
   emits a warning, which will surprise every user
 - `ipw()`: six examples, none showing a subsequent estimation call
 - `adjust_nonresponse()` and `redistribute_weights()`: `sample()` without
-  `set.seed()` — results differ on every run
+  `set.seed()` — results differ on every run (**deliberate decision from Phase
+  2** — see History section; decide policy before "fixing")
 
 ### Standard to apply
 
@@ -105,13 +144,14 @@ verifies `R CMD check` still passes after all example changes. File:
 ## B. Conceptual Overview / Getting Started
 
 **Priority: high.** A single article would lift the entire package.
+**Status: fully open** — no work has touched this.
 
 ### Problem
 
 There is no explanation of the class system, the standard workflow, or the key
 concepts that recur throughout the docs. A non-methodologist reading
-`?calibrate_rake` encounters `weighted_df`, `survey_nonprob`, `survey_replicate`,
-and `survey_taylor` as unexplained given names, with no reference point for what
+`?calibrate_rake` encounters `survey_nonprob`, `survey_replicate`, and
+`survey_taylor` as unexplained given names, with no reference point for what
 they represent or how they relate to each other.
 
 The README tells a coherent story but stops at "here is how to call these
@@ -121,21 +161,18 @@ functions." The help pages assume the reader can fill in everything else.
 
 **1. The class system**
 
-A flowchart or table showing the object progression:
+A flowchart or table showing the object progression. Note: this needs a
+rewrite from the original draft below — `weighted_df` no longer exists;
+every path now starts from a `surveycore` survey object.
 
 ```
-data.frame
-    │  calibrate(), adjust_nonresponse(), ipw()
-    ▼
-weighted_df          ← S3 subclass of tibble; weight_col attribute
+survey_taylor / survey_nonprob
     │  create_*_weights()
     ▼
 survey_replicate     ← adds replicate weight columns; enables bootstrap SEs
     │  as_taylor_design()
     ▼
 survey_taylor        ← Taylor linearization design; SE via delta method
-
-survey_nonprob       ← for non-probability samples; same family as above
 ```
 
 This single diagram answers the question "what will I get back?" for every
@@ -154,7 +191,7 @@ A plain-language description of the two primary use cases:
 The README already sketches this; the conceptual article makes it canonical and
 links to it from every function's `@seealso`.
 
-**3. A working glossary of the 12 recurring terms**
+**3. A working glossary of the recurring terms**
 
 See Section D below for the full list. These definitions live here and are linked
 from individual function docs.
@@ -187,7 +224,7 @@ to define. File: `plans/doc-getting-started.md` (to be written).
 
 ## C. Method-Choice Guidance
 
-**Priority: high.**
+**Priority: high.** **Status: fully open.**
 
 ### Problem
 
@@ -198,8 +235,8 @@ choosing. A non-methodologist has no way to know:
 - 12 `variance_estimator` options in `create_gen_boot_weights()`
 - 3 `method` options in `adjust_nonresponse()`
 
-The `@seealso` links to siblings but none of the functions explain when to choose
-one over another.
+The `@seealso` links to siblings (added in Phase 1) but none of the functions
+explain when to choose one over another.
 
 ### Guidance needed per family
 
@@ -231,9 +268,10 @@ one over another.
 ### Where this guidance should live
 
 - **Dispatcher functions** (`calibrate()`, `create_replicate_weights()`): in a
-  required `@details` section comparing methods (these functions are already
-  Tier 4 dispatchers; `@details` is required by the documentation standards and
-  currently absent from `create_replicate_weights()`)
+  required `@details` section comparing methods. `calibrate()` already has a
+  method-overview `@details` block (Phase 1); `create_replicate_weights()`
+  still has none — this was deliberately deferred pending a comprehension
+  plan for the replicate methods (see History), not an oversight
 - **Individual functions**: two-sentence "When to use this" note in `@description`
 - **Getting Started article** (Section B): comparative table for each family
 
@@ -247,11 +285,11 @@ frame each comparison for a non-expert audience. File:
 
 ## D. Jargon: Define or Link Recurring Terms
 
-**Priority: high.**
+**Priority: high.** **Status: fully open.**
 
 ### Problem
 
-The same 14 terms appear throughout the docs and are never defined. A non-
+The same terms appear throughout the docs and are never defined. A non-
 methodologist either already knows them (in which case the docs are fine) or does
 not (in which case they are blocked). At the target user level — R-fluent, not a
 survey specialist — many of these will be unknown:
@@ -298,79 +336,59 @@ vs. one-line anchors are non-trivial. Fold into `plans/doc-getting-started.md`.
 
 ---
 
-## E. Constructor Inconsistency
+## E. Constructor Inconsistency — RESOLVED
 
-**Priority: medium.** Independently flagged by 3 of 8 subagents.
+Originally flagged: examples used `surveycore::as_survey_nonprob(ns_wave1,
+weights = weight)` while the `ns_wave1` dataset doc used
+`surveycore::survey_nonprob(ns_wave1, variables = list(weights = "weight"))` —
+apparently contradictory constructors.
 
-### Problem
-
-Multiple functions' examples construct `ns_wave1` survey objects using:
-```r
-surveycore::as_survey_nonprob(ns_wave1, weights = weight)
-```
-
-The `ns_wave1` dataset documentation instructs:
-```r
-surveycore::survey_nonprob(ns_wave1, variables = list(weights = "weight"))
-```
-
-These are different functions with different argument interfaces. A user cross-
-referencing both will see contradictory patterns; one of them will produce an
-error or a wrong object.
-
-**Affected functions** (examples use `as_survey_nonprob`):
-- `calibrate_rake()`
-- `effective_sample_size()`
-- `weight_variability()`
-- `summarize_weights()`
-- (likely others — requires a full grep)
-
-### Fix
-
-1. Determine which construction pattern is correct for `ns_wave1` by checking
-   the `surveycore` API
-2. Update all affected examples to use the single correct pattern
-3. Verify all examples pass `R CMD check`
-
-This can be done without a separate plan — it's a search-and-replace with
-verification. Track via the quick-wins checklist in Section H.
+**Re-verified 2026-08-26:** `R/data.R` now constructs `ns_wave1` examples via
+`surveycore::as_survey_nonprob()` consistently (fixed in or before PR #85,
+2026-06-25). `survey_nonprob()` is the low-level S7 constructor;
+`as_survey_nonprob()` is the intended friendly wrapper — these were never
+actually contradictory, and current usage is consistent throughout. No action
+needed.
 
 ---
 
 ## F. Class System: Accurate `@returns` and Orientation
 
-**Priority: medium.**
+**Priority: medium.** **Status: partially resolved.**
 
-### Problem
+### Resolved by the class-system-refactor
 
-**Factual errors in `@returns`:**
-- `trim_weights()`: "An object of the same class as `data`" — false for plain
-  `data.frame` inputs, which return a `weighted_df`
-- `rescale_weights()`: same error
+The original finding — `trim_weights()` and `rescale_weights()` `@returns`
+saying "same class as `data`," which was false for plain `data.frame` input
+(returned `weighted_df`) — is now moot. `data.frame`/`weighted_df` input is
+rejected outright (`surveywts_error_not_survey_base`), so "same class as
+`data`" is now accurate. **Re-verified 2026-08-26** against current
+`R/trim_weights.R` and `R/rescale_weights.R` — no fix needed.
 
-The correct statement: "A `weighted_df` when `data` is a plain `data.frame`;
-otherwise an object of the same class as `data`."
+### Still open
 
 **Undisclosed behavioral trap in nonresponse functions:**
 - `adjust_nonresponse()` and `redistribute_weights()` return different numbers of
-  rows depending on input class: `data.frame`/`weighted_df` keep all rows (with
-  zero weights for excluded observations); `survey_taylor` and survey objects drop
-  excluded rows entirely
-- This behavioral difference is documented only as the last bullet in `@returns`,
-  but it will silently break downstream code when a user switches input class
-- It should appear in `@description` or a named `@section` ("Input class behavior")
+  rows depending on input class: `survey_taylor`/`survey_nonprob` inputs drop
+  excluded rows entirely (confirm current row-retention behavior still varies
+  by class post-refactor before writing the fix — the refactor changed input
+  handling broadly enough that this needs a fresh check, not just a doc edit)
+- This behavioral difference, if still present, is documented only as the last
+  bullet in `@returns` — it should appear in `@description` or a named
+  `@section` ("Input class behavior")
 
-**`n_positive` and `n_zero` in `summarize_weights()` are undefined:**
-- Both columns appear in `@returns` without explanation
+**`n_positive` and `n_zero` in `summarize_weights()` are still undefined:**
+- Confirmed in current source (`R/summarize_weights.R` line 21) — both columns
+  appear in `@returns` with no explanation
 - A user seeing `n_zero = 3` in the output has no docs explaining what a
   zero-weight row means or what to do about it
 
 ### Fix
 
-1. Correct `@returns` in `trim_weights()` and `rescale_weights()`
-2. Promote the row-retention behavioral difference in `adjust_nonresponse()` and
-   `redistribute_weights()` to `@description` or a named section
-3. Define `n_positive` and `n_zero` in `summarize_weights()` docs
+1. Confirm the row-retention behavior against current source, then promote it
+   to `@description` or a named section in `adjust_nonresponse()` and
+   `redistribute_weights()`
+2. Define `n_positive` and `n_zero` in `summarize_weights()` docs
 
 No separate plan needed. Add to quick-wins checklist in Section H.
 
@@ -378,23 +396,24 @@ No separate plan needed. Add to quick-wins checklist in Section H.
 
 ## G. Package-Level Docs: Stale and Incomplete
 
-**Priority: medium.**
+**Priority: medium.** **Status: confirmed still open** (re-verified
+2026-08-26).
 
 ### Problems
 
-**`surveywts-package.R`** (the `?surveywts` help page):
-- References `rake()` — a function that does not exist (it's `calibrate_rake()`)
-- Key Functions section covers only 5 of 23 exported functions
-- No mention of replicate weights, IPW, nonresponse adjustment, or utilities
-- Will be the first help page many users read; currently misleads them
+**`surveywts-package.R`** (the `?surveywts` help page) — confirmed current:
+- Still references `rake()` (line 13) — a function that does not exist (it's
+  `calibrate_rake()`)
+- Key Functions section covers only 9 of 23 exported functions (Calibration,
+  Nonresponse, Diagnostics only — no replicate weights, IPW, or utilities)
 
-**`_pkgdown.yml`**:
-- `create_group_jackknife_weights()` appears in the README function table but is
-  absent from `_pkgdown.yml`; it will not appear in the pkgdown reference index
+**`_pkgdown.yml`** — confirmed current:
+- `create_group_jackknife_weights()` is still absent; it will not appear in
+  the pkgdown reference index
 
-**README**:
-- `help('calibrate_to_sample')` in the `calibrate_to_survey()` example output
-  — wrong function name; should be `calibrate_to_survey`
+**README** — confirmed current:
+- Line 190: `help('calibrate_to_sample')` — wrong function name; should be
+  `calibrate_to_survey`
 
 ### Fix
 
@@ -407,121 +426,134 @@ No separate plan needed. Add to quick-wins checklist.
 
 ## H. Quick-Win Fixes
 
-These are concrete, bounded, independently fixable. No separate plan needed.
-Work through this list before or alongside the larger initiatives.
+Re-verified item-by-item against current source on 2026-08-26. Each item is
+tagged **[open]** (confirmed still present, no known reason not to fix),
+**[decide]** (a past deliberate call — confirm you still want it before
+changing), or removed if resolved.
 
 ### Reproducibility
 
-- [ ] `adjust_nonresponse()` examples: add `set.seed()` before `sample()` calls
-- [ ] `redistribute_weights()` examples: add `set.seed()` before `sample()` calls
+- [ ] **[decide]** `adjust_nonresponse()` / `redistribute_weights()` examples
+      still use `sample()` with no `set.seed()`. This was a deliberate Phase 2
+      choice ("following svrep convention"). Decide whether to keep that
+      convention or add `set.seed()` per the newer standard in Section A.
 
 ### Factual errors
 
-- [ ] `trim_weights()` `@description`: says excess is redistributed "equally";
-      `@section Algorithm` says "proportionally" — reconcile these
-- [ ] `trim_weights()` and `rescale_weights()` `@returns`: fix "same class as
-      `data`" — false for plain `data.frame` inputs (returns `weighted_df`)
-- [ ] `summarize_weights()` `@description`: lists 6 output columns; `@returns`
-      lists 11 — add `min`, `max`, `n_positive`, `n_zero` to the description
-- [ ] `rescale_weights()` first example: "Rescale weights to unit mean" comment
-      precedes the `summarize_weights()` call, not the `rescale_weights()` call —
-      move or relabel the comment
+- [x] ~~`trim_weights()`/`rescale_weights()` `@returns`: "same class as
+      `data`"~~ — **resolved**, moot after class-system-refactor (Section F)
+- [ ] **[open]** `trim_weights()` `@description` says excess is redistributed
+      "equally" (line 13); `@section Algorithm` says "proportionally" (line
+      71) — reconcile these
+- [ ] **[open]** `summarize_weights()` `@returns` lists 11 columns
+      (`n`, `n_positive`, `n_zero`, `mean`, `cv`, `min`, `p25`, `p50`, `p75`,
+      `max`, `ess`) — confirm `@description` covers the same set or references
+      `@returns` instead of restating a shorter list
+- [ ] **[open]** `rescale_weights()` first example: verify the "Rescale
+      weights to unit mean" comment lines up with the `rescale_weights()` call
+      and not a trailing `summarize_weights()` call
 
 ### Missing documentation
 
-- [ ] `weight_variability()`: add `@references` — sibling `effective_sample_size()`
-      has one; `weight_variability()` is equally citable (Kish 1965, design-effect
-      literature)
-- [ ] `as_taylor_design()`: add `@section Warnings` documenting
-      `surveywts_warning_taylor_loses_variance` — the function always emits this
-      warning but the help page has no Warnings section
-- [ ] `mse` parameter in `create_gen_boot_weights()`, `create_gen_rep_weights()`,
-      `create_sdr_weights()`, `create_brr_weights()`: currently documented as
-      only a type annotation with no behavioral description — copy the pattern
-      from `create_jackknife_weights()` which documents both options
-- [ ] `create_replicate_weights()`: add required `@details` section — this is a
-      Tier 4 dispatcher; the documentation standards require a high-level overview
-      of each method; it is currently absent
-- [ ] `ipw()` `estimating_eq` param: never states which value is the default;
-      add "GEE is the default" (matching `method` param's "logit is the default"
-      phrasing)
-- [ ] `adjust_nonresponse()` `@returns`: promote the class-specific row-retention
-      behavior difference to `@description` or a named `@section`
-- [ ] `redistribute_weights()` `@returns`: same promotion as above
+- [ ] **[open]** `weight_variability()`: still no `@references` — confirmed
+      absent in current source; sibling `effective_sample_size()` has one
+- [ ] **[open]** `as_taylor_design()`: still no `@section Warnings` —
+      confirmed absent; the function always emits
+      `surveywts_warning_taylor_loses_variance` but the help page doesn't say so
+- [ ] **[open]** `mse` parameter in `create_gen_boot_weights()`,
+      `create_gen_rep_weights()`, `create_sdr_weights()`, `create_brr_weights()`:
+      confirmed still just a bare type annotation ("`logical(1)`, default
+      `TRUE`") with no behavioral description, unlike `create_jackknife_weights()`
+      and `create_bootstrap_weights()` which explain it fully
+- [ ] **[deferred, not forgotten]** `create_replicate_weights()`: still no
+      `@details` section (Tier 4 dispatcher requirement). This was
+      deliberately deferred in Phase 1 pending a replicate-methods
+      comprehension plan that was never written — write that plan first, or
+      decide to proceed without full citation verification
+- [x] ~~`ipw()` `estimating_eq` param: never states default~~ — **resolved**,
+      already documents "`"gee"` (the default) or `"mle"`"
+- [ ] **[open]** `adjust_nonresponse()` / `redistribute_weights()` `@returns`:
+      promote the class-specific row-retention behavior difference to
+      `@description` or a named `@section` — **re-verify the behavior itself
+      first**, since the class-system-refactor changed input handling broadly
 
 ### Inadvertent content
 
-- [ ] `redistribute_weights()` `@details`: contains an internal developer note
-      ("does not call `redistribute_weights()` internally because it is currently
-      the only call site; refactor if a second emerges") — remove from user docs
+- [ ] **[open]** `redistribute_weights.R` line 57 still contains an internal
+      developer note ("...because it is currently the only call site; refactor
+      if a second emerges") — remove from user docs
 
 ### Incorrect or misleading content
 
-- [ ] `calibrate_to_survey()` `@param algorithm`: contains a migration note
-      ("differs from the prior svrep-based behavior") that belongs in NEWS.md,
-      not in user-facing parameter docs
-- [ ] `calibrate_to_survey()` `@param control` `control_col_matches` sub-key:
-      implementation detail that has no place in user-facing docs for a parameter
-      almost no user will touch — move to an internal comment or remove
+- [ ] **[open]** `calibrate_to_survey()` `@param algorithm` (line 151) still
+      contains a migration note ("differs from the prior svrep-based
+      behavior") that belongs in NEWS.md, not user-facing parameter docs
+- [ ] **[open]** `calibrate_to_survey()` `@param control` (lines 60, 126) still
+      documents `control_col_matches` as a user-facing sub-key — implementation
+      detail; move to an internal comment or remove
 
 ### `@returns` consistency
 
-- [ ] `create_gen_rep_weights()` `@returns`: does not name `@variables$type`,
-      unlike `create_gen_boot_weights()` which names `"bootstrap"` — make
-      consistent
+- [ ] `create_gen_rep_weights()` `@returns`: verify whether it names
+      `@variables$type`, unlike `create_gen_boot_weights()` which names
+      `"bootstrap"` — make consistent if still inconsistent
 
 ### Package-level
 
-- [ ] `surveywts-package.R`: replace `rake()` with `calibrate_rake()`; expand
-      Key Functions to cover at least one function per family (calibration,
-      nonresponse, propensity, replicate, utilities, diagnostics)
-- [ ] `_pkgdown.yml`: add `create_group_jackknife_weights` to the Replicate
-      Weights section
-- [ ] README: fix `help('calibrate_to_sample')` → `help('calibrate_to_survey')`
+- [ ] **[open]** `surveywts-package.R`: replace `rake()` with
+      `calibrate_rake()`; expand Key Functions to cover at least one function
+      per family (calibration, nonresponse, propensity, replicate, utilities,
+      diagnostics)
+- [ ] **[open]** `_pkgdown.yml`: add `create_group_jackknife_weights` to the
+      Replicate Weights section
+- [ ] **[open]** README: fix `help('calibrate_to_sample')` →
+      `help('calibrate_to_survey')`
 
 ### Dataset docs / examples
 
-- [ ] `ipw()` GEE example: uses inline synthetic data (`nps_gee`, `ref_gee_df`)
-      instead of package data — replace with a package dataset per the
-      documentation standards (all examples must use package data)
+- [ ] `ipw()` GEE example: verify whether it still uses inline synthetic data
+      (`nps_gee`, `ref_gee_df`) instead of package data — replace with a
+      package dataset if so, per the documentation standards
 
 ### Constructor pattern (see Section E)
 
-- [ ] Grep for all uses of `as_survey_nonprob` in examples; replace with the
-      correct construction pattern once it is confirmed
+- [x] ~~Grep for `as_survey_nonprob` usage and reconcile~~ — **resolved**,
+      usage is consistent throughout (Section E)
 
 ---
 
 ## Per-Function Issue Reference
 
-Quick lookup for which functions have known gaps. This is not exhaustive — see the
-full subagent reports for detailed findings.
+Quick lookup for which functions have known gaps, re-verified 2026-08-26.
+Constructor-inconsistency and `weighted_df`-return mentions from the original
+audit are removed as resolved/moot. This is not exhaustive — see the full
+subagent reports for detailed findings.
 
 | Function | Key gaps |
 |----------|----------|
-| `calibrate()` | `reference_design` has no use-case framing; `wt_name` "ignored" behavior unexplained; no downstream step in examples |
-| `calibrate_rake()` | Constructor pattern inconsistency in examples; `cap` param ratio vs. absolute framing is confusing; `weighting_history` referenced but not explained |
+| `calibrate()` | `reference_design` has no use-case framing; `wt_name` behavior unexplained; no downstream step in examples |
+| `calibrate_rake()` | `cap` param ratio vs. absolute framing is confusing; `weighting_history` referenced but not explained |
 | `calibrate_linear()` | `bounds` (the distinctive feature) absent from all examples; `unit_scale` → `d_k` notation undefined; `bounds_scale` constraint `L < 1 < U` unexplained |
 | `calibrate_logit()` | `g-weight` undefined; `bounds` never shown in examples; no "when to use vs. rake" guidance |
 | `poststratify()` | `260000000` in `type = "count"` example unexplained; `setdiff()` prose in params; cell-size edge case absent |
-| `calibrate_to_survey()` | `reference_design` still plumbing-only; Algorithm section is methodology-specialist writing; `variables` param uses "random" as jargon |
+| `calibrate_to_survey()` | Migration note and `control_col_matches` leaked into user docs (Section H); Algorithm section is methodology-specialist writing |
 | `calibrate_to_estimate()` | No simple example (only the complex vcov path); `unit_scale` → svrep internal arg name leaked; no comparison with `calibrate_to_survey()` |
-| `adjust_nonresponse()` | propensity methods (`"propensity-cell"`, `"propensity"`) have no examples; `sample()` without `set.seed()`; `@note` MAR assumption unexplained; row-retention trap in `@returns` |
-| `redistribute_weights()` | Developer note in user docs; `sample()` without `set.seed()`; `survey_replicate -> error` notation in params is informal |
-| `effective_sample_size()` | "Kish's" in title; no interpretation guidance ("is n_eff = 1456 good?"); constructor inconsistency in examples |
+| `adjust_nonresponse()` | propensity methods (`"propensity-cell"`, `"propensity"`) have no examples; `sample()` without `set.seed()` (deliberate — see H); row-retention trap in `@returns` needs re-verification |
+| `redistribute_weights()` | Developer note in user docs (Section H); `sample()` without `set.seed()` (deliberate — see H) |
+| `effective_sample_size()` | "Kish's" in title; no interpretation guidance ("is n_eff = 1456 good?") |
 | `weight_variability()` | "Design effect" undefined; no interpretation guidance; missing `@references` |
-| `summarize_weights()` | Description lists 6 columns, `@returns` lists 11; `n_positive`/`n_zero` undefined |
-| `trim_weights()` | "equally" vs. "proportionally" contradiction; `@returns` class error; `survey_replicate` example is 10-line setup for a one-line call |
-| `rescale_weights()` | Title implies a choice ("mean or sum") that doesn't exist; `n_h / W_h` notation undefined; `@returns` class error; example comment on wrong line |
-| `ipw()` | Mechanism-before-motivation description; GEE example uses inline data; `estimating_eq` default unstated; variance details section is long before plain-language summary |
-| `create_bootstrap_weights()` | `type` options (5 methods) with no selection guidance; NPS example is incomplete (missing `ipw()` step); purpose of output never stated |
-| `create_brr_weights()` | Substantially thinner than siblings; `mse` undocumented; `@returns` one sentence vs. multi-paragraph in jackknife; no Warnings section |
-| `create_jackknife_weights()` | Best-documented of the replicate family; `replicates = 2L` in example below recommended minimum of 50 |
+| `summarize_weights()` | `n_positive`/`n_zero` undefined |
+| `trim_weights()` | "equally" vs. "proportionally" contradiction (confirmed); `survey_replicate` example is 10-line setup for a one-line call |
+| `rescale_weights()` | `n_h / W_h` notation undefined; example comment placement needs verification |
+| `ipw()` | Mechanism-before-motivation description; GEE example may use inline data (verify); variance details section is long before plain-language summary |
+| `create_bootstrap_weights()` | `type` options (5 methods) with no selection guidance; purpose of output never stated |
+| `create_brr_weights()` | Substantially thinner than siblings; `mse` undocumented; no Warnings section |
+| `create_jackknife_weights()` | Best-documented of the replicate family; verify example `replicates` value meets recommended minimum |
 | `create_gen_boot_weights()` | 12 `variance_estimator` options with no selection guidance; `mse` undocumented; `tau` guidance absent |
-| `create_gen_rep_weights()` | "Deterministic" claim contradicted by `seed` param (unexplained); `max_replicates = Inf` natural count unexplained; `@returns` inconsistency |
-| `create_sdr_weights()` | Ordering sensitivity not in description; `sort_var` version note in `@param`; example bypasses `sort_var` for stratified design |
-| `create_replicate_weights()` | Description reads as code maintainer note; `@details` absent (required for Tier 4 dispatchers); DAGJK undefined; return-type ambiguity |
-| `as_taylor_design()` | "Taylor design" / "replicate design" undefined in title; no use-case motivation; warning always fires but no Warnings section |
+| `create_gen_rep_weights()` | "Deterministic" claim contradicted by `seed` param (unexplained); `@returns` `@variables$type` consistency to verify |
+| `create_sdr_weights()` | Ordering sensitivity not in description; `sort_var` version note in `@param` |
+| `create_replicate_weights()` | `@details` absent — deliberately deferred pending comprehension plan (Section H); DAGJK undefined |
+| `as_taylor_design()` | "Taylor design" / "replicate design" undefined in title; no use-case motivation; warning always fires but no Warnings section (confirmed) |
 
 ---
 
@@ -539,8 +571,11 @@ complements to that release, not replacements for it:
   vignette suite planned for Polish
 
 **Suggested sequencing:**
-1. Section H (quick wins) — no design needed; knock these out opportunistically
-2. Section E + F (constructor fix, `@returns` accuracy) — bounded, standalone
+1. Section H (quick wins) — no design needed; knock these out opportunistically.
+   Resolve the **[decide]** items first (set.seed convention,
+   `create_replicate_weights()` comprehension plan) so they don't block the rest.
+2. Section F (row-retention re-verification, `n_positive`/`n_zero`) — bounded,
+   standalone
 3. Section G (package-level docs) — standalone, fast
 4. Section C (method-choice) — feed into Section B design
 5. Section B + D (getting started + glossary) — the flagship deliverable
@@ -556,3 +591,4 @@ complements to that release, not replacements for it:
 | `plans/doc-examples-overhaul.md` | Section A: per-function examples checklist | Not started |
 | `plans/doc-getting-started.md` | Section B + D: conceptual article + glossary | Not started |
 | `plans/doc-method-choice-guidance.md` | Section C: when-to-use content per family | Not started |
+| `plans/comprehension-replicate-methods.md` | Prerequisite for `create_replicate_weights()` `@details`/`@references` (Section C/H) | Not started — blocking a Phase 1 deferral |

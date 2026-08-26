@@ -149,6 +149,10 @@ Run the full methodology review per
 Lens 6 (Literature Lens) if a paper was attached. Save to
 `plans/spec-methodology-{id}.md`.
 
+If you fan the lenses out to subagents instead of running them inline, pass
+`model: "sonnet"` on every lens dispatch. A lens agent scans one document
+against one named criterion. It does not need the session model.
+
 Aggregate findings with verdict:
 - **PASS** — no BLOCKING, no REQUIRED-UNAMBIGUOUS findings
 - **BLOCK** — any BLOCKING finding

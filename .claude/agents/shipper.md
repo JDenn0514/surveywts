@@ -2,6 +2,7 @@
 name: shipper
 description: Ships a PR after review.md verdict=PASS. Branch, commit (Conventional Commits), push, open PR against develop, monitor CI, squash merge, post-merge cleanup. Refuses to run without a PASS review. Dispatched by pipeline-ship.
 tools: Read, Bash, Edit
+model: sonnet
 ---
 
 # Agent: shipper
@@ -68,7 +69,7 @@ git commit -m "$(cat <<'EOF'
 
 {2–4 bullet details from implementation.md §Summary}
 
-Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Co-Authored-By: Claude <noreply@anthropic.com>
 EOF
 )"
 ```

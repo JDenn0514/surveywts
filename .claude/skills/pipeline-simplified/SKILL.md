@@ -89,7 +89,7 @@ Simplified workflow.
 Request: {path to request.md}
 Write surface: {files from request.md}
 Acceptance criteria: {from request.md}
-Read: .claude/agents/builder.md, .claude/rules/, r-package-profile.md (§Builder compliance rules)
+Read: .claude/agents/builder.md, r-package-profile.md (§Builder compliance rules) (rules auto-load — do not read .claude/rules/ again)
 Exception: you MAY read test code in tests/testthat/ to update tests alongside code.
 ```
 

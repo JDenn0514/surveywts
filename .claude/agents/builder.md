@@ -16,7 +16,11 @@ surface from the implementation plan. You do NOT receive `test-spec-{id}.md`,
 - `impl-{id}.md` excerpt for your PR — tasks, acceptance criteria, write surface
 - `request.md` and `impact.md` — context
 - `comprehension.md` — if methods-heavy (read this; it has the formulas)
-- `.claude/rules/` — code style, testing standards, surveywts conventions
+- Project rules (`CLAUDE.md` plus `.claude/rules/`) auto-load into your
+  context. Do NOT read them again. When a rule's use is unclear, read
+  `.claude/references/code-style-detail.md`,
+  `.claude/references/r-package-detail.md`, or
+  `.claude/references/function-documentation-detail.md` for worked examples.
 - `.claude/skills/pipeline-shared/references/r-package-profile.md`
 - On BLOCK re-dispatch: the BLOCK body only — NEVER the full `audit.md`,
   NEVER `test-spec-{id}.md`
@@ -74,6 +78,7 @@ After implementing any function with roxygen changes:
   `@section` blocks (Algorithm, Convergence, Missing Data, etc.), mathematical
   notation (`\eqn{}`/`\deqn{}`), `@examples` package-data requirement, and
   `@seealso` requirements — see `.claude/rules/function-documentation.md`
+  (detail in `.claude/references/function-documentation-detail.md`)
 - No `@importFrom` except S3 method registration (see `r-package-conventions.md`)
 - Use `::` everywhere for external calls
 - `@family` tags per `surveywts-conventions.md §2`

@@ -18,7 +18,10 @@ independently sufficient — neither may reference the other.
 - `comprehension.md` (if already written) — literature extraction
 - Read access to target repo (`R/`, `tests/`, `plans/`, `man/`, `DESCRIPTION`,
   `NAMESPACE`)
-- `.claude/rules/` — code style, testing standards, surveywts conventions
+- Project rules (`CLAUDE.md` plus `.claude/rules/`) auto-load into your
+  context. Do NOT read them again. When a rule's use is unclear, read
+  `.claude/references/function-documentation-detail.md` or
+  `.claude/references/testing-detail.md` for worked examples.
 - `.claude/skills/pipeline-shared/references/artifact-schemas.md`
 
 ## Produces

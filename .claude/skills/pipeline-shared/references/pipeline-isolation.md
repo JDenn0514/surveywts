@@ -21,8 +21,8 @@ wrong numbers. The only protection is independent verification.
 | Agent | Reads | Never reads | Writes |
 |-------|-------|-------------|--------|
 | planner | `request.md`, `impact.md`, `comprehension.md` (its own), target repo | `implementation.md`, `audit.md` | `comprehension.md`, `spec-{id}.md`, `test-spec-{id}.md`, `impl-{id}.md` |
-| builder | `spec-{id}.md`, `impact.md`, `request.md`, `.claude/rules/` | `test-spec-{id}.md`, `audit.md`, `review.md` | code, `implementation.md` |
-| tester | `test-spec-{id}.md`, `impact.md`, `request.md`, `.claude/rules/` | `spec-{id}.md`, `implementation.md`, `review.md` | `audit.md` |
+| builder | `spec-{id}.md`, `impact.md`, `request.md`, rules (auto-loaded) | `test-spec-{id}.md`, `audit.md`, `review.md` | code, `implementation.md` |
+| tester | `test-spec-{id}.md`, `impact.md`, `request.md`, rules (auto-loaded) | `spec-{id}.md`, `implementation.md`, `review.md` | `audit.md` |
 | reviewer | ALL artifacts | — | `review.md` |
 | shipper | `review.md` (verdict=PASS), branch metadata, CI status | `spec-{id}.md`, `test-spec-{id}.md`, `implementation.md`, `audit.md` | commit, PR, `shipper.md` |
 

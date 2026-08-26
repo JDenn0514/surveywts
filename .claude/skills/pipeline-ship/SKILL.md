@@ -141,8 +141,13 @@ Each tester returns `audit.md` with verdict PASS or BLOCK.
 If an audit returns BLOCK:
 
 1. Increment BLOCK counter for that PR
-2. If counter ≤ 3: re-dispatch builder with the BLOCK body only (NOT the full
-   audit.md, NOT test-spec-{id}.md) per `signals.md`
+2. If the counter is ≤ 3: send the BLOCK body — not the full `audit.md`, not
+   `test-spec-{id}.md`, per `signals.md` — to the SAME builder agent with
+   `SendMessage`. It keeps its context and its warm cache. The message MUST
+   state: "Your worktree was merged back and removed. Work in the main
+   checkout at {path}. Run `git status` there before you edit." Dispatch a
+   fresh builder only when the original agent is gone, for example after a
+   session restart. Pass the BLOCK body in the dispatch prompt.
 3. If counter = 4: emit HOLD classification `repeated-block`; pause for user
 
 ### 2d. Dispatch reviewer (sequential per PR, after its audit passes)

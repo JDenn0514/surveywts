@@ -66,6 +66,22 @@ For each task in the PR's task list:
 5. **Run the test.** Confirm pass.
 6. **Run the full test file.** Confirm no regression.
 
+### Full-suite budget
+
+Iterate with `devtools::test(filter = "{pattern}")` on the test files you
+touch. Run the FULL suite (`devtools::test()` with no filter) at most twice
+per PR: once before writing `implementation.md`, and once after a BLOCK fix.
+Measured cost of ignoring this: one builder ran the full suite ~10 times in
+one PR. Redirect full-suite output to a log file and read only the tail:
+
+```bash
+Rscript -e 'devtools::test()' > .test-full.log 2>&1
+tail -25 .test-full.log
+grep -E "^(FAIL|Failure|Error)" .test-full.log
+```
+
+Delete `.test-full.log` before committing.
+
 ## Step 3 — Roxygen and NAMESPACE
 
 After implementing any function with roxygen changes:

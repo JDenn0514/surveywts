@@ -80,6 +80,12 @@ Create workspace per `workspace-layout.md`. Write `request.md` with:
 Append `PLANNED` to `status.md`. Do NOT write `spec-{id}.md` or
 `test-spec-{id}.md`.
 
+**In the same turn**, start the baseline capture in the background. The tree
+is still clean, because the builder has not run:
+`bash .claude/scripts/run-gates.sh {workspace-run-dir}/logs-baseline --baseline`
+with `run_in_background: true`. Its summary is the tester's Before column. Do
+not wait for it here. Collect the result before you dispatch the tester.
+
 ## Step 2 — Builder
 
 Dispatch `builder` WITHOUT worktree isolation (small change; overhead not justified):
@@ -102,6 +108,7 @@ Dispatch `tester`:
 ```
 Simplified workflow.
 Request: {path to request.md with acceptance criteria}
+Baseline results: {summary from the background baseline capture}
 Read: .claude/agents/tester.md, r-package-profile.md
 Validate:
   1. Each acceptance criterion from request.md holds

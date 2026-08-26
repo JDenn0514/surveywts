@@ -15,6 +15,25 @@ these in order; builder respects them during implementation.
 | 6 | `Rscript -e "pkgdown::build_site(preview = FALSE)"` | site builds, no errored pages | BLOCK (unless skipped, see below) |
 | 7 | `Rscript -e "covr::package_coverage()"` | ≥ 95% (target 98%) | BLOCK if < 95%; HOLD if 95–98% and dropped vs baseline |
 
+### Canonical runner
+
+Run the whole table with ONE background command:
+`bash .claude/scripts/run-gates.sh <log-dir> [--skip-pkgdown]`. It logs
+each gate to `<log-dir>`, prints one summary table plus a `Tree:` hash,
+and exits 0 only when every gate passes. `--baseline` mode (gates 2 and 7
+only) captures Before-column numbers on a clean tree. Never run the gates
+one command at a time.
+
+## Output discipline (all gates)
+
+Redirect every gate's full output to `{workspace-run-dir}/logs/gate-{N}.log`.
+Bring into context ONLY:
+- `tail -25` of the log, and
+- `grep -E "FAIL|ERROR|WARNING|NOTE"` of the log.
+
+Record each log path in `audit.md` §Profile gates. Read a full log only when
+diagnosing that gate's failure.
+
 ### pkgdown skip condition
 
 Tester MAY skip gate 6 when the PR's write surface does not touch:

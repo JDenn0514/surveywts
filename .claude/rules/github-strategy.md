@@ -1,12 +1,7 @@
 # surveywts GitHub Strategy
 
-<!-- Applies to the surveywts package. Adapted from the surveycore version. -->
-<!-- Read on-demand when creating PRs or setting up CI — not auto-loaded. -->
-
-**Version:** 2.0
+**Version:** 2.1
 **Status:** Decided — do not re-litigate without updating this document
-
----
 
 ## Quick Reference
 
@@ -21,11 +16,9 @@
 | CI | R-CMD-check required on `main` and `develop`; all PRs |
 | Release workflow | Use `/merge-main` |
 
----
+## Workflow tiers
 
-## Workflow Tiers
-
-Choose the tier based on change size. When in doubt, go one tier higher.
+Choose by change size. When in doubt, go one tier higher.
 
 | Tier | When to use | Workflow |
 |------|-------------|----------|
@@ -34,9 +27,7 @@ Choose the tier based on change size. When in doubt, go one tier higher.
 | **3 — Direct** | Clear bug fixes localized to 1–2 functions, test additions, roxygen changes | branch → `/r-implement` → `/commit-and-pr` |
 | **0 — Commit** | Typos, comments, `.gitignore`, README tweaks | direct commit to `develop` (no branch) |
 
----
-
-## Branching Model
+## Branching model
 
 ```
 main          ← always stable; every commit is a tagged release
@@ -48,12 +39,9 @@ hotfix/*      ← urgent fixes only; branch from main
 ```
 
 Feature branches always cut from `develop` and merge back to `develop`.
-Never open a feature PR directly against `main`.
-
-Hotfixes branch from `main`, merge to `main`, then **immediately** open a
-second PR from the hotfix branch (or `main`) into `develop` to stay in sync.
-Do not leave `main` ahead of `develop` — this causes merge conflicts at
-release time.
+Never open a feature PR directly against `main`. Hotfixes branch from
+`main`, merge to `main`, then immediately open a second PR into `develop` to
+stay in sync — never leave `main` ahead of `develop`.
 
 **Required check before any release PR:** run
 `git log origin/develop..origin/main --oneline`. If it shows anything, sync
@@ -63,17 +51,11 @@ release time.
 
 | Change type | Branch needed? |
 |-------------|----------------|
-| New R source file | Yes |
-| New test file | Yes |
-| Any change to exported function | Yes |
-| README / docs update | No |
-| Comment or typo fix | No |
-| `.Rbuildignore` / `.gitignore` | No |
+| New R source file, new test file, any exported-function change | Yes |
+| README/docs update, comment or typo fix, `.Rbuildignore`/`.gitignore` | No |
 | Version bump + NEWS.md (release prep) | Direct commit to `develop` |
 
----
-
-## Branch Naming
+## Branch naming
 
 Format: `{type}/{short-description}`
 
@@ -87,26 +69,9 @@ Format: `{type}/{short-description}`
 | `chore/` | `develop` | Maintenance (CI config, build tooling) |
 | `refactor/` | `develop` | Internal restructuring, no behavioral change |
 
-### Examples
+## Commit format (Conventional Commits)
 
-```
-feature/calibration-core
-feature/calibration-rake
-fix/weighted-df-history
-test/calibrate-edge-cases
-chore/ci-coverage-workflow
-docs/readme-examples
-```
-
----
-
-## Commit Format (Conventional Commits)
-
-```
-{type}({scope}): {short description}
-```
-
-### Types
+`{type}({scope}): {short description}`
 
 | Type | Use for |
 |------|---------|
@@ -118,133 +83,29 @@ docs/readme-examples
 | `refactor` | Internal restructuring with no behavioral change |
 | `perf` | Performance improvement |
 
-### Scopes
+Scopes: `classes`, `constructors`, `validators`, `weights`, `calibration`,
+`utils`, `ci`.
 
-`classes`, `constructors`, `validators`, `weights`, `calibration`, `utils`, `ci`
+## Merge strategy and versioning
 
-### Examples
+- **Feature → `develop`:** squash and merge — consolidates WIP commits into
+  one clean commit. The squash message is a conventional commit summarizing
+  the whole PR; GitHub auto-appends `(#PR_NUMBER)`.
+- **`develop` → `main` (release):** merge commit — preserves git ancestry
+  and prevents divergence.
+- Versions: `X.Y.Z.9000` during development on `develop`; `X.Y.Z` on `main`
+  after release, via `/merge-main`.
 
-```
-feat(calibration): implement rake() with iterative proportional fitting
-feat(classes): add weighted_df S3 class with weighting_history attribute
-fix(calibration): handle single-level target variable in poststratify()
-test(calibration): add edge case tests for zero-weight rows in rake()
-docs(calibration): add tidy-select examples to calibrate() roxygen
-chore(ci): add test-coverage GitHub Actions workflow
-chore(description): bump version to 0.1.0 for Calibration release
-```
+| Tag | DESCRIPTION version |
+|-----|---------------------|
+| `v0.1.0` | `0.1.0` — Calibration complete |
+| minor bump | Replicate, Utilities, Nonresponse, Propensity, Diagnostics, Polish — one minor bump each, in that order |
 
-### Squash merge commit message (feature PRs)
-
-Write it as a conventional commit summarizing the whole PR:
-```
-feat(calibration): implement rake() with iterative proportional fitting (#12)
-```
-GitHub auto-appends `(#PR_NUMBER)` if you set the PR title as a conventional commit.
+Release prep: `/merge-main` handles NEWS.md update → version bump →
+`devtools::check()` → PR `develop` → `main` → tag → post-release `.9000` bump.
 
 ---
-
-## PR Template
-
-`.github/PULL_REQUEST_TEMPLATE.md`:
-
-```markdown
-## What
-
-<!-- One sentence: what does this PR add or fix? -->
-
-## Checklist
-
-- [ ] Tests written and passing (`devtools::test()`)
-- [ ] R CMD check: 0 errors, 0 warnings (`devtools::check()`)
-- [ ] Roxygen docs updated and `devtools::document()` run
-- [ ] `plans/error-messages.md` updated (if new errors/warnings added)
-- [ ] PR title is a valid Conventional Commit (`feat(scope): description`)
-```
-
-Changelog entry format (required before every PR) is defined in
-`.claude/skills/changelog-workflow.md`.
-
----
-
-## Merge Strategy
-
-| PR type | Strategy | Why |
-|---------|----------|-----|
-| Feature → `develop` | **Squash and merge** | Consolidates WIP commits into a clean single commit |
-| `develop` → `main` (release) | **Merge commit** | Preserves git ancestry between branches; prevents divergence |
-
-Configure in GitHub → Settings → Pull Requests:
-- [x] Allow squash merging
-- [x] Allow merge commits
-- [ ] Allow rebase merging *(disable)*
-- [x] Automatically delete head branches
-
-The `/merge-main` skill handles choosing the correct strategy automatically.
-
----
-
-## Versioning
-
-| Context | Format | Example |
-|---------|--------|---------|
-| Active development on `develop` | `X.Y.Z.9000` | `0.1.0.9000` |
-| Released on `main` | `X.Y.Z` | `0.1.0` |
-
-### Release → version mapping
-
-| Tag | DESCRIPTION version | What it means |
-|-----|---------------------|---------------|
-| `v0.1.0` | `0.1.0` | Calibration complete — `weighted_df`, `survey_nonprob`, `calibrate()`, `rake()`, `poststratify()`, basic diagnostics |
-| minor bump | minor bump | Replicate complete — replicate weight generation + bootstrap variance |
-| minor bump | minor bump | Utilities complete — `trim_weights()`, `rescale_weights()` |
-| minor bump | minor bump | Nonresponse complete — sample-based calibration, advanced nonresponse |
-| minor bump | minor bump | Propensity complete — propensity score weighting |
-| minor bump | minor bump | Diagnostics complete — balance assessment, visual diagnostics |
-| minor bump | minor bump | Polish complete — vignettes, CRAN submission |
-
-### Dev version during a release
-
-Between tags, DESCRIPTION carries the `.9000` suffix:
-```
-Version: 0.1.0.9000  # during Calibration development
-```
-
----
-
-## Release Preparation
-
-Use `/merge-main`. It handles: NEWS.md update → version bump → `devtools::check()` →
-PR `develop` → `main` → tag → post-release `.9000` bump.
-
----
-
-## CI/CD Workflows
-
-### Active workflows
-
-| Workflow | Trigger |
-|----------|---------|
-| `R-CMD-check.yaml` | Push to any branch, PR to `main` or `develop` |
-| `test-coverage.yaml` | Push to `main` or `develop`, PRs |
-| `pkgdown.yaml` | Push to `main` only |
-
-### R-CMD-check matrix
-
-```yaml
-# Matrix: {os: [ubuntu-latest, windows-latest, macos-latest], r: [release, devel]}
-```
-
-### Required status checks for branch protection
-
-Set `R-CMD-check (ubuntu-latest, release)` as the required status check for
-both `main` and `develop`. Windows and macOS checks are informational.
-
-### Branch protection settings
-
-For both `main` and `develop` (GitHub → Settings → Branches):
-- **Require status checks to pass before merging:** ✅
-- **Require branches to be up to date before merging:** ✅
-- **Require pull request reviews before merging:** ❌ (solo author)
-- **Allow force pushes:** ❌
-- **Allow deletions:** ❌
+Worked commit/branch examples, the PR template body, GitHub settings
+checklists, and the CI matrix/branch-protection detail:
+`.claude/references/github-strategy-detail.md`. Read it when choosing a
+workflow tier for a borderline change or preparing a release.

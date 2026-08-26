@@ -1,12 +1,10 @@
 # R Package Conventions (Surveyverse)
 
-**Version:** 1.0
-**Created:** February 2025
+**Version:** 1.1
 **Status:** Decided — applies to all surveyverse packages
 
-This document covers conventions that apply to **all surveyverse R packages**. For package-specific examples and details, see the local conventions file in each package (e.g., `surveywts-conventions.md`).
-
----
+For package-specific details, see the local conventions file in each package
+(`surveywts-conventions.md`).
 
 ## Quick Reference
 
@@ -19,267 +17,58 @@ This document covers conventions that apply to **all surveyverse R packages**. F
 | `R CMD check` | 0 errors, 0 warnings, ≤2 pre-approved notes |
 | Export policy | User-facing functions + S7 classes only |
 | Re-exports | None — no pipe, no tidyselect helpers |
-| Function docs (roxygen2) | See `function-documentation.md` in each package |
+| Internal function docs | `@keywords internal` + `@noRd` for complex helpers |
+| `@returns` | Required on all exported functions |
+| `@examples` | All runnable — no `\dontrun{}` |
 | Version pinning | Minimum versions only (e.g., `cli (>= 3.6.0)`) |
 | Dataset `@format` | Single `\describe{}` block; every column must have `\item{}` |
 
----
+## Documentation (roxygen2)
 
-## 1. Function Documentation (Roxygen2)
+- `@param` verbosity is proportional to how non-obvious the argument is —
+  fuller treatment for arguments that interact with others, have non-obvious
+  `NULL` behavior, or carry value constraints.
+- `@returns` (not `@return`) required on every export; terse is fine for
+  obvious cases.
+- `@examples` must run during `R CMD check`. No `\dontrun{}` except genuine
+  external resources; slow examples get a smaller inline dataset instead.
+- Group exports with `@family` (see `surveywts-conventions.md` for names).
+- Internal helpers: obvious one-liners get no roxygen; complex helpers get
+  `@keywords internal` + `@noRd`.
+- **Dataset codoc rule:** one `\describe{}` block in `@format`, every column
+  documented with `\item{}`. `codoc` only reads the first `\describe{}`
+  block and requires bidirectional coverage — a second block is silently
+  ignored and causes a check WARNING. Group columns with prose in
+  `@description`, never with a second block.
 
-For function-level roxygen2 documentation — titles, descriptions, `@param`, `@returns`,
-`@details`, named sections, `@references`, `@seealso`, `@examples`, and internal helper
-docs — see `function-documentation.md` in each package.
+## NAMESPACE and exports
 
----
+- Call all external package functions with `::`. No `@importFrom` anywhere,
+  except when registering an S3 method for a generic from another package
+  (e.g., `dplyr::dplyr_reconstruct`) — roxygen2 needs it to emit
+  `S3method()`.
+- Export user-facing functions and S7 class objects (`#' @export`).
+  `.`-prefixed helpers and internal generics stay unexported.
+- No re-exports (no pipe, no tidyselect helpers).
+- `NAMESPACE` is a build artifact — never edit by hand; every entry comes
+  from a roxygen2 tag.
 
-## 2. Dataset Documentation
+## Package check hygiene
 
-### The codoc rule: one `\describe{}` block, all columns
-
-R CMD check's `codoc` tool checks that every column in a bundled data frame
-has a matching `\item{}` entry in the documentation. It has two critical
-behaviours:
-
-1. **It only reads the FIRST `\describe{}` block** in the `@format` section.
-   Any additional `\describe{}` blocks (e.g., for a "Benchmark variables"
-   subsection) are silently ignored by `codoc`.
-2. **It requires bidirectional coverage**: every column in the data must be
-   documented, and every documented item must exist in the data.
-
-**Result of violations:** `checking for code/documentation mismatches ... WARNING`, which blocks CI.
-
-### Rules
-
-- Every data frame column must have a `\item{}` entry — no "key columns only"
-  approach with a note about undocumented columns.
-- Use **exactly one `\describe{}` block** in the `@format` section, regardless
-  of how many conceptual groups the columns fall into.
-- If you want to group columns (e.g., "Benchmark variables"), do it with
-  narrative prose inside the `@description`, not with a second `\describe{}`.
-
-```r
-# Correct — single \describe{} block, all columns covered
-#' @format A data frame with 500 rows and 6 columns:
-#' \describe{
-#'   \item{id}{Integer. Row identifier.}
-#'   \item{gender}{Numeric. 1 = Male, 2 = Female.}
-#'   \item{age}{Numeric. Age in years.}
-#'   \item{registered}{Integer. Registered to vote: 1 = Yes, 0 = No.}
-#'   \item{vote14}{Integer. Voted in 2014: 1 = Yes, 0 = No.}
-#'   \item{weight}{Numeric. Survey weight.}
-#' }
-
-# Wrong — second \describe{} block is invisible to codoc
-#' @format A data frame with 500 rows and 6 columns. Key columns:
-#' \describe{
-#'   \item{id}{Integer. Row identifier.}
-#'   \item{gender}{Numeric. 1 = Male, 2 = Female.}
-#'   \item{age}{Numeric. Age in years.}
-#' }
-#'
-#' Benchmark variables:
-#' \describe{
-#'   \item{registered}{Integer. Registered to vote: 1 = Yes, 0 = No.}
-#'   \item{vote14}{Integer. Voted in 2014: 1 = Yes, 0 = No.}
-#'   \item{weight}{Numeric. Survey weight.}
-#' }
-```
-
-### Workflow for new datasets
-
-Before writing roxygen2 for a new dataset, run:
-
-```r
-names(my_dataset)  # get the full column list
-```
-
-Then write one `\item{}` per column. Use `attr(my_dataset[[col]], "label")`
-to get the original variable label if the dataset came from an SPSS/Stata
-file.
+- All PRs pass `R CMD check` with 0 errors, 0 warnings, ≤2 notes.
+- Pre-approved notes (do not block): `no visible binding for global
+  variable 'X'` (tidy-select bare names) and `checking CRAN incoming
+  feasibility`. Any other note blocks the PR.
+- Do NOT suppress NSE notes with `utils::globalVariables()` or `.data$var`
+  rewrites — accept the pre-approved note and move on.
+- Local: `devtools::check()` (no `--as-cran`). CI uses
+  `--as-cran --no-manual`. Switch locally only in the Polish release when
+  CRAN submission is imminent.
+- Run `devtools::document()` before committing roxygen changes; commit
+  NAMESPACE and `man/` in sync with source.
+- `Imports` entries carry minimum-version lower bounds; never exact pins.
 
 ---
-
-## 3. NAMESPACE & Exports
-
-### Export policy: user-facing functions + S7 classes
-
-Both **user-facing functions** and **S7 class objects** are exported. S7 classes are part of the documented API.
-
-```r
-# User-facing function — export with @export
-#' @export
-my_function <- function(...) { ... }
-
-# S7 class — export with @export
-#' @export
-my_class <- S7::new_class("my_class", ...)
-```
-
-Unexported:
-- All `.`-prefixed helpers (`.internal_fn()`)
-- Internal S7 generics not part of public API
-
-### `::` everywhere — no `@importFrom`
-
-Call all external package functions with `::`. No `@importFrom` in any source file.
-
-```r
-# Correct
-result <- rlang::enquo(x)
-cli::cli_abort("message", class = "error_class")
-
-# Wrong
-result <- enquo(x)           # requires @importFrom rlang enquo
-cli_abort("message")         # requires @importFrom cli cli_abort
-```
-
-**Why:** Maximally explicit about function origins. Namespace lookup overhead is negligible for R code (not the bottleneck).
-
-### No re-exports
-
-Do not re-export the pipe, tidyselect helpers, or other utility functions. Users who need them have tidyverse/rlang loaded.
-
-```r
-# Wrong — don't do this
-#' @importFrom magrittr %>%
-#' @export
-`%>%` <- magrittr::`%>%`
-```
-
-### `NAMESPACE` is never manually edited
-
-`NAMESPACE` carries the `# Generated by roxygen2: do not edit by hand` header. It is a build artifact.
-
-**Every export, import, and S3 method registration must come from a roxygen2 tag.**
-
-If roxygen2 can't express something, find a roxygen2 solution — do not work around it with manual edits.
-
----
-
-## 3. Package Check Hygiene
-
-### `R CMD check` targets
-
-**All PRs must pass with:**
-- 0 errors
-- 0 warnings
-- ≤2 notes (see approved notes below)
-
-### Pre-approved notes
-
-These two notes are acceptable and do not block merging:
-
-| Note | Why it appears | Why it's accepted |
-|------|----------------|-------------------|
-| `no visible binding for global variable 'X'` | Tidy-select bare names | Universal in tidy packages |
-| `checking CRAN incoming feasibility` | Package not on CRAN yet | Informational only |
-
-Any other note is treated as a bug and blocks the PR.
-
-### NSE "no visible binding" notes: accept, don't suppress
-
-Do not suppress NSE notes with `utils::globalVariables()`. Do not change examples to use `.data$var` syntax.
-
-The note is pre-approved. Accept it and move on.
-
-### `devtools::check()` cadence
-
-**Local development:**
-```r
-devtools::check()  # Fast feedback, no --as-cran flag
-```
-
-**CI (GitHub Actions):**
-```yaml
-args: 'c("--as-cran", "--no-manual")'
-```
-
-Switch to `--as-cran` locally only in the Polish release when CRAN submission is imminent.
-
-### `devtools::document()` cadence
-
-Run `devtools::document()` **before committing** any file that changes roxygen2 content:
-
-```r
-# Before committing changes to R/03-functions.R
-devtools::document()
-git add NAMESPACE man/my_function.Rd
-git commit -m "docs(functions): update roxygen"
-```
-
-NAMESPACE and `man/` files are committed to version control and must be in sync with source.
-
-### Minimum version pinning
-
-Specify **lower bounds** for all `Imports` dependencies. Set the bound to the oldest version where the required feature exists.
-
-```r
-Imports:
-    cli (>= 3.6.0),        # cli_abort() with class= argument
-    rlang (>= 1.1.0),      # rlang::check_required()
-    S7 (>= 0.1.0)          # S7 class system
-Suggests:
-    testthat (>= 3.0.0)
-```
-
-Do NOT use exact version pins (`==`). They are rejected by CRAN and too fragile.
-
----
-
-## 4. Package Metadata
-
-### DESCRIPTION fields
-
-All surveyverse packages include:
-
-```
-Package: surveyXXX
-Title: [Descriptive title matching the package role]
-Version: 0.0.0.9000
-Authors@R: person("Jacob", "Dennen", role = c("aut", "cre"), email = "...")
-Description: [1-2 sentence description of what the package does]
-License: GPL-3
-Encoding: UTF-8
-Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.x.x
-```
-
-### Package documentation (surveypkg-package.R)
-
-Every surveyverse package has a documented entry point:
-
-```r
-#' surveytidy: dplyr/tidyr verbs for survey objects
-#'
-#' @description
-#' surveytidy provides dplyr and tidyr verbs that work with survey design objects
-#' from surveycore, allowing...
-#'
-#' @section Key Functions:
-#' - [filter()] — domain-aware filtering
-#' - [select()] — column selection
-#' - [mutate()] — add/modify variables
-#'
-#' @section Documentation:
-#' For ecosystem architecture, see [the ecosystem guide](../survey-standards/ECOSYSTEM.md).
-#'
-#' @keywords internal
-#' "_PACKAGE"
-```
-
----
-
-## Summary for All Packages
-
-**Do this in every surveyverse package:**
-1. Use `::` for all external package calls (no `@importFrom`)
-2. Never manually edit `NAMESPACE` — use roxygen2
-3. Run `devtools::document()` before committing code with roxygen changes
-4. Run `devtools::check()` before opening PRs
-5. Export user-facing functions and S7 classes only
-6. For datasets: one `\describe{}` block in `@format`; every column must have
-   `\item{}`; never split into multiple blocks
-
-**For function-level roxygen2 documentation**, see `function-documentation.md` in each package.
-**For package-specific details**, see the local conventions file in each package.
+Worked examples (roxygen blocks, `\describe{}` right/wrong, DESCRIPTION
+template, package-doc template, import style): `.claude/references/r-package-detail.md`.
+Read it when writing docs or package metadata and the format is not obvious.

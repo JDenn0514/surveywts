@@ -67,3 +67,4 @@ package, add `library(pkg)` at the top of the block.
 - `.claude/rules/testing-surveywts.md` — package-specific test invariants and data generators
 - `.claude/rules/github-strategy.md` — branching model, commit format, versioning
 - `.claude/rules/engineering-preferences.md` — DRY, edge cases, over/under-engineering
+- `.claude/references/` — worked examples and rationale moved out of `.claude/rules/`; read one when a rule's use is unclear

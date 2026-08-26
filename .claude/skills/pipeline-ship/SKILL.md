@@ -189,6 +189,12 @@ Shipper opens the PR, monitors CI, merges, marks `[x]` in the plan.
 
 After every shipper in a batch returns:
 
+Skip check first. Compare `git rev-parse 'HEAD^{tree}'` on updated `develop`
+against the `Tree:` line in this batch's `audit.md`. If every audit in the
+batch matches, the tester already ran these tests on this exact tree — log
+"post-batch check: SKIPPED — tree unchanged since audit" and go on. If any
+hash differs, or an `audit.md` has no `Tree:` line, run the commands below.
+
 1. `git checkout develop && git pull`
 2. `Rscript -e 'devtools::test()'` on updated develop
 3. If any test fails that was passing in the baseline → HOLD classification

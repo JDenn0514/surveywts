@@ -97,7 +97,7 @@ Spec: plans/spec-{id}.md
 Write surface: {exact files from impl-{id}.md}
 Tasks: {tasks from impl-{id}.md for this PR}
 Acceptance criteria: {from impl-{id}.md}
-Read: .claude/agents/builder.md, .claude/rules/, pipeline-shared/references/r-package-profile.md
+Read: .claude/agents/builder.md, pipeline-shared/references/r-package-profile.md (rules auto-load — do not read .claude/rules/ again)
 Key documentation rule: `.claude/rules/function-documentation.md` — tier system, `@returns` (not `@return`), named `@section` requirements, `@examples` package-data rule for all exported functions
 Comprehension (if exists): plans/comprehension-{id}.md
 
@@ -154,7 +154,7 @@ PR: {number} — {slug}
 All artifacts: plans/spec-{id}.md, plans/test-spec-{id}.md,
                plans/comprehension-{id}.md (if present),
                impl-{id}.md, implementation.md, audit.md
-Read: .claude/agents/reviewer.md, pipeline-shared/references/ (ALL)
+Read: .claude/agents/reviewer.md, pipeline-shared/references/signals.md, artifact-schemas.md, r-package-profile.md
 ```
 
 Reviewer returns `review.md` with verdict PASS / BLOCK / STOP.

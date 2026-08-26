@@ -136,6 +136,21 @@ that tier are reflected in the contract.
 
 Append `DRAFT` to `status.md`.
 
+## Review-loop budget (applies to Stages 2/2r and 3/3r)
+
+Measured cost of an unbounded loop: one surveycore feature ran 7 review
+passes, about $300 of API-equivalent usage. These rules cap the loop:
+
+1. **Maximum 3 passes** per review stage. If findings are still open after
+   pass 3, HOLD. Ask the user. Do not run pass 4.
+2. **Pass 1 is the only full pass** — all lenses, the whole document.
+3. **Pass 2 and later are delta passes.** Review only the sections the
+   resolver changed, plus the specific findings you verify. The resolver
+   lists the changed section headings at the top of its response. Do not
+   re-read the whole document.
+4. **Early exit.** A pass whose findings need no change to the artifact ends
+   the loop. The verdict is PASS.
+
 ## Stage 2 — Methodology review (conditional)
 
 Self-assess applicability using the trigger criteria in
@@ -171,6 +186,7 @@ Two modes:
   lens.
 
 Loop until `spec-methodology-{id}.md` verdict = PASS.
+Respect the Review-loop budget above.
 
 ## Stage 3 — Spec review
 
@@ -187,7 +203,7 @@ Save to `plans/spec-review-{id}.md`. Aggregate verdict (PASS / BLOCK / HOLD).
 Invoke `.claude/skills/spec-workflow/references/stage-4-resolve.md`.
 
 Use BIG mode (>8 findings) or SMALL mode (≤8 findings). Loop until
-`spec-review-{id}.md` verdict = PASS.
+`spec-review-{id}.md` verdict = PASS. Respect the Review-loop budget above.
 
 ## Stage 4 — Freeze & advance
 

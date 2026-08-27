@@ -124,15 +124,28 @@ After all builders in the batch return:
    git worktree prune           # clean up stale refs
    ```
 
-Then dispatch `tester` for each PR (NOT in a worktree — tester reads merged checkout):
+Then dispatch `tester` for each PR (NOT in a worktree — tester reads merged checkout).
+
+**Inject the tester's standards into the dispatch prompt.** The reachability
+test showed the tester does not perform its Step 0 reads, so YOU perform them
+at dispatch: read `.claude/standards/r-package-conventions.md`,
+`.claude/standards/testing-standards.md`, and
+`.claude/standards/testing-surveywts.md`, and paste their FULL contents into
+the dispatch prompt under the heading shown below. Do not summarize them and
+do not substitute a pointer — the paste is what puts the rules in the
+tester's context.
 
 ```
 PR: {number} — {slug}
 Test-spec: plans/test-spec-{id}.md
 Baseline results: {from step 0}
-Read: .claude/agents/tester.md, pipeline-shared/references/r-package-profile.md
+Read: pipeline-shared/references/r-package-profile.md
 
 DO NOT read spec-{id}.md. DO NOT read implementation.md.
+
+## Your standards (full text — these are in your context; no Step 0 Reads needed)
+
+{full contents of the three standards files}
 ```
 
 Each tester returns `audit.md` with verdict PASS or BLOCK.

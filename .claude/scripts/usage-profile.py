@@ -46,6 +46,42 @@ def show(label, stats, turns):
         for k in ('input', 'cache_create', 'cache_read', 'output'):
             print(f"    {k:12} {c[k]:>12,}")
 
+def first_turn_prefix(path):
+    """The entry fee: the frozen prefix the first request writes or reuses.
+
+    cache_creation alone understates it when an earlier subagent in the same
+    session already cached a shared prefix - the reused part then shows as
+    cache_read. creation + read + input on the first usage line is the whole
+    prefix either way.
+    """
+    for line in open(path, encoding='utf-8', errors='replace'):
+        try:
+            rec = json.loads(line)
+        except Exception:
+            continue
+        u = (rec.get('message') or {}).get('usage')
+        if u and 'cache_creation_input_tokens' in u:
+            return (u.get('cache_creation_input_tokens', 0),
+                    u.get('cache_read_input_tokens', 0),
+                    u.get('input_tokens', 0))
+    return None
+
+
+if '--entry-fee' in sys.argv:
+    sys.argv.remove('--entry-fee')
+    base, sess = sys.argv[1], sys.argv[2]
+    print('entry fee = first-turn cache_creation + cache_read + input')
+    r = first_turn_prefix(os.path.join(base, sess + '.jsonl'))
+    if r:
+        print('  MAIN %-28s create=%8d read=%8d input=%6d  fee=%8d'
+              % (sess[:28], r[0], r[1], r[2], sum(r)))
+    for f in sorted(glob.glob(os.path.join(base, sess, 'subagents', 'agent-*.jsonl'))):
+        r = first_turn_prefix(f)
+        if r:
+            print('  SUB  %-28s create=%8d read=%8d input=%6d  fee=%8d'
+                  % (os.path.basename(f)[:28], r[0], r[1], r[2], sum(r)))
+    sys.exit(0)
+
 base, sess = sys.argv[1], sys.argv[2]
 s, t = scan(os.path.join(base, sess + '.jsonl'))
 show('MAIN ' + sess, s, t)

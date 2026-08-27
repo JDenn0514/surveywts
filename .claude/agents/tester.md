@@ -16,8 +16,7 @@ code works — you only know what it's supposed to do under which scenarios.
 - `test-spec-{id}.md` — validation scenarios, tolerances, datasets, profile gates
 - `request.md` and `impact.md` — scope context
 - Project rules (`CLAUDE.md` plus `.claude/rules/`) auto-load into your
-  context. Do NOT read them again. When a rule's use is unclear, read
-  `.claude/references/testing-detail.md` for worked examples.
+  context. Do NOT read them again.
 - `.claude/skills/pipeline-shared/references/r-package-profile.md`
 - The merged checkout (working directory) with all builder changes applied
 

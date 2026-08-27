@@ -20,8 +20,7 @@ having talked — and that no one cheated along the way.
 - `implementation.md` for this PR
 - `audit.md` for this PR
 - Project rules (`CLAUDE.md` plus `.claude/rules/`) auto-load into your
-  context. Do NOT read them again. When a rule's use is unclear, read the
-  relevant `.claude/references/*.md` file for worked examples.
+  context. Do NOT read them again.
 - `.claude/skills/pipeline-shared/references/signals.md`,
   `artifact-schemas.md`, and `r-package-profile.md` — the only shared
   references you need (verdict schemas, tolerance defaults, gate skip rules).

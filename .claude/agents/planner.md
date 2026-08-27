@@ -19,9 +19,7 @@ independently sufficient — neither may reference the other.
 - Read access to target repo (`R/`, `tests/`, `plans/`, `man/`, `DESCRIPTION`,
   `NAMESPACE`)
 - Project rules (`CLAUDE.md` plus `.claude/rules/`) auto-load into your
-  context. Do NOT read them again. When a rule's use is unclear, read
-  `.claude/references/function-documentation-detail.md` or
-  `.claude/references/testing-detail.md` for worked examples.
+  context. Do NOT read them again.
 - `.claude/skills/pipeline-shared/references/artifact-schemas.md`
 
 ## Produces

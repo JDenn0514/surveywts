@@ -215,7 +215,7 @@ the relevant `test_that()` block (never at file level).
 ```
 # 1. survey_nonprob — print snapshot
 # 2. survey_replicate — print snapshot
-# 3. Weighting history rendering (.format_history_step())
+# 3. Weighting history rendering — pin timestamps with .pin_ts() first
 ```
 
 ### Calibration / nonresponse function test files (`test-02-*.R` through `test-05-*.R`)

@@ -20,7 +20,7 @@
 | Internal helper placement | Inline if used in 1 file; shared utils file if used in 2+ files |
 | Dispatch rule | `S7::method()` for extending existing generics; plain function + `S7::S7_inherits()` for everything else — surveywts defines no generics and no classes |
 | Type check (S7 objects) | `S7::S7_inherits(x, surveycore::survey_taylor)` — fully qualified, never a string |
-| Accepted input classes | `survey_base` objects only — `.check_input_class()` rejects everything else |
+| Accepted input classes | `survey_base` objects only — each family has its own input gate; see §2 |
 | Print method file | `methods-print.R`; registered via `S7::methods_register()` in `.onLoad()` |
 | Weighting function returns | Visible (updated object, same class as input) |
 | Diagnostic function returns | Visible (named scalar or tibble) |
@@ -202,13 +202,29 @@ for S3 classes, never for a surveycore class.
 
 Every weighting function in surveywts requires a `survey_base` object —
 `survey_nonprob`, `survey_taylor`, or `survey_replicate`. Plain data frames and
-tibbles are not accepted. The single gate is `.check_input_class()` from
-`utils.R`, which throws `surveywts_error_not_survey_base` on anything else:
+tibbles are not accepted.
+
+Each family gates its input with its own validator, called before any other
+validation. Use the one that belongs to the family you are working in:
+
+| Family | Gate | Lives in |
+|--------|------|----------|
+| Calibration, nonresponse | `.check_input_class()` | `utils.R` |
+| Utilities (`trim_weights()`, `rescale_weights()`) | `.check_weight_utils_class()` | `weight-utils.R` |
+| Replicate weights | `.validate_replicate_input()` | `replicate-utils.R` |
+| Diagnostics | `.diag_validate_input()` | `diagnostics-utils.R` |
 
 ```r
-# First statement in every weighting function, before any other validation
+# First statement in a calibration or nonresponse function
 .check_input_class(data)
 ```
+
+`.check_input_class()` throws `surveywts_error_not_survey_base`. The other
+three gates accept narrower sets and throw their own classes — read the helper
+before assuming which classes it lets through. `calibrate()` and
+`as_taylor_design()` call no gate directly: `calibrate()` forwards to a
+dispatched function that gates, and `as_taylor_design()` does its own class
+check inline.
 
 After that gate passes, branch only where the classes genuinely behave
 differently — for example when replicate weight columns need the same

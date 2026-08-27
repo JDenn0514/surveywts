@@ -18,7 +18,6 @@ surveywts provides tools for survey weighting and calibration.
 | Diagnostics | minor bump | 🔜 Next | Balance assessment, `check_balance()`, `diagnose_propensity()`, `compare_weighted_estimates()` |
 | Polish | minor bump | ⬜ Pending | Vignettes, `--as-cran` clean, pkgdown |
 
-**Next action:** Begin Diagnostics.
 Full roadmap at `plans/roadmap.md`.
 
 ---

@@ -1,8 +1,5 @@
 # surveywts R Package Conventions
 
-**Version:** 1.0 — Calibration API complete
-**Status:** Stable for Calibration
-
 This document extends the **generic R package conventions** (`r-package-conventions.md`)
 with surveywts-specific examples and detailed guidance.
 

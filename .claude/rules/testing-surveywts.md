@@ -1,8 +1,5 @@
 # surveywts Testing: Package-Specific Standards
 
-**Version:** 1.0 — Calibration complete
-**Status:** Stable for Calibration
-
 Extends `testing-standards.md`. Read that document first; this file covers
 only what is specific to surveywts.
 

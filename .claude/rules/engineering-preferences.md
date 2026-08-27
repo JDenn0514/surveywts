@@ -68,7 +68,7 @@ When deciding whether to handle an edge case, err on the side of handling it.
 When there are two ways to do something — a clever short way and a longer
 explicit way — choose explicit.
 
-- `S7::inherits(x, ClassName)` not `inherits(x, "survey_taylor")`
+- `S7::S7_inherits(x, surveycore::survey_taylor)` not `inherits(x, "survey_taylor")`
 - Named error classes on every `cli_abort()`, not bare messages
 - Spell out behavior in the spec rather than relying on "the reader will infer"
 - Document assumptions rather than leaving them implicit

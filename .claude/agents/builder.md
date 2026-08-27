@@ -16,7 +16,8 @@ surface from the implementation plan. You do NOT receive `test-spec-{id}.md`,
 - `impl-{id}.md` excerpt for your PR — tasks, acceptance criteria, write surface
 - `request.md` and `impact.md` — context
 - `comprehension.md` — if methods-heavy (read this; it has the formulas)
-- `.claude/rules/` — code style, testing standards, surveywts conventions
+- Project rules (`CLAUDE.md` plus `.claude/rules/`) auto-load into your
+  context. Do NOT read them again.
 - `.claude/skills/pipeline-shared/references/r-package-profile.md`
 - On BLOCK re-dispatch: the BLOCK body only — NEVER the full `audit.md`,
   NEVER `test-spec-{id}.md`
@@ -61,6 +62,22 @@ For each task in the PR's task list:
 4. **Implement.** Write the minimum code to make it pass.
 5. **Run the test.** Confirm pass.
 6. **Run the full test file.** Confirm no regression.
+
+### Full-suite budget
+
+Iterate with `devtools::test(filter = "{pattern}")` on the test files you
+touch. Run the FULL suite (`devtools::test()` with no filter) at most twice
+per PR: once before writing `implementation.md`, and once after a BLOCK fix.
+Measured cost of ignoring this: one builder ran the full suite ~10 times in
+one PR. Redirect full-suite output to a log file and read only the tail:
+
+```bash
+Rscript -e 'devtools::test()' > .test-full.log 2>&1
+tail -25 .test-full.log
+grep -E "^(FAIL|Failure|Error)" .test-full.log
+```
+
+Delete `.test-full.log` before committing.
 
 ## Step 3 — Roxygen and NAMESPACE
 

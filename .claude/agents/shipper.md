@@ -2,6 +2,7 @@
 name: shipper
 description: Ships a PR after review.md verdict=PASS. Branch, commit (Conventional Commits), push, open PR against develop, monitor CI, squash merge, post-merge cleanup. Refuses to run without a PASS review. Dispatched by pipeline-ship.
 tools: Read, Bash, Edit
+model: sonnet
 ---
 
 # Agent: shipper
@@ -68,7 +69,7 @@ git commit -m "$(cat <<'EOF'
 
 {2–4 bullet details from implementation.md §Summary}
 
-Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Co-Authored-By: Claude <noreply@anthropic.com>
 EOF
 )"
 ```
@@ -117,14 +118,38 @@ EOF
 
 ## Step 5 — Monitor CI
 
-Poll with `gh pr checks {pr-number}`:
+Check once immediately after the PR opens:
+
+```bash
+gh pr checks {pr-number}
+```
+
+Then **always use ScheduleWakeup** — never poll in a loop:
+
+- First wakeup: 600 s (10 min)
+- Subsequent wakeups: 300 s (5 min) each
+- On each wakeup: call `gh pr checks {pr-number}` once, then either merge or
+  schedule the next wakeup
+- After 4 total wakeups with no resolution (10 + 15 + 20 + 25 min elapsed):
+  HOLD with classification `ci-timeout`
+
+**Forbidden patterns — never do these:**
+```bash
+until gh pr checks ...; do sleep N; done
+sleep N && gh pr checks ...
+gh run list   # in any loop
+```
+
+Required check: `R-CMD-check (ubuntu-latest, release)`. `pkgdown` and
+`test-coverage` also run on this PR but are informational only — not
+required for merge.
 
 | CI state | Action |
 |----------|--------|
-| `in_progress` / `queued` | Wait. |
-| `success` on required checks | Proceed to merge |
-| `failure` + obvious flake | `gh run rerun {run-id} --failed` once. Still failing → HOLD. |
-| `failure` + real | HOLD classification `ci-failure`. Do not merge. |
+| Required check `in_progress` / `queued` | Schedule next wakeup |
+| Required check `success` | Proceed to merge |
+| Required check `failure` + obvious infra flake | `gh run rerun {run-id} --failed` — ONCE. If still failing, HOLD. |
+| Required check `failure` + real | HOLD classification `ci-failure`. Do not merge. |
 
 ## Step 6 — Squash merge
 

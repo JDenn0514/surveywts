@@ -97,7 +97,7 @@ Spec: plans/spec-{id}.md
 Write surface: {exact files from impl-{id}.md}
 Tasks: {tasks from impl-{id}.md for this PR}
 Acceptance criteria: {from impl-{id}.md}
-Read: .claude/agents/builder.md, .claude/rules/, pipeline-shared/references/r-package-profile.md
+Read: .claude/agents/builder.md, pipeline-shared/references/r-package-profile.md (rules auto-load — do not read .claude/rules/ again)
 Key documentation rule: `.claude/rules/function-documentation.md` — tier system, `@returns` (not `@return`), named `@section` requirements, `@examples` package-data rule for all exported functions
 Comprehension (if exists): plans/comprehension-{id}.md
 
@@ -141,8 +141,13 @@ Each tester returns `audit.md` with verdict PASS or BLOCK.
 If an audit returns BLOCK:
 
 1. Increment BLOCK counter for that PR
-2. If counter ≤ 3: re-dispatch builder with the BLOCK body only (NOT the full
-   audit.md, NOT test-spec-{id}.md) per `signals.md`
+2. If the counter is ≤ 3: send the BLOCK body — not the full `audit.md`, not
+   `test-spec-{id}.md`, per `signals.md` — to the SAME builder agent with
+   `SendMessage`. It keeps its context and its warm cache. The message MUST
+   state: "Your worktree was merged back and removed. Work in the main
+   checkout at {path}. Run `git status` there before you edit." Dispatch a
+   fresh builder only when the original agent is gone, for example after a
+   session restart. Pass the BLOCK body in the dispatch prompt.
 3. If counter = 4: emit HOLD classification `repeated-block`; pause for user
 
 ### 2d. Dispatch reviewer (sequential per PR, after its audit passes)
@@ -154,7 +159,7 @@ PR: {number} — {slug}
 All artifacts: plans/spec-{id}.md, plans/test-spec-{id}.md,
                plans/comprehension-{id}.md (if present),
                impl-{id}.md, implementation.md, audit.md
-Read: .claude/agents/reviewer.md, pipeline-shared/references/ (ALL)
+Read: .claude/agents/reviewer.md, pipeline-shared/references/signals.md, artifact-schemas.md, r-package-profile.md
 ```
 
 Reviewer returns `review.md` with verdict PASS / BLOCK / STOP.
@@ -183,6 +188,12 @@ Shipper opens the PR, monitors CI, merges, marks `[x]` in the plan.
 ## Step 3 — Post-batch verification
 
 After every shipper in a batch returns:
+
+Skip check first. Compare `git rev-parse 'HEAD^{tree}'` on updated `develop`
+against the `Tree:` line in this batch's `audit.md`. If every audit in the
+batch matches, the tester already ran these tests on this exact tree — log
+"post-batch check: SKIPPED — tree unchanged since audit" and go on. If any
+hash differs, or an `audit.md` has no `Tree:` line, run the commands below.
 
 1. `git checkout develop && git pull`
 2. `Rscript -e 'devtools::test()'` on updated develop

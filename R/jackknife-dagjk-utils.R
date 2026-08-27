@@ -341,8 +341,8 @@
           calib_result@data[[wt_col]]
         }
       },
+      # nocov start
       error = function(e) {
-        # nocov start
         cli::cli_abort(
           c("x" = "Replicate {g}: calibration failed -- {conditionMessage(e)}"),
           class = "surveywts_error_jackknife_degenerate_replicate"
@@ -466,8 +466,8 @@
       ref_data_b = ref_data_b,
       use_level_b = use_level_b
     ),
+    # nocov start
     error = function(e) {
-      # nocov start
       cli::cli_abort(
         c("x" = "Replicate {g}: calibration failed -- {conditionMessage(e)}"),
         class = "surveywts_error_jackknife_degenerate_replicate"

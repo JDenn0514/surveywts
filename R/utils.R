@@ -391,10 +391,12 @@
     # Extract targets as a named numeric vector
     elem <- population[[var]]
     if (is.data.frame(elem)) {
+      # nocov start
       targets <- stats::setNames(
         as.numeric(elem$target),
         as.character(elem$level)
-      ) # nocov
+      )
+      # nocov end
     } else {
       targets <- elem
     }

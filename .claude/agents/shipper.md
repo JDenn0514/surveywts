@@ -148,7 +148,7 @@ sleep N && gh pr checks ...
 gh run list   # in any loop
 ```
 
-Required check: `R-CMD-check (ubuntu-latest, release)`. `pkgdown` and
+Required check: `R-CMD-check / ubuntu-latest (release)`. `pkgdown` and
 `test-coverage` also run on this PR but are informational only — not
 required for merge.
 

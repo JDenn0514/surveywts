@@ -15,7 +15,39 @@ conservation gate that a line count cannot pass.
 | 1 — Phase A inventory | **COMPLETE** | 9 agents, each blind to this plan. **1,102 statements** in `plans/ledger/before-*.tsv`. Every row has 6 fields; 0 malformed |
 | 2 — `check-literals.sh` | **PASS on the untouched tree** | 874 literals, citations resolve, no force-load links, standards reachable |
 | 3 — your approvals | **COMPLETE** | All eight answered on 2026-08-27. See Section 13 |
-| 4 onward | not started | ready to begin |
+| 4 — reformat, gate 8, drop `.lintr`, delete Group A prose | **COMPLETE** | `air format .` as one commit, 49 files, proven formatting-only three ways. Gate 8 added and tested in three directions. `.lintr` deleted; both its defects confirmed against installed lintr. A1, A2, A5, A6 deleted; `code-style.md` 618 -> 526. See "Two additions step 4 needed" below |
+| 5 onward | not started | ready to begin |
+
+### Two additions step 4 needed
+
+Neither changes a decision. Both are recorded because a later reader will
+otherwise find machinery the plan does not mention.
+
+**1. `# nocov` markers move when air reformats.** covr drops a record only
+when EVERY line of it is excluded. air split one statement in `R/utils.R`
+across four lines, leaving the trailing `# nocov` on the closing paren alone,
+and moved `# nocov start` off the `error = function(e) {` line in two places
+in `R/jackknife-dagjk-utils.R`. Three expressions silently lost their
+exclusion. The reformat commit holds air's output verbatim so it stays
+reproducible; the next commit restores the markers. The set of expressions
+covr excludes is now identical to the pre-reformat set: 0 lost, 0 added.
+
+**2. The literal gate needed a way to record an approved removal.** Deleting
+A1, A2, A5 and A6 takes 24 of the 874 literals out of the tree on purpose, so
+the gate would have reported FAIL on every commit from here on.
+`plans/ledger/literals.txt` stays pinned at 874 and never shrinks.
+`plans/ledger/literals-retired.txt` records a removed literal against the
+Section 5 row that approved it, and `check` subtracts those. It refuses a row
+that names no approval, names a row that was KEPT (A3, A4, C3), or names a
+literal that was never tracked; a retired literal still present in the tree
+reports as a NOTE so the register cannot rot. Use this file for the Group B
+and C deletions in steps 5 to 8 too.
+
+Also fixed there: `literals.py check` died with UnicodeEncodeError while
+printing a missing literal to a cp1252 console, so the gate could not report
+its own failures.
+
+---
 
 ### Start here, in a new session
 

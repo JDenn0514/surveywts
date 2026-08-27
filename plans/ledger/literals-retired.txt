@@ -45,3 +45,22 @@ insert_final_newline = true	A6	inlined air.toml / .editorconfig bodies deleted; 
 line-width = 80	A6	inlined air.toml / .editorconfig bodies deleted; the files are the source
 root = true	A6	inlined air.toml / .editorconfig bodies deleted; the files are the source
 trim_trailing_whitespace = true	A6	inlined air.toml / .editorconfig bodies deleted; the files are the source
+
+# --- B6 (6): DESCRIPTION field template deleted; DESCRIPTION is the source ---
+0.0.0.9000	B6	DESCRIPTION field template deleted; the real DESCRIPTION file is the source
+7.x.x	B6	DESCRIPTION field template deleted; the real DESCRIPTION file is the source
+Encoding:	B6	DESCRIPTION field template deleted; the real DESCRIPTION file is the source
+License:	B6	DESCRIPTION field template deleted; the real DESCRIPTION file is the source
+Roxygen:	B6	DESCRIPTION field template deleted; the real DESCRIPTION file is the source
+RoxygenNote:	B6	DESCRIPTION field template deleted; the real DESCRIPTION file is the source
+list(markdown = TRUE)	B6	DESCRIPTION field template deleted; the real DESCRIPTION file is the source
+
+# --- B7 (9): surveypkg-package.R template deleted; it was a surveytidy example, not surveywts's real file ---
+filter()	B7	surveypkg-package.R template deleted; example used surveytidy verbs, not a real surveywts function
+mutate()	B7	surveypkg-package.R template deleted; example used surveytidy verbs, not a real surveywts function
+select()	B7	surveypkg-package.R template deleted; example used surveytidy verbs, not a real surveywts function
+../survey-standards/ECOSYSTEM.md	B7	surveypkg-package.R template deleted; the real file is R/surveywts-package.R
+@section Documentation:	B7	surveypkg-package.R template deleted; the real file is R/surveywts-package.R
+@section Key Functions:	B7	surveypkg-package.R template deleted; the real file is R/surveywts-package.R
+_PACKAGE	B7	surveypkg-package.R template deleted; the real file is R/surveywts-package.R
+surveypkg-package.R	B7	surveypkg-package.R template deleted; the real file is R/surveywts-package.R

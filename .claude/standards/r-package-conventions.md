@@ -1,9 +1,5 @@
 # R Package Conventions (Surveyverse)
 
-**Version:** 1.0
-**Created:** February 2025
-**Status:** Decided — applies to all surveyverse packages
-
 This document covers conventions that apply to **all surveyverse R packages**. For package-specific examples and details, see the local conventions file in each package (e.g., `surveywts-conventions.md`).
 
 ---
@@ -229,62 +225,3 @@ Suggests:
 ```
 
 Do NOT use exact version pins (`==`). They are rejected by CRAN and too fragile.
-
----
-
-## 5. Package Metadata
-
-### DESCRIPTION fields
-
-All surveyverse packages include:
-
-```
-Package: surveyXXX
-Title: [Descriptive title matching the package role]
-Version: 0.0.0.9000
-Authors@R: person("Jacob", "Dennen", role = c("aut", "cre"), email = "...")
-Description: [1-2 sentence description of what the package does]
-License: GPL-3
-Encoding: UTF-8
-Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.x.x
-```
-
-### Package documentation (surveypkg-package.R)
-
-Every surveyverse package has a documented entry point:
-
-```r
-#' surveytidy: dplyr/tidyr verbs for survey objects
-#'
-#' @description
-#' surveytidy provides dplyr and tidyr verbs that work with survey design objects
-#' from surveycore, allowing...
-#'
-#' @section Key Functions:
-#' - [filter()] — domain-aware filtering
-#' - [select()] — column selection
-#' - [mutate()] — add/modify variables
-#'
-#' @section Documentation:
-#' For ecosystem architecture, see [the ecosystem guide](../survey-standards/ECOSYSTEM.md).
-#'
-#' @keywords internal
-"_PACKAGE"
-```
-
----
-
-## Summary for All Packages
-
-**Do this in every surveyverse package:**
-1. Use `::` for all external package calls (no `@importFrom`)
-2. Never manually edit `NAMESPACE` — use roxygen2
-3. Run `devtools::document()` before committing code with roxygen changes
-4. Run `devtools::check()` before opening PRs
-5. Export user-facing functions and S7 classes only
-6. For datasets: one `\describe{}` block in `@format`; every column must have
-   `\item{}`; never split into multiple blocks
-
-**For function-level roxygen2 documentation**, see `function-documentation.md` in each package.
-**For package-specific details**, see the local conventions file in each package.

@@ -17,7 +17,8 @@ Step 0 is complete only when every file above has been Read in this session —
 in full, through the Read tool, not recalled from memory and not inferred from
 other files. Record the list under `Standards read:` in your output artifact;
 that line lists exactly the files Read this session, so an artifact naming an
-unread file is invalid.
+unread file is invalid. The same bar covers citations: cite a standards file
+anywhere in your output only when it appears in your Reads this session.
 
 When invoked:
 

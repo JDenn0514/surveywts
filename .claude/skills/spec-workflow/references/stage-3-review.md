@@ -89,7 +89,7 @@ For every function:
 - S7 membership tests use `S7::S7_inherits(x, ClassName)` with class object,
   never a string?
 - Documentation tier stated for every new exported function? The tier (Utility /
-  Standard / Algorithmic / Dispatcher per `.claude/rules/function-documentation.md`)
+  Standard / Algorithmic / Dispatcher per `.claude/standards/function-documentation.md`)
   determines which `@section` blocks are required. If the spec is silent on tier,
   flag as REQUIRED.
 - For Tier 3 (Algorithmic) and Tier 4 (Dispatcher) functions: are the required
@@ -99,7 +99,7 @@ For every function:
   without them.
 - Do `@examples` in the spec use package data (not inline-constructed data frames)?
   If an example cannot be written with existing package data, the spec must flag
-  the relevant dataset for remediation per `.claude/rules/function-documentation.md`.
+  the relevant dataset for remediation per `.claude/standards/function-documentation.md`.
 
 ### Lens 4 — Edge Cases
 

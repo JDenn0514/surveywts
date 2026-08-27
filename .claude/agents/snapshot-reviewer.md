@@ -17,7 +17,7 @@ When given snapshot diff output (from `testthat::snapshot_review()` or failing C
    - Whether cli markup is consistent with code-style.md conventions
    - Whether the Warnings section in the function's help page (if present) still
      accurately describes when this warning occurs — plain language, no warning
-     class names (per `.claude/rules/function-documentation.md` §Warnings section)
+     class names (per `.claude/standards/function-documentation.md` §Warnings section)
 
 2. Classify each diff as:
    - ✅ APPROVE — intentional, correct markup, matches source change

@@ -24,7 +24,7 @@ Full roadmap at `plans/roadmap.md`.
 
 ## Naming Conventions
 
-> Full conventions are in `.claude/rules/surveywts-conventions.md` §1. The
+> Full conventions are in `.claude/standards/surveywts-conventions.md` §1. The
 > three below are the ones that come up most often.
 
 - Error classes: `surveywts_error_{snake_case_condition}`
@@ -60,7 +60,7 @@ column.
 - All commits use Conventional Commits format: `feat(scope): description`
 - Valid scopes: `calibration`, `weights`, `utils`, `validators`, `replicate`,
   `propensity`, `diagnostics`, `data`, `docs`, `plans`, `pipeline`, `ci`,
-  `description` — see `.claude/rules/github-strategy.md`
+  `description` — see `.claude/standards/github-strategy.md`
 - Run `devtools::document()` before committing any file with roxygen2 changes
 - Run `devtools::check()` before opening a PR
 
@@ -74,11 +74,11 @@ package, add `library(pkg)` at the top of the block.
 
 - `plans/error-messages.md` — canonical error/warning class names and CLI message templates
 - `.claude/WORKFLOW.md` — how the skills fit together (planning arc → implementation loop)
-- `.claude/rules/code-style.md` — S7 patterns, cli errors, arg order, air formatter
-- `.claude/rules/r-package-conventions.md` — imports, NAMESPACE, roxygen2, export policy
-- `.claude/rules/surveywts-conventions.md` — package-specific naming, families, visibility, class ownership
-- `.claude/rules/function-documentation.md` — roxygen2 tiers, required sections, `@examples` policy
-- `.claude/rules/testing-standards.md` — test structure, coverage targets, assertion patterns
-- `.claude/rules/testing-surveywts.md` — package-specific test invariants and data generators
-- `.claude/rules/github-strategy.md` — branching model, commit format, versioning
-- `.claude/rules/engineering-preferences.md` — DRY, edge cases, over/under-engineering
+- `.claude/standards/code-style.md` — S7 patterns, cli errors, arg order, air formatter
+- `.claude/standards/r-package-conventions.md` — imports, NAMESPACE, roxygen2, export policy
+- `.claude/standards/surveywts-conventions.md` — package-specific naming, families, visibility, class ownership
+- `.claude/standards/function-documentation.md` — roxygen2 tiers, required sections, `@examples` policy
+- `.claude/standards/testing-standards.md` — test structure, coverage targets, assertion patterns
+- `.claude/standards/testing-surveywts.md` — package-specific test invariants and data generators
+- `.claude/standards/github-strategy.md` — branching model, commit format, versioning
+- `.claude/standards/engineering-preferences.md` — DRY, edge cases, over/under-engineering

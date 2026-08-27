@@ -54,6 +54,12 @@ APPROVED_DELETIONS = {
 SEARCH_ROOTS = ["CLAUDE.md", ".claude"]
 MIN_LEN = 3
 
+# These paths are pinned to the ref passed to `extract` (default 45e8751),
+# read only through `git show <ref>:<path>`. They name where the 8 rules
+# files lived AT THAT REF, not where they live on today's tree. Do NOT update
+# them when a file moves — see plans/ledger/citation-allowlist.txt, which
+# exempts these same paths from the live citation-resolution check for the
+# same reason.
 BEFORE_FILES = [
     "CLAUDE.md",
     ".claude/rules/code-style.md",

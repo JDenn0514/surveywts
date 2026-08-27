@@ -8,7 +8,7 @@
 
 For package-specific testing conventions (file mappings, invariant checkers,
 data generators, numerical tolerances), see the `testing-{package}.md` rule
-in each package's `.claude/rules/` directory.
+in each package's `.claude/standards/` directory.
 
 ---
 

@@ -90,7 +90,7 @@ After implementing any function with roxygen changes:
 - Full documentation standards — tier system, `@returns` format, required named
   `@section` blocks (Algorithm, Convergence, Missing Data, etc.), mathematical
   notation (`\eqn{}`/`\deqn{}`), `@examples` package-data requirement, and
-  `@seealso` requirements — see `.claude/rules/function-documentation.md`
+  `@seealso` requirements — see `.claude/standards/function-documentation.md`
 - No `@importFrom` except S3 method registration (see `r-package-conventions.md`)
 - Use `::` everywhere for external calls
 - `@family` tags per `surveywts-conventions.md §2`

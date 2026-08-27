@@ -129,7 +129,7 @@ Pass `comprehension.md` path to the planner if it exists.
 Verify both artifacts exist and contain all required sections on return.
 
 When verifying `spec-{id}.md` function contracts, apply 
-`.claude/rules/function-documentation.md`: check that the tier (Utility / 
+`.claude/standards/function-documentation.md`: check that the tier (Utility / 
 Standard / Algorithmic / Dispatcher) is identifiable and that the required 
 `@param`, `@returns`, `@details`, `@section`, and `@examples` rules for 
 that tier are reflected in the contract.
@@ -193,7 +193,7 @@ Respect the Review-loop budget above.
 Invoke `.claude/skills/spec-workflow/references/stage-3-review.md`.
 
 When applying Lens 3 (Contract Completeness), consult 
-`.claude/rules/function-documentation.md` to determine which `@details`, 
+`.claude/standards/function-documentation.md` to determine which `@details`, 
 `@section`, and `@examples` content is required for each function's tier.
 
 Save to `plans/spec-review-{id}.md`. Aggregate verdict (PASS / BLOCK / HOLD).
@@ -235,4 +235,4 @@ On PASS from both Stage 2 (if applicable) and Stage 3:
 - `.claude/skills/spec-workflow/references/stage-4-resolve.md`
 - `.claude/agents/planner.md`
 - `.claude/agents/extractor.md`
-- `.claude/rules/function-documentation.md` — documentation tier system and section rules used during Stage 1 verification and Stage 3 Lens 3
+- `.claude/standards/function-documentation.md` — documentation tier system and section rules used during Stage 1 verification and Stage 3 Lens 3

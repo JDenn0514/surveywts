@@ -85,7 +85,7 @@ Verify all profile gates have a result or documented skip per
 ## Step 5 — Documentation standards
 
 For each new or modified exported function in the PR's write surface, verify
-against `.claude/rules/function-documentation.md`:
+against `.claude/standards/function-documentation.md`:
 
 - Tier is assigned (Utility / Standard / Algorithmic / Dispatcher) and matches
   the function's complexity

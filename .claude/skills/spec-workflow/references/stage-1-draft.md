@@ -107,7 +107,7 @@ Model every spec on this structure. Required sections:
 - For each new exported function, assign a documentation tier (Utility /
   Standard / Algorithmic / Dispatcher) and record it in the spec's function
   contract. The tier determines which `@section` blocks are required and
-  whether `@references` is mandatory. See `.claude/rules/function-documentation.md`
+  whether `@references` is mandatory. See `.claude/standards/function-documentation.md`
   for the full tier criteria and section rules.
 
 ---

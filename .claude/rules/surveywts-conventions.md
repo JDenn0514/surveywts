@@ -15,10 +15,10 @@ with surveywts-specific examples and detailed guidance.
 | Decision | Choice | Example |
 |----------|--------|---------|
 | Error prefix | `surveywts_error_*` | `surveywts_error_weights_nonpositive` |
-| Warning prefix | `surveywts_warning_*` | `surveywts_warning_weight_col_dropped` |
-| Internal constructor return | Visible (the new object) | `.new_survey_nonprob()` |
+| Warning prefix | `surveywts_warning_*` | `surveywts_warning_no_weights_trimmed` |
+| Internal constructor return | Visible (the new object) | `.make_history_entry()` |
 | Internal validator return | `invisible(TRUE)` on success | `.validate_weights()` |
-| Print method return | `invisible(x)` | `print.weighted_df()`, S7 print |
+| Print method return | `invisible(x)` | `S7::method(print, surveycore::survey_nonprob)`, `S7::method(print, surveycore::survey_replicate)` |
 | Diagnostic function return | Visible named scalar or tibble | `effective_sample_size()` |
 
 ---
@@ -30,12 +30,11 @@ with surveywts-specific examples and detailed guidance.
 | User-facing calibration functions | verb | `calibrate()`, `calibrate_rake()`, `poststratify()` |
 | User-facing nonresponse function | verb + noun | `adjust_nonresponse()` |
 | User-facing diagnostic functions | noun phrase | `effective_sample_size()`, `weight_variability()`, `summarize_weights()` |
-| Internal constructor | `.new_` prefix | `.new_survey_nonprob()` |
 | Internal validators | `.validate_` prefix | `.validate_weights()`, `.validate_calibration_variables()` |
 | Internal shared helpers | `.` prefix + descriptive name | `.get_weight_vec()`, `.compute_weight_stats()`, `.make_history_entry()` |
 | Internal single-file helpers | `.` prefix + descriptive name | `.parse_margins()`, `.validate_population_cells()` |
-| Internal dispatch/engine functions | `.` prefix + `_engine` suffix | `.calibrate_engine()` |
-| Internal output constructors | `.make_` prefix | `.make_weighted_df()` |
+| Internal dispatch/engine functions | `.` prefix + `_engine` suffix | `.calibrate_nr_engine()`, `.anesrake_engine()` |
+| Internal output constructors | `.make_` prefix | `.make_history_entry()`, `.make_calfun_linear()` |
 
 ---
 
@@ -69,7 +68,7 @@ Use `@family calibration`, `@family sample-calibration`, `@family nonresponse`, 
 | File | Purpose |
 |------|---------|
 | `utils.R` | Cross-family internal helpers |
-| `methods-print.R` | All S7 and S3 print methods |
+| `methods-print.R` | All print methods — two `S7::method(print, ...)` registrations for surveycore classes |
 | `zzz.R` | `.onLoad()` / `.onAttach()` hooks |
 | `data.R` | `@docType data` documentation stubs |
 | `surveywts-package.R` | Package-level documentation |
@@ -83,6 +82,7 @@ Use `@family calibration`, `@family sample-calibration`, `@family nonresponse`, 
 | `replicate-utils.R` | All `create_*_weights()` functions + `as_taylor_design()` |
 | `jackknife-dagjk-utils.R` | DAGJK engine internals for `create_jackknife_weights()` |
 | `weight-utils.R` | `trim_weights()`, `rescale_weights()` |
+| `calibrate-utils.R` | `calibrate()`, `calibrate_linear()`, `calibrate_logit()`, `calibrate_rake()` |
 
 ### File mapping (R/ → export)
 
@@ -113,7 +113,6 @@ Use `@family calibration`, `@family sample-calibration`, `@family nonresponse`, 
 | `summarize_weights.R` | `summarize_weights()` |
 | `trim_weights.R` | `trim_weights()` |
 | `weight_variability.R` | `weight_variability()` |
-| `weighted-df-dplyr.R` | dplyr methods for `weighted_df` |
 
 ---
 
@@ -123,7 +122,7 @@ Use `@family calibration`, `@family sample-calibration`, `@family nonresponse`, 
 |---------------|--------|
 | Calibration / nonresponse functions | Visible (new object) |
 | Diagnostic functions | Visible (named scalar or tibble) |
-| Internal constructors (`.new_*()`) | Visible (the new object) |
+| Internal constructors (`.make_*()`) | Visible (the new object) |
 | Print / summary methods | `invisible(x)` |
 | Internal validators (`.validate_*()`) | `invisible(TRUE)` on success |
 
@@ -132,72 +131,72 @@ Use `@family calibration`, `@family sample-calibration`, `@family nonresponse`, 
 ## 5. Export Policy
 
 ### What to export
-- All user-facing functions: `calibrate()`, `calibrate_rake()`, `poststratify()`,
-  `adjust_nonresponse()`, `effective_sample_size()`, `weight_variability()`,
-  `summarize_weights()`
-- `survey_nonprob` S7 class object (part of the public API)
-- `print.weighted_df()` and `dplyr_reconstruct.weighted_df()` via `@export`
-  (S3 method registration)
+- User-facing functions only. `NAMESPACE` holds 23 `export()` entries and
+  nothing else: `calibrate()`, `calibrate_linear()`, `calibrate_logit()`,
+  `calibrate_rake()`, `poststratify()`, `calibrate_to_survey()`,
+  `calibrate_to_estimate()`, `adjust_nonresponse()`, `redistribute_weights()`,
+  `trim_weights()`, `rescale_weights()`, `effective_sample_size()`,
+  `weight_variability()`, `summarize_weights()`, `ipw()`, `as_taylor_design()`,
+  `create_replicate_weights()`, `create_bootstrap_weights()`,
+  `create_brr_weights()`, `create_jackknife_weights()`,
+  `create_gen_boot_weights()`, `create_gen_rep_weights()`,
+  `create_sdr_weights()`
 
 ### What NOT to export
-- All `.`-prefixed internal helpers (`.validate_weights()`, `.make_weighted_df()`, etc.)
-- `.new_survey_nonprob()` internal constructor
-- `weighted_df` is NOT exported as an object — it is produced as output from
-  calibration and nonresponse functions; users never construct it directly
+- All `.`-prefixed internal helpers (`.validate_weights()`,
+  `.make_history_entry()`, `.check_input_class()`, etc.)
+- No classes. surveywts defines none — see §6
+- No S3 methods. `NAMESPACE` holds zero `S3method()` directives
+- No re-exports — not the pipe, not tidyselect helpers
 
 ---
 
 ## 6. S7 Classes
 
-### `survey_nonprob`
+**surveywts defines no classes.** There is no `S7::new_class()` call anywhere
+in `R/`, and `NAMESPACE` exports no class object. Every survey class surveywts
+works with — `survey_base`, `survey_taylor`, `survey_nonprob`,
+`survey_replicate` — is defined and exported by **surveycore**, in
+`surveycore/R/core-classes.R`. surveywts consumes them; it does not own them.
+
+What surveywts does own, on the S7 side, is two print methods:
 
 ```r
-survey_nonprob <- S7::new_class(
-  "survey_nonprob",
-  parent = surveycore::survey_base,
-  ...
-)
+# R/methods-print.R — registered by S7::methods_register() in .onLoad()
+S7::method(print, surveycore::survey_nonprob)   <- function(x, n = 10, ...) { }
+S7::method(print, surveycore::survey_replicate) <- function(x, ...) { }
 ```
 
-- Inherits all properties from `survey_base`: `@data`, `@variables`, `@metadata`
+### `survey_nonprob` (defined in surveycore)
+
+- Parent is `survey_base`. It does NOT extend `survey_taylor`, which avoids
+  inheriting Taylor-specific dispatch that would be incorrect post-calibration
+- Inherits five properties from `survey_base`: `@data`, `@metadata`,
+  `@variables`, `@groups`, `@call`
+- Adds two of its own: `@calibration` (calibration provenance written by
+  surveywts, `NULL` otherwise) and `@reference_sample` (an optional
+  `survey_taylor` used for propensity estimation)
 - `@variables$weights` — character scalar: the name of the weight column in `@data`
 - Weighting history is stored in `@metadata@weighting_history` (list of history entries)
-- Does NOT extend `survey_taylor` — extends `survey_base` directly to avoid
-  inheriting Taylor-specific dispatch that would be incorrect post-calibration
 
-**Validator enforces (5 conditions, S7 native mechanism — not `cli_abort()`):**
-1. `@variables$weights` is a character scalar
-2. The column named by `@variables$weights` exists in `@data`
-3. That column is numeric
-4. All values are strictly positive (> 0)
-5. No NAs in the weight column
+**The surveycore validator enforces four conditions**, and its error classes are
+`surveycore_error_*`, not `surveywts_error_*`:
 
-Test validator errors with `class =` only — no snapshot (messages are not CLI-formatted).
+1. The column named by `@variables$weights` exists in `@data` —
+   `surveycore_error_design_var_missing`
+2. That column is numeric — `surveycore_error_weights_not_numeric`
+3. It has at least one non-NA value, and at least one value greater than 0 —
+   `surveycore_error_weights_all_zero`
+4. No non-NA value is negative — `surveycore_error_weights_negative`
 
-### `weighted_df` (S3)
+Note what the validator does **not** enforce: NAs are permitted, and zeroes are
+permitted, as long as one positive weight remains. Strictly-positive,
+fully-observed weights are a surveywts precondition, not a class invariant.
+`.validate_weights()` in `utils.R` is what enforces it, throwing
+`surveywts_error_weights_nonpositive` and `surveywts_error_weights_na`.
 
-```r
-class(x)  #=> c("weighted_df", "tbl_df", "tbl", "data.frame")
-```
-
-- S3 subclass of tibble; never constructed directly by users
-- Produced as output from calibration and nonresponse functions when input is a
-  plain `data.frame` or `weighted_df`
-
-**Attributes:**
-
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| `weight_col` | `character(1)` | Name of the weight column |
-| `weighting_history` | `list` | Ordered list of history entries |
-
-The weight column is always present as a regular column in the data frame.
-`weight_col` identifies which column it is.
-
-**dplyr compatibility:** `dplyr_reconstruct.weighted_df()` preserves the
-`weighted_df` class when the weight column is retained; emits
-`surveywts_warning_weight_col_dropped` and returns a plain tibble when
-the weight column is removed.
+Test surveycore validator errors with `class =` only — no snapshot (messages
+are not CLI-formatted, and surveywts does not own the text).
 
 ---
 
@@ -205,22 +204,22 @@ the weight column is removed.
 
 | Function | Argument order |
 |----------|----------------|
-| `calibrate()` | `data, targets, weights = NULL, wt_name = "wts", type = c("prop", "count"), reference_design = NULL, ..., method = c("rake", "linear", "logit")` |
-| `calibrate_linear()` | `data, targets, weights = NULL, wt_name = "wts", bounds = NULL, bounds_scale = c("multiplicative", "absolute"), unit_scale = NULL, type = c("prop", "count"), control = list(), reference_design = NULL` |
-| `calibrate_logit()` | `data, targets, weights = NULL, wt_name = "wts", bounds = c(1e-6, 1e6), bounds_scale = c("multiplicative", "absolute"), unit_scale = NULL, type = c("prop", "count"), control = list(), reference_design = NULL` |
-| `calibrate_rake()` | `data, targets, weights = NULL, wt_name = "wts", type = c("prop", "count"), algorithm = c("classic_ipf", "nr"), cap = NULL, control = list(), reference_design = NULL` |
-| `poststratify()` | `data, targets, weights = NULL, wt_name = "wts", type = c("prop", "count"), reference_design = NULL` |
-| `adjust_nonresponse()` | `data, response_status, weights = NULL, by = NULL, wt_name = "wts", method = c("weighting-class", "propensity-cell", "propensity"), formula = NULL, control = list(min_cell = 20, max_adjust = 2.0, n_cells = 5)` |
-| `redistribute_weights()` | `data, reduce_if, increase_if, weights = NULL, by = NULL, wt_name = "wts", control = list()` |
-| `trim_weights()` | `data, weights = NULL, lower = NULL, upper = NULL, k = 5, type = c("absolute", "percentile"), strict = FALSE, wt_name = "wts"` |
-| `rescale_weights()` | `data, weights = NULL, by = NULL, wt_name = "wts"` |
-| `calibrate_to_survey()` | `primary_design, control_design, variables, method = c("rake", "linear", "logit"), bounds = c(-Inf, Inf), unit_scale = NULL, reference_design = NULL, control = list()` |
+| `calibrate()` | `data, targets, weights = NULL, wt_name = NULL, type = c("prop", "count"), reference_design = NULL, ..., method = c("rake", "linear", "logit")` |
+| `calibrate_linear()` | `data, targets, weights = NULL, wt_name = NULL, bounds = NULL, bounds_scale = c("multiplicative", "absolute"), unit_scale = NULL, type = c("prop", "count"), control = list(), reference_design = NULL` |
+| `calibrate_logit()` | `data, targets, weights = NULL, wt_name = NULL, bounds = c(1e-6, 1e6), bounds_scale = c("multiplicative", "absolute"), unit_scale = NULL, type = c("prop", "count"), control = list(), reference_design = NULL` |
+| `calibrate_rake()` | `data, targets, weights = NULL, wt_name = NULL, type = c("prop", "count"), algorithm = c("classic_ipf", "nr"), cap = NULL, control = list(), reference_design = NULL` |
+| `poststratify()` | `data, targets, weights = NULL, wt_name = NULL, type = c("prop", "count"), reference_design = NULL` |
+| `adjust_nonresponse()` | `data, response_status, weights = NULL, by = NULL, wt_name = NULL, method = c("weighting-class", "propensity-cell", "propensity"), formula = NULL, control = list(min_cell = 20, max_adjust = 2.0, n_cells = 5)` |
+| `redistribute_weights()` | `data, reduce_if, increase_if, weights = NULL, by = NULL, wt_name = NULL, control = list()` |
+| `trim_weights()` | `data, weights = NULL, lower = NULL, upper = NULL, k = 5, type = c("absolute", "percentile"), strict = FALSE, wt_name = NULL` |
+| `rescale_weights()` | `data, weights = NULL, by = NULL, wt_name = NULL` |
+| `calibrate_to_survey()` | `primary_design, control_design, variables, targets = NULL, type = c("prop", "count"), method = c("rake", "linear", "logit"), algorithm = c("classic_ipf", "nr"), bounds = c(-Inf, Inf), unit_scale = NULL, reference_design = NULL, control = list()` |
 | `calibrate_to_estimate()` | `design, targets, vcov_estimate, method = c("rake", "linear", "logit"), bounds = c(-Inf, Inf), unit_scale = NULL, reference_design = NULL, control = list()` |
 | `effective_sample_size()` | `x, weights = NULL` |
 | `weight_variability()` | `x, weights = NULL` |
 | `summarize_weights()` | `x, weights = NULL, by = NULL` |
 | `as_taylor_design()` | `data` |
-| `ipw()` | `data, reference, selection = NULL, predictors = NULL, missing_method = c("omit", "separate", "impute"), mice_args = list(), method = "logit", estimating_eq = c("mle", "gee"), maxit = 25L, epsilon = 1e-8, adjust_reference = TRUE, trim = FALSE, population_size = NULL, wt_name = "ipw_weight"` |
+| `ipw()` | `data, reference, selection = NULL, predictors = NULL, missing_method = c("omit", "separate", "impute"), mice_args = list(), method = "logit", estimating_eq = c("gee", "mle"), maxit = 25L, epsilon = 1e-8, adjust_reference = TRUE, trim = FALSE, population_size = NULL, wt_name = "ipw_weight"` |
 
 ---
 
@@ -230,7 +229,7 @@ Before committing any roxygen2 changes:
 
 - [ ] `devtools::document()` has been run
 - [ ] `NAMESPACE` file has been updated
-- [ ] All exported functions have `@return`
+- [ ] All exported functions have `@returns` (the plural tag — `@return` is not used anywhere in `R/`)
 - [ ] All `@examples` are runnable
 - [ ] Internal helpers have `@keywords internal` + `@noRd` if needed
 - [ ] `@family` tags are correct (see Section 2)

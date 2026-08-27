@@ -1,0 +1,11 @@
+file	verdict	what	evidence
+.claude/standards/r-package-conventions.md	DELETED	Version/Created/Status header (3 lines)	C2
+.claude/standards/r-package-conventions.md	DELETED	Section 5 "DESCRIPTION fields" template block	B6
+.claude/standards/r-package-conventions.md	DELETED	Section 5 "Package documentation (surveypkg-package.R)" template block	B7
+.claude/standards/r-package-conventions.md	DELETED	"Summary for All Packages" closing block	C1
+.claude/standards/surveywts-conventions.md	DEDUPED	Section 5 "What NOT to export" bullet "No re-exports — not the pipe, not tidyselect helpers"	r-package-conventions.md:140-142 "### No re-exports / Do not re-export the pipe, tidyselect helpers, or other utility functions. Users who need them have tidyverse/rlang loaded."
+.claude/standards/surveywts-conventions.md	DEDUPED	Section 8 checklist item "No `@importFrom` tags anywhere"	r-package-conventions.md:124-126 "### `::` everywhere — no `@importFrom` / Call all external package functions with `::`. No `@importFrom` in any source file."
+.claude/standards/surveywts-conventions.md	DEDUPED	Section 8 checklist item "All external calls use `::`"	r-package-conventions.md:124-126 "### `::` everywhere — no `@importFrom` / Call all external package functions with `::`. No `@importFrom` in any source file."
+.claude/standards/surveywts-conventions.md	DEDUPED	Section 8 checklist item "`R CMD check` passes with 0 errors, 0 warnings, ≤2 notes"	r-package-conventions.md:163-167 "### `R CMD check` targets / **All PRs must pass with:** - 0 errors - 0 warnings - ≤2 notes (see approved notes below)"
+.claude/standards/function-documentation.md	DELETED	Version/Created/Status header (3 lines)	C2
+.claude/standards/testing-standards.md	DELETED	Version/Created/Status header (3 lines)	C2

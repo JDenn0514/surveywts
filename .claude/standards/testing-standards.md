@@ -2,10 +2,6 @@
 
 # Surveyverse Testing Standards
 
-**Version:** 1.1
-**Created:** February 2025
-**Status:** Decided — applies to all surveyverse packages
-
 For package-specific testing conventions (file mappings, invariant checkers,
 data generators, numerical tolerances), see the `testing-{package}.md` rule
 in each package's `.claude/standards/` directory.

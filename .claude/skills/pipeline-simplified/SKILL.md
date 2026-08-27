@@ -95,7 +95,8 @@ Simplified workflow.
 Request: {path to request.md}
 Write surface: {files from request.md}
 Acceptance criteria: {from request.md}
-Read: .claude/agents/builder.md, r-package-profile.md (§Builder compliance rules) (rules auto-load — do not read .claude/rules/ again)
+Read: .claude/agents/builder.md, r-package-profile.md (§Builder compliance rules)
+(builder.md Step 0 lists the standards files to read — do not re-list them here)
 Exception: you MAY read test code in tests/testthat/ to update tests alongside code.
 ```
 

@@ -97,7 +97,8 @@ Spec: plans/spec-{id}.md
 Write surface: {exact files from impl-{id}.md}
 Tasks: {tasks from impl-{id}.md for this PR}
 Acceptance criteria: {from impl-{id}.md}
-Read: .claude/agents/builder.md, pipeline-shared/references/r-package-profile.md (rules auto-load — do not read .claude/rules/ again)
+Read: .claude/agents/builder.md, pipeline-shared/references/r-package-profile.md
+(builder.md Step 0 lists the standards files to read — do not re-list them here)
 Key documentation rule: `.claude/standards/function-documentation.md` — tier system, `@returns` (not `@return`), named `@section` requirements, `@examples` package-data rule for all exported functions
 Comprehension (if exists): plans/comprehension-{id}.md
 

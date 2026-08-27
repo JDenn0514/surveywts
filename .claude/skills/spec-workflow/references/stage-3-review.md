@@ -130,7 +130,8 @@ to every function, but err toward checking.
 
 ### Lens 5 — Engineering Level
 
-Apply `engineering-preferences.md` to flag both failure modes:
+Read `.claude/standards/engineering-preferences.md` first, then apply it to
+flag both failure modes:
 
 **Under-engineered:** missing edge case handling, contracts that don't specify
 behavior at boundaries, "behavior is undefined for X" without stating what

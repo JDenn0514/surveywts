@@ -120,20 +120,22 @@ the letter of the stage order is violating the spirit of it.
 
 ## Rules in Context
 
-Every stage works alongside — never instead of — these rule files:
+These standards files live in `.claude/standards/` and do **not** auto-load.
+Read the one you need before a stage relies on it — do not assume it is
+already in context:
 
-| Rule file | What it governs |
+| Standards file | What it governs |
 |---|---|
-| `code-style.md` | Indentation, pipe, air formatter, S7 patterns, cli error structure, argument order, helper placement |
-| `r-package-conventions.md` | `::` usage, NAMESPACE, roxygen2, `@return`, `@examples`, export policy |
-| `surveywts-conventions.md` | Package-specific naming patterns, `@family` groups, return visibility, export policy |
-| `function-documentation.md` | Tier system (Utility / Standard / Algorithmic / Dispatcher), `@param` / `@returns` / `@details` / `@section` rules, `@examples` constraints, mathematical notation |
-| `testing-standards.md` | `test_that()` scope, 98% coverage, assertion patterns, data generators |
-| `testing-surveywts.md` | `test_invariants()`, layer 1 vs layer 3 error testing, data generators, numerical tolerances |
+| `.claude/standards/code-style.md` | Indentation, pipe, air formatter, S7 patterns, cli error structure, argument order, helper placement |
+| `.claude/standards/r-package-conventions.md` | `::` usage, NAMESPACE, roxygen2, `@return`, `@examples`, export policy |
+| `.claude/standards/surveywts-conventions.md` | Package-specific naming patterns, `@family` groups, return visibility, export policy |
+| `.claude/standards/function-documentation.md` | Tier system (Utility / Standard / Algorithmic / Dispatcher), `@param` / `@returns` / `@details` / `@section` rules, `@examples` constraints, mathematical notation |
+| `.claude/standards/testing-standards.md` | `test_that()` scope, 98% coverage, assertion patterns, data generators |
+| `.claude/standards/testing-surveywts.md` | `test_invariants()`, layer 1 vs layer 3 error testing, data generators, numerical tolerances |
 
-When a spec decision touches one of these rules, cite the rule file. When the
-spec is silent on something these rules already define, note that the rule is
-authoritative — the spec doesn't need to repeat it.
+When a spec decision touches one of these rules, read the file and cite it.
+When the spec is silent on something a standards file already defines, note
+that the rule is authoritative — the spec doesn't need to repeat it.
 
 ---
 

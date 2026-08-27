@@ -47,7 +47,7 @@ These rules apply to every exported function, regardless of tier.
 **Type annotation.** Lead every `@param` with a type annotation:
 
 ```r
-#' @param data A data.frame, weighted_df, or survey_nonprob.
+#' @param data A `survey_taylor`, `survey_nonprob`, or `survey_replicate`.
 ```
 
 **Defaults.** State the default first and explicitly call it the default:
@@ -72,8 +72,19 @@ class-specific behavior routes to another section, include a forward reference
 rather than an inline description:
 
 ```r
-#' @param data A data.frame, weighted_df, or survey_nonprob. For inputs
-#'   containing replicate weight columns, see the **Replicate Weights** section.
+#' @param data A `survey_taylor`, `survey_nonprob`, or `survey_replicate`. For
+#'   inputs containing replicate weight columns, see the **Replicate Weights**
+#'   section.
+```
+
+Name the classes the function actually accepts, and say what happens to the
+rest. Every weighting function rejects a plain `data.frame`, so the accepted
+list never includes one:
+
+```r
+#' @param data A `survey_taylor` or `survey_nonprob`. Must include BOTH
+#'   respondents and nonrespondents. `survey_replicate` -> error. Any other
+#'   class -> error.
 ```
 
 **`@inheritParams`.** Use only when the argument is genuinely identical in
@@ -111,7 +122,13 @@ Use `@returns` (not `@return`) on every exported function.
 - Do not define package-level concepts (e.g., weighting history) inside
   `@returns` — reference them with standard phrasing
 - **Standard phrasing for weighting history entries:** "A new entry with
-  `operation = "fn_name"` is appended to the weighting history."
+  `operation = "fn_name"` is appended to the weighting history." Quote the
+  string the function actually writes, which is usually the function name but
+  not always — `adjust_nonresponse()` writes
+  `"nonresponse_weighting_class"`, `"nonresponse_propensity"`, or
+  `"nonresponse_propensity_cell"` depending on `method`, and the
+  `create_*_weights()` functions write `"bootstrap_weights"`,
+  `"jackknife_weights"`, or `"replicate_creation"`.
 
 ### `@details`
 
@@ -191,10 +208,11 @@ Every other example must run successfully during `R CMD check`.
 
 **Required content:**
 
-- Always: the simplest working call using a `data.frame` input with package data
-- Always (for functions that accept survey objects): at least one survey object
-  example demonstrating the unique behavior of that input class, not just that
-  it compiles
+- Always: the simplest working call, over a survey object built from package
+  data. A plain `data.frame` cannot be the input — every weighting function
+  rejects one
+- Always: one example per input class the function accepts, demonstrating the
+  unique behavior of that class, not just that it compiles
 - When an argument accepts multiple formats (e.g., two `targets` formats in
   calibration functions): show each format
 - When a function has a `method` or `algorithm` argument: demonstrate each

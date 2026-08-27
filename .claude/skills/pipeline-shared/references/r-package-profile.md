@@ -14,6 +14,7 @@ these in order; builder respects them during implementation.
 | 5 | `R CMD check --as-cran <tarball> 2>&1` | 0 ERRORs, 0 WARNINGs; NOTEs reviewed | BLOCK on ERROR/WARNING |
 | 6 | `Rscript -e "pkgdown::build_site(preview = FALSE)"` | site builds, no errored pages | BLOCK (unless skipped, see below) |
 | 7 | `Rscript -e "covr::package_coverage()"` | ≥ 95% (target 98%) | BLOCK if < 95%; HOLD if 95–98% and dropped vs baseline |
+| 8 | `air format --check .` | every R file already formatted | BLOCK — run `air format .` as its own commit, then redo the change |
 
 ### Canonical runner
 

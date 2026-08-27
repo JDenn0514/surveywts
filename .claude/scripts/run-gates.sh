@@ -86,6 +86,23 @@ gate_covr() {
   fi
 }
 
+# --- Gate 8: air format --check ----------------------------------------
+gate_air() {
+  local log="$LOGDIR/gate-8-air.log"
+  if ! command -v air > /dev/null 2>&1; then
+    echo "air is not on PATH" > "$log"
+    fail_gate "air format --check" "$log" "air is not installed"
+    return
+  fi
+  if air format --check . > "$log" 2>&1; then
+    pass_gate "air format --check" "every R file is formatted"
+  else
+    local n
+    n=$(grep -c '^Would reformat:' "$log")
+    fail_gate "air format --check" "$log" "${n} file(s) need 'air format .'"
+  fi
+}
+
 if [ "$BASELINE" = "1" ]; then
   gate_test
   gate_covr
@@ -157,6 +174,7 @@ else
   fi
 
   gate_covr
+  gate_air
 fi
 
 echo ""

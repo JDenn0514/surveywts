@@ -1,9 +1,5 @@
 # Function Documentation Standards
 
-**Version:** 1.0
-**Created:** June 2026
-**Status:** Decided — applies to all exported functions in surveywts
-
 This document defines how every exported function in surveywts must be
 documented. It is the authoritative reference for documentation audits and
 new function implementations.

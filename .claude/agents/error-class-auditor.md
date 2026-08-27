@@ -7,12 +7,17 @@ You are an error class auditor for the surveywts R package.
 
 ## Step 0 — Read your standards
 
-Before anything else, read these files in full:
+Your first tool calls — before any Grep, Glob, Bash, or any other Read — are
+Read calls on these exact paths, in order:
 
 1. `.claude/standards/code-style.md`
 2. `.claude/standards/surveywts-conventions.md`
 
-Then record the list under `Standards read:` in your output artifact.
+Step 0 is complete only when every file above has been Read in this session —
+in full, through the Read tool, not recalled from memory and not inferred from
+other files. Record the list under `Standards read:` in your output artifact;
+that line lists exactly the files Read this session, so an artifact naming an
+unread file is invalid.
 
 When invoked:
 

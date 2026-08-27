@@ -122,7 +122,11 @@ test_that("effective_sample_size() auto-detects weights from survey_nonprob", {
   result_explicit <- effective_sample_size(svc, weights = base_weight)
 
   # Auto-detection reads @variables$weights
-  expect_equal(result_auto[["n_eff"]], result_explicit[["n_eff"]], tolerance = 1e-10)
+  expect_equal(
+    result_auto[["n_eff"]],
+    result_explicit[["n_eff"]],
+    tolerance = 1e-10
+  )
   expect_true(result_auto[["n_eff"]] > 0)
 })
 
@@ -213,7 +217,19 @@ test_that("summarize_weights() returns columns in correct order (no by)", {
 
   expect_identical(
     names(result),
-    c("n", "n_positive", "n_zero", "mean", "cv", "min", "p25", "p50", "p75", "max", "ess")
+    c(
+      "n",
+      "n_positive",
+      "n_zero",
+      "mean",
+      "cv",
+      "min",
+      "p25",
+      "p50",
+      "p75",
+      "max",
+      "ess"
+    )
   )
 })
 
@@ -225,8 +241,20 @@ test_that("summarize_weights() returns group columns first with by grouping", {
 
   expect_identical(
     names(result),
-    c("age_group", "n", "n_positive", "n_zero", "mean", "cv",
-      "min", "p25", "p50", "p75", "max", "ess")
+    c(
+      "age_group",
+      "n",
+      "n_positive",
+      "n_zero",
+      "mean",
+      "cv",
+      "min",
+      "p25",
+      "p50",
+      "p75",
+      "max",
+      "ess"
+    )
   )
 })
 
@@ -348,7 +376,11 @@ test_that("effective_sample_size() on survey_replicate matches survey_taylor wit
   result_sr <- effective_sample_size(sr)
   result_taylor <- effective_sample_size(taylor)
 
-  expect_equal(result_sr[["n_eff"]], result_taylor[["n_eff"]], tolerance = 1e-10)
+  expect_equal(
+    result_sr[["n_eff"]],
+    result_taylor[["n_eff"]],
+    tolerance = 1e-10
+  )
 })
 
 # ---------------------------------------------------------------------------
@@ -410,4 +442,3 @@ test_that("survey_replicate with equal main weights gives n_eff == n and cv == 0
   expect_equal(result_ess[["n_eff"]], n, tolerance = 1e-10)
   expect_equal(result_cv[["cv"]], 0, tolerance = 1e-10)
 })
-

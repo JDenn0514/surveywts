@@ -263,7 +263,10 @@ calibrate_logit <- function(
 
   # ---- 9. Validate population marginals ------------------------------------
   .validate_population_marginals(
-    targets_a, variable_names, plain_df, type,
+    targets_a,
+    variable_names,
+    plain_df,
+    type,
     target_name = "targets"
   )
 
@@ -371,16 +374,22 @@ calibrate_logit <- function(
         )
       )
       if (n_bad_lower > 0L) {
-        msg <- c(msg, "i" = paste0(
-          "{n_bad_lower} base weight{?s} <= L_abs = {abs_L} ",
-          "(per-unit lower g-bound L_k = L_abs/d_k >= 1)."
-        ))
+        msg <- c(
+          msg,
+          "i" = paste0(
+            "{n_bad_lower} base weight{?s} <= L_abs = {abs_L} ",
+            "(per-unit lower g-bound L_k = L_abs/d_k >= 1)."
+          )
+        )
       }
       if (n_bad_upper > 0L) {
-        msg <- c(msg, "i" = paste0(
-          "{n_bad_upper} base weight{?s} >= U_abs = {abs_U} ",
-          "(per-unit upper g-bound U_k = U_abs/d_k <= 1)."
-        ))
+        msg <- c(
+          msg,
+          "i" = paste0(
+            "{n_bad_upper} base weight{?s} >= U_abs = {abs_U} ",
+            "(per-unit upper g-bound U_k = U_abs/d_k <= 1)."
+          )
+        )
       }
       cli::cli_abort(msg, class = "surveywts_error_bounds_invalid_calibration")
     }
@@ -388,28 +397,27 @@ calibrate_logit <- function(
     calfun <- .make_calfun_logit(L = L_vec, U = U_vec)
 
     engine_result_raw <- .calibrate_nr_engine(
-      x_matrix    = x_matrix,
+      x_matrix = x_matrix,
       weights_vec = weights_vec,
-      calfun      = calfun,
-      population  = population_totals_vec,
-      epsilon     = control$epsilon,
-      maxit       = as.integer(control$maxit),
-      q_weights   = q_for_engine
+      calfun = calfun,
+      population = population_totals_vec,
+      epsilon = control$epsilon,
+      maxit = as.integer(control$maxit),
+      q_weights = q_for_engine
     )
 
     new_weights <- engine_result_raw$weights
 
     engine_result <- list(
-      weights      = new_weights,
-      lambda       = engine_result_raw$lambda,
+      weights = new_weights,
+      lambda = engine_result_raw$lambda,
       n_iterations = engine_result_raw$n_iterations,
-      converged    = engine_result_raw$converged,
-      convergence  = list(
-        converged  = engine_result_raw$converged,
+      converged = engine_result_raw$converged,
+      convergence = list(
+        converged = engine_result_raw$converged,
         iterations = engine_result_raw$n_iterations
       )
     )
-
   } else {
     # Multiplicative bounds: g-weights in open interval (L, U)
     L <- bounds[[1L]]
@@ -417,24 +425,24 @@ calibrate_logit <- function(
     calfun <- .make_calfun_logit(L = L, U = U)
 
     engine_result_raw <- .calibrate_nr_engine(
-      x_matrix    = x_matrix,
+      x_matrix = x_matrix,
       weights_vec = weights_vec,
-      calfun      = calfun,
-      population  = population_totals_vec,
-      epsilon     = control$epsilon,
-      maxit       = as.integer(control$maxit),
-      q_weights   = q_for_engine
+      calfun = calfun,
+      population = population_totals_vec,
+      epsilon = control$epsilon,
+      maxit = as.integer(control$maxit),
+      q_weights = q_for_engine
     )
 
     new_weights <- engine_result_raw$weights
 
     engine_result <- list(
-      weights      = new_weights,
-      lambda       = engine_result_raw$lambda,
+      weights = new_weights,
+      lambda = engine_result_raw$lambda,
       n_iterations = engine_result_raw$n_iterations,
-      converged    = engine_result_raw$converged,
-      convergence  = list(
-        converged  = engine_result_raw$converged,
+      converged = engine_result_raw$converged,
+      convergence = list(
+        converged = engine_result_raw$converged,
         iterations = engine_result_raw$n_iterations
       )
     )
@@ -442,15 +450,15 @@ calibrate_logit <- function(
 
   # ---- 15. Build @calibration provenance -----------------------------------
   caldata <- .build_calibration_provenance(
-    engine_result     = engine_result,
-    x_matrix          = x_matrix,
-    base_weights      = weights_vec,
-    q_weights         = q_for_engine,
+    engine_result = engine_result,
+    x_matrix = x_matrix,
+    base_weights = weights_vec,
+    q_weights = q_for_engine,
     population_totals = population_totals_vec,
-    method            = "logit",
-    lambda            = engine_result$lambda,
-    cell_factors      = NULL,
-    bounds_scale      = bounds_scale
+    method = "logit",
+    lambda = engine_result$lambda,
+    cell_factors = NULL,
+    bounds_scale = bounds_scale
   )
   # Override q_weights slot to store the user-supplied unit_scale (may be NULL)
   caldata$q_weights <- q_weights_vec
@@ -498,26 +506,26 @@ calibrate_logit <- function(
             rep_calfun <- .make_calfun_logit(L = rep_L_vec, U = rep_U_vec)
             rep_engine <- tryCatch(
               .calibrate_nr_engine(
-                x_matrix    = x_matrix,
+                x_matrix = x_matrix,
                 weights_vec = rep_wt,
-                calfun      = rep_calfun,
-                population  = rep_pop_vec,
-                epsilon     = control$epsilon,
-                maxit       = as.integer(control$maxit),
-                q_weights   = q_for_engine
+                calfun = rep_calfun,
+                population = rep_pop_vec,
+                epsilon = control$epsilon,
+                maxit = as.integer(control$maxit),
+                q_weights = q_for_engine
               ),
               error = function(e) stop(e)
             )
             data@data[[repwt_col]] <- rep_engine$weights
           } else {
             rep_engine <- .calibrate_nr_engine(
-              x_matrix    = x_matrix,
+              x_matrix = x_matrix,
               weights_vec = rep_wt,
-              calfun      = calfun,
-              population  = rep_pop_vec,
-              epsilon     = control$epsilon,
-              maxit       = as.integer(control$maxit),
-              q_weights   = q_for_engine
+              calfun = calfun,
+              population = rep_pop_vec,
+              epsilon = control$epsilon,
+              maxit = as.integer(control$maxit),
+              q_weights = q_for_engine
             )
             data@data[[repwt_col]] <- rep_engine$weights
           }
@@ -573,13 +581,16 @@ calibrate_logit <- function(
       reference_design = reference_design
     ),
     before_stats = before_stats,
-    after_stats  = after_stats,
-    convergence  = engine_result$convergence
+    after_stats = after_stats,
+    convergence = engine_result$convergence
   )
 
   # ---- 17. Build output ----------------------------------------------------
   .update_survey_weights(
-    data, new_weights, history_entry,
-    wt_name = wt_name, caldata = caldata
+    data,
+    new_weights,
+    history_entry,
+    wt_name = wt_name,
+    caldata = caldata
   )
 }

@@ -76,7 +76,11 @@ create_sdr_weights <- function(
   replicates <- .validate_replicates_arg(replicates, min_val = 4L)
 
   sort_quo <- rlang::enquo(sort_var)
-  sort_col <- if (rlang::quo_is_null(sort_quo)) NULL else rlang::as_name(sort_quo)
+  sort_col <- if (rlang::quo_is_null(sort_quo)) {
+    NULL
+  } else {
+    rlang::as_name(sort_quo)
+  }
 
   if (!is.null(sort_col)) {
     n_na <- sum(is.na(data@data[[sort_col]]))
@@ -92,7 +96,7 @@ create_sdr_weights <- function(
   }
 
   .convert_and_call(
-    data       = data,
+    data = data,
     backend_fn = function(d) {
       if (is.null(sort_col)) {
         d$variables[[".row_order"]] <- seq_len(nrow(d$variables))
@@ -102,14 +106,14 @@ create_sdr_weights <- function(
       }
       result <- svrep::as_sdr_design(
         d,
-        replicates    = replicates,
+        replicates = replicates,
         sort_variable = effective_sort,
-        mse           = mse
+        mse = mse
       )
       result$variables[[".row_order"]] <- NULL
       result
     },
-    method     = "successive-difference",
-    params     = list(replicates = replicates, sort_var = sort_col, mse = mse)
+    method = "successive-difference",
+    params = list(replicates = replicates, sort_var = sort_col, mse = mse)
   )
 }

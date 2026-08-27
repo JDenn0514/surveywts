@@ -129,9 +129,9 @@ for (v in names(synth_specs)) {
 ## synth_pop has no Refused codes, so no NA values expected.
 
 race_f4_levels <- c("White", "Black", "Hispanic", "Other")
-edu_f3_levels  <- c("Less than HS", "HS/Some college", "College+")
-pid_f3_levels  <- c("Republican", "Independent", "Democrat")
-age_f3_labs    <- c("18-34", "35-54", "55+")
+edu_f3_levels <- c("Less than HS", "HS/Some college", "College+")
+pid_f3_levels <- c("Republican", "Independent", "Democrat")
+age_f3_labs <- c("18-34", "35-54", "55+")
 
 # sex: gender 1=Male, 2=Female (no Refused in synth_pop)
 pew_2016_synth_pop$sex <- factor(
@@ -149,10 +149,10 @@ pew_2016_synth_pop$sex <- factor(
 pew_2016_synth_pop$race_f4 <- factor(
   dplyr::recode_values(
     pew_2016_synth_pop$racethn,
-    1        ~ "White",
-    2        ~ "Black",
-    3        ~ "Hispanic",
-    c(4, 5)  ~ "Other",
+    1 ~ "White",
+    2 ~ "Black",
+    3 ~ "Hispanic",
+    c(4, 5) ~ "Other",
     default = NA_character_
   ),
   levels = race_f4_levels
@@ -162,9 +162,9 @@ pew_2016_synth_pop$race_f4 <- factor(
 pew_2016_synth_pop$edu_f3 <- factor(
   dplyr::recode_values(
     pew_2016_synth_pop$educcat5,
-    1        ~ "Less than HS",
-    c(2, 3)  ~ "HS/Some college",
-    c(4, 5)  ~ "College+",
+    1 ~ "Less than HS",
+    c(2, 3) ~ "HS/Some college",
+    c(4, 5) ~ "College+",
     default = NA_character_
   ),
   levels = edu_f3_levels
@@ -174,9 +174,9 @@ pew_2016_synth_pop$edu_f3 <- factor(
 pew_2016_synth_pop$pid_f3 <- factor(
   dplyr::recode_values(
     pew_2016_synth_pop$partyscale5,
-    c(1, 2)  ~ "Republican",
-    3        ~ "Independent",
-    c(4, 5)  ~ "Democrat",
+    c(1, 2) ~ "Republican",
+    3 ~ "Independent",
+    c(4, 5) ~ "Democrat",
     default = NA_character_
   ),
   levels = pid_f3_levels
@@ -208,11 +208,23 @@ stopifnot(sum(is.na(pew_2016_synth_pop$age_f3)) == 0L)
 # haven already preserves "label" and "labels" attrs from SPSS source columns.
 # Only add labels to derived factor columns (haven doesn't set them automatically).
 
-attr(pew_2016_synth_pop$sex, "label")    <- "Sex (factor, derived from gender: 1=Male, 2=Female)"
-attr(pew_2016_synth_pop$race_f4, "label") <- "Race/ethnicity (4 levels: White, Black, Hispanic, Other)"
+attr(
+  pew_2016_synth_pop$sex,
+  "label"
+) <- "Sex (factor, derived from gender: 1=Male, 2=Female)"
+attr(
+  pew_2016_synth_pop$race_f4,
+  "label"
+) <- "Race/ethnicity (4 levels: White, Black, Hispanic, Other)"
 attr(pew_2016_synth_pop$edu_f3, "label") <- "Educational attainment (3 levels)"
-attr(pew_2016_synth_pop$pid_f3, "label") <- "Party identification (3 levels: Republican, Independent, Democrat)"
-attr(pew_2016_synth_pop$age_f3, "label") <- "Age group (3 levels: 18-34, 35-54, 55+)"
+attr(
+  pew_2016_synth_pop$pid_f3,
+  "label"
+) <- "Party identification (3 levels: Republican, Independent, Democrat)"
+attr(
+  pew_2016_synth_pop$age_f3,
+  "label"
+) <- "Age group (3 levels: 18-34, 35-54, 55+)"
 
 pew_2016_synth_pop <- tibble::as_tibble(pew_2016_synth_pop)
 

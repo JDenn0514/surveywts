@@ -141,8 +141,8 @@ poststratify <- function(
   reference_design = NULL
 ) {
   # ---- Capture call and match arguments ------------------------------------
-  call_str    <- deparse(match.call())
-  type        <- rlang::arg_match(type)
+  call_str <- deparse(match.call())
+  type <- rlang::arg_match(type)
   weights_quo <- rlang::enquo(weights)
   .validate_wt_name(wt_name)
 
@@ -265,19 +265,17 @@ poststratify <- function(
   .validate_population_cells(targets, strata_names, plain_df, type)
 
   # ---- 11. Extract starting weights and compute before-stats --------------
-  weights_vec  <- .get_weight_vec(data, weights_quo)
+  weights_vec <- .get_weight_vec(data, weights_quo)
   before_stats <- .compute_weight_stats(weights_vec)
 
   # ---- 12. Build cell specs -----------------------------------------------
   data_keys <- do.call(
     paste,
-    c(lapply(strata_names, function(v) as.character(plain_df[[v]])),
-      sep = "//")
+    c(lapply(strata_names, function(v) as.character(plain_df[[v]])), sep = "//")
   )
   pop_keys <- do.call(
     paste,
-    c(lapply(strata_names, function(v) as.character(targets[[v]])),
-      sep = "//")
+    c(lapply(strata_names, function(v) as.character(targets[[v]])), sep = "//")
   )
 
   # Convert proportions to counts if needed (engine always uses counts)
@@ -291,7 +289,7 @@ poststratify <- function(
   cells <- lapply(seq_along(pop_keys), function(i) {
     list(
       indices = which(data_keys == pop_keys[[i]]),
-      target  = target_vals[[i]]
+      target = target_vals[[i]]
     )
   })
 
@@ -327,9 +325,9 @@ poststratify <- function(
   # edge cases like single-PSU designs.
   new_weights <- weights_vec
   for (i in seq_along(cells)) {
-    idx    <- cells[[i]]$indices
-    n_hat  <- sum(weights_vec[idx])
-    ratio  <- target_vals[[i]] / n_hat
+    idx <- cells[[i]]$indices
+    n_hat <- sum(weights_vec[idx])
+    ratio <- target_vals[[i]] / n_hat
     new_weights[idx] <- weights_vec[idx] * ratio
   }
 
@@ -369,21 +367,21 @@ poststratify <- function(
   # Build a minimal engine_result for .build_calibration_provenance().
   # Post-stratification is exact (non-iterative): always converged, 1 step.
   engine_result_ps <- list(
-    weights     = new_weights,
+    weights = new_weights,
     convergence = list(
-      converged  = TRUE,
+      converged = TRUE,
       iterations = 1L
     )
   )
 
   caldata <- .build_calibration_provenance(
-    engine_result     = engine_result_ps,
-    x_matrix          = x_matrix_ps,
-    base_weights      = weights_vec,
-    q_weights         = q_weights_ps,
+    engine_result = engine_result_ps,
+    x_matrix = x_matrix_ps,
+    base_weights = weights_vec,
+    q_weights = q_weights_ps,
     population_totals = population_totals_ps,
-    method            = "poststrat",
-    cell_factors      = cell_factors_ps
+    method = "poststrat",
+    cell_factors = cell_factors_ps
   )
 
   # ---- Replicate loop (survey_replicate only) ----------------------------
@@ -410,11 +408,13 @@ poststratify <- function(
         {
           rep_new_wts <- rep_wt
           for (i in seq_along(cells)) {
-            idx        <- cells[[i]]$indices
-            n_hat_c    <- sum(rep_wt[idx])
+            idx <- cells[[i]]$indices
+            n_hat_c <- sum(rep_wt[idx])
             if (n_hat_c <= 0) {
               stop(paste0(
-                "Cell '", pop_keys[[i]], "' has zero or negative weighted ",
+                "Cell '",
+                pop_keys[[i]],
+                "' has zero or negative weighted ",
                 "count in this replicate."
               ))
             }
@@ -454,30 +454,33 @@ poststratify <- function(
   }
 
   # ---- 16. Build history entry --------------------------------------------
-  after_stats     <- .compute_weight_stats(new_weights)
+  after_stats <- .compute_weight_stats(new_weights)
   current_history <- .get_history(data)
 
   history_entry <- .make_history_entry(
-    step        = length(current_history) + 1L,
-    operation   = "poststratify",
-    weight_col  = if (is.null(wt_name)) data@variables$weights else wt_name,
-    call_str    = call_str,
-    parameters  = list(
-      variables              = strata_names,
-      targets                = targets,
-      type                   = type,
+    step = length(current_history) + 1L,
+    operation = "poststratify",
+    weight_col = if (is.null(wt_name)) data@variables$weights else wt_name,
+    call_str = call_str,
+    parameters = list(
+      variables = strata_names,
+      targets = targets,
+      type = type,
       targets_from_reference = targets_from_reference,
-      reference_design       = reference_design
+      reference_design = reference_design
     ),
     before_stats = before_stats,
-    after_stats  = after_stats,
-    convergence  = NULL  # non-iterative
+    after_stats = after_stats,
+    convergence = NULL # non-iterative
   )
 
   # ---- 17. Build output ---------------------------------------------------
   .update_survey_weights(
-    data, new_weights, history_entry,
-    wt_name = wt_name, caldata = caldata
+    data,
+    new_weights,
+    history_entry,
+    wt_name = wt_name,
+    caldata = caldata
   )
 }
 
@@ -504,7 +507,7 @@ poststratify <- function(
 .validate_population_cells <- function(targets, strata_names, data, type) {
   # ---- 1. Required columns in targets -------------------------------------
   required_cols <- c(strata_names, "target")
-  missing_cols  <- setdiff(required_cols, names(targets))
+  missing_cols <- setdiff(required_cols, names(targets))
   if (length(missing_cols) > 0L) {
     col <- missing_cols[[1L]]
     cli::cli_abort(
@@ -527,23 +530,21 @@ poststratify <- function(
   # ---- Build row keys (string representation of each cell) ----------------
   data_keys <- do.call(
     paste,
-    c(lapply(strata_names, function(v) as.character(data[[v]])),
-      sep = "//")
+    c(lapply(strata_names, function(v) as.character(data[[v]])), sep = "//")
   )
   pop_keys <- do.call(
     paste,
-    c(lapply(strata_names, function(v) as.character(targets[[v]])),
-      sep = "//")
+    c(lapply(strata_names, function(v) as.character(targets[[v]])), sep = "//")
   )
 
   data_unique_keys <- unique(data_keys)
 
   # ---- 2. No duplicate rows in targets ------------------------------------
-  dup_tab  <- table(pop_keys)
+  dup_tab <- table(pop_keys)
   dup_keys <- names(dup_tab)[dup_tab > 1L]
   if (length(dup_keys) > 0L) {
     cell_label <- dup_keys[[1L]]
-    n          <- as.integer(dup_tab[[cell_label]])
+    n <- as.integer(dup_tab[[cell_label]])
     cli::cli_abort(
       c(
         "x" = paste0(
@@ -609,7 +610,7 @@ poststratify <- function(
 
   if (type == "prop") {
     sum_val <- sum(tgt)
-    tol     <- 1e-6
+    tol <- 1e-6
     if (abs(sum_val - 1.0) > tol) {
       cli::cli_abort(
         c(

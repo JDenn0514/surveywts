@@ -94,17 +94,17 @@
       -crossprod(X_nps_fit, X_nps_fit * ((1 - pi_g) / pi_g))
     }
     gee_fit <- nleqslv::nleqslv(
-      x       = gamma,
-      fn      = fn,
-      jac     = jac,
-      method  = "Newton",
+      x = gamma,
+      fn = fn,
+      jac = jac,
+      method = "Newton",
       control = list(maxit = maxit, xtol = epsilon, ftol = epsilon)
     )
-    gamma     <- gee_fit$x
+    gamma <- gee_fit$x
     converged <- gee_fit$termcd %in% c(1L, 2L)
     list(
-      scores      = link(drop(X_nps_pred %*% gamma)),
-      converged   = converged,
+      scores = link(drop(X_nps_pred %*% gamma)),
+      converged = converged,
       final_delta = max(abs(gee_fit$fvec))
     )
   } else {
@@ -119,16 +119,16 @@
       cur_scores <- link(drop(X_nps_pred %*% gamma))
       if (any(cur_scores <= eps | cur_scores >= 1 - eps)) {
         return(list(
-          scores      = cur_scores,
-          converged   = FALSE,
+          scores = cur_scores,
+          converged = FALSE,
           final_delta = max(abs(delta))
         ))
       }
 
       pi_ref <- link(drop(X_ref %*% gamma))
-      score  <- colSums(X_nps_fit) - drop(t(X_ref) %*% (d_ref * pi_ref))
-      hess   <- -crossprod(X_ref, X_ref * (d_ref * pi_ref * (1 - pi_ref)))
-      delta  <- tryCatch(
+      score <- colSums(X_nps_fit) - drop(t(X_ref) %*% (d_ref * pi_ref))
+      hess <- -crossprod(X_ref, X_ref * (d_ref * pi_ref * (1 - pi_ref)))
+      delta <- tryCatch(
         solve(hess, score),
         error = function(e) {
           cli::cli_abort(
@@ -148,8 +148,8 @@
       }
     }
     list(
-      scores      = link(drop(X_nps_pred %*% gamma)),
-      converged   = converged,
+      scores = link(drop(X_nps_pred %*% gamma)),
+      converged = converged,
       final_delta = max(abs(delta))
     )
   }
@@ -1277,7 +1277,7 @@ ipw <- function(
     S7::S7_inherits(reference, surveycore::survey_replicate)
   ) {
     surveycore::survey_taylor(
-      data      = reference@data,
+      data = reference@data,
       variables = reference@variables
     )
   } else {

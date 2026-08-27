@@ -7,7 +7,7 @@
 # ============================================================================
 
 test_that("NPS bootstrap helper functions return survey_nonprob with ipw history", {
-  ref   <- suppressWarnings(make_nps_ref(seed = 42))
+  ref <- suppressWarnings(make_nps_ref(seed = 42))
   lev_a <- suppressWarnings(make_nps_level_a(seed = 1))
   lev_b <- suppressWarnings(make_nps_level_b(seed = 2))
 
@@ -16,7 +16,12 @@ test_that("NPS bootstrap helper functions return survey_nonprob with ipw history
   expect_true(!is.null(lev_b))
 
   for (obj in list(lev_a, lev_b)) {
-    ops <- vapply(obj@metadata@weighting_history, `[[`, character(1), "operation")
+    ops <- vapply(
+      obj@metadata@weighting_history,
+      `[[`,
+      character(1),
+      "operation"
+    )
     expect_true("ipw" %in% ops)
   }
 })
@@ -27,12 +32,12 @@ test_that("NPS bootstrap helper functions return survey_nonprob with ipw history
 
 test_that("create_bootstrap_weights() quasi-randomization Level A returns survey_nonprob", {
   skip_if_not_installed("svrep")
-  lev_a  <- suppressWarnings(make_nps_level_a(seed = 1))
+  lev_a <- suppressWarnings(make_nps_level_a(seed = 1))
   result <- suppressWarnings(create_bootstrap_weights(
     lev_a,
-    type       = "quasi-randomization",
+    type = "quasi-randomization",
     replicates = 50L,
-    seed       = 1L
+    seed = 1L
   ))
 
   test_invariants(result)
@@ -52,7 +57,7 @@ test_that("create_bootstrap_weights() quasi-randomization Level A returns survey
 
   # History has one new bootstrap_weights entry
   n_before <- length(lev_a@metadata@weighting_history)
-  n_after  <- length(result@metadata@weighting_history)
+  n_after <- length(result@metadata@weighting_history)
   expect_identical(n_after, n_before + 1L)
   boot_entry <- result@metadata@weighting_history[[n_after]]
   expect_identical(boot_entry$operation, "bootstrap_weights")
@@ -67,12 +72,12 @@ test_that("create_bootstrap_weights() quasi-randomization Level A returns survey
 
 test_that("create_bootstrap_weights() quasi-randomization Level B records level = B", {
   skip_if_not_installed("svrep")
-  lev_b  <- suppressWarnings(make_nps_level_b(seed = 2))
+  lev_b <- suppressWarnings(make_nps_level_b(seed = 2))
   result <- suppressWarnings(create_bootstrap_weights(
     lev_b,
-    type       = "quasi-randomization",
+    type = "quasi-randomization",
     replicates = 50L,
-    seed       = 2L
+    seed = 2L
   ))
 
   test_invariants(result)
@@ -95,7 +100,7 @@ test_that("create_bootstrap_weights() quasi-randomization Level B records level 
 
 test_that("create_bootstrap_weights() NULL replicates resolves to 200L for NPS types", {
   skip_if_not_installed("svrep")
-  lev_a  <- suppressWarnings(make_nps_level_a(seed = 1))
+  lev_a <- suppressWarnings(make_nps_level_a(seed = 1))
   result <- suppressWarnings(create_bootstrap_weights(
     lev_a,
     type = "quasi-randomization",
@@ -111,8 +116,8 @@ test_that("create_bootstrap_weights() NULL replicates resolves to 200L for NPS t
 
 test_that("create_bootstrap_weights() NULL replicates resolves to 500L for Rao-Wu", {
   skip_if_not_installed("svrep")
-  td      <- make_taylor_design(seed = 1)
-  result  <- create_bootstrap_weights(td, type = "Rao-Wu", seed = 1L)
+  td <- make_taylor_design(seed = 1)
+  result <- create_bootstrap_weights(td, type = "Rao-Wu", seed = 1L)
   history <- result@metadata@weighting_history
   expect_identical(history[[length(history)]]$parameters$replicates, 500L)
 })
@@ -124,11 +129,17 @@ test_that("create_bootstrap_weights() NULL replicates resolves to 500L for Rao-W
 test_that("create_bootstrap_weights() same seed produces identical NPS repwt columns", {
   skip_if_not_installed("svrep")
   lev_a <- suppressWarnings(make_nps_level_a(seed = 1))
-  r1    <- suppressWarnings(create_bootstrap_weights(
-    lev_a, type = "quasi-randomization", replicates = 20L, seed = 7L
+  r1 <- suppressWarnings(create_bootstrap_weights(
+    lev_a,
+    type = "quasi-randomization",
+    replicates = 20L,
+    seed = 7L
   ))
-  r2    <- suppressWarnings(create_bootstrap_weights(
-    lev_a, type = "quasi-randomization", replicates = 20L, seed = 7L
+  r2 <- suppressWarnings(create_bootstrap_weights(
+    lev_a,
+    type = "quasi-randomization",
+    replicates = 20L,
+    seed = 7L
   ))
 
   mat1 <- as.matrix(r1@data[, r1@variables$repweights])
@@ -139,11 +150,17 @@ test_that("create_bootstrap_weights() same seed produces identical NPS repwt col
 test_that("create_bootstrap_weights() different seeds produce different NPS repwt columns", {
   skip_if_not_installed("svrep")
   lev_a <- suppressWarnings(make_nps_level_a(seed = 1))
-  r1    <- suppressWarnings(create_bootstrap_weights(
-    lev_a, type = "quasi-randomization", replicates = 20L, seed = 7L
+  r1 <- suppressWarnings(create_bootstrap_weights(
+    lev_a,
+    type = "quasi-randomization",
+    replicates = 20L,
+    seed = 7L
   ))
-  r2    <- suppressWarnings(create_bootstrap_weights(
-    lev_a, type = "quasi-randomization", replicates = 20L, seed = 99L
+  r2 <- suppressWarnings(create_bootstrap_weights(
+    lev_a,
+    type = "quasi-randomization",
+    replicates = 20L,
+    seed = 99L
   ))
 
   mat1 <- as.matrix(r1@data[, r1@variables$repweights])
@@ -158,21 +175,21 @@ test_that("create_bootstrap_weights() different seeds produce different NPS repw
 test_that("create_bootstrap_weights() reference_sample overrides stored reference", {
   skip_if_not_installed("svrep")
   lev_a <- suppressWarnings(make_nps_level_a(seed = 1))
-  ref_a <- make_nps_ref(seed = 101)  # same ref seed used in make_nps_level_a(seed=1)
-  ref_b <- make_nps_ref(seed = 999)  # very different reference
+  ref_a <- make_nps_ref(seed = 101) # same ref seed used in make_nps_level_a(seed=1)
+  ref_b <- make_nps_ref(seed = 999) # very different reference
 
   r1 <- suppressWarnings(create_bootstrap_weights(
     lev_a,
-    type             = "quasi-randomization",
-    replicates       = 20L,
-    seed             = 42L,
+    type = "quasi-randomization",
+    replicates = 20L,
+    seed = 42L,
     reference_sample = ref_a
   ))
   r2 <- suppressWarnings(create_bootstrap_weights(
     lev_a,
-    type             = "quasi-randomization",
-    replicates       = 20L,
-    seed             = 42L,
+    type = "quasi-randomization",
+    replicates = 20L,
+    seed = 42L,
     reference_sample = ref_b
   ))
 
@@ -187,9 +204,12 @@ test_that("create_bootstrap_weights() reference_sample overrides stored referenc
 
 test_that("create_bootstrap_weights() Rao-Wu on survey_taylor still works after signature change", {
   skip_if_not_installed("svrep")
-  td     <- make_taylor_design(seed = 1)
+  td <- make_taylor_design(seed = 1)
   result <- create_bootstrap_weights(
-    td, type = "Rao-Wu", replicates = 20L, seed = 1L
+    td,
+    type = "Rao-Wu",
+    replicates = 20L,
+    seed = 1L
   )
   test_invariants(result)
   expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
@@ -205,10 +225,16 @@ test_that("create_bootstrap_weights() Level A and Level B produce different repw
   lev_b <- suppressWarnings(make_nps_level_b(seed = 3))
 
   r_a <- suppressWarnings(create_bootstrap_weights(
-    lev_a, type = "quasi-randomization", replicates = 20L, seed = 77L
+    lev_a,
+    type = "quasi-randomization",
+    replicates = 20L,
+    seed = 77L
   ))
   r_b <- suppressWarnings(create_bootstrap_weights(
-    lev_b, type = "quasi-randomization", replicates = 20L, seed = 77L
+    lev_b,
+    type = "quasi-randomization",
+    replicates = 20L,
+    seed = 77L
   ))
 
   boot_a <- r_a@metadata@weighting_history[[
@@ -236,12 +262,12 @@ test_that("create_bootstrap_weights() Level A and Level B produce different repw
 
 test_that("print(survey_nonprob) includes bootstrap replicates line when repweights present", {
   skip_if_not_installed("svrep")
-  lev_a  <- suppressWarnings(make_nps_level_a(seed = 1))
+  lev_a <- suppressWarnings(make_nps_level_a(seed = 1))
   result <- suppressWarnings(create_bootstrap_weights(
     lev_a,
-    type       = "quasi-randomization",
+    type = "quasi-randomization",
     replicates = 10L,
-    seed       = 1L
+    seed = 1L
   ))
   expect_snapshot(print(.pin_ts(result)))
 })
@@ -262,8 +288,11 @@ test_that("print(survey_nonprob) unchanged when no repweights", {
 test_that("create_bootstrap_weights() warns and overwrites on second call", {
   skip_if_not_installed("svrep")
   lev_a <- suppressWarnings(make_nps_level_a(seed = 1))
-  r1    <- suppressWarnings(create_bootstrap_weights(
-    lev_a, type = "quasi-randomization", replicates = 20L, seed = 1L
+  r1 <- suppressWarnings(create_bootstrap_weights(
+    lev_a,
+    type = "quasi-randomization",
+    replicates = 20L,
+    seed = 1L
   ))
 
   # suppress all OTHER warnings (ipw convergence etc.) but let testthat
@@ -272,7 +301,10 @@ test_that("create_bootstrap_weights() warns and overwrites on second call", {
   expect_warning(
     result <- withCallingHandlers(
       create_bootstrap_weights(
-        r1, type = "quasi-randomization", replicates = 10L, seed = 2L
+        r1,
+        type = "quasi-randomization",
+        replicates = 10L,
+        seed = 2L
       ),
       warning = function(w) {
         if (!inherits(w, "surveywts_warning_repweights_overwritten")) {
@@ -321,9 +353,9 @@ test_that("create_bootstrap_weights() rejects survey_taylor with hybrid", {
 test_that("create_bootstrap_weights() errors when no history present", {
   df <- make_surveywts_data(seed = 1)
   np_no_history <- surveycore::survey_nonprob(
-    data      = df,
+    data = df,
     variables = list(weights = "base_weight"),
-    metadata  = surveycore::survey_metadata()
+    metadata = surveycore::survey_metadata()
   )
   expect_error(
     create_bootstrap_weights(np_no_history, type = "quasi-randomization"),
@@ -337,12 +369,12 @@ test_that("create_bootstrap_weights() errors when no history present", {
 
 # E5: survey_nonprob with ipw but reference_design = NULL and no reference_sample
 test_that("create_bootstrap_weights() errors when no reference available", {
-  df  <- make_surveywts_data(seed = 1)
+  df <- make_surveywts_data(seed = 1)
   ref <- make_nps_ref(seed = 42)
   ipw_result <- suppressWarnings(ipw(
-    data      = df,
+    data = df,
     reference = ref,
-    selection = ~age_group + sex
+    selection = ~ age_group + sex
   ))
   # Force reference_design to NULL in the history entry
   meta <- ipw_result@metadata
@@ -363,9 +395,9 @@ test_that("create_bootstrap_weights() errors when no reference available", {
 test_that("create_bootstrap_weights() errors with hybrid type (not yet implemented)", {
   df <- make_surveywts_data(seed = 1)
   np <- surveycore::survey_nonprob(
-    data      = df,
+    data = df,
     variables = list(weights = "base_weight"),
-    metadata  = surveycore::survey_metadata()
+    metadata = surveycore::survey_metadata()
   )
   expect_error(
     create_bootstrap_weights(np, type = "hybrid"),
@@ -380,14 +412,14 @@ test_that("create_bootstrap_weights() errors with hybrid type (not yet implement
 # E7: reference_sample is survey_replicate
 test_that("create_bootstrap_weights() rejects survey_replicate as reference_sample", {
   skip_if_not_installed("svrep")
-  lev_a   <- suppressWarnings(make_nps_level_a(seed = 1))
-  td      <- make_taylor_design(seed = 1)
+  lev_a <- suppressWarnings(make_nps_level_a(seed = 1))
+  td <- make_taylor_design(seed = 1)
   rep_ref <- create_bootstrap_weights(td, replicates = 10L, seed = 1L)
 
   expect_error(
     create_bootstrap_weights(
       lev_a,
-      type             = "quasi-randomization",
+      type = "quasi-randomization",
       reference_sample = rep_ref
     ),
     class = "surveywts_error_reference_sample_class"
@@ -396,7 +428,7 @@ test_that("create_bootstrap_weights() rejects survey_replicate as reference_samp
     error = TRUE,
     create_bootstrap_weights(
       lev_a,
-      type             = "quasi-randomization",
+      type = "quasi-randomization",
       reference_sample = rep_ref
     )
   )
@@ -408,7 +440,7 @@ test_that("create_bootstrap_weights() rejects list as reference_sample", {
   expect_error(
     create_bootstrap_weights(
       lev_a,
-      type             = "quasi-randomization",
+      type = "quasi-randomization",
       reference_sample = list()
     ),
     class = "surveywts_error_reference_sample_class"
@@ -417,7 +449,7 @@ test_that("create_bootstrap_weights() rejects list as reference_sample", {
     error = TRUE,
     create_bootstrap_weights(
       lev_a,
-      type             = "quasi-randomization",
+      type = "quasi-randomization",
       reference_sample = list()
     )
   )
@@ -431,7 +463,7 @@ test_that("create_bootstrap_weights() rejects mse = chrostowski for prob-sample 
     create_bootstrap_weights(
       td,
       type = "Rao-Wu",
-      mse  = "chrostowski"
+      mse = "chrostowski"
     ),
     class = "surveywts_error_chrostowski_prob_sample"
   )
@@ -440,7 +472,7 @@ test_that("create_bootstrap_weights() rejects mse = chrostowski for prob-sample 
     create_bootstrap_weights(
       td,
       type = "Rao-Wu",
-      mse  = "chrostowski"
+      mse = "chrostowski"
     )
   )
 })
@@ -478,15 +510,15 @@ test_that("create_bootstrap_weights() rejects mse = FALSE (logical not character
 # W1: reference_sample supplied with prob-sample type
 test_that("create_bootstrap_weights() warns reference_sample ignored for prob-sample type", {
   skip_if_not_installed("svrep")
-  td  <- make_taylor_design(seed = 1)
+  td <- make_taylor_design(seed = 1)
   ref <- make_nps_ref(seed = 42)
 
   expect_warning(
     result <- create_bootstrap_weights(
       td,
-      type             = "Rao-Wu",
-      replicates       = 10L,
-      seed             = 1L,
+      type = "Rao-Wu",
+      replicates = 10L,
+      seed = 1L,
       reference_sample = ref
     ),
     class = "surveywts_warning_reference_sample_ignored"
@@ -502,15 +534,15 @@ test_that("create_bootstrap_weights() warns when >10% draws fail", {
   # With B=20 and fixed margins requiring "55+", rake() fails in those draws.
   # seed=42 gives ~9/20 failures (>10%), triggering the warning.
   ref_df <- make_surveywts_data(n = 200L, seed = 42L)
-  ref    <- surveycore::as_survey(ref_df, weights = base_weight)
+  ref <- surveycore::as_survey(ref_df, weights = base_weight)
 
   nps_df <- data.frame(
     age_group = c("18-34", "18-34", "35-54", "35-54", "55+"),
-    sex       = c("M", "F", "M", "F", "M"),
+    sex = c("M", "F", "M", "F", "M"),
     stringsAsFactors = FALSE
   )
   nps_ipw <- suppressWarnings(ipw(
-    data      = nps_df,
+    data = nps_df,
     reference = ref,
     selection = ~age_group
   ))
@@ -527,9 +559,9 @@ test_that("create_bootstrap_weights() warns when >10% draws fail", {
     result <- withCallingHandlers(
       create_bootstrap_weights(
         nps_raked,
-        type       = "quasi-randomization",
+        type = "quasi-randomization",
         replicates = 20L,
-        seed       = 42L
+        seed = 42L
       ),
       warning = function(w) {
         if (!inherits(w, "surveywts_warning_bootstrap_draws_failed")) {
@@ -552,9 +584,9 @@ test_that("create_bootstrap_weights() completes on very small NPS (n = 10)", {
   lev_a_small <- suppressWarnings(make_nps_level_a(seed = 99, n = 10))
   result <- suppressWarnings(create_bootstrap_weights(
     lev_a_small,
-    type       = "quasi-randomization",
+    type = "quasi-randomization",
     replicates = 20L,
-    seed       = 1L
+    seed = 1L
   ))
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
   expect_true(length(result@variables$repweights) > 0L)
@@ -568,15 +600,15 @@ test_that("create_bootstrap_weights() errors when all draws fail", {
   # seed=8 gives 10/10 resamples that drop at least 1 group, so rake() fails
   # in every draw → surveywts_error_bootstrap_all_draws_failed.
   ref_df <- make_surveywts_data(n = 200L, seed = 42L)
-  ref    <- surveycore::as_survey(ref_df, weights = base_weight)
+  ref <- surveycore::as_survey(ref_df, weights = base_weight)
 
   nps_df <- data.frame(
     age_group = c("18-34", "35-54", "55+"),
-    sex       = c("M", "F", "M"),
+    sex = c("M", "F", "M"),
     stringsAsFactors = FALSE
   )
   nps_ipw <- suppressWarnings(ipw(
-    data      = nps_df,
+    data = nps_df,
     reference = ref,
     selection = ~age_group
   ))
@@ -591,9 +623,9 @@ test_that("create_bootstrap_weights() errors when all draws fail", {
   expect_error(
     suppressWarnings(create_bootstrap_weights(
       nps_raked,
-      type       = "quasi-randomization",
+      type = "quasi-randomization",
       replicates = 10L,
-      seed       = 8L
+      seed = 8L
     )),
     class = "surveywts_error_bootstrap_all_draws_failed"
   )
@@ -601,9 +633,9 @@ test_that("create_bootstrap_weights() errors when all draws fail", {
     error = TRUE,
     suppressWarnings(create_bootstrap_weights(
       nps_raked,
-      type       = "quasi-randomization",
+      type = "quasi-randomization",
       replicates = 10L,
-      seed       = 8L
+      seed = 8L
     ))
   )
 })
@@ -616,10 +648,10 @@ test_that("create_bootstrap_weights() stores mse string correctly in history", {
   for (mse_val in c("mse", "chrostowski", "uncentered")) {
     result <- suppressWarnings(create_bootstrap_weights(
       lev_a,
-      type       = "quasi-randomization",
+      type = "quasi-randomization",
       replicates = 10L,
-      seed       = 1L,
-      mse        = mse_val
+      seed = 1L,
+      mse = mse_val
     ))
     boot_entry <- result@metadata@weighting_history[[
       length(result@metadata@weighting_history)
@@ -631,12 +663,12 @@ test_that("create_bootstrap_weights() stores mse string correctly in history", {
 # EC4: seed = NULL completes without error
 test_that("create_bootstrap_weights() completes with seed = NULL", {
   skip_if_not_installed("svrep")
-  lev_a  <- suppressWarnings(make_nps_level_a(seed = 1))
+  lev_a <- suppressWarnings(make_nps_level_a(seed = 1))
   result <- suppressWarnings(create_bootstrap_weights(
     lev_a,
-    type       = "quasi-randomization",
+    type = "quasi-randomization",
     replicates = 10L,
-    seed       = NULL
+    seed = NULL
   ))
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
   expect_identical(length(result@variables$repweights), 10L)
@@ -645,19 +677,19 @@ test_that("create_bootstrap_weights() completes with seed = NULL", {
 # EC5: ipw-only (no calibration in history) — Level A
 test_that("create_bootstrap_weights() works on ipw-only NPS (no calibration step)", {
   skip_if_not_installed("svrep")
-  df      <- make_surveywts_data(seed = 1)
-  ref     <- make_nps_ref(seed = 101)
+  df <- make_surveywts_data(seed = 1)
+  ref <- make_nps_ref(seed = 101)
   nps_ipw <- suppressWarnings(ipw(
-    data      = df,
+    data = df,
     reference = ref,
-    selection = ~age_group + sex
+    selection = ~ age_group + sex
   ))
 
   result <- suppressWarnings(create_bootstrap_weights(
     nps_ipw,
-    type       = "quasi-randomization",
+    type = "quasi-randomization",
     replicates = 10L,
-    seed       = 1L
+    seed = 1L
   ))
 
   test_invariants(result)
@@ -674,16 +706,16 @@ test_that("create_bootstrap_weights() works on ipw-only NPS (no calibration step
 # H1: All history fields correct
 test_that("create_bootstrap_weights() history entry has all required fields", {
   skip_if_not_installed("svrep")
-  lev_a  <- suppressWarnings(make_nps_level_a(seed = 1))
+  lev_a <- suppressWarnings(make_nps_level_a(seed = 1))
   result <- suppressWarnings(create_bootstrap_weights(
     lev_a,
-    type       = "quasi-randomization",
+    type = "quasi-randomization",
     replicates = 30L,
-    seed       = 42L,
-    mse        = "chrostowski"
+    seed = 42L,
+    mse = "chrostowski"
   ))
 
-  n     <- length(result@metadata@weighting_history)
+  n <- length(result@metadata@weighting_history)
   entry <- result@metadata@weighting_history[[n]]
 
   expect_identical(entry$operation, "bootstrap_weights")
@@ -709,7 +741,7 @@ test_that("create_bootstrap_weights() quasi-randomization SE is within reasonabl
 
   set.seed(100L)
   n_pop <- 2000L
-  pop   <- data.frame(
+  pop <- data.frame(
     x = as.character(rbinom(n_pop, 1L, prob = 0.5)),
     y = rnorm(n_pop, mean = 5, sd = 1),
     stringsAsFactors = FALSE
@@ -717,46 +749,50 @@ test_that("create_bootstrap_weights() quasi-randomization SE is within reasonabl
 
   # Reference (random sample of 500)
   ref_idx <- sample(n_pop, 500L)
-  ref_df  <- pop[ref_idx, ]
+  ref_df <- pop[ref_idx, ]
   ref_df$w <- 1
   ref <- surveycore::as_survey(ref_df, weights = w)
 
   # NPS: biased sample of 200 (oversamples x="1")
   nps_idx <- c(
     sample(which(pop$x == "1"), 120L, replace = FALSE),
-    sample(which(pop$x == "0"), 80L,  replace = FALSE)
+    sample(which(pop$x == "0"), 80L, replace = FALSE)
   )
   nps_df <- pop[nps_idx, ]
 
   nps_ipw <- suppressWarnings(ipw(
-    data      = nps_df,
+    data = nps_df,
     reference = ref,
     selection = ~x
   ))
 
-  B      <- 200L
+  B <- 200L
   result <- suppressWarnings(create_bootstrap_weights(
     nps_ipw,
-    type       = "quasi-randomization",
+    type = "quasi-randomization",
     replicates = B,
-    seed       = 7L
+    seed = 7L
   ))
 
   # Full-sample IPW estimate
-  wts     <- result@data[[result@variables$weights]]
+  wts <- result@data[[result@variables$weights]]
   est_hat <- sum(wts * result@data$y) / sum(wts)
 
   # Bootstrap SEs per replicate
   repwt_cols <- result@variables$repweights
-  theta_b <- vapply(repwt_cols, function(col) {
-    w_b <- result@data[[col]]
-    sum(w_b * result@data$y) / sum(w_b)
-  }, numeric(1L))
+  theta_b <- vapply(
+    repwt_cols,
+    function(col) {
+      w_b <- result@data[[col]]
+      sum(w_b * result@data$y) / sum(w_b)
+    },
+    numeric(1L)
+  )
 
   boot_se <- sqrt(mean((theta_b - est_hat)^2))
 
   # Naive SE based on sample SD
-  n_nps   <- nrow(result@data)
+  n_nps <- nrow(result@data)
   theo_se <- sd(result@data$y) / sqrt(n_nps)
 
   # IPW compression means boot_se is often < naive theo_se. Check it is
@@ -778,23 +814,23 @@ test_that(".validate_replicates_arg(NULL) returns NULL", {
 # CG2: missing_method = "separate" reversion in draw loop (lines 350-360)
 test_that("create_bootstrap_weights() handles NPS built with missing_method = 'separate'", {
   skip_if_not_installed("svrep")
-  df  <- make_surveywts_data(seed = 1)
+  df <- make_surveywts_data(seed = 1)
   # Introduce NAs in age_group for some rows so missing_method = "separate" matters
   df$age_group[sample(nrow(df), 20)] <- NA
   ref <- make_nps_ref(seed = 101)
 
   nps_sep <- suppressWarnings(ipw(
-    data           = df,
-    reference      = ref,
-    selection      = ~age_group + sex,
+    data = df,
+    reference = ref,
+    selection = ~ age_group + sex,
     missing_method = "separate"
   ))
 
   result <- suppressWarnings(create_bootstrap_weights(
     nps_sep,
-    type       = "quasi-randomization",
+    type = "quasi-randomization",
     replicates = 20L,
-    seed       = 1L
+    seed = 1L
   ))
 
   test_invariants(result)
@@ -810,32 +846,32 @@ test_that("create_bootstrap_weights() handles NPS built with missing_method = 's
 # NPS weighting history has calibrate() (operation = "calibration") not rake()
 test_that("create_bootstrap_weights() handles NPS built with calibrate() instead of rake()", {
   skip_if_not_installed("svrep")
-  df  <- make_surveywts_data(seed = 3)
+  df <- make_surveywts_data(seed = 3)
   ref <- make_nps_ref(seed = 103)
 
   nps_ipw <- suppressWarnings(ipw(
-    data      = df,
+    data = df,
     reference = ref,
-    selection = ~age_group + sex
+    selection = ~ age_group + sex
   ))
 
   # Use calibrate_linear() so the history entry has operation = "calibrate_linear",
   # exercising the else branch in the draw loop
   pop_targets <- list(
     age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
-    sex       = c("M" = 0.49, "F" = 0.51)
+    sex = c("M" = 0.49, "F" = 0.51)
   )
   nps_calibrated <- suppressWarnings(calibrate_linear(
     nps_ipw,
     targets = pop_targets,
-    type    = "prop"
+    type = "prop"
   ))
 
   result <- suppressWarnings(create_bootstrap_weights(
     nps_calibrated,
-    type       = "quasi-randomization",
+    type = "quasi-randomization",
     replicates = 20L,
-    seed       = 3L
+    seed = 3L
   ))
 
   test_invariants(result)
@@ -852,13 +888,13 @@ test_that("create_bootstrap_weights() handles NPS built with calibrate() instead
 # Level B bootstrap with rake(..., type = "count", reference_design = ref)
 test_that("create_bootstrap_weights() Level B with type = 'count' margins re-estimates correctly", {
   skip_if_not_installed("svrep")
-  df  <- make_surveywts_data(seed = 5)
+  df <- make_surveywts_data(seed = 5)
   ref <- make_nps_ref(seed = 105)
 
   nps_ipw <- suppressWarnings(ipw(
-    data      = df,
+    data = df,
     reference = ref,
-    selection = ~age_group + sex
+    selection = ~ age_group + sex
   ))
 
   # rake with type = "count" and reference_design → Level B, count margins
@@ -870,7 +906,7 @@ test_that("create_bootstrap_weights() Level B with type = 'count' margins re-est
     age_group = c(
       "18-34" = sum(ref_wts[ref_age == "18-34"]),
       "35-54" = sum(ref_wts[ref_age == "35-54"]),
-      "55+"   = sum(ref_wts[ref_age == "55+"])
+      "55+" = sum(ref_wts[ref_age == "55+"])
     ),
     sex = c(
       "M" = sum(ref_wts[ref_sex == "M"]),
@@ -880,16 +916,16 @@ test_that("create_bootstrap_weights() Level B with type = 'count' margins re-est
 
   nps_raked_count <- suppressWarnings(calibrate_rake(
     nps_ipw,
-    targets          = count_margins,
-    type             = "count",
+    targets = count_margins,
+    type = "count",
     reference_design = ref
   ))
 
   result <- suppressWarnings(create_bootstrap_weights(
     nps_raked_count,
-    type       = "quasi-randomization",
+    type = "quasi-randomization",
     replicates = 20L,
-    seed       = 5L
+    seed = 5L
   ))
 
   test_invariants(result)
@@ -910,31 +946,31 @@ test_that("create_bootstrap_weights() Level B with type = 'count' margins re-est
 # (lines 668-672 of replicate-utils.R)
 test_that("create_bootstrap_weights() replays calibrate_linear() Level B correctly", {
   skip_if_not_installed("svrep")
-  df  <- make_surveywts_data(seed = 3)
+  df <- make_surveywts_data(seed = 3)
   ref <- make_nps_ref(seed = 103)
 
   nps_ipw <- suppressWarnings(ipw(
-    data      = df,
+    data = df,
     reference = ref,
-    selection = ~age_group + sex
+    selection = ~ age_group + sex
   ))
   pop_targets <- list(
     age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
-    sex       = c("M" = 0.49, "F" = 0.51)
+    sex = c("M" = 0.49, "F" = 0.51)
   )
   # reference_design → targets_from_reference = TRUE → Level B replay
   nps_calibrated <- suppressWarnings(calibrate_linear(
     nps_ipw,
-    targets          = pop_targets,
-    type             = "prop",
+    targets = pop_targets,
+    type = "prop",
     reference_design = ref
   ))
 
   result <- suppressWarnings(create_bootstrap_weights(
     nps_calibrated,
-    type       = "quasi-randomization",
+    type = "quasi-randomization",
     replicates = 20L,
-    seed       = 6L
+    seed = 6L
   ))
 
   test_invariants(result)
@@ -949,31 +985,31 @@ test_that("create_bootstrap_weights() replays calibrate_linear() Level B correct
 # (lines 692-696 of replicate-utils.R)
 test_that("create_bootstrap_weights() replays calibrate_logit() Level B correctly", {
   skip_if_not_installed("svrep")
-  df  <- make_surveywts_data(seed = 5)
+  df <- make_surveywts_data(seed = 5)
   ref <- make_nps_ref(seed = 105)
 
   nps_ipw <- suppressWarnings(ipw(
-    data      = df,
+    data = df,
     reference = ref,
-    selection = ~age_group + sex
+    selection = ~ age_group + sex
   ))
   pop_targets <- list(
     age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
-    sex       = c("M" = 0.49, "F" = 0.51)
+    sex = c("M" = 0.49, "F" = 0.51)
   )
   # reference_design → Level B replay through calibrate_logit()
   nps_calibrated <- suppressWarnings(calibrate_logit(
     nps_ipw,
-    targets          = pop_targets,
-    type             = "prop",
+    targets = pop_targets,
+    type = "prop",
     reference_design = ref
   ))
 
   result <- suppressWarnings(create_bootstrap_weights(
     nps_calibrated,
-    type       = "quasi-randomization",
+    type = "quasi-randomization",
     replicates = 20L,
-    seed       = 7L
+    seed = 7L
   ))
 
   test_invariants(result)
@@ -988,31 +1024,31 @@ test_that("create_bootstrap_weights() replays calibrate_logit() Level B correctl
 # CG8: calibrate_linear() with bounds_scale stored → line 687 of replicate-utils.R
 test_that("create_bootstrap_weights() passes bounds_scale when stored in history", {
   skip_if_not_installed("svrep")
-  df  <- make_surveywts_data(seed = 3)
+  df <- make_surveywts_data(seed = 3)
   ref <- make_nps_ref(seed = 103)
 
   nps_ipw <- suppressWarnings(ipw(
-    data      = df,
+    data = df,
     reference = ref,
-    selection = ~age_group + sex
+    selection = ~ age_group + sex
   ))
   pop_targets <- list(
     age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
-    sex       = c("M" = 0.49, "F" = 0.51)
+    sex = c("M" = 0.49, "F" = 0.51)
   )
   nps_calibrated <- suppressWarnings(calibrate_linear(
     nps_ipw,
-    targets          = pop_targets,
-    type             = "prop",
-    bounds_scale     = "multiplicative",
+    targets = pop_targets,
+    type = "prop",
+    bounds_scale = "multiplicative",
     reference_design = ref
   ))
 
   result <- suppressWarnings(create_bootstrap_weights(
     nps_calibrated,
-    type       = "quasi-randomization",
+    type = "quasi-randomization",
     replicates = 20L,
-    seed       = 7L
+    seed = 7L
   ))
 
   test_invariants(result)
@@ -1023,15 +1059,15 @@ test_that("create_bootstrap_weights() passes bounds_scale when stored in history
 test_that(".dispatch_calibration_replay() aborts on unknown calibration operation", {
   df <- make_surveywts_data(n = 50, seed = 9)
   fake_entry <- list(
-    operation  = "unknown_op",
+    operation = "unknown_op",
     parameters = list(targets = list(), type = "prop")
   )
   expect_error(
     surveywts:::.dispatch_calibration_replay(
-      data        = df,
+      data = df,
       calib_entry = fake_entry,
-      ref_design  = NULL,
-      ref_data_b  = NULL,
+      ref_design = NULL,
+      ref_data_b = NULL,
       use_level_b = FALSE
     ),
     class = "surveywts_error_unsupported_calibration_op"

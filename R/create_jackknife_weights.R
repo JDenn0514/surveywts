@@ -307,12 +307,14 @@ create_jackknife_weights <- function(
   type <- rlang::arg_match(type)
 
   # Also resolve adj_method / scale_method (needed for step 13 comparison)
-  adj_method   <- rlang::arg_match(adj_method)
+  adj_method <- rlang::arg_match(adj_method)
   scale_method <- rlang::arg_match(scale_method)
 
   # Step 4: survey_nonprob + jkn/jk1 is not supported
-  if (S7::S7_inherits(data, surveycore::survey_nonprob) &&
-        type %in% c("jkn", "jk1")) {
+  if (
+    S7::S7_inherits(data, surveycore::survey_nonprob) &&
+      type %in% c("jkn", "jk1")
+  ) {
     cli::cli_abort(
       c(
         "x" = paste0(
@@ -351,11 +353,13 @@ create_jackknife_weights <- function(
   if (type %in% c("jkn", "jk1")) {
     jk_type <- if (type == "jkn") "JKn" else "JK1"
     return(.convert_and_call(
-      data       = data,
-      backend_fn = function(d) survey::as.svrepdesign(d, type = jk_type, mse = mse),
-      method     = "jackknife",
-      params     = list(type = type, mse = mse),
-      seed       = NULL
+      data = data,
+      backend_fn = function(d) {
+        survey::as.svrepdesign(d, type = jk_type, mse = mse)
+      },
+      method = "jackknife",
+      params = list(type = type, mse = mse),
+      seed = NULL
     ))
   }
 
@@ -364,28 +368,29 @@ create_jackknife_weights <- function(
   if (!S7::S7_inherits(data, surveycore::survey_nonprob)) {
     replicates <- .validate_replicates_arg(replicates)
     return(.convert_and_call(
-      data       = data,
-      backend_fn = function(d)
+      data = data,
+      backend_fn = function(d) {
         svrep::as_random_group_jackknife_design(
           d,
-          replicates     = replicates,
-          mse            = mse,
-          var_strat      = var_strat,
+          replicates = replicates,
+          mse = mse,
+          var_strat = var_strat,
           var_strat_frac = var_strat_frac,
-          sort_var       = sort_var,
-          adj_method     = adj_method,
-          scale_method   = scale_method
-        ),
-      method     = "jackknife",
-      params     = list(
-        type           = "grouped",
-        replicates     = replicates,
-        mse            = mse,
-        var_strat      = var_strat,
+          sort_var = sort_var,
+          adj_method = adj_method,
+          scale_method = scale_method
+        )
+      },
+      method = "jackknife",
+      params = list(
+        type = "grouped",
+        replicates = replicates,
+        mse = mse,
+        var_strat = var_strat,
         var_strat_frac = var_strat_frac,
-        sort_var       = sort_var,
-        adj_method     = adj_method,
-        scale_method   = scale_method
+        sort_var = sort_var,
+        adj_method = adj_method,
+        scale_method = scale_method
       ),
       seed = seed
     ))
@@ -415,12 +420,19 @@ create_jackknife_weights <- function(
   }
 
   calib_entries <- Filter(
-    function(e) e$operation %in% c(
-      "calibrate_rake", "calibrate_linear", "calibrate_logit",
-      "poststratify", "raking",
-      # Legacy operation names from pre-v0.4 history entries:
-      "calibration", "calibrate_greg"
-    ),
+    function(e) {
+      e$operation %in%
+        c(
+          "calibrate_rake",
+          "calibrate_linear",
+          "calibrate_logit",
+          "poststratify",
+          "raking",
+          # Legacy operation names from pre-v0.4 history entries:
+          "calibration",
+          "calibrate_greg"
+        )
+    },
     data@metadata@weighting_history
   )
   calib_entry <- if (length(calib_entries) > 0L) {
@@ -477,7 +489,7 @@ create_jackknife_weights <- function(
         class = "surveywts_error_jackknife_no_reference"
       )
     }
-    n_ref      <- nrow(ref_design@data)
+    n_ref <- nrow(ref_design@data)
     combined_n <- n_nps + n_ref
   } else if (use_level_b) {
     # Calibration-only Level B: reference required
@@ -507,17 +519,20 @@ create_jackknife_weights <- function(
       )
     }
     # nocov end
-    n_ref      <- nrow(ref_design@data)
+    n_ref <- nrow(ref_design@data)
     combined_n <- n_nps + n_ref
   } else {
     # Calibration-only Level A: no reference needed
     ref_design <- NULL
-    n_ref      <- 0L
+    n_ref <- 0L
     combined_n <- n_nps
   }
 
   # Step 11: Phase 2 validation (ceiling check now that combined_n is known)
-  replicates <- .validate_replicates_dagjk_arg(replicates, combined_n = combined_n)
+  replicates <- .validate_replicates_dagjk_arg(
+    replicates,
+    combined_n = combined_n
+  )
 
   # Step 12: mse check — DAGJK requires mse = TRUE
   if (!isTRUE(mse)) {
@@ -539,13 +554,11 @@ create_jackknife_weights <- function(
   }
 
   # Step 13: svrep args check — warn once for all non-default values
-  svrep_args_non_default <- (
-    !is.null(var_strat) ||
-      !is.null(var_strat_frac) ||
-      !is.null(sort_var) ||
-      adj_method != "variance-stratum-psus" ||
-      scale_method != "variance-stratum-psus"
-  )
+  svrep_args_non_default <- (!is.null(var_strat) ||
+    !is.null(var_strat_frac) ||
+    !is.null(sort_var) ||
+    adj_method != "variance-stratum-psus" ||
+    scale_method != "variance-stratum-psus")
   if (svrep_args_non_default) {
     cli::cli_warn(
       c(
@@ -566,7 +579,7 @@ create_jackknife_weights <- function(
   # Step 14: overwrite check
   data <- .handle_repweights_overwrite(
     data,
-    fn_name       = "create_jackknife_weights",
+    fn_name = "create_jackknife_weights",
     warning_class = "surveywts_warning_jackknife_repweights_overwritten"
   )
 
@@ -594,59 +607,64 @@ create_jackknife_weights <- function(
 
   # ---- DAGJK engine --------------------------------------------------------
 
-  if (!is.null(seed)) set.seed(seed)
+  if (!is.null(seed)) {
+    set.seed(seed)
+  }
   group_assign <- sample(rep(seq_len(replicates), length.out = combined_n))
 
-  wt_col     <- data@variables$weights
-  nps_data   <- data@data
-  strata_var <- data@variables$strata  # NULL if no NPS strata variable
-  ref_data   <- if (!is.null(ref_design)) ref_design@data else NULL
+  wt_col <- data@variables$weights
+  nps_data <- data@data
+  strata_var <- data@variables$strata # NULL if no NPS strata variable
+  ref_data <- if (!is.null(ref_design)) ref_design@data else NULL
   ref_wt_col <- if (!is.null(ref_design)) ref_design@variables$weights else NULL
 
   failed_reps <- 0L
-  repwt_list  <- list()
+  repwt_list <- list()
 
   for (g in seq_len(replicates)) {
-    rep_ok <- tryCatch({
-      if (!is.null(ipw_entry)) {
-        # IPW path (and doubly-robust)
-        w_rep <- .dagjk_single_replicate(
-          g            = g,
-          group_assign = group_assign,
-          nps_data     = nps_data,
-          ref_data     = ref_data,
-          ref_wt_col   = ref_wt_col,
-          ipw_entry    = ipw_entry,
-          calib_entry  = calib_entry,
-          n_nps        = n_nps,
-          n_ref        = n_ref,
-          use_level_b  = use_level_b,
-          ref_design   = ref_design,
-          wt_col       = wt_col,
-          strata_var   = strata_var,
-          G            = replicates
-        )
-      } else {
-        # Calibration-only path
-        w_rep <- .dagjk_single_replicate_calib(
-          g            = g,
-          group_assign = group_assign,
-          nps_data     = nps_data,
-          ref_data     = ref_data,
-          ref_wt_col   = ref_wt_col,
-          calib_entry  = calib_entry,
-          n_nps        = n_nps,
-          n_ref        = n_ref,
-          use_level_b  = use_level_b,
-          ref_design   = ref_design,
-          wt_col       = wt_col
-        )
+    rep_ok <- tryCatch(
+      {
+        if (!is.null(ipw_entry)) {
+          # IPW path (and doubly-robust)
+          w_rep <- .dagjk_single_replicate(
+            g = g,
+            group_assign = group_assign,
+            nps_data = nps_data,
+            ref_data = ref_data,
+            ref_wt_col = ref_wt_col,
+            ipw_entry = ipw_entry,
+            calib_entry = calib_entry,
+            n_nps = n_nps,
+            n_ref = n_ref,
+            use_level_b = use_level_b,
+            ref_design = ref_design,
+            wt_col = wt_col,
+            strata_var = strata_var,
+            G = replicates
+          )
+        } else {
+          # Calibration-only path
+          w_rep <- .dagjk_single_replicate_calib(
+            g = g,
+            group_assign = group_assign,
+            nps_data = nps_data,
+            ref_data = ref_data,
+            ref_wt_col = ref_wt_col,
+            calib_entry = calib_entry,
+            n_nps = n_nps,
+            n_ref = n_ref,
+            use_level_b = use_level_b,
+            ref_design = ref_design,
+            wt_col = wt_col
+          )
+        }
+        repwt_list[[length(repwt_list) + 1L]] <- w_rep
+        TRUE
+      },
+      error = function(e) {
+        FALSE
       }
-      repwt_list[[length(repwt_list) + 1L]] <- w_rep
-      TRUE
-    }, error = function(e) {
-      FALSE
-    })
+    )
     if (!isTRUE(rep_ok)) {
       failed_reps <- failed_reps + 1L
     }
@@ -725,30 +743,30 @@ create_jackknife_weights <- function(
   # nocov end
 
   data@variables$repweights <- repwt_names
-  data@variables$scale      <- (G_success - 1L) / G_success
-  data@variables$rscales    <- rep(1, G_success)
-  data@variables$mse        <- TRUE
-  data@variables$type       <- "group-jackknife"
+  data@variables$scale <- (G_success - 1L) / G_success
+  data@variables$rscales <- rep(1, G_success)
+  data@variables$mse <- TRUE
+  data@variables$type <- "group-jackknife"
 
   # Append history entry
   meta <- data@metadata
   meta@weighting_history <- c(
     meta@weighting_history,
     list(list(
-      step              = length(meta@weighting_history) + 1L,
-      operation         = "jackknife_weights",
-      timestamp         = Sys.time(),
-      parameters        = list(
-        type              = "grouped",
-        replicates        = as.integer(replicates),
-        replicates_used   = as.integer(G_success),
+      step = length(meta@weighting_history) + 1L,
+      operation = "jackknife_weights",
+      timestamp = Sys.time(),
+      parameters = list(
+        type = "grouped",
+        replicates = as.integer(replicates),
+        replicates_used = as.integer(G_success),
         replicates_failed = as.integer(failed_reps),
-        mse               = TRUE,
-        scale             = (G_success - 1L) / G_success,
-        seed              = seed
+        mse = TRUE,
+        scale = (G_success - 1L) / G_success,
+        seed = seed
       ),
-      reference_design  = ref_design,
-      source_design     = .snapshot_variables_for_history(data)
+      reference_design = ref_design,
+      source_design = .snapshot_variables_for_history(data)
     ))
   )
   data@metadata <- meta

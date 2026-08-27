@@ -92,22 +92,30 @@ create_brr_weights <- function(data, ..., rho = 0, mse = TRUE) {
     )
   }
 
-  psu_col    <- data@variables$ids
+  psu_col <- data@variables$ids
   strata_col <- data@variables$strata
-  df         <- data@data
-  counts     <- tapply(
-    df[[psu_col]], df[[strata_col]], function(x) length(unique(x))
+  df <- data@data
+  counts <- tapply(
+    df[[psu_col]],
+    df[[strata_col]],
+    function(x) length(unique(x))
   )
   bad <- names(counts)[counts != 2L]
   if (length(bad) > 0L) {
-    show   <- utils::head(bad, 5L)
-    suffix <- if (length(bad) > 5L) paste0(" ... (", length(bad) - 5L, " more)") else ""
+    show <- utils::head(bad, 5L)
+    suffix <- if (length(bad) > 5L) {
+      paste0(" ... (", length(bad) - 5L, " more)")
+    } else {
+      ""
+    }
     cli::cli_abort(
       c(
         "x" = "BRR requires exactly 2 PSUs per stratum.",
         "i" = paste0(
           "Stratum/a with wrong PSU count: ",
-          paste(show, collapse = ", "), suffix, "."
+          paste(show, collapse = ", "),
+          suffix,
+          "."
         ),
         "v" = "Use {.fn create_gen_rep_weights} for designs with unequal PSU counts per stratum."
       ),
@@ -127,17 +135,21 @@ create_brr_weights <- function(data, ..., rho = 0, mse = TRUE) {
 
   if (rho == 0) {
     .convert_and_call(
-      data       = data,
-      backend_fn = function(d) survey::as.svrepdesign(d, type = "BRR", mse = mse),
-      method     = "brr",
-      params     = list(rho = 0, mse = mse)
+      data = data,
+      backend_fn = function(d) {
+        survey::as.svrepdesign(d, type = "BRR", mse = mse)
+      },
+      method = "brr",
+      params = list(rho = 0, mse = mse)
     )
   } else {
     .convert_and_call(
-      data       = data,
-      backend_fn = function(d) survey::as.svrepdesign(d, type = "Fay", fay.rho = rho, mse = mse),
-      method     = "brr",
-      params     = list(rho = rho, mse = mse)
+      data = data,
+      backend_fn = function(d) {
+        survey::as.svrepdesign(d, type = "Fay", fay.rho = rho, mse = mse)
+      },
+      method = "brr",
+      params = list(rho = rho, mse = mse)
     )
   }
 }

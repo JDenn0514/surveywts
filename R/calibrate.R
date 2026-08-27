@@ -172,35 +172,35 @@ calibrate <- function(
   ...,
   method = c("rake", "linear", "logit")
 ) {
-  method      <- rlang::arg_match(method)
+  method <- rlang::arg_match(method)
   weights_quo <- rlang::enquo(weights)
 
   switch(
     method,
     rake = calibrate_rake(
       data,
-      targets          = targets,
-      weights          = !!weights_quo,
-      wt_name          = wt_name,
-      type             = type,
+      targets = targets,
+      weights = !!weights_quo,
+      wt_name = wt_name,
+      type = type,
       reference_design = reference_design,
       ...
     ),
     linear = calibrate_linear(
       data,
-      targets          = targets,
-      weights          = !!weights_quo,
-      wt_name          = wt_name,
-      type             = type,
+      targets = targets,
+      weights = !!weights_quo,
+      wt_name = wt_name,
+      type = type,
       reference_design = reference_design,
       ...
     ),
     logit = calibrate_logit(
       data,
-      targets          = targets,
-      weights          = !!weights_quo,
-      wt_name          = wt_name,
-      type             = type,
+      targets = targets,
+      weights = !!weights_quo,
+      wt_name = wt_name,
+      type = type,
       reference_design = reference_design,
       ...
     )

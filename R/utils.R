@@ -34,9 +34,9 @@
 # Format one history entry as a single display line.
 # Used by the S7 print method for survey_nonprob (methods-print.R).
 .format_history_step <- function(entry) {
-  op     <- entry$operation
+  op <- entry$operation
   params <- entry$parameters
-  ts     <- entry$timestamp
+  ts <- entry$timestamp
 
   label <- switch(
     op,
@@ -68,22 +68,35 @@
     },
     "replicate_creation" = {
       method_str <- entry$method
-      params     <- entry$parameters
-      n_rep      <- params$replicates
+      params <- entry$parameters
+      n_rep <- params$replicates
       type_str <- if (!is.null(params$type)) {
         paste0(", type = \"", params$type, "\"")
       } else {
         ""
       }
       rep_str <- if (!is.null(n_rep)) paste0(", replicates = ", n_rep) else ""
-      paste0("replicate_creation (method = \"", method_str, "\"", type_str, rep_str, ")")
+      paste0(
+        "replicate_creation (method = \"",
+        method_str,
+        "\"",
+        type_str,
+        rep_str,
+        ")"
+      )
     },
     "ipw" = {
       fml_str <- deparse(entry$formula)
       paste0(
-        "ipw [", fml_str, ", ", entry$method,
-        ", n_ref=", entry$n_reference,
-        ", N_hat=", round(entry$estimated_population_size), "]"
+        "ipw [",
+        fml_str,
+        ", ",
+        entry$method,
+        ", n_ref=",
+        entry$n_reference,
+        ", N_hat=",
+        round(entry$estimated_population_size),
+        "]"
       )
     },
     op # default: just the operation name
@@ -129,7 +142,9 @@
 #
 # Returns: invisible(TRUE) on success (errors otherwise).
 .validate_wt_name <- function(wt_name) {
-  if (is.null(wt_name)) return(invisible(TRUE))
+  if (is.null(wt_name)) {
+    return(invisible(TRUE))
+  }
   if (!is.character(wt_name) || length(wt_name) != 1) {
     cli::cli_abort(
       c(
@@ -162,8 +177,10 @@
 #
 # Returns: invisible(NULL) on success (errors otherwise).
 .validate_reference_design <- function(reference_design) {
-  if (!is.null(reference_design) &&
-        !S7::S7_inherits(reference_design, surveycore::survey_taylor)) {
+  if (
+    !is.null(reference_design) &&
+      !S7::S7_inherits(reference_design, surveycore::survey_taylor)
+  ) {
     cli::cli_abort(
       c(
         "x" = "{.arg reference_design} must be a {.cls survey_taylor}.",
@@ -312,7 +329,11 @@
 
     n_na <- sum(is.na(col))
     if (n_na > 0L) {
-      fn_name <- if (context == "Calibration") "calibrate_linear" else "calibrate_rake"
+      fn_name <- if (context == "Calibration") {
+        "calibrate_linear"
+      } else {
+        "calibrate_rake"
+      }
       cli::cli_abort(
         c(
           "x" = paste0(
@@ -370,7 +391,10 @@
     # Extract targets as a named numeric vector
     elem <- population[[var]]
     if (is.data.frame(elem)) {
-      targets <- stats::setNames(as.numeric(elem$target), as.character(elem$level)) # nocov
+      targets <- stats::setNames(
+        as.numeric(elem$target),
+        as.character(elem$level)
+      ) # nocov
     } else {
       targets <- elem
     }
@@ -601,7 +625,9 @@
     design@data <- updated_data
   } else {
     # Check for conflict: wt_name already exists as a non-weight column
-    if (wt_name %in% names(design@data) && wt_name != design@variables$weights) {
+    if (
+      wt_name %in% names(design@data) && wt_name != design@variables$weights
+    ) {
       cli::cli_abort(
         c(
           "x" = "{.arg wt_name} {.field {wt_name}} already exists as a non-weight column in {.arg data}.",
@@ -674,7 +700,8 @@
 .get_history <- function(x) {
   if (S7::S7_inherits(x, surveycore::survey_base)) {
     x@metadata@weighting_history
-  } else { # nocov start
+  } else {
+    # nocov start
     # Unreachable via public API: all callers validate survey_base class first.
     list()
   } # nocov end
@@ -723,8 +750,12 @@
 #                  reporting that the variable is missing from the reference design)
 #
 # Returns: invisible(TRUE) on success (errors otherwise).
-.validate_formula_variables <- function(formula, data, design_label,
-                                        error_class = NULL) {
+.validate_formula_variables <- function(
+  formula,
+  data,
+  design_label,
+  error_class = NULL
+) {
   cls <- if (is.null(error_class)) {
     "surveywts_error_formula_variable_not_found"
   } else {
@@ -754,17 +785,22 @@
 # Source: https://github.com/cran/survey/blob/4834b8bc91f6414ad4514552daaed8990a86d9c1/R/grake.R#L449
 .trim_weights_internal <- function(weights, lower, upper, has_trimmed) {
   outside <- weights < lower | weights > upper
-  if (!any(outside)) return(list(weights = weights, has_trimmed = has_trimmed))
+  if (!any(outside)) {
+    return(list(weights = weights, has_trimmed = has_trimmed))
+  }
   weights_new <- pmax(lower, pmin(weights, upper))
   trimmings <- weights - weights_new
   can_adjust <- !outside & !has_trimmed
   if (!any(can_adjust)) {
     cli::cli_warn(
-      c("!" = "Weight redistribution failed: no untrimmed units remain to absorb the trimmed excess."),
+      c(
+        "!" = "Weight redistribution failed: no untrimmed units remain to absorb the trimmed excess."
+      ),
       class = "surveywts_warning_trimming_failed"
     )
   } else {
-    weights_new[can_adjust] <- weights_new[can_adjust] + sum(trimmings) / sum(can_adjust)
+    weights_new[can_adjust] <- weights_new[can_adjust] +
+      sum(trimmings) / sum(can_adjust)
   }
   list(weights = weights_new, has_trimmed = outside | has_trimmed)
 }

@@ -26,8 +26,8 @@
 .validate_response_status_binary <- function(
   data,
   status_var,
-  col_label   = "Response status column",
-  fn_name     = "adjust_nonresponse",
+  col_label = "Response status column",
+  fn_name = "adjust_nonresponse",
   error_class = "surveywts_error_response_status_not_binary"
 ) {
   col <- data[[status_var]]

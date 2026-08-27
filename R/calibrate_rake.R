@@ -247,8 +247,11 @@ calibrate_rake <- function(
 
   # ---- Apply algorithm-specific control defaults (before warning check) ----
   classic_ipf_defaults <- list(
-    maxit = 1000L, improvement = 0.01, pval = 0.05,
-    min_cell_n = 0L, variable_select = "total"
+    maxit = 1000L,
+    improvement = 0.01,
+    pval = 0.05,
+    min_cell_n = 0L,
+    variable_select = "total"
   )
   nr_defaults <- list(maxit = 50L, epsilon = 1e-7)
 
@@ -409,7 +412,6 @@ calibrate_rake <- function(
     new_weights <- engine_result$weights
     convergence <- engine_result$convergence
     nr_lambda <- NULL
-
   } else {
     # --- nr path: Newton-Raphson engine via .calibrate_nr_engine() ----------
     # Build treatment-contrast model matrix (same as calibrate_linear)
@@ -420,11 +422,15 @@ calibrate_rake <- function(
       x_df_nr[[col_name]] <- factor(x_df_nr[[col_name]], levels = lvls)
     }
     fml_vars_nr <- target_var_names[vapply(
-      vars_spec, function(v) length(v$targets) >= 2L, logical(1L)
+      vars_spec,
+      function(v) length(v$targets) >= 2L,
+      logical(1L)
     )]
     if (length(fml_vars_nr) == 0L) {
       x_matrix_nr <- matrix(
-        1, nrow = nrow(plain_df), ncol = 1L,
+        1,
+        nrow = nrow(plain_df),
+        ncol = 1L,
         dimnames = list(NULL, "(Intercept)")
       )
     } else {
@@ -441,12 +447,15 @@ calibrate_rake <- function(
     #   .validate_count_marginal_consistency()). Use the first variable's sum.
     n_cols_nr <- ncol(x_matrix_nr)
     pop_totals_nr <- stats::setNames(
-      numeric(n_cols_nr), colnames(x_matrix_nr)
+      numeric(n_cols_nr),
+      colnames(x_matrix_nr)
     )
     intercept_total_nr <- sum(targets_counts[[target_var_names[[1L]]]])
     pop_totals_nr["(Intercept)"] <- intercept_total_nr
     for (v in vars_spec) {
-      if (length(v$targets) < 2L) next
+      if (length(v$targets) < 2L) {
+        next
+      }
       col_name <- v$col
       lvls <- names(v$targets)
       for (lev in lvls[-1L]) {
@@ -459,21 +468,21 @@ calibrate_rake <- function(
 
     calfun_nr <- .make_calfun_raking()
     nr_result <- .calibrate_nr_engine(
-      x_matrix    = x_matrix_nr,
+      x_matrix = x_matrix_nr,
       weights_vec = weights_vec,
-      calfun      = calfun_nr,
-      population  = pop_totals_nr,
-      epsilon     = control_resolved$epsilon,
-      maxit       = control_resolved$maxit
+      calfun = calfun_nr,
+      population = pop_totals_nr,
+      epsilon = control_resolved$epsilon,
+      maxit = control_resolved$maxit
     )
 
     new_weights <- unname(nr_result$weights)
     nr_lambda <- nr_result$lambda
     convergence <- list(
-      converged   = nr_result$converged,
-      iterations  = nr_result$n_iterations,
-      max_error   = NA_real_,
-      tolerance   = control_resolved$epsilon
+      converged = nr_result$converged,
+      iterations = nr_result$n_iterations,
+      max_error = NA_real_,
+      tolerance = control_resolved$epsilon
     )
 
     # Post-hoc renormalize to enforce exact weight sum conservation against
@@ -498,11 +507,17 @@ calibrate_rake <- function(
       x_df[[col_name]] <- factor(x_df[[col_name]], levels = lvls)
     }
     fml_vars_rake <- target_var_names[vapply(
-      vars_spec, function(v) length(v$targets) >= 2L, logical(1L)
+      vars_spec,
+      function(v) length(v$targets) >= 2L,
+      logical(1L)
     )]
     if (length(fml_vars_rake) == 0L) {
-      x_matrix <- matrix(1, nrow = nrow(plain_df), ncol = 1L,
-                         dimnames = list(NULL, "(Intercept)"))
+      x_matrix <- matrix(
+        1,
+        nrow = nrow(plain_df),
+        ncol = 1L,
+        dimnames = list(NULL, "(Intercept)")
+      )
     } else {
       fml_rake <- stats::as.formula(
         paste("~", paste(fml_vars_rake, collapse = " + "))
@@ -518,7 +533,9 @@ calibrate_rake <- function(
     intercept_total_rake <- sum(targets_counts[[target_var_names[[1L]]]])
     pop_totals_rake["(Intercept)"] <- intercept_total_rake
     for (v in vars_spec) {
-      if (length(v$targets) < 2L) next
+      if (length(v$targets) < 2L) {
+        next
+      }
       col_name <- v$col
       lvls <- names(v$targets)
       for (lev in lvls[-1L]) {
@@ -535,16 +552,17 @@ calibrate_rake <- function(
     # in .build_calibration_provenance() but spec says NULL for NR — override.
     # For "classic_ipf": lambda = NULL (not analytically solved).
     caldata <- .build_calibration_provenance(
-      engine_result     = .engine_result_for_caldata(
-        new_weights, convergence
+      engine_result = .engine_result_for_caldata(
+        new_weights,
+        convergence
       ),
-      x_matrix          = x_matrix,
-      base_weights      = weights_vec,
-      q_weights         = q_weights,
+      x_matrix = x_matrix,
+      base_weights = weights_vec,
+      q_weights = q_weights,
       population_totals = pop_totals_rake,
-      method            = "raking",
-      lambda            = nr_lambda,
-      cell_factors      = NULL
+      method = "raking",
+      lambda = nr_lambda,
+      cell_factors = NULL
     )
 
     # NR: crossproduct_inv is NULL per spec (not stored for raking NR)
@@ -570,7 +588,9 @@ calibrate_rake <- function(
         } else {
           # For type = "count": scale target totals by replicate weight ratio
           rep_scale <- rep_total_w / total_w
-          rep_targets_counts <- lapply(targets_counts, function(m) m * rep_scale)
+          rep_targets_counts <- lapply(targets_counts, function(m) {
+            m * rep_scale
+          })
         }
         rep_vars_spec <- lapply(target_var_names, function(v) {
           list(col = v, targets = rep_targets_counts[[v]])
@@ -580,16 +600,16 @@ calibrate_rake <- function(
           {
             if (algorithm == "classic_ipf") {
               rep_cal_spec <- list(
-                type      = "anesrake",
+                type = "anesrake",
                 variables = rep_vars_spec,
-                total_n   = nrow(plain_df),
-                cap       = cap
+                total_n = nrow(plain_df),
+                cap = cap
               )
               rep_engine <- .anesrake_engine(
-                data_df          = plain_df,
-                weights_vec      = rep_wt,
+                data_df = plain_df,
+                weights_vec = rep_wt,
                 calibration_spec = rep_cal_spec,
-                control          = control_resolved
+                control = control_resolved
               )
               data@data[[repwt_col]] <- rep_engine$weights
             } else {
@@ -597,14 +617,17 @@ calibrate_rake <- function(
               # Intercept = target total for this replicate = sum of any margin.
               n_cols_rep <- ncol(x_matrix)
               pop_totals_rep <- stats::setNames(
-                numeric(n_cols_rep), colnames(x_matrix)
+                numeric(n_cols_rep),
+                colnames(x_matrix)
               )
               rep_intercept <- sum(
                 rep_targets_counts[[target_var_names[[1L]]]]
               )
               pop_totals_rep["(Intercept)"] <- rep_intercept
               for (v in rep_vars_spec) {
-                if (length(v$targets) < 2L) next
+                if (length(v$targets) < 2L) {
+                  next
+                }
                 col_name <- v$col
                 lvls <- names(v$targets)
                 for (lev in lvls[-1L]) {
@@ -615,12 +638,12 @@ calibrate_rake <- function(
                 }
               }
               rep_nr <- .calibrate_nr_engine(
-                x_matrix    = x_matrix,
+                x_matrix = x_matrix,
                 weights_vec = rep_wt,
-                calfun      = .make_calfun_raking(),
-                population  = pop_totals_rep,
-                epsilon     = control_resolved$epsilon,
-                maxit       = control_resolved$maxit
+                calfun = .make_calfun_raking(),
+                population = pop_totals_rep,
+                epsilon = control_resolved$epsilon,
+                maxit = control_resolved$maxit
               )
               data@data[[repwt_col]] <- rep_nr$weights
             }
@@ -667,7 +690,7 @@ calibrate_rake <- function(
     call_str = call_str,
     parameters = list(
       variables = target_var_names,
-      targets = targets_a,   # always stored as Format A per spec §VII
+      targets = targets_a, # always stored as Format A per spec §VII
       type = type,
       algorithm = algorithm,
       cap = cap,
@@ -681,7 +704,13 @@ calibrate_rake <- function(
   )
 
   # ---- 12. Build output ---------------------------------------------------
-  .update_survey_weights(data, new_weights, history_entry, wt_name = wt_name, caldata = caldata)
+  .update_survey_weights(
+    data,
+    new_weights,
+    history_entry,
+    wt_name = wt_name,
+    caldata = caldata
+  )
 }
 
 # ---------------------------------------------------------------------------
@@ -694,7 +723,7 @@ calibrate_rake <- function(
 # @noRd
 .engine_result_for_caldata <- function(new_weights, convergence) {
   list(
-    weights    = new_weights,
+    weights = new_weights,
     convergence = convergence
   )
 }
@@ -802,7 +831,9 @@ calibrate_rake <- function(
     diferrold <- diferr
     diferr <- sum(abs(weightvec - wvold))
     if (g > maxit) {
-      warning("Raking Algorithm Did Not Converge, Results May Be Highly Inconsistent")
+      warning(
+        "Raking Algorithm Did Not Converge, Results May Be Highly Inconsistent"
+      )
       diferrold <- 0
       pop <- 2
       converge <- paste("No convergence in", maxit, "iterations")
@@ -817,7 +848,9 @@ calibrate_rake <- function(
       "Raking algorithm achieved only partial convergence, please check the results to ensure that sufficient convergence was achieved.  Average change in weight per case is",
       diferr / sum(weightvec)
     ))
-    warning("Results are stable, but do not perfectly match population marginals")
+    warning(
+      "Results are stable, but do not perfectly match population marginals"
+    )
     diferrx <- diferr
     pop <- 1
     converge <- "Results are stable, but do not perfectly match population marginals"
@@ -829,15 +862,15 @@ calibrate_rake <- function(
   }
   names(weightvec) <- caseid
   list(
-    weightvec        = weightvec,
-    caseid           = caseid,
-    iterations       = g,
-    nonconvergence   = diferr,
-    converge         = converge,
-    varsused         = names(inputter),
-    targets          = inputter,
-    dataframe        = dataframe,
-    prevec           = prevec,
+    weightvec = weightvec,
+    caseid = caseid,
+    iterations = g,
+    nonconvergence = diferr,
+    converge = converge,
+    varsused = names(inputter),
+    targets = inputter,
+    dataframe = dataframe,
+    prevec = prevec,
     precap_weightvec = precap_weightvec
   )
 }
@@ -858,7 +891,12 @@ calibrate_rake <- function(
   weightvec <- weightvec / mean(weightvec, na.rm = TRUE)
   prevec <- weightvec
 
-  discrep1 <- .rake_find_discrepancies(inputter, dataframe, weightvec, choosemethod)
+  discrep1 <- .rake_find_discrepancies(
+    inputter,
+    dataframe,
+    weightvec,
+    choosemethod
+  )
   towers <- .rake_select_by_pct(discrep1, inputter, pctlim)
 
   ranweight <- .rake_list(towers, mat, caseid, weightvec, cap, maxit, convcrit)
@@ -872,20 +910,34 @@ calibrate_rake <- function(
       it <- it + 1
       addtotowers <- .rake_select_by_pct(
         .rake_find_discrepancies(inputter, dataframe, weightout),
-        inputter, pctlim, tostop = 0
+        inputter,
+        pctlim,
+        tostop = 0
       )
       adders <- addtotowers[!(names(addtotowers) %in% names(towers))]
       tow2 <- c(towers, adders)
       towersx <- towers
       towers <- tow2
-      if (sum(as.numeric(names(towersx) %in% names(towers))) == length(towers)) {
+      if (
+        sum(as.numeric(names(towersx) %in% names(towers))) == length(towers)
+      ) {
         ww <- 1
       }
       # nocov start
       # Re-raking triggered when a previously on-target variable falls off
       # after raking others in. Reachable but not triggered by current tests.
-      if (sum(as.numeric(names(towersx) %in% names(towers))) != length(towers)) {
-        ranweight <- .rake_list(towers, mat, caseid, weightvec, cap, maxit, convcrit)
+      if (
+        sum(as.numeric(names(towersx) %in% names(towers))) != length(towers)
+      ) {
+        ranweight <- .rake_list(
+          towers,
+          mat,
+          caseid,
+          weightvec,
+          cap,
+          maxit,
+          convcrit
+        )
         weightout <- ranweight$weightvec
       }
       if (it > 10) {
@@ -898,16 +950,16 @@ calibrate_rake <- function(
 
   names(weightout) <- caseid
   list(
-    weightvec        = weightout,
-    caseid           = caseid,
-    varsused         = names(towers),
-    choosemethod     = choosemethod,
-    converge         = ranweight$converge,
-    nonconvergence   = ranweight$nonconvergence,
-    targets          = inputter,
-    dataframe        = dataframe,
-    iterations       = iterations,
-    prevec           = prevec,
+    weightvec = weightout,
+    caseid = caseid,
+    varsused = names(towers),
+    choosemethod = choosemethod,
+    converge = ranweight$converge,
+    nonconvergence = ranweight$nonconvergence,
+    targets = inputter,
+    dataframe = dataframe,
+    iterations = iterations,
+    prevec = prevec,
     precap_weightvec = ranweight$precap_weightvec
   )
 }

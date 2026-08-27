@@ -13,7 +13,10 @@ datasets <- make_dagjk_datasets()
 
 test_that("create_jackknife_weights() type='grouped' returns survey_nonprob with correct structure", {
   result <- create_jackknife_weights(
-    datasets$A, replicates = 10L, type = "grouped", seed = 42L
+    datasets$A,
+    replicates = 10L,
+    type = "grouped",
+    seed = 42L
   )
   test_invariants(result)
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
@@ -28,7 +31,10 @@ test_that("create_jackknife_weights() type='grouped' returns survey_nonprob with
 
 test_that("create_jackknife_weights() type='grouped' each row has exactly 1 zero across replicate cols", {
   result <- create_jackknife_weights(
-    datasets$A, replicates = 10L, type = "grouped", seed = 42L
+    datasets$A,
+    replicates = 10L,
+    type = "grouped",
+    seed = 42L
   )
   rep_cols <- result@variables$repweights
   rep_mat <- as.matrix(result@data[, rep_cols, drop = FALSE])
@@ -38,7 +44,10 @@ test_that("create_jackknife_weights() type='grouped' each row has exactly 1 zero
 
 test_that("create_jackknife_weights() type='grouped' each row has G-1 positive values", {
   result <- create_jackknife_weights(
-    datasets$A, replicates = 10L, type = "grouped", seed = 42L
+    datasets$A,
+    replicates = 10L,
+    type = "grouped",
+    seed = 42L
   )
   rep_cols <- result@variables$repweights
   rep_mat <- as.matrix(result@data[, rep_cols, drop = FALSE])
@@ -49,7 +58,10 @@ test_that("create_jackknife_weights() type='grouped' each row has G-1 positive v
 test_that("create_jackknife_weights() type='grouped' original columns are unchanged", {
   original_cols <- names(datasets$A@data)
   result <- create_jackknife_weights(
-    datasets$A, replicates = 10L, type = "grouped", seed = 42L
+    datasets$A,
+    replicates = 10L,
+    type = "grouped",
+    seed = 42L
   )
   expect_true(all(original_cols %in% names(result@data)))
   for (col in original_cols) {
@@ -59,7 +71,10 @@ test_that("create_jackknife_weights() type='grouped' original columns are unchan
 
 test_that("create_jackknife_weights() type='grouped' appends history entry with correct fields", {
   result <- create_jackknife_weights(
-    datasets$A, replicates = 10L, type = "grouped", seed = 42L
+    datasets$A,
+    replicates = 10L,
+    type = "grouped",
+    seed = 42L
   )
   history <- result@metadata@weighting_history
   dagjk_entry <- Filter(
@@ -82,7 +97,10 @@ test_that("create_jackknife_weights() type='grouped' appends history entry with 
 test_that("create_jackknife_weights() type='grouped' coerces whole-number double replicates silently", {
   expect_no_error(
     result <- create_jackknife_weights(
-      datasets$A, replicates = 10.0, type = "grouped", seed = 42L
+      datasets$A,
+      replicates = 10.0,
+      type = "grouped",
+      seed = 42L
     )
   )
   expect_length(result@variables$repweights, 10L)
@@ -93,29 +111,57 @@ test_that("create_jackknife_weights() type='grouped' coerces whole-number double
 # ============================================================================
 
 test_that("create_jackknife_weights() type='grouped' same seed produces identical results", {
-  r1 <- create_jackknife_weights(datasets$A, replicates = 10L, type = "grouped", seed = 42L)
-  r2 <- create_jackknife_weights(datasets$A, replicates = 10L, type = "grouped", seed = 42L)
+  r1 <- create_jackknife_weights(
+    datasets$A,
+    replicates = 10L,
+    type = "grouped",
+    seed = 42L
+  )
+  r2 <- create_jackknife_weights(
+    datasets$A,
+    replicates = 10L,
+    type = "grouped",
+    seed = 42L
+  )
   expect_identical(r1@data, r2@data)
   expect_identical(r1@variables$repweights, r2@variables$repweights)
 })
 
 test_that("create_jackknife_weights() type='grouped' different seeds produce different results", {
-  r1 <- create_jackknife_weights(datasets$A, replicates = 10L, type = "grouped", seed = 1L)
-  r2 <- create_jackknife_weights(datasets$A, replicates = 10L, type = "grouped", seed = 99L)
+  r1 <- create_jackknife_weights(
+    datasets$A,
+    replicates = 10L,
+    type = "grouped",
+    seed = 1L
+  )
+  r2 <- create_jackknife_weights(
+    datasets$A,
+    replicates = 10L,
+    type = "grouped",
+    seed = 99L
+  )
   rep_col <- "repwt_1"
   expect_false(identical(r1@data[[rep_col]], r2@data[[rep_col]]))
 })
 
 test_that("create_jackknife_weights() type='grouped' seed = NULL does not error", {
   expect_no_error(
-    create_jackknife_weights(datasets$A, replicates = 10L, type = "grouped", seed = NULL)
+    create_jackknife_weights(
+      datasets$A,
+      replicates = 10L,
+      type = "grouped",
+      seed = NULL
+    )
   )
 })
 
 test_that("create_jackknife_weights() type='grouped' seed = 0L is valid", {
   expect_no_error(
     result <- create_jackknife_weights(
-      datasets$A, replicates = 10L, type = "grouped", seed = 0L
+      datasets$A,
+      replicates = 10L,
+      type = "grouped",
+      seed = 0L
     )
   )
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
@@ -126,8 +172,18 @@ test_that("create_jackknife_weights() type='grouped' seed = 0L is valid", {
 # ============================================================================
 
 test_that("create_jackknife_weights() type='grouped' replicate weights differ with vs without calibration", {
-  r_a <- create_jackknife_weights(datasets$A, replicates = 10L, type = "grouped", seed = 42L)
-  r_b <- create_jackknife_weights(datasets$B, replicates = 10L, type = "grouped", seed = 42L)
+  r_a <- create_jackknife_weights(
+    datasets$A,
+    replicates = 10L,
+    type = "grouped",
+    seed = 42L
+  )
+  r_b <- create_jackknife_weights(
+    datasets$B,
+    replicates = 10L,
+    type = "grouped",
+    seed = 42L
+  )
   # When calibration is in history, replicate weights must differ from ipw-only
   expect_false(identical(
     r_a@data[["repwt_1"]],
@@ -137,7 +193,12 @@ test_that("create_jackknife_weights() type='grouped' replicate weights differ wi
 
 test_that("create_jackknife_weights() type='grouped' calibrated replicates satisfy margin targets", {
   # Dataset B has literal targets: age_group 0.30/0.40/0.30, sex 0.48/0.52
-  result <- create_jackknife_weights(datasets$B, replicates = 10L, type = "grouped", seed = 42L)
+  result <- create_jackknife_weights(
+    datasets$B,
+    replicates = 10L,
+    type = "grouped",
+    seed = 42L
+  )
   rep_cols <- result@variables$repweights
   age_targets <- c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30)
   sex_targets <- c("M" = 0.48, "F" = 0.52)
@@ -146,7 +207,9 @@ test_that("create_jackknife_weights() type='grouped' calibrated replicates satis
     w <- result@data[[repwt_col]]
     surviving <- w > 0
     w_s <- w[surviving]
-    if (sum(w_s) == 0) next
+    if (sum(w_s) == 0) {
+      next
+    }
 
     age_s <- result@data$age_group[surviving]
     sex_s <- result@data$sex[surviving]
@@ -169,10 +232,17 @@ test_that("create_jackknife_weights() type='grouped' calibrated replicates satis
 
 test_that("create_replicate_weights() dispatches to DAGJK via method='jackknife', type='grouped'", {
   result_direct <- create_jackknife_weights(
-    datasets$A, replicates = 10L, type = "grouped", seed = 42L
+    datasets$A,
+    replicates = 10L,
+    type = "grouped",
+    seed = 42L
   )
   result_dispatch <- create_replicate_weights(
-    datasets$A, method = "jackknife", type = "grouped", replicates = 10L, seed = 42L
+    datasets$A,
+    method = "jackknife",
+    type = "grouped",
+    replicates = 10L,
+    seed = 42L
   )
   expect_identical(result_direct@data, result_dispatch@data)
   expect_identical(result_direct@variables, result_dispatch@variables)
@@ -197,7 +267,7 @@ test_that("create_jackknife_weights() type='grouped' rejects data.frame input", 
 
 test_that("create_jackknife_weights() type='grouped' rejects survey_replicate input", {
   skip_if_not_installed("svrep")
-  td  <- make_taylor_design(seed = 1L)
+  td <- make_taylor_design(seed = 1L)
   rep <- create_bootstrap_weights(td, replicates = 10L, seed = 1L)
   expect_error(
     create_jackknife_weights(rep, replicates = 10L, type = "grouped"),
@@ -222,35 +292,50 @@ test_that("create_jackknife_weights() type='grouped' rejects plain list input", 
 
 test_that("create_jackknife_weights() type='grouped' rejects survey_replicate reference_sample", {
   skip_if_not_installed("svrep")
-  td  <- make_taylor_design(seed = 1L)
+  td <- make_taylor_design(seed = 1L)
   rep <- create_bootstrap_weights(td, replicates = 10L, seed = 1L)
   expect_error(
     create_jackknife_weights(
-      datasets$A, replicates = 10L, type = "grouped", reference_sample = rep
+      datasets$A,
+      replicates = 10L,
+      type = "grouped",
+      reference_sample = rep
     ),
     class = "surveywts_error_reference_sample_class"
   )
   expect_snapshot(
     error = TRUE,
     create_jackknife_weights(
-      datasets$A, replicates = 10L, type = "grouped", reference_sample = rep
+      datasets$A,
+      replicates = 10L,
+      type = "grouped",
+      reference_sample = rep
     )
   )
 })
 
 test_that("create_jackknife_weights() type='grouped' rejects data.frame reference_sample", {
-  df_ref <- data.frame(age_group = c("18-34", "55+"), sex = c("M", "F"),
-                       w = c(1, 1))
+  df_ref <- data.frame(
+    age_group = c("18-34", "55+"),
+    sex = c("M", "F"),
+    w = c(1, 1)
+  )
   expect_error(
     create_jackknife_weights(
-      datasets$A, replicates = 10L, type = "grouped", reference_sample = df_ref
+      datasets$A,
+      replicates = 10L,
+      type = "grouped",
+      reference_sample = df_ref
     ),
     class = "surveywts_error_reference_sample_class"
   )
   expect_snapshot(
     error = TRUE,
     create_jackknife_weights(
-      datasets$A, replicates = 10L, type = "grouped", reference_sample = df_ref
+      datasets$A,
+      replicates = 10L,
+      type = "grouped",
+      reference_sample = df_ref
     )
   )
 })
@@ -264,24 +349,24 @@ test_that("create_jackknife_weights() errors when reference_sample = NULL and no
     stringsAsFactors = FALSE
   )
   np <- surveycore::survey_nonprob(
-    data      = nps_df,
+    data = nps_df,
     variables = list(weights = "w")
   )
   # Manually add an ipw-like history entry WITHOUT a reference_design
   meta <- np@metadata
   meta@weighting_history <- list(list(
-    step             = 1L,
-    operation        = "ipw",
-    formula          = ~age_group,
-    method           = "logit",
-    estimating_eq    = "mle",
-    missing_method   = "omit",
+    step = 1L,
+    operation = "ipw",
+    formula = ~age_group,
+    method = "logit",
+    estimating_eq = "mle",
+    missing_method = "omit",
     adjust_reference = FALSE,
-    trim             = FALSE,
-    trim_threshold   = NULL,
-    maxit            = 25L,
-    epsilon          = 1e-8,
-    reference_design = NULL   # no reference
+    trim = FALSE,
+    trim_threshold = NULL,
+    maxit = 25L,
+    epsilon = 1e-8,
+    reference_design = NULL # no reference
   ))
   np@metadata <- meta
   expect_error(
@@ -365,7 +450,11 @@ test_that("create_jackknife_weights() type='grouped' rejects character replicate
 
 test_that("create_jackknife_weights() type='grouped' rejects replicates of length > 1", {
   expect_error(
-    create_jackknife_weights(datasets$A, replicates = c(10L, 20L), type = "grouped"),
+    create_jackknife_weights(
+      datasets$A,
+      replicates = c(10L, 20L),
+      type = "grouped"
+    ),
     class = "surveywts_error_jackknife_replicates_invalid"
   )
 })
@@ -394,7 +483,7 @@ test_that("create_jackknife_weights() type='grouped' rejects data with no weight
     stringsAsFactors = FALSE
   )
   np_no_history <- surveycore::survey_nonprob(
-    data      = nps_df,
+    data = nps_df,
     variables = list(weights = "w")
   )
   expect_error(
@@ -416,35 +505,43 @@ test_that("create_jackknife_weights() type='grouped' errors when all replicates 
   set.seed(1L)
   tiny_nps <- data.frame(
     age_group = c("18-34", "18-34", "55+", "55+"),
-    sex       = c("M", "F", "M", "F"),
+    sex = c("M", "F", "M", "F"),
     stringsAsFactors = FALSE
   )
   tiny_ref_df <- data.frame(
-    age_group  = c("18-34", "35-54", "35-54", "55+"),
-    sex        = c("M", "F", "M", "F"),
+    age_group = c("18-34", "35-54", "35-54", "55+"),
+    sex = c("M", "F", "M", "F"),
     ref_weight = c(1, 1, 1, 1),
     stringsAsFactors = FALSE
   )
   tiny_ref <- surveycore::survey_taylor(
-    data      = tiny_ref_df,
+    data = tiny_ref_df,
     variables = list(weights = "ref_weight")
   )
   tiny_ipw <- tryCatch(
     suppressWarnings(
       surveywts::ipw(
-        data             = tiny_nps,
-        reference        = tiny_ref,
-        selection        = ~age_group + sex,
+        data = tiny_nps,
+        reference = tiny_ref,
+        selection = ~ age_group + sex,
         adjust_reference = FALSE
       )
     ),
     error = function(e) NULL
   )
-  skip_if(is.null(tiny_ipw), "ipw() failed on tiny data; cannot test all-fail path")
+  skip_if(
+    is.null(tiny_ipw),
+    "ipw() failed on tiny data; cannot test all-fail path"
+  )
 
   result <- tryCatch(
     suppressWarnings(
-      create_jackknife_weights(tiny_ipw, replicates = 2L, type = "grouped", seed = 1L)
+      create_jackknife_weights(
+        tiny_ipw,
+        replicates = 2L,
+        type = "grouped",
+        seed = 1L
+      )
     ),
     error = function(e) e
   )
@@ -461,30 +558,30 @@ test_that(".dagjk_single_replicate() throws degenerate_replicate when no NPS uni
   nps_data <- data.frame(x = 1:3, w = rep(1, 3))
   ref_data <- data.frame(x = 4:6, ref_w = rep(1, 3))
   ipw_entry <- list(
-    formula          = ~x,
-    method           = "logit",
-    estimating_eq    = "mle",
-    missing_method   = "omit",
+    formula = ~x,
+    method = "logit",
+    estimating_eq = "mle",
+    missing_method = "omit",
     adjust_reference = FALSE,
-    trim             = FALSE,
-    trim_threshold   = NULL,
-    maxit            = 25L,
-    epsilon          = 1e-8
+    trim = FALSE,
+    trim_threshold = NULL,
+    maxit = 25L,
+    epsilon = 1e-8
   )
   cond <- tryCatch(
     surveywts:::.dagjk_single_replicate(
-      g            = 1L,
+      g = 1L,
       group_assign = group_assign,
-      nps_data     = nps_data,
-      ref_data     = ref_data,
-      ref_wt_col   = "ref_w",
-      ipw_entry    = ipw_entry,
-      calib_entry  = NULL,
-      n_nps        = n_nps,
-      n_ref        = n_ref,
-      use_level_b  = FALSE,
-      ref_design   = NULL,
-      wt_col       = "w"
+      nps_data = nps_data,
+      ref_data = ref_data,
+      ref_wt_col = "ref_w",
+      ipw_entry = ipw_entry,
+      calib_entry = NULL,
+      n_nps = n_nps,
+      n_ref = n_ref,
+      use_level_b = FALSE,
+      ref_design = NULL,
+      wt_col = "w"
     ),
     error = function(e) e
   )
@@ -499,30 +596,30 @@ test_that(".dagjk_single_replicate() throws degenerate_replicate when no ref uni
   nps_data <- data.frame(x = 1:3, w = rep(1, 3))
   ref_data <- data.frame(x = 4:6, ref_w = rep(1, 3))
   ipw_entry <- list(
-    formula          = ~x,
-    method           = "logit",
-    estimating_eq    = "mle",
-    missing_method   = "omit",
+    formula = ~x,
+    method = "logit",
+    estimating_eq = "mle",
+    missing_method = "omit",
     adjust_reference = FALSE,
-    trim             = FALSE,
-    trim_threshold   = NULL,
-    maxit            = 25L,
-    epsilon          = 1e-8
+    trim = FALSE,
+    trim_threshold = NULL,
+    maxit = 25L,
+    epsilon = 1e-8
   )
   cond <- tryCatch(
     surveywts:::.dagjk_single_replicate(
-      g            = 1L,
+      g = 1L,
       group_assign = group_assign,
-      nps_data     = nps_data,
-      ref_data     = ref_data,
-      ref_wt_col   = "ref_w",
-      ipw_entry    = ipw_entry,
-      calib_entry  = NULL,
-      n_nps        = n_nps,
-      n_ref        = n_ref,
-      use_level_b  = FALSE,
-      ref_design   = NULL,
-      wt_col       = "w"
+      nps_data = nps_data,
+      ref_data = ref_data,
+      ref_wt_col = "ref_w",
+      ipw_entry = ipw_entry,
+      calib_entry = NULL,
+      n_nps = n_nps,
+      n_ref = n_ref,
+      use_level_b = FALSE,
+      ref_design = NULL,
+      wt_col = "w"
     ),
     error = function(e) e
   )
@@ -537,30 +634,30 @@ test_that(".dagjk_single_replicate() throws degenerate_replicate when N_hat_g < 
   nps_data <- data.frame(x = 1:10, w = rep(1, 10))
   ref_data <- data.frame(x = 11:14, ref_w = rep(0.001, 4L))
   ipw_entry <- list(
-    formula          = ~x,
-    method           = "logit",
-    estimating_eq    = "mle",
-    missing_method   = "omit",
+    formula = ~x,
+    method = "logit",
+    estimating_eq = "mle",
+    missing_method = "omit",
     adjust_reference = FALSE,
-    trim             = FALSE,
-    trim_threshold   = NULL,
-    maxit            = 25L,
-    epsilon          = 1e-8
+    trim = FALSE,
+    trim_threshold = NULL,
+    maxit = 25L,
+    epsilon = 1e-8
   )
   cond <- tryCatch(
     surveywts:::.dagjk_single_replicate(
-      g            = 1L,
+      g = 1L,
       group_assign = group_assign,
-      nps_data     = nps_data,
-      ref_data     = ref_data,
-      ref_wt_col   = "ref_w",
-      ipw_entry    = ipw_entry,
-      calib_entry  = NULL,
-      n_nps        = n_nps,
-      n_ref        = n_ref,
-      use_level_b  = FALSE,
-      ref_design   = NULL,
-      wt_col       = "w"
+      nps_data = nps_data,
+      ref_data = ref_data,
+      ref_wt_col = "ref_w",
+      ipw_entry = ipw_entry,
+      calib_entry = NULL,
+      n_nps = n_nps,
+      n_ref = n_ref,
+      use_level_b = FALSE,
+      ref_design = NULL,
+      wt_col = "w"
     ),
     error = function(e) e
   )
@@ -571,43 +668,56 @@ test_that("create_jackknife_weights() type='grouped' errors (all fail) when N_ha
   # Tiny reference (n=5, weight=1) vs large NPS (n=50)
   set.seed(5L)
   tiny_ref_df <- data.frame(
-    age_group  = sample(c("18-34", "55+"), 5L, replace = TRUE),
-    sex        = sample(c("M", "F"), 5L, replace = TRUE),
+    age_group = sample(c("18-34", "55+"), 5L, replace = TRUE),
+    sex = sample(c("M", "F"), 5L, replace = TRUE),
     ref_weight = rep(1, 5L),
     stringsAsFactors = FALSE
   )
   tiny_ref <- surveycore::survey_taylor(
-    data      = tiny_ref_df,
+    data = tiny_ref_df,
     variables = list(weights = "ref_weight")
   )
   large_nps_df <- data.frame(
     age_group = sample(c("18-34", "55+"), 50L, replace = TRUE),
-    sex       = sample(c("M", "F"), 50L, replace = TRUE),
+    sex = sample(c("M", "F"), 50L, replace = TRUE),
     stringsAsFactors = FALSE
   )
   large_ipw <- tryCatch(
     suppressWarnings(
       surveywts::ipw(
-        data             = large_nps_df,
-        reference        = tiny_ref,
-        selection        = ~age_group + sex,
+        data = large_nps_df,
+        reference = tiny_ref,
+        selection = ~ age_group + sex,
         adjust_reference = FALSE
       )
     ),
     error = function(e) NULL
   )
-  skip_if(is.null(large_ipw), "ipw() failed; cannot test negative adjustment factor path")
+  skip_if(
+    is.null(large_ipw),
+    "ipw() failed; cannot test negative adjustment factor path"
+  )
 
   expect_error(
     suppressWarnings(
-      create_jackknife_weights(large_ipw, replicates = 10L, type = "grouped", seed = 1L)
+      create_jackknife_weights(
+        large_ipw,
+        replicates = 10L,
+        type = "grouped",
+        seed = 1L
+      )
     ),
     class = "surveywts_error_jackknife_all_replicates_failed"
   )
   expect_snapshot(
     error = TRUE,
     suppressWarnings(
-      create_jackknife_weights(large_ipw, replicates = 10L, type = "grouped", seed = 1L)
+      create_jackknife_weights(
+        large_ipw,
+        replicates = 10L,
+        type = "grouped",
+        seed = 1L
+      )
     )
   )
 })
@@ -617,16 +727,29 @@ test_that("create_jackknife_weights() type='grouped' errors (all fail) when N_ha
 # ============================================================================
 
 test_that("create_jackknife_weights() type='grouped' warns when repweights already populated", {
-  r1 <- create_jackknife_weights(datasets$A, replicates = 10L, type = "grouped", seed = 1L)
+  r1 <- create_jackknife_weights(
+    datasets$A,
+    replicates = 10L,
+    type = "grouped",
+    seed = 1L
+  )
   expect_warning(
     result <- create_jackknife_weights(
-      r1, replicates = 10L, type = "grouped", seed = 2L
+      r1,
+      replicates = 10L,
+      type = "grouped",
+      seed = 2L
     ),
     class = "surveywts_warning_jackknife_repweights_overwritten"
   )
   expect_snapshot(
     .pin_ts(
-      create_jackknife_weights(r1, replicates = 10L, type = "grouped", seed = 2L)
+      create_jackknife_weights(
+        r1,
+        replicates = 10L,
+        type = "grouped",
+        seed = 2L
+      )
     )
   )
 })
@@ -636,7 +759,10 @@ test_that("create_jackknife_weights() type='grouped' warns when average group si
   saw_small_groups <- FALSE
   withCallingHandlers(
     create_jackknife_weights(
-      datasets$A, replicates = 200L, type = "grouped", seed = 1L
+      datasets$A,
+      replicates = 200L,
+      type = "grouped",
+      seed = 1L
     ),
     surveywts_warning_jackknife_small_groups = function(w) {
       saw_small_groups <<- TRUE
@@ -648,7 +774,10 @@ test_that("create_jackknife_weights() type='grouped' warns when average group si
   expect_snapshot(
     .pin_ts(withCallingHandlers(
       create_jackknife_weights(
-        datasets$A, replicates = 200L, type = "grouped", seed = 1L
+        datasets$A,
+        replicates = 200L,
+        type = "grouped",
+        seed = 1L
       ),
       warning = function(w) {
         if (!inherits(w, "surveywts_warning_jackknife_small_groups")) {
@@ -662,12 +791,12 @@ test_that("create_jackknife_weights() type='grouped' warns when average group si
 test_that("create_jackknife_weights() type='grouped' warns when > 10% of replicates fail", {
   set.seed(77L)
   tiny_ref_df2 <- data.frame(
-    age_group  = c("18-34", "18-34", "55+", "55+", "35-54", "35-54"),
+    age_group = c("18-34", "18-34", "55+", "55+", "35-54", "35-54"),
     ref_weight = rep(100, 6L),
     stringsAsFactors = FALSE
   )
   tiny_ref2 <- surveycore::survey_taylor(
-    data      = tiny_ref_df2,
+    data = tiny_ref_df2,
     variables = list(weights = "ref_weight")
   )
   tiny_nps2 <- data.frame(
@@ -676,16 +805,19 @@ test_that("create_jackknife_weights() type='grouped' warns when > 10% of replica
   )
   tiny_ipw2 <- suppressWarnings(
     surveywts::ipw(
-      data             = tiny_nps2,
-      reference        = tiny_ref2,
-      selection        = ~age_group,
+      data = tiny_nps2,
+      reference = tiny_ref2,
+      selection = ~age_group,
       adjust_reference = FALSE
     )
   )
 
   expect_warning(
     result <- create_jackknife_weights(
-      tiny_ipw2, replicates = 5L, type = "grouped", seed = 7L
+      tiny_ipw2,
+      replicates = 5L,
+      type = "grouped",
+      seed = 7L
     ),
     class = "surveywts_warning_jackknife_replicates_failed"
   )
@@ -699,7 +831,12 @@ test_that("create_jackknife_weights() type='grouped' warns when > 10% of replica
   )
   expect_snapshot(
     .pin_ts(
-      create_jackknife_weights(tiny_ipw2, replicates = 5L, type = "grouped", seed = 7L)
+      create_jackknife_weights(
+        tiny_ipw2,
+        replicates = 5L,
+        type = "grouped",
+        seed = 7L
+      )
     )
   )
 })
@@ -707,7 +844,11 @@ test_that("create_jackknife_weights() type='grouped' warns when > 10% of replica
 test_that("create_jackknife_weights() type='grouped' mse=FALSE warning fires and overrides to TRUE", {
   expect_warning(
     result <- create_jackknife_weights(
-      datasets$A, replicates = 10L, type = "grouped", mse = FALSE, seed = 1L
+      datasets$A,
+      replicates = 10L,
+      type = "grouped",
+      mse = FALSE,
+      seed = 1L
     ),
     class = "surveywts_warning_jackknife_mse_overridden"
   )
@@ -717,7 +858,10 @@ test_that("create_jackknife_weights() type='grouped' mse=FALSE warning fires and
 test_that("create_jackknife_weights() type='grouped' svrep args warning fires once for non-default args", {
   expect_warning(
     create_jackknife_weights(
-      datasets$A, replicates = 10L, type = "grouped", seed = 1L,
+      datasets$A,
+      replicates = 10L,
+      type = "grouped",
+      seed = 1L,
       var_strat = "some_var"
     ),
     class = "surveywts_warning_jackknife_svrep_args_ignored"
@@ -728,7 +872,9 @@ test_that("create_jackknife_weights() warns when adj_method overridden for DAGJK
   ns_wave1_svy <- datasets$A
   expect_warning(
     create_jackknife_weights(
-      ns_wave1_svy, replicates = 5L, type = "grouped",
+      ns_wave1_svy,
+      replicates = 5L,
+      type = "grouped",
       adj_method = "variance-units"
     ),
     class = "surveywts_warning_jackknife_svrep_args_ignored"
@@ -741,9 +887,9 @@ test_that("multiple non-default svrep args together emit exactly one warning for
   withCallingHandlers(
     create_jackknife_weights(
       ns_wave1_svy,
-      replicates   = 5L,
-      type         = "grouped",
-      adj_method   = "variance-units",
+      replicates = 5L,
+      type = "grouped",
+      adj_method = "variance-units",
       scale_method = "variance-units"
     ),
     warning = function(w) {
@@ -769,23 +915,33 @@ test_that("create_jackknife_weights() type='grouped' negative-weight warning pat
   #   bypassing the S7 validator. This test documents the defensive nature of the check.
   set.seed(33L)
   ref_df3 <- data.frame(
-    age_group  = sample(c("young", "old"), 200L, replace = TRUE, prob = c(0.5, 0.5)),
+    age_group = sample(
+      c("young", "old"),
+      200L,
+      replace = TRUE,
+      prob = c(0.5, 0.5)
+    ),
     ref_weight = rep(1, 200L),
     stringsAsFactors = FALSE
   )
   ref3 <- surveycore::survey_taylor(
-    data      = ref_df3,
+    data = ref_df3,
     variables = list(weights = "ref_weight")
   )
   nps_df3 <- data.frame(
-    age_group = sample(c("young", "old"), 30L, replace = TRUE, prob = c(0.95, 0.05)),
+    age_group = sample(
+      c("young", "old"),
+      30L,
+      replace = TRUE,
+      prob = c(0.95, 0.05)
+    ),
     stringsAsFactors = FALSE
   )
   ipw3 <- suppressWarnings(
     surveywts::ipw(
-      data             = nps_df3,
-      reference        = ref3,
-      selection        = ~age_group,
+      data = nps_df3,
+      reference = ref3,
+      selection = ~age_group,
       adjust_reference = FALSE
     )
   )
@@ -798,7 +954,12 @@ test_that("create_jackknife_weights() type='grouped' negative-weight warning pat
   wts <- raked3@data[[raked3@variables$weights]]
   expect_true(all(wts > 0))
   result <- suppressWarnings(
-    create_jackknife_weights(raked3, replicates = 10L, type = "grouped", seed = 1L)
+    create_jackknife_weights(
+      raked3,
+      replicates = 10L,
+      type = "grouped",
+      seed = 1L
+    )
   )
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
   rep_cols <- result@variables$repweights
@@ -810,7 +971,12 @@ test_that("create_jackknife_weights() type='grouped' negative-weight warning pat
 
 test_that("create_jackknife_weights() type='grouped' uses_level_b = TRUE (targets_from_reference)", {
   # Dataset D uses rake() with reference_design= -> targets_from_reference = TRUE
-  result <- create_jackknife_weights(datasets$D, replicates = 10L, type = "grouped", seed = 42L)
+  result <- create_jackknife_weights(
+    datasets$D,
+    replicates = 10L,
+    type = "grouped",
+    seed = 42L
+  )
   test_invariants(result)
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
   expect_length(result@variables$repweights, 10L)
@@ -823,7 +989,12 @@ test_that("create_jackknife_weights() type='grouped' uses_level_b = TRUE (target
 
 test_that("create_jackknife_weights() type='grouped' sets scale to (G-1)/G, not (n-1)/n", {
   G <- 10L
-  result <- create_jackknife_weights(datasets$A, replicates = G, type = "grouped", seed = 42L)
+  result <- create_jackknife_weights(
+    datasets$A,
+    replicates = G,
+    type = "grouped",
+    seed = 42L
+  )
   n <- nrow(datasets$A@data)
   expect_equal(result@variables$scale, (G - 1) / G, tolerance = 1e-12)
   expect_false(isTRUE(all.equal(result@variables$scale, (n - 1) / n)))
@@ -834,11 +1005,18 @@ test_that("create_jackknife_weights() type='grouped' sets scale to (G-1)/G, not 
 # ============================================================================
 
 test_that("create_jackknife_weights() type='grouped' refits the logistic model per replicate", {
-  result <- create_jackknife_weights(datasets$A, replicates = 10L, type = "grouped", seed = 42L)
+  result <- create_jackknife_weights(
+    datasets$A,
+    replicates = 10L,
+    type = "grouped",
+    seed = 42L
+  )
   wt_col <- result@variables$weights
   full_wt <- result@data[[wt_col]]
   surviving1 <- result@data[["repwt_1"]] > 0
-  if (sum(surviving1) < 2L) skip("Not enough surviving units in replicate 1")
+  if (sum(surviving1) < 2L) {
+    skip("Not enough surviving units in replicate 1")
+  }
   ratio <- result@data[["repwt_1"]][surviving1] / full_wt[surviving1]
   expect_true(stats::sd(ratio) > 1e-10)
 })
@@ -858,7 +1036,8 @@ test_that("create_jackknife_weights() calibration-only DAGJK Level A (no referen
   nps_df <- data.frame(
     age_group = sample(
       c("18-34", "35-54", "55+"),
-      size = 80L, replace = TRUE,
+      size = 80L,
+      replace = TRUE,
       prob = c(0.40, 0.35, 0.25)
     ),
     sex = sample(c("M", "F"), size = 80L, replace = TRUE, prob = c(0.55, 0.45)),
@@ -866,20 +1045,27 @@ test_that("create_jackknife_weights() calibration-only DAGJK Level A (no referen
     stringsAsFactors = FALSE
   )
   np <- surveycore::survey_nonprob(
-    data      = nps_df,
+    data = nps_df,
     variables = list(weights = "wts")
   )
   targets <- list(
     age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
-    sex       = c("M" = 0.48, "F" = 0.52)
+    sex = c("M" = 0.48, "F" = 0.52)
   )
   cal <- calibrate_rake(np, targets = targets, type = "prop")
-  result <- create_jackknife_weights(cal, replicates = 10L, type = "grouped", seed = 42L)
+  result <- create_jackknife_weights(
+    cal,
+    replicates = 10L,
+    type = "grouped",
+    seed = 42L
+  )
 
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
   expect_length(result@variables$repweights, 10L)
   expect_identical(result@variables$type, "group-jackknife")
-  rep_mat <- sapply(result@variables$repweights, function(col) result@data[[col]])
+  rep_mat <- sapply(result@variables$repweights, function(col) {
+    result@data[[col]]
+  })
   expect_equal(nrow(rep_mat), 80L)
   expect_equal(ncol(rep_mat), 10L)
 })
@@ -887,17 +1073,23 @@ test_that("create_jackknife_weights() calibration-only DAGJK Level A (no referen
 test_that("create_jackknife_weights() calibration-only DAGJK Level B (with reference)", {
   set.seed(101L)
   ref_df <- data.frame(
-    age_group  = sample(
+    age_group = sample(
       c("18-34", "35-54", "55+"),
-      size = 500L, replace = TRUE,
+      size = 500L,
+      replace = TRUE,
       prob = c(0.30, 0.40, 0.30)
     ),
-    sex        = sample(c("M", "F"), size = 500L, replace = TRUE, prob = c(0.48, 0.52)),
+    sex = sample(
+      c("M", "F"),
+      size = 500L,
+      replace = TRUE,
+      prob = c(0.48, 0.52)
+    ),
     ref_weight = rep(1, 500L),
     stringsAsFactors = FALSE
   )
   ref <- surveycore::survey_taylor(
-    data      = ref_df,
+    data = ref_df,
     variables = list(weights = "ref_weight")
   )
 
@@ -905,7 +1097,8 @@ test_that("create_jackknife_weights() calibration-only DAGJK Level B (with refer
   nps_df <- data.frame(
     age_group = sample(
       c("18-34", "35-54", "55+"),
-      size = 80L, replace = TRUE,
+      size = 80L,
+      replace = TRUE,
       prob = c(0.40, 0.35, 0.25)
     ),
     sex = sample(c("M", "F"), size = 80L, replace = TRUE, prob = c(0.55, 0.45)),
@@ -913,20 +1106,32 @@ test_that("create_jackknife_weights() calibration-only DAGJK Level B (with refer
     stringsAsFactors = FALSE
   )
   np <- surveycore::survey_nonprob(
-    data      = nps_df,
+    data = nps_df,
     variables = list(weights = "wts")
   )
   targets <- list(
     age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
-    sex       = c("M" = 0.48, "F" = 0.52)
+    sex = c("M" = 0.48, "F" = 0.52)
   )
-  cal <- calibrate_rake(np, targets = targets, type = "prop", reference_design = ref)
-  result <- create_jackknife_weights(cal, replicates = 10L, type = "grouped", seed = 42L)
+  cal <- calibrate_rake(
+    np,
+    targets = targets,
+    type = "prop",
+    reference_design = ref
+  )
+  result <- create_jackknife_weights(
+    cal,
+    replicates = 10L,
+    type = "grouped",
+    seed = 42L
+  )
 
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
   expect_length(result@variables$repweights, 10L)
   expect_identical(result@variables$type, "group-jackknife")
-  rep_mat <- sapply(result@variables$repweights, function(col) result@data[[col]])
+  rep_mat <- sapply(result@variables$repweights, function(col) {
+    result@data[[col]]
+  })
   expect_equal(nrow(rep_mat), 80L)
   expect_equal(ncol(rep_mat), 10L)
 })
@@ -938,24 +1143,31 @@ test_that("create_jackknife_weights() calibration-only DAGJK Level B (with refer
 test_that("create_jackknife_weights() DAGJK handles missing_method = 'separate'", {
   set.seed(303L)
   ref_df <- data.frame(
-    age_group  = sample(
+    age_group = sample(
       c("18-34", "35-54", "55+"),
-      size = 500L, replace = TRUE,
+      size = 500L,
+      replace = TRUE,
       prob = c(0.30, 0.40, 0.30)
     ),
-    sex        = sample(c("M", "F"), size = 500L, replace = TRUE, prob = c(0.48, 0.52)),
+    sex = sample(
+      c("M", "F"),
+      size = 500L,
+      replace = TRUE,
+      prob = c(0.48, 0.52)
+    ),
     ref_weight = rep(1, 500L),
     stringsAsFactors = FALSE
   )
   ref <- surveycore::survey_taylor(
-    data      = ref_df,
+    data = ref_df,
     variables = list(weights = "ref_weight")
   )
   set.seed(404L)
   nps_df <- data.frame(
     age_group = sample(
       c("18-34", "35-54", "55+"),
-      size = 80L, replace = TRUE,
+      size = 80L,
+      replace = TRUE,
       prob = c(0.40, 0.35, 0.25)
     ),
     sex = sample(c("M", "F"), size = 80L, replace = TRUE, prob = c(0.55, 0.45)),
@@ -964,14 +1176,17 @@ test_that("create_jackknife_weights() DAGJK handles missing_method = 'separate'"
   # Introduce NAs so missing_method = "separate" creates the (Missing) level
   nps_df$age_group[c(1L, 5L, 10L)] <- NA_character_
   result_ipw <- suppressWarnings(ipw(
-    data             = nps_df,
-    reference        = ref,
-    selection        = ~age_group + sex,
-    missing_method   = "separate",
+    data = nps_df,
+    reference = ref,
+    selection = ~ age_group + sex,
+    missing_method = "separate",
     adjust_reference = FALSE
   ))
   result <- create_jackknife_weights(
-    result_ipw, replicates = 10L, type = "grouped", seed = 42L
+    result_ipw,
+    replicates = 10L,
+    type = "grouped",
+    seed = 42L
   )
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
   expect_length(result@variables$repweights, 10L)
@@ -979,14 +1194,17 @@ test_that("create_jackknife_weights() DAGJK handles missing_method = 'separate'"
 
 test_that("create_jackknife_weights() DAGJK handles ipw() with trim = TRUE", {
   result_ipw <- suppressWarnings(ipw(
-    data             = datasets$ref@data[1:80, c("age_group", "sex")],
-    reference        = datasets$ref,
-    selection        = ~age_group + sex,
-    trim             = TRUE,
+    data = datasets$ref@data[1:80, c("age_group", "sex")],
+    reference = datasets$ref,
+    selection = ~ age_group + sex,
+    trim = TRUE,
     adjust_reference = FALSE
   ))
   result <- create_jackknife_weights(
-    result_ipw, replicates = 10L, type = "grouped", seed = 42L
+    result_ipw,
+    replicates = 10L,
+    type = "grouped",
+    seed = 42L
   )
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
   expect_length(result@variables$repweights, 10L)
@@ -997,13 +1215,18 @@ test_that("create_jackknife_weights() DAGJK applies per-stratum scaling when str
   # so create_jackknife_weights() takes the per-stratum scaling path
   # (lines 226-256 of jackknife-dagjk-utils.R).
   result_ipw <- suppressWarnings(ipw(
-    data             = datasets$ref@data[1:80, c("age_group", "sex")],
-    reference        = datasets$ref,
-    selection        = ~age_group + sex,
+    data = datasets$ref@data[1:80, c("age_group", "sex")],
+    reference = datasets$ref,
+    selection = ~ age_group + sex,
     adjust_reference = FALSE
   ))
   result_ipw@variables$strata <- "age_group"
-  result <- create_jackknife_weights(result_ipw, replicates = 10L, type = "grouped", seed = 42L)
+  result <- create_jackknife_weights(
+    result_ipw,
+    replicates = 10L,
+    type = "grouped",
+    seed = 42L
+  )
   test_invariants(result)
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
   expect_length(result@variables$repweights, 10L)
@@ -1011,42 +1234,56 @@ test_that("create_jackknife_weights() DAGJK applies per-stratum scaling when str
 
 test_that("create_jackknife_weights() DAGJK replays calibrate_logit() in replicates", {
   result_ipw <- suppressWarnings(ipw(
-    data             = datasets$ref@data[1:80, c("age_group", "sex")],
-    reference        = datasets$ref,
-    selection        = ~age_group + sex,
+    data = datasets$ref@data[1:80, c("age_group", "sex")],
+    reference = datasets$ref,
+    selection = ~ age_group + sex,
     adjust_reference = FALSE
   ))
   targets <- list(
     age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
-    sex       = c("M" = 0.48, "F" = 0.52)
+    sex = c("M" = 0.48, "F" = 0.52)
   )
   cal <- tryCatch(
     calibrate_logit(result_ipw, targets = targets, type = "prop"),
     error = function(e) NULL
   )
-  if (is.null(cal)) skip("calibrate_logit() did not converge on this data")
-  result <- create_jackknife_weights(cal, replicates = 10L, type = "grouped", seed = 42L)
+  if (is.null(cal)) {
+    skip("calibrate_logit() did not converge on this data")
+  }
+  result <- create_jackknife_weights(
+    cal,
+    replicates = 10L,
+    type = "grouped",
+    seed = 42L
+  )
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
   expect_length(result@variables$repweights, 10L)
 })
 
 test_that("create_jackknife_weights() DAGJK replays calibrate_linear() in replicates", {
   result_ipw <- suppressWarnings(ipw(
-    data             = datasets$ref@data[1:80, c("age_group", "sex")],
-    reference        = datasets$ref,
-    selection        = ~age_group + sex,
+    data = datasets$ref@data[1:80, c("age_group", "sex")],
+    reference = datasets$ref,
+    selection = ~ age_group + sex,
     adjust_reference = FALSE
   ))
   targets <- list(
     age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
-    sex       = c("M" = 0.48, "F" = 0.52)
+    sex = c("M" = 0.48, "F" = 0.52)
   )
   cal <- tryCatch(
     calibrate_linear(result_ipw, targets = targets, type = "prop"),
     error = function(e) NULL
   )
-  if (is.null(cal)) skip("calibrate_linear() did not converge on this data")
-  result <- create_jackknife_weights(cal, replicates = 10L, type = "grouped", seed = 42L)
+  if (is.null(cal)) {
+    skip("calibrate_linear() did not converge on this data")
+  }
+  result <- create_jackknife_weights(
+    cal,
+    replicates = 10L,
+    type = "grouped",
+    seed = 42L
+  )
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
   expect_length(result@variables$repweights, 10L)
 })
@@ -1057,30 +1294,35 @@ test_that("create_jackknife_weights() DAGJK uses extended formula when n_h < G",
   # n_old=8 >> 1 group's share (~1 row) so no replicate loses all "old" rows.
   set.seed(77L)
   ref_df <- data.frame(
-    age_group  = c(rep("young", 400L), rep("old", 400L)),
-    sex        = sample(c("M", "F"), size = 800L, replace = TRUE),
+    age_group = c(rep("young", 400L), rep("old", 400L)),
+    sex = sample(c("M", "F"), size = 800L, replace = TRUE),
     ref_weight = rep(1, 800L),
     stringsAsFactors = FALSE
   )
   ref <- surveycore::survey_taylor(
-    data      = ref_df,
+    data = ref_df,
     variables = list(weights = "ref_weight")
   )
   # NPS: 92 "young" + 8 "old" rows; "old" stratum has n_h=8 < G=10
   nps_df <- data.frame(
     age_group = c(rep("young", 92L), rep("old", 8L)),
-    sex       = sample(c("M", "F"), size = 100L, replace = TRUE),
+    sex = sample(c("M", "F"), size = 100L, replace = TRUE),
     stringsAsFactors = FALSE
   )
   result_ipw <- suppressWarnings(ipw(
-    data             = nps_df,
-    reference        = ref,
-    selection        = ~age_group + sex,
+    data = nps_df,
+    reference = ref,
+    selection = ~ age_group + sex,
     adjust_reference = FALSE
   ))
   result_ipw@variables$strata <- "age_group"
   result <- suppressWarnings(
-    create_jackknife_weights(result_ipw, replicates = 10L, type = "grouped", seed = 42L)
+    create_jackknife_weights(
+      result_ipw,
+      replicates = 10L,
+      type = "grouped",
+      seed = 42L
+    )
   )
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
   expect_gte(length(result@variables$repweights), 9L)
@@ -1090,26 +1332,33 @@ test_that("create_jackknife_weights() DAGJK Level B replays calibrate_logit() wi
   # calibrate_logit with reference_design in history → Level B path
   # exercises jackknife-dagjk-utils.R lines 308-314
   result_ipw <- suppressWarnings(ipw(
-    data             = datasets$ref@data[1:80, c("age_group", "sex")],
-    reference        = datasets$ref,
-    selection        = ~age_group + sex,
+    data = datasets$ref@data[1:80, c("age_group", "sex")],
+    reference = datasets$ref,
+    selection = ~ age_group + sex,
     adjust_reference = FALSE
   ))
   targets <- list(
     age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
-    sex       = c("M" = 0.48, "F" = 0.52)
+    sex = c("M" = 0.48, "F" = 0.52)
   )
   cal <- tryCatch(
     calibrate_logit(
       result_ipw,
-      targets          = targets,
-      type             = "prop",
+      targets = targets,
+      type = "prop",
       reference_design = datasets$ref
     ),
     error = function(e) NULL
   )
-  if (is.null(cal)) skip("calibrate_logit() did not converge on this data")
-  result <- create_jackknife_weights(cal, replicates = 10L, type = "grouped", seed = 42L)
+  if (is.null(cal)) {
+    skip("calibrate_logit() did not converge on this data")
+  }
+  result <- create_jackknife_weights(
+    cal,
+    replicates = 10L,
+    type = "grouped",
+    seed = 42L
+  )
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
   expect_length(result@variables$repweights, 10L)
 })

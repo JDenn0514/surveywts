@@ -30,8 +30,10 @@ S7::method(print, surveycore::survey_nonprob) <- function(x, n = 10, ...) {
   # Header
   cat(
     "# A calibrated survey design:",
-    formatC(n_rows, format = "d", big.mark = ","), "observations,",
-    n_cols, "variables\n"
+    formatC(n_rows, format = "d", big.mark = ","),
+    "observations,",
+    n_cols,
+    "variables\n"
   )
 
   # Variance method (hardcoded for Calibration release — see spec §X)
@@ -39,17 +41,25 @@ S7::method(print, surveycore::survey_nonprob) <- function(x, n = 10, ...) {
 
   # Design structure line
   ids_str <- .format_design_vars(vars$ids)
-  strata_str <- if (is.null(vars$strata) || length(vars$strata) == 0L ||
-                      all(vars$strata == "")) {
+  strata_str <- if (
+    is.null(vars$strata) || length(vars$strata) == 0L || all(vars$strata == "")
+  ) {
     "NULL"
   } else {
     paste0("~", paste(vars$strata, collapse = " + "))
   }
-  weights_str <- if (is.null(vars$weights) || vars$weights == "") "NULL" else vars$weights
+  weights_str <- if (is.null(vars$weights) || vars$weights == "") {
+    "NULL"
+  } else {
+    vars$weights
+  }
   cat(
-    "# IDs:", ids_str,
-    "| Strata:", strata_str,
-    "| Weights:", weights_str,
+    "# IDs:",
+    ids_str,
+    "| Strata:",
+    strata_str,
+    "| Weights:",
+    weights_str,
     "\n"
   )
 
@@ -76,7 +86,9 @@ S7::method(print, surveycore::survey_nonprob) <- function(x, n = 10, ...) {
       e <- boot_entries[[length(boot_entries)]]
       cat(sprintf(
         "# Bootstrap replicates: %d (%s, level %s)\n",
-        e$draws_used, e$type, e$level
+        e$draws_used,
+        e$type,
+        e$level
       ))
     }
   }
@@ -90,9 +102,9 @@ S7::method(print, surveycore::survey_nonprob) <- function(x, n = 10, ...) {
 
 # Class defined in surveycore (surveycore::survey_replicate)
 S7::method(print, surveycore::survey_replicate) <- function(x, ...) {
-  vars    <- x@variables
+  vars <- x@variables
   history <- x@metadata@weighting_history
-  n_rep   <- length(vars$repweights)
+  n_rep <- length(vars$repweights)
 
   cat(sprintf("<survey_replicate: %s>\n", vars$type))
   cat(sprintf(
@@ -102,10 +114,12 @@ S7::method(print, surveycore::survey_replicate) <- function(x, ...) {
 
   if (n_rep > 0L) {
     first_rep <- vars$repweights[[1L]]
-    last_rep  <- vars$repweights[[n_rep]]
+    last_rep <- vars$repweights[[n_rep]]
     cat(sprintf(
       "%d replicate weights (%s ... %s)\n",
-      n_rep, first_rep, last_rep
+      n_rep,
+      first_rep,
+      last_rep
     ))
   }
 

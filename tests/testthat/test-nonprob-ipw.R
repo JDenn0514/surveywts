@@ -26,7 +26,7 @@ test_that("ipw() returns survey_nonprob for data.frame + survey_taylor", {
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref()
 
-  result <- ipw(nps, ref, selection = ~age_group + sex)
+  result <- ipw(nps, ref, selection = ~ age_group + sex)
 
   test_invariants(result)
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
@@ -36,7 +36,7 @@ test_that("ipw() @data has 'ipw_weight' column; all original columns preserved; 
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref()
 
-  result <- ipw(nps, ref, selection = ~age_group + sex)
+  result <- ipw(nps, ref, selection = ~ age_group + sex)
 
   expect_true("ipw_weight" %in% names(result@data))
   for (cn in names(nps)) {
@@ -49,16 +49,19 @@ test_that("ipw() @reference_sample is a survey_taylor", {
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref()
 
-  result <- ipw(nps, ref, selection = ~age_group + sex)
+  result <- ipw(nps, ref, selection = ~ age_group + sex)
 
-  expect_true(S7::S7_inherits(result@reference_sample, surveycore::survey_taylor))
+  expect_true(S7::S7_inherits(
+    result@reference_sample,
+    surveycore::survey_taylor
+  ))
 })
 
 test_that("ipw() history entry has operation='ipw', trim=FALSE, n_trimmed=0", {
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref()
 
-  result <- ipw(nps, ref, selection = ~age_group + sex)
+  result <- ipw(nps, ref, selection = ~ age_group + sex)
 
   history <- result@metadata@weighting_history
   expect_length(history, 1L)
@@ -75,7 +78,13 @@ test_that("ipw() method='probit' returns valid survey_nonprob", {
   # probit may need more iterations than logit; suppress the non-convergence
   # warning since this test checks object validity, not convergence speed.
   result <- suppressWarnings(
-    ipw(nps, ref, selection = ~age_group + sex, method = "probit", maxit = 200L)
+    ipw(
+      nps,
+      ref,
+      selection = ~ age_group + sex,
+      method = "probit",
+      maxit = 200L
+    )
   )
 
   test_invariants(result)
@@ -86,7 +95,7 @@ test_that("ipw() method='cloglog' returns valid survey_nonprob", {
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref()
 
-  result <- ipw(nps, ref, selection = ~age_group + sex, method = "cloglog")
+  result <- ipw(nps, ref, selection = ~ age_group + sex, method = "cloglog")
 
   test_invariants(result)
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
@@ -96,7 +105,7 @@ test_that("ipw() custom wt_name is used as weight column name", {
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref()
 
-  result <- ipw(nps, ref, selection = ~age_group + sex, wt_name = "my_wt")
+  result <- ipw(nps, ref, selection = ~ age_group + sex, wt_name = "my_wt")
 
   expect_true("my_wt" %in% names(result@data))
   expect_identical(result@variables$weights, "my_wt")
@@ -106,7 +115,7 @@ test_that("ipw() predictors= gives same result as selection= (weights identical 
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref()
 
-  r1 <- ipw(nps, ref, selection = ~age_group + sex)
+  r1 <- ipw(nps, ref, selection = ~ age_group + sex)
   r2 <- ipw(nps, ref, predictors = c("age_group", "sex"))
 
   test_invariants(r1)
@@ -118,7 +127,7 @@ test_that("ipw() trim=TRUE sets history trim=TRUE; n_trimmed >= 0; test_invarian
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref()
 
-  result <- ipw(nps, ref, selection = ~age_group + sex, trim = TRUE)
+  result <- ipw(nps, ref, selection = ~ age_group + sex, trim = TRUE)
 
   test_invariants(result)
   entry <- result@metadata@weighting_history[[1L]]
@@ -129,7 +138,7 @@ test_that("ipw() trim=TRUE sets history trim=TRUE; n_trimmed >= 0; test_invarian
 test_that("ipw() print snapshot matches survey_nonprob format with ipw step", {
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref()
-  result <- ipw(nps, ref, selection = ~age_group + sex)
+  result <- ipw(nps, ref, selection = ~ age_group + sex)
   expect_snapshot(print(.pin_ts(result)))
 })
 
@@ -139,7 +148,12 @@ test_that("ipw() missing_method='omit' drops rows with NA; nrow < original; test
   ref <- .make_ipw_ref()
 
   expect_warning(
-    result <- ipw(nps, ref, selection = ~age_group + sex, missing_method = "omit"),
+    result <- ipw(
+      nps,
+      ref,
+      selection = ~ age_group + sex,
+      missing_method = "omit"
+    ),
     class = "surveywts_warning_ipw_data_na_omitted"
   )
   test_invariants(result)
@@ -152,7 +166,12 @@ test_that("ipw() missing_method='separate' preserves all rows; all weights posit
   nps$age_group[1L:3L] <- NA_character_
   ref <- .make_ipw_ref()
 
-  result <- ipw(nps, ref, selection = ~age_group + sex, missing_method = "separate")
+  result <- ipw(
+    nps,
+    ref,
+    selection = ~ age_group + sex,
+    missing_method = "separate"
+  )
 
   test_invariants(result)
   expect_identical(nrow(result@data), nrow(nps))
@@ -165,8 +184,13 @@ test_that("ipw() missing_method='impute' preserves all rows; all weights positiv
   nps$age_group[1L:3L] <- NA_character_
   ref <- .make_ipw_ref()
 
-  result <- ipw(nps, ref, selection = ~age_group + sex, missing_method = "impute",
-                mice_args = list(seed = 42L))
+  result <- ipw(
+    nps,
+    ref,
+    selection = ~ age_group + sex,
+    missing_method = "impute",
+    mice_args = list(seed = 42L)
+  )
 
   test_invariants(result)
   expect_identical(nrow(result@data), nrow(nps))
@@ -179,10 +203,20 @@ test_that("ipw() mice_args=list(seed=42) with missing_method='impute' gives repr
   nps$age_group[1L:5L] <- NA_character_
   ref <- .make_ipw_ref()
 
-  r1 <- ipw(nps, ref, selection = ~age_group + sex, missing_method = "impute",
-             mice_args = list(seed = 42L))
-  r2 <- ipw(nps, ref, selection = ~age_group + sex, missing_method = "impute",
-             mice_args = list(seed = 42L))
+  r1 <- ipw(
+    nps,
+    ref,
+    selection = ~ age_group + sex,
+    missing_method = "impute",
+    mice_args = list(seed = 42L)
+  )
+  r2 <- ipw(
+    nps,
+    ref,
+    selection = ~ age_group + sex,
+    missing_method = "impute",
+    mice_args = list(seed = 42L)
+  )
 
   expect_equal(r1@data$ipw_weight, r2@data$ipw_weight, tolerance = 1e-10)
 })
@@ -194,8 +228,9 @@ test_that("ipw() missing_method='impute' with numeric predictor NA uses numeric 
   ref <- .make_ipw_ref()
 
   result <- ipw(
-    nps, ref,
-    selection = ~age_group + base_weight,
+    nps,
+    ref,
+    selection = ~ age_group + base_weight,
     missing_method = "impute",
     mice_args = list(seed = 42L)
   )
@@ -215,7 +250,7 @@ test_that("ipw() reference NAs excluded from fitting; surveywts_warning_ipw_refe
   )
 
   expect_warning(
-    result <- ipw(nps, ref_na, selection = ~age_group + sex),
+    result <- ipw(nps, ref_na, selection = ~ age_group + sex),
     class = "surveywts_warning_ipw_reference_na_omitted"
   )
   test_invariants(result)
@@ -230,7 +265,7 @@ test_that("ipw() all weights strictly positive", {
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref()
 
-  result <- ipw(nps, ref, selection = ~age_group + sex)
+  result <- ipw(nps, ref, selection = ~ age_group + sex)
 
   expect_true(all(result@data$ipw_weight > 0))
 })
@@ -242,33 +277,40 @@ test_that("ipw() weights match manual Newton-Raphson at tolerance 1e-10", {
   # MLE-specific test: compare to manual Newton-Raphson.
   # Use adjust_reference = FALSE so that manual NR (without adjustment) matches.
   result <- suppressWarnings(
-    ipw(nps, ref, selection = ~age_group + sex, adjust_reference = FALSE,
-        estimating_eq = "mle")
+    ipw(
+      nps,
+      ref,
+      selection = ~ age_group + sex,
+      adjust_reference = FALSE,
+      estimating_eq = "mle"
+    )
   )
 
   # Manual NR computation — must align factor levels to reference (same as ipw())
-  formula <- ~age_group + sex
+  formula <- ~ age_group + sex
   nps_aligned <- nps
-  ref_data   <- ref@data
+  ref_data <- ref@data
   for (v in all.vars(formula)) {
     if (is.character(ref_data[[v]]) || is.factor(ref_data[[v]])) {
-      ref_levs <- sort(unique(as.character(ref_data[[v]][!is.na(ref_data[[v]])])))
+      ref_levs <- sort(unique(as.character(ref_data[[v]][
+        !is.na(ref_data[[v]])
+      ])))
       nps_aligned[[v]] <- factor(nps_aligned[[v]], levels = ref_levs)
-      ref_data[[v]]    <- factor(ref_data[[v]], levels = ref_levs)
+      ref_data[[v]] <- factor(ref_data[[v]], levels = ref_levs)
     }
   }
   X_nps <- stats::model.matrix(formula, data = nps_aligned)
   X_ref <- stats::model.matrix(formula, data = ref_data)
   d_ref <- ref@data[[ref@variables$weights]]
   gamma <- rep(0, ncol(X_nps))
-  link  <- stats::binomial(link = "logit")$linkinv
+  link <- stats::binomial(link = "logit")$linkinv
 
   for (iter in seq_len(200L)) {
     pi_ref <- link(drop(X_ref %*% gamma))
-    score  <- colSums(X_nps) - drop(t(X_ref) %*% (d_ref * pi_ref))
-    hess   <- -crossprod(X_ref, X_ref * (d_ref * pi_ref * (1 - pi_ref)))
-    delta  <- solve(hess, score)
-    gamma  <- gamma - delta
+    score <- colSums(X_nps) - drop(t(X_ref) %*% (d_ref * pi_ref))
+    hess <- -crossprod(X_ref, X_ref * (d_ref * pi_ref * (1 - pi_ref)))
+    delta <- solve(hess, score)
+    gamma <- gamma - delta
     if (max(abs(delta)) < 1e-8) break
   }
   expected_wts <- unname(drop(1 / link(drop(X_nps %*% gamma))))
@@ -284,8 +326,13 @@ test_that("ipw() estimates match nonprobsvy at tolerance 1e-6 [numerical cross-v
 
   # nonprobsvy uses MLE; adjust_reference = FALSE to make the comparison valid.
   result <- suppressWarnings(
-    ipw(nps, ref, selection = ~age_group + sex, adjust_reference = FALSE,
-        estimating_eq = "mle")
+    ipw(
+      nps,
+      ref,
+      selection = ~ age_group + sex,
+      adjust_reference = FALSE,
+      estimating_eq = "mle"
+    )
   )
 
   # Use HT total / N_ref to match nonprobsvy's estimator (divides by sum of
@@ -294,9 +341,13 @@ test_that("ipw() estimates match nonprobsvy at tolerance 1e-6 [numerical cross-v
   ipw_mean <- sum(nps$base_weight * result@data$ipw_weight) / N_ref
 
   # nonprobsvy estimate — target = ~base_weight required by current API
-  ref_svy <- survey::svydesign(ids = ~1, weights = ~base_weight, data = ref@data)
+  ref_svy <- survey::svydesign(
+    ids = ~1,
+    weights = ~base_weight,
+    data = ref@data
+  )
   np_res <- nonprobsvy::nonprob(
-    selection = ~age_group + sex,
+    selection = ~ age_group + sex,
     target = ~base_weight,
     data = nps,
     svydesign = ref_svy,
@@ -326,12 +377,12 @@ test_that("ipw() errors when data has 0 rows", {
   empty_df <- .make_ipw_nps()[0, ]
 
   expect_error(
-    ipw(empty_df, ref, selection = ~age_group + sex),
+    ipw(empty_df, ref, selection = ~ age_group + sex),
     class = "surveywts_error_empty_data"
   )
   expect_snapshot(
     error = TRUE,
-    ipw(empty_df, ref, selection = ~age_group + sex)
+    ipw(empty_df, ref, selection = ~ age_group + sex)
   )
 })
 
@@ -365,27 +416,27 @@ test_that("ipw() errors when reference is a data.frame", {
   ref_df <- make_nps_reference()@data
 
   expect_error(
-    ipw(nps, ref_df, selection = ~age_group + sex),
+    ipw(nps, ref_df, selection = ~ age_group + sex),
     class = "surveywts_error_reference_not_survey_design"
   )
   expect_snapshot(
     error = TRUE,
-    ipw(nps, ref_df, selection = ~age_group + sex)
+    ipw(nps, ref_df, selection = ~ age_group + sex)
   )
 })
 
 test_that("ipw() errors when reference is survey_nonprob", {
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref()
-  np_obj <- ipw(nps, ref, selection = ~age_group + sex)
+  np_obj <- ipw(nps, ref, selection = ~ age_group + sex)
 
   expect_error(
-    ipw(nps, np_obj, selection = ~age_group + sex),
+    ipw(nps, np_obj, selection = ~ age_group + sex),
     class = "surveywts_error_reference_not_survey_design"
   )
   expect_snapshot(
     error = TRUE,
-    ipw(nps, np_obj, selection = ~age_group + sex)
+    ipw(nps, np_obj, selection = ~ age_group + sex)
   )
 })
 
@@ -400,12 +451,12 @@ test_that("ipw() errors when reference has a zero design weight", {
   attr(ref_zero, "data") <- bad_data
 
   expect_error(
-    ipw(nps, ref_zero, selection = ~age_group + sex),
+    ipw(nps, ref_zero, selection = ~ age_group + sex),
     class = "surveywts_error_reference_weights_nonpositive"
   )
   expect_snapshot(
     error = TRUE,
-    ipw(nps, ref_zero, selection = ~age_group + sex)
+    ipw(nps, ref_zero, selection = ~ age_group + sex)
   )
 })
 
@@ -418,12 +469,12 @@ test_that("ipw() errors when reference has a negative design weight", {
   attr(ref_neg, "data") <- bad_data
 
   expect_error(
-    ipw(nps, ref_neg, selection = ~age_group + sex),
+    ipw(nps, ref_neg, selection = ~ age_group + sex),
     class = "surveywts_error_reference_weights_nonpositive"
   )
   expect_snapshot(
     error = TRUE,
-    ipw(nps, ref_neg, selection = ~age_group + sex)
+    ipw(nps, ref_neg, selection = ~ age_group + sex)
   )
 })
 
@@ -446,12 +497,12 @@ test_that("ipw() errors when selection variable missing from data", {
   ref <- .make_ipw_ref()
 
   expect_error(
-    ipw(nps, ref, selection = ~age_group + nonexistent_var),
+    ipw(nps, ref, selection = ~ age_group + nonexistent_var),
     class = "surveywts_error_formula_variable_not_found"
   )
   expect_snapshot(
     error = TRUE,
-    ipw(nps, ref, selection = ~age_group + nonexistent_var)
+    ipw(nps, ref, selection = ~ age_group + nonexistent_var)
   )
 })
 
@@ -467,20 +518,20 @@ test_that("ipw() errors when selection variable missing from reference@data", {
   )
 
   expect_error(
-    ipw(nps, ref_no_sex, selection = ~age_group + sex),
+    ipw(nps, ref_no_sex, selection = ~ age_group + sex),
     class = "surveywts_error_formula_variable_not_in_reference"
   )
   expect_snapshot(
     error = TRUE,
-    ipw(nps, ref_no_sex, selection = ~age_group + sex)
+    ipw(nps, ref_no_sex, selection = ~ age_group + sex)
   )
 })
 
 test_that("ipw() errors when factor level in data absent from reference", {
   nps <- .make_ipw_nps()
-  nps$age_group[1L] <- "65-74"  # level not in reference
+  nps$age_group[1L] <- "65-74" # level not in reference
 
-  ref <- .make_ipw_ref()  # reference has only 18-34, 35-54, 55+
+  ref <- .make_ipw_ref() # reference has only 18-34, 35-54, 55+
 
   expect_error(
     ipw(nps, ref, selection = ~age_group),
@@ -498,12 +549,22 @@ test_that("ipw() errors when missing_method='separate' and a numeric selection v
   ref <- .make_ipw_ref()
 
   expect_error(
-    ipw(nps, ref, selection = ~age_group + base_weight, missing_method = "separate"),
+    ipw(
+      nps,
+      ref,
+      selection = ~ age_group + base_weight,
+      missing_method = "separate"
+    ),
     class = "surveywts_error_separate_numeric_na"
   )
   expect_snapshot(
     error = TRUE,
-    ipw(nps, ref, selection = ~age_group + base_weight, missing_method = "separate")
+    ipw(
+      nps,
+      ref,
+      selection = ~ age_group + base_weight,
+      missing_method = "separate"
+    )
   )
 })
 
@@ -517,12 +578,12 @@ test_that("ipw() errors when missing_method='impute' and mice is not installed",
   ref <- .make_ipw_ref()
 
   expect_error(
-    ipw(nps, ref, selection = ~age_group + sex, missing_method = "impute"),
+    ipw(nps, ref, selection = ~ age_group + sex, missing_method = "impute"),
     class = "surveywts_error_mice_not_installed"
   )
   expect_snapshot(
     error = TRUE,
-    ipw(nps, ref, selection = ~age_group + sex, missing_method = "impute")
+    ipw(nps, ref, selection = ~ age_group + sex, missing_method = "impute")
   )
 })
 
@@ -532,17 +593,19 @@ test_that("ipw() errors when missing_method='impute' and mice is not installed [
   ref <- .make_ipw_ref()
 
   testthat::local_mocked_bindings(
-    .has_package = function(pkg) if (pkg == "mice") FALSE else requireNamespace(pkg, quietly = TRUE),
+    .has_package = function(pkg) {
+      if (pkg == "mice") FALSE else requireNamespace(pkg, quietly = TRUE)
+    },
     .package = "surveywts"
   )
 
   expect_error(
-    ipw(nps, ref, selection = ~age_group + sex, missing_method = "impute"),
+    ipw(nps, ref, selection = ~ age_group + sex, missing_method = "impute"),
     class = "surveywts_error_mice_not_installed"
   )
   expect_snapshot(
     error = TRUE,
-    ipw(nps, ref, selection = ~age_group + sex, missing_method = "impute")
+    ipw(nps, ref, selection = ~ age_group + sex, missing_method = "impute")
   )
 })
 
@@ -551,12 +614,12 @@ test_that("ipw() errors when wt_name is NULL", {
   ref <- .make_ipw_ref()
 
   expect_error(
-    ipw(nps, ref, selection = ~age_group + sex, wt_name = NULL),
+    ipw(nps, ref, selection = ~ age_group + sex, wt_name = NULL),
     class = "surveywts_error_wt_name_not_scalar"
   )
   expect_snapshot(
     error = TRUE,
-    ipw(nps, ref, selection = ~age_group + sex, wt_name = NULL)
+    ipw(nps, ref, selection = ~ age_group + sex, wt_name = NULL)
   )
 })
 
@@ -565,12 +628,12 @@ test_that("ipw() errors when wt_name is integer", {
   ref <- .make_ipw_ref()
 
   expect_error(
-    ipw(nps, ref, selection = ~age_group + sex, wt_name = 1L),
+    ipw(nps, ref, selection = ~ age_group + sex, wt_name = 1L),
     class = "surveywts_error_wt_name_not_scalar"
   )
   expect_snapshot(
     error = TRUE,
-    ipw(nps, ref, selection = ~age_group + sex, wt_name = 1L)
+    ipw(nps, ref, selection = ~ age_group + sex, wt_name = 1L)
   )
 })
 
@@ -579,12 +642,12 @@ test_that("ipw() errors when wt_name is empty string", {
   ref <- .make_ipw_ref()
 
   expect_error(
-    ipw(nps, ref, selection = ~age_group + sex, wt_name = ""),
+    ipw(nps, ref, selection = ~ age_group + sex, wt_name = ""),
     class = "surveywts_error_wt_name_empty"
   )
   expect_snapshot(
     error = TRUE,
-    ipw(nps, ref, selection = ~age_group + sex, wt_name = "")
+    ipw(nps, ref, selection = ~ age_group + sex, wt_name = "")
   )
 })
 
@@ -593,12 +656,12 @@ test_that("ipw() errors when wt_name is NA_character_", {
   ref <- .make_ipw_ref()
 
   expect_error(
-    ipw(nps, ref, selection = ~age_group + sex, wt_name = NA_character_),
+    ipw(nps, ref, selection = ~ age_group + sex, wt_name = NA_character_),
     class = "surveywts_error_wt_name_empty"
   )
   expect_snapshot(
     error = TRUE,
-    ipw(nps, ref, selection = ~age_group + sex, wt_name = NA_character_)
+    ipw(nps, ref, selection = ~ age_group + sex, wt_name = NA_character_)
   )
 })
 
@@ -607,12 +670,12 @@ test_that("ipw() errors when wt_name conflicts with existing data column", {
   ref <- .make_ipw_ref()
 
   expect_error(
-    ipw(nps, ref, selection = ~age_group + sex, wt_name = "age_group"),
+    ipw(nps, ref, selection = ~ age_group + sex, wt_name = "age_group"),
     class = "surveywts_error_wt_name_conflict"
   )
   expect_snapshot(
     error = TRUE,
-    ipw(nps, ref, selection = ~age_group + sex, wt_name = "age_group")
+    ipw(nps, ref, selection = ~ age_group + sex, wt_name = "age_group")
   )
 })
 
@@ -625,27 +688,37 @@ test_that("ipw() errors when propensity scores are degenerate (score >= 1)", {
     stringsAsFactors = FALSE
   )
   ref_degen_df <- data.frame(
-    cat_var    = c(rep("A", 3L), rep("B", 200L)),
+    cat_var = c(rep("A", 3L), rep("B", 200L)),
     base_weight = 1,
     stringsAsFactors = FALSE
   )
   ref_degen <- surveycore::survey_taylor(
-    data      = ref_degen_df,
+    data = ref_degen_df,
     variables = list(weights = "base_weight")
   )
 
   expect_error(
     suppressWarnings(
-      ipw(nps_degen, ref_degen, selection = ~cat_var, maxit = 500L,
-          estimating_eq = "mle")
+      ipw(
+        nps_degen,
+        ref_degen,
+        selection = ~cat_var,
+        maxit = 500L,
+        estimating_eq = "mle"
+      )
     ),
     class = "surveywts_error_propensity_scores_degenerate"
   )
   expect_snapshot(
     error = TRUE,
     suppressWarnings(
-      ipw(nps_degen, ref_degen, selection = ~cat_var, maxit = 500L,
-          estimating_eq = "mle")
+      ipw(
+        nps_degen,
+        ref_degen,
+        selection = ~cat_var,
+        maxit = 500L,
+        estimating_eq = "mle"
+      )
     )
   )
 })
@@ -660,29 +733,39 @@ test_that("ipw() errors when Hessian is singular (collinear covariates)", {
   nps_coll$x2 <- 2 * nps_coll$x1
 
   ref_coll_df <- data.frame(
-    x1          = rnorm(200L),
-    x2          = rnorm(200L),
+    x1 = rnorm(200L),
+    x2 = rnorm(200L),
     base_weight = 1
   )
   ref_coll_df$x2 <- 2 * ref_coll_df$x1
 
   ref_coll <- surveycore::survey_taylor(
-    data      = ref_coll_df,
+    data = ref_coll_df,
     variables = list(weights = "base_weight")
   )
 
   expect_error(
     suppressWarnings(
-      ipw(nps_coll, ref_coll, selection = ~x1 + x2, adjust_reference = FALSE,
-          estimating_eq = "mle")
+      ipw(
+        nps_coll,
+        ref_coll,
+        selection = ~ x1 + x2,
+        adjust_reference = FALSE,
+        estimating_eq = "mle"
+      )
     ),
     class = "surveywts_error_propensity_hessian_singular"
   )
   expect_snapshot(
     error = TRUE,
     suppressWarnings(
-      ipw(nps_coll, ref_coll, selection = ~x1 + x2, adjust_reference = FALSE,
-          estimating_eq = "mle")
+      ipw(
+        nps_coll,
+        ref_coll,
+        selection = ~ x1 + x2,
+        adjust_reference = FALSE,
+        estimating_eq = "mle"
+      )
     )
   )
 })
@@ -692,12 +775,12 @@ test_that("ipw() errors when maxit = 0L", {
   ref <- .make_ipw_ref()
 
   expect_error(
-    ipw(nps, ref, selection = ~age_group + sex, maxit = 0L),
+    ipw(nps, ref, selection = ~ age_group + sex, maxit = 0L),
     class = "surveywts_error_propensity_invalid_maxit"
   )
   expect_snapshot(
     error = TRUE,
-    ipw(nps, ref, selection = ~age_group + sex, maxit = 0L)
+    ipw(nps, ref, selection = ~ age_group + sex, maxit = 0L)
   )
 })
 
@@ -706,12 +789,12 @@ test_that("ipw() errors when epsilon = 0", {
   ref <- .make_ipw_ref()
 
   expect_error(
-    ipw(nps, ref, selection = ~age_group + sex, epsilon = 0),
+    ipw(nps, ref, selection = ~ age_group + sex, epsilon = 0),
     class = "surveywts_error_propensity_invalid_epsilon"
   )
   expect_snapshot(
     error = TRUE,
-    ipw(nps, ref, selection = ~age_group + sex, epsilon = 0)
+    ipw(nps, ref, selection = ~ age_group + sex, epsilon = 0)
   )
 })
 
@@ -720,12 +803,12 @@ test_that("ipw() errors when epsilon = -1", {
   ref <- .make_ipw_ref()
 
   expect_error(
-    ipw(nps, ref, selection = ~age_group + sex, epsilon = -1),
+    ipw(nps, ref, selection = ~ age_group + sex, epsilon = -1),
     class = "surveywts_error_propensity_invalid_epsilon"
   )
   expect_snapshot(
     error = TRUE,
-    ipw(nps, ref, selection = ~age_group + sex, epsilon = -1)
+    ipw(nps, ref, selection = ~ age_group + sex, epsilon = -1)
   )
 })
 
@@ -739,7 +822,12 @@ test_that("ipw() warns when missing_method='omit' drops NPS rows with NA; warnin
   ref <- .make_ipw_ref()
 
   expect_warning(
-    result <- ipw(nps, ref, selection = ~age_group + sex, missing_method = "omit"),
+    result <- ipw(
+      nps,
+      ref,
+      selection = ~ age_group + sex,
+      missing_method = "omit"
+    ),
     class = "surveywts_warning_ipw_data_na_omitted"
   )
   test_invariants(result)
@@ -755,7 +843,7 @@ test_that("ipw() warns when reference@data has NAs in selection variable; warnin
   )
 
   expect_warning(
-    result <- ipw(nps, ref_na, selection = ~age_group + sex),
+    result <- ipw(nps, ref_na, selection = ~ age_group + sex),
     class = "surveywts_warning_ipw_reference_na_omitted"
   )
   test_invariants(result)
@@ -768,8 +856,13 @@ test_that("ipw() warns when mice_args includes 'm' with missing_method='impute';
   ref <- .make_ipw_ref()
 
   expect_warning(
-    result <- ipw(nps, ref, selection = ~age_group + sex, missing_method = "impute",
-                  mice_args = list(m = 5L, seed = 42L)),
+    result <- ipw(
+      nps,
+      ref,
+      selection = ~ age_group + sex,
+      missing_method = "impute",
+      mice_args = list(m = 5L, seed = 42L)
+    ),
     class = "surveywts_warning_ipw_mice_m_ignored"
   )
   test_invariants(result)
@@ -780,7 +873,7 @@ test_that("ipw() warns when NR does not converge (maxit=1L); result still valid;
   ref <- .make_ipw_ref()
 
   expect_warning(
-    result <- ipw(nps, ref, selection = ~age_group + sex, maxit = 1L),
+    result <- ipw(nps, ref, selection = ~ age_group + sex, maxit = 1L),
     class = "surveywts_warning_propensity_nr_no_convergence"
   )
   test_invariants(result)
@@ -807,7 +900,7 @@ test_that("ipw() works with interaction term", {
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref()
 
-  result <- ipw(nps, ref, selection = ~age_group * sex)
+  result <- ipw(nps, ref, selection = ~ age_group * sex)
 
   test_invariants(result)
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
@@ -819,34 +912,42 @@ test_that("ipw() gives roughly uniform weights when NPS and reference have ident
   set.seed(1L)
   n <- 300L
   common_df <- data.frame(
-    age_group = sample(c("18-34", "35-54", "55+"), n, replace = TRUE,
-                       prob = c(0.30, 0.40, 0.30)),
-    sex       = sample(c("M", "F"), n, replace = TRUE, prob = c(0.48, 0.52)),
+    age_group = sample(
+      c("18-34", "35-54", "55+"),
+      n,
+      replace = TRUE,
+      prob = c(0.30, 0.40, 0.30)
+    ),
+    sex = sample(c("M", "F"), n, replace = TRUE, prob = c(0.48, 0.52)),
     base_weight = 1,
     stringsAsFactors = FALSE
   )
   nps_same <- common_df[seq_len(100L), -3L]
   ref_same <- surveycore::survey_taylor(
-    data      = common_df[101L:n, ],
+    data = common_df[101L:n, ],
     variables = list(weights = "base_weight")
   )
 
   result <- suppressWarnings(
-    ipw(nps_same, ref_same, selection = ~age_group + sex,
-        adjust_reference = FALSE)
+    ipw(
+      nps_same,
+      ref_same,
+      selection = ~ age_group + sex,
+      adjust_reference = FALSE
+    )
   )
 
   test_invariants(result)
   wts <- result@data$ipw_weight
   cv_wts <- stats::sd(wts) / mean(wts)
-  expect_true(cv_wts < 1.0)  # low variability when distributions match
+  expect_true(cv_wts < 1.0) # low variability when distributions match
 })
 
 test_that("ipw() works with small NPS (n = 5)", {
   set.seed(3L)
   small_nps <- data.frame(
     age_group = c("18-34", "35-54", "55+", "18-34", "35-54"),
-    sex       = c("M", "F", "M", "F", "M"),
+    sex = c("M", "F", "M", "F", "M"),
     stringsAsFactors = FALSE
   )
   ref <- .make_ipw_ref()
@@ -854,7 +955,7 @@ test_that("ipw() works with small NPS (n = 5)", {
   # With n=5 NPS units, some covariate combinations are rare relative to the
   # large reference; suppress the expected extreme propensity scores warning.
   result <- suppressWarnings(
-    ipw(small_nps, ref, selection = ~age_group + sex)
+    ipw(small_nps, ref, selection = ~ age_group + sex)
   )
 
   test_invariants(result)
@@ -865,10 +966,10 @@ test_that("ipw() works with small NPS (n = 5)", {
 test_that("ipw() works when NPS has more rows than the reference", {
   # n_nps=200 > n_ref=2, but large design weights (base_weight=500) make the
   # effective reference total (~1000) >> n_nps, so score equations are feasible.
-  nps_large <- .make_ipw_nps(seed = 11L)  # n=200
+  nps_large <- .make_ipw_nps(seed = 11L) # n=200
   ref_tiny <- surveycore::survey_taylor(
     data = data.frame(
-      sex         = c("M", "F"),
+      sex = c("M", "F"),
       base_weight = c(500, 500),
       stringsAsFactors = FALSE
     ),
@@ -893,18 +994,23 @@ test_that("ipw() trim=TRUE with extreme weights: n_trimmed > 0; mass conserved b
     stringsAsFactors = FALSE
   )
   ref_extreme_df <- data.frame(
-    group       = c(rep("rare", 200L), rep("common", 200L)),
+    group = c(rep("rare", 200L), rep("common", 200L)),
     base_weight = 1,
     stringsAsFactors = FALSE
   )
   ref_extreme <- surveycore::survey_taylor(
-    data      = ref_extreme_df,
+    data = ref_extreme_df,
     variables = list(weights = "base_weight")
   )
 
   result <- suppressWarnings(
-    ipw(nps_extreme, ref_extreme, selection = ~group, trim = TRUE,
-        adjust_reference = FALSE)
+    ipw(
+      nps_extreme,
+      ref_extreme,
+      selection = ~group,
+      trim = TRUE,
+      adjust_reference = FALSE
+    )
   )
 
   test_invariants(result)
@@ -925,7 +1031,7 @@ test_that("ipw() history: estimated_population_size = sum(pre-trim weights)", {
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref()
 
-  result <- ipw(nps, ref, selection = ~age_group + sex)
+  result <- ipw(nps, ref, selection = ~ age_group + sex)
 
   entry <- result@metadata@weighting_history[[1L]]
   expect_equal(
@@ -939,7 +1045,7 @@ test_that("ipw() history: n_nps = nrow(data); n_reference = nrow(reference@data)
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref()
 
-  result <- ipw(nps, ref, selection = ~age_group + sex)
+  result <- ipw(nps, ref, selection = ~ age_group + sex)
 
   entry <- result@metadata@weighting_history[[1L]]
   expect_identical(entry$n_nps, nrow(nps))
@@ -950,7 +1056,7 @@ test_that("ipw() history formula field is a formula object", {
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref()
 
-  result <- ipw(nps, ref, selection = ~age_group + sex)
+  result <- ipw(nps, ref, selection = ~ age_group + sex)
 
   entry <- result@metadata@weighting_history[[1L]]
   expect_true(inherits(entry$formula, "formula"))
@@ -960,7 +1066,7 @@ test_that("ipw() history operation = 'ipw' (not 'propensity_ipw')", {
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref()
 
-  result <- ipw(nps, ref, selection = ~age_group + sex)
+  result <- ipw(nps, ref, selection = ~ age_group + sex)
 
   entry <- result@metadata@weighting_history[[1L]]
   expect_identical(entry$operation, "ipw")
@@ -970,7 +1076,7 @@ test_that("ipw() history estimator = 'ipw2' (regression: was 'ht')", {
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref()
 
-  result <- ipw(nps, ref, selection = ~age_group + sex)
+  result <- ipw(nps, ref, selection = ~ age_group + sex)
 
   entry <- result@metadata@weighting_history[[1L]]
   expect_identical(entry$estimator, "ipw2")
@@ -980,8 +1086,8 @@ test_that("ipw() history: trim = FALSE (default) / TRUE (when passed)", {
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref()
 
-  r_no_trim <- ipw(nps, ref, selection = ~age_group + sex)
-  r_trim    <- ipw(nps, ref, selection = ~age_group + sex, trim = TRUE)
+  r_no_trim <- ipw(nps, ref, selection = ~ age_group + sex)
+  r_trim <- ipw(nps, ref, selection = ~ age_group + sex, trim = TRUE)
 
   expect_false(r_no_trim@metadata@weighting_history[[1L]]$trim)
   expect_true(r_trim@metadata@weighting_history[[1L]]$trim)
@@ -991,7 +1097,7 @@ test_that("ipw() history: targets_from_reference = FALSE", {
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref()
 
-  result <- ipw(nps, ref, selection = ~age_group + sex)
+  result <- ipw(nps, ref, selection = ~ age_group + sex)
 
   entry <- result@metadata@weighting_history[[1L]]
   expect_false(entry$targets_from_reference)
@@ -1001,17 +1107,20 @@ test_that("ipw() history: reference_design is a survey_taylor", {
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref()
 
-  result <- ipw(nps, ref, selection = ~age_group + sex)
+  result <- ipw(nps, ref, selection = ~ age_group + sex)
 
   entry <- result@metadata@weighting_history[[1L]]
-  expect_true(S7::S7_inherits(entry$reference_design, surveycore::survey_taylor))
+  expect_true(S7::S7_inherits(
+    entry$reference_design,
+    surveycore::survey_taylor
+  ))
 })
 
 test_that("ipw() history step = 1 on first call", {
   nps_df <- .make_ipw_nps()
-  ref    <- .make_ipw_ref()
+  ref <- .make_ipw_ref()
 
-  result <- ipw(nps_df, ref, selection = ~age_group + sex)
+  result <- ipw(nps_df, ref, selection = ~ age_group + sex)
 
   expect_identical(result@metadata@weighting_history[[1L]]$step, 1L)
 })
@@ -1020,7 +1129,7 @@ test_that("ipw() history missing_method = 'omit' by default", {
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref()
 
-  result <- ipw(nps, ref, selection = ~age_group + sex)
+  result <- ipw(nps, ref, selection = ~ age_group + sex)
 
   entry <- result@metadata@weighting_history[[1L]]
   expect_identical(entry$missing_method, "omit")
@@ -1032,12 +1141,17 @@ test_that("ipw() history missing_method reflects the argument value", {
   ref <- .make_ipw_ref()
 
   result <- suppressWarnings(
-    ipw(nps, ref, selection = ~age_group + sex, missing_method = "omit")
+    ipw(nps, ref, selection = ~ age_group + sex, missing_method = "omit")
   )
   entry <- result@metadata@weighting_history[[1L]]
   expect_identical(entry$missing_method, "omit")
 
-  result2 <- ipw(nps, ref, selection = ~age_group + sex, missing_method = "separate")
+  result2 <- ipw(
+    nps,
+    ref,
+    selection = ~ age_group + sex,
+    missing_method = "separate"
+  )
   entry2 <- result2@metadata@weighting_history[[1L]]
   expect_identical(entry2$missing_method, "separate")
 })
@@ -1050,7 +1164,7 @@ test_that("ipw() history entry records estimator = 'ipw2'", {
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref()
 
-  result <- ipw(nps, ref, selection = ~age_group + sex)
+  result <- ipw(nps, ref, selection = ~ age_group + sex)
 
   test_invariants(result)
   entry <- result@metadata@weighting_history[[1L]]
@@ -1066,7 +1180,7 @@ test_that("propensity_scores are in history entry as numeric vector", {
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref()
 
-  result <- ipw(nps, ref, selection = ~age_group + sex)
+  result <- ipw(nps, ref, selection = ~ age_group + sex)
 
   test_invariants(result)
   hist <- result@metadata@weighting_history[[1L]]
@@ -1078,7 +1192,7 @@ test_that("all propensity_scores are in (0, 1)", {
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref()
 
-  result <- ipw(nps, ref, selection = ~age_group + sex)
+  result <- ipw(nps, ref, selection = ~ age_group + sex)
 
   hist <- result@metadata@weighting_history[[1L]]
   scores <- hist$propensity_scores
@@ -1093,7 +1207,7 @@ test_that("propensity_scores length equals n_nps after omit", {
   ref <- .make_ipw_ref()
 
   result_omit <- suppressWarnings(
-    ipw(nps, ref, selection = ~age_group + sex, missing_method = "omit")
+    ipw(nps, ref, selection = ~ age_group + sex, missing_method = "omit")
   )
 
   test_invariants(result_omit)
@@ -1105,7 +1219,7 @@ test_that("propensity_scores matches 1/weights before trimming", {
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref()
 
-  result <- ipw(nps, ref, selection = ~age_group + sex, trim = FALSE)
+  result <- ipw(nps, ref, selection = ~ age_group + sex, trim = FALSE)
 
   test_invariants(result)
   hist <- result@metadata@weighting_history[[1L]]
@@ -1122,7 +1236,7 @@ test_that("population_size = NULL → population_size_known = FALSE", {
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref()
 
-  result <- ipw(nps, ref, selection = ~age_group + sex)
+  result <- ipw(nps, ref, selection = ~ age_group + sex)
 
   test_invariants(result)
   hist <- result@metadata@weighting_history[[1L]]
@@ -1133,8 +1247,12 @@ test_that("population_size supplied → population_size_known = TRUE, estimated_
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref()
 
-  result_known_n <- ipw(nps, ref, selection = ~age_group + sex,
-                        population_size = 50000)
+  result_known_n <- ipw(
+    nps,
+    ref,
+    selection = ~ age_group + sex,
+    population_size = 50000
+  )
 
   test_invariants(result_known_n)
   hist_known <- result_known_n@metadata@weighting_history[[1L]]
@@ -1146,9 +1264,13 @@ test_that("population_size does not change the weights", {
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref()
 
-  result_null <- ipw(nps, ref, selection = ~age_group + sex)
-  result_50k  <- ipw(nps, ref, selection = ~age_group + sex,
-                     population_size = 50000)
+  result_null <- ipw(nps, ref, selection = ~ age_group + sex)
+  result_50k <- ipw(
+    nps,
+    ref,
+    selection = ~ age_group + sex,
+    population_size = 50000
+  )
 
   test_invariants(result_null)
   test_invariants(result_50k)
@@ -1164,15 +1286,15 @@ test_that("population_size = 0 or negative → error", {
   ref <- .make_ipw_ref()
 
   expect_error(
-    ipw(nps, ref, selection = ~age_group + sex, population_size = 0),
+    ipw(nps, ref, selection = ~ age_group + sex, population_size = 0),
     class = "surveywts_error_population_size_invalid"
   )
   expect_snapshot(
     error = TRUE,
-    ipw(nps, ref, selection = ~age_group + sex, population_size = 0)
+    ipw(nps, ref, selection = ~ age_group + sex, population_size = 0)
   )
   expect_error(
-    ipw(nps, ref, selection = ~age_group + sex, population_size = -100),
+    ipw(nps, ref, selection = ~ age_group + sex, population_size = -100),
     class = "surveywts_error_population_size_invalid"
   )
 })
@@ -1182,12 +1304,12 @@ test_that("population_size = non-numeric → error", {
   ref <- .make_ipw_ref()
 
   expect_error(
-    ipw(nps, ref, selection = ~age_group + sex, population_size = "50000"),
+    ipw(nps, ref, selection = ~ age_group + sex, population_size = "50000"),
     class = "surveywts_error_population_size_invalid"
   )
   expect_snapshot(
     error = TRUE,
-    ipw(nps, ref, selection = ~age_group + sex, population_size = "50000")
+    ipw(nps, ref, selection = ~ age_group + sex, population_size = "50000")
   )
 })
 
@@ -1196,7 +1318,7 @@ test_that("population_size = Inf → error", {
   ref <- .make_ipw_ref()
 
   expect_error(
-    ipw(nps, ref, selection = ~age_group + sex, population_size = Inf),
+    ipw(nps, ref, selection = ~ age_group + sex, population_size = Inf),
     class = "surveywts_error_population_size_invalid"
   )
 })
@@ -1208,17 +1330,21 @@ test_that("population_size = Inf → error", {
 test_that("adjust_reference = TRUE warns and adjusts when nps_fraction > 0.05", {
   # Construct data where n_nps / n_hat will exceed 5%.
   # n_nps = 200, reference base_weight = 1 → n_hat ≈ 1000 → fraction = 20%.
-  nps <- .make_ipw_nps(seed = 42L)  # n = 200
-  ref <- .make_ipw_ref(seed = 42L)  # n = 1000, base_weight = 1 → n_hat = 1000
+  nps <- .make_ipw_nps(seed = 42L) # n = 200
+  ref <- .make_ipw_ref(seed = 42L) # n = 1000, base_weight = 1 → n_hat = 1000
 
   expect_warning(
-    result <- ipw(nps, ref, selection = ~age_group + sex,
-                  adjust_reference = TRUE),
+    result <- ipw(
+      nps,
+      ref,
+      selection = ~ age_group + sex,
+      adjust_reference = TRUE
+    ),
     class = "surveywts_warning_ipw_reference_weight_adjusted"
   )
   expect_snapshot(
     expect_warning(
-      ipw(nps, ref, selection = ~age_group + sex, adjust_reference = TRUE),
+      ipw(nps, ref, selection = ~ age_group + sex, adjust_reference = TRUE),
       class = "surveywts_warning_ipw_reference_weight_adjusted"
     )
   )
@@ -1235,13 +1361,17 @@ test_that("adjust_reference = FALSE warns but does not adjust when nps_fraction 
   ref <- .make_ipw_ref(seed = 42L)
 
   expect_warning(
-    result <- ipw(nps, ref, selection = ~age_group + sex,
-                  adjust_reference = FALSE),
+    result <- ipw(
+      nps,
+      ref,
+      selection = ~ age_group + sex,
+      adjust_reference = FALSE
+    ),
     class = "surveywts_warning_ipw_reference_unadjusted_large_nps"
   )
   expect_snapshot(
     expect_warning(
-      ipw(nps, ref, selection = ~age_group + sex, adjust_reference = FALSE),
+      ipw(nps, ref, selection = ~ age_group + sex, adjust_reference = FALSE),
       class = "surveywts_warning_ipw_reference_unadjusted_large_nps"
     )
   )
@@ -1259,26 +1389,34 @@ test_that("no warning or adjustment when nps_fraction <= 0.05", {
   # Build a large reference with base_weight = 1 (n_hat = 10000 rows)
   set.seed(99L)
   ref_large_df <- data.frame(
-    age_group   = sample(c("18-34", "35-54", "55+"), 10000L, replace = TRUE),
-    sex         = sample(c("M", "F"), 10000L, replace = TRUE),
+    age_group = sample(c("18-34", "35-54", "55+"), 10000L, replace = TRUE),
+    sex = sample(c("M", "F"), 10000L, replace = TRUE),
     base_weight = 1,
     stringsAsFactors = FALSE
   )
   ref_large <- surveycore::survey_taylor(
-    data      = ref_large_df,
+    data = ref_large_df,
     variables = list(weights = "base_weight")
   )
 
   # Suppress unrelated extreme-propensity warning (n_nps = 10 is very small).
   # The key assertion: no adjust_reference-related warning class fires.
   result <- suppressWarnings(
-    ipw(nps_small, ref_large, selection = ~age_group + sex,
-        adjust_reference = TRUE)
+    ipw(
+      nps_small,
+      ref_large,
+      selection = ~ age_group + sex,
+      adjust_reference = TRUE
+    )
   )
   expect_no_warning(
     suppressWarnings(
-      ipw(nps_small, ref_large, selection = ~age_group + sex,
-          adjust_reference = TRUE)
+      ipw(
+        nps_small,
+        ref_large,
+        selection = ~ age_group + sex,
+        adjust_reference = TRUE
+      )
     ),
     class = "surveywts_warning_ipw_reference_weight_adjusted"
   )
@@ -1293,12 +1431,12 @@ test_that("adjust_reference validation — non-logical rejected (dual pattern)",
   ref <- .make_ipw_ref()
 
   expect_error(
-    ipw(nps, ref, selection = ~age_group + sex, adjust_reference = "yes"),
+    ipw(nps, ref, selection = ~ age_group + sex, adjust_reference = "yes"),
     class = "surveywts_error_adjust_reference_invalid"
   )
   expect_snapshot(
     error = TRUE,
-    ipw(nps, ref, selection = ~age_group + sex, adjust_reference = "yes")
+    ipw(nps, ref, selection = ~ age_group + sex, adjust_reference = "yes")
   )
 })
 
@@ -1307,7 +1445,7 @@ test_that("adjust_reference = NA is rejected", {
   ref <- .make_ipw_ref()
 
   expect_error(
-    ipw(nps, ref, selection = ~age_group + sex, adjust_reference = NA),
+    ipw(nps, ref, selection = ~ age_group + sex, adjust_reference = NA),
     class = "surveywts_error_adjust_reference_invalid"
   )
 })
@@ -1318,10 +1456,10 @@ test_that("adjust_reference = NA is rejected", {
 
 test_that("nps_fraction is correctly recorded in history entry", {
   nps <- .make_ipw_nps(seed = 42L)
-  ref <- .make_ipw_ref(seed = 42L)  # n = 1000, base_weight = 1
+  ref <- .make_ipw_ref(seed = 42L) # n = 1000, base_weight = 1
 
   result <- suppressWarnings(
-    ipw(nps, ref, selection = ~age_group + sex)
+    ipw(nps, ref, selection = ~ age_group + sex)
   )
 
   test_invariants(result)
@@ -1343,8 +1481,7 @@ test_that("nps_fraction uses pre-NA-deletion NPS row count", {
   ref <- .make_ipw_ref(seed = 42L)
 
   result <- suppressWarnings(
-    ipw(nps, ref, selection = ~age_group + sex,
-        missing_method = "omit")
+    ipw(nps, ref, selection = ~ age_group + sex, missing_method = "omit")
   )
 
   test_invariants(result)
@@ -1368,32 +1505,40 @@ test_that("numeric covariate range extrapolation warns (Rule 8b)", {
   # Reference has age in [20, 60]; NPS has age in [10, 70] → wider.
   set.seed(42L)
   nps_with_wide_age <- data.frame(
-    age         = c(10, seq(20, 70, length.out = 8L), 70),  # n=10, range [10, 70]
-    sex         = sample(c("M", "F"), 10L, replace = TRUE),
+    age = c(10, seq(20, 70, length.out = 8L), 70), # n=10, range [10, 70]
+    sex = sample(c("M", "F"), 10L, replace = TRUE),
     base_weight = 1,
     stringsAsFactors = FALSE
   )
   set.seed(99L)
   ref_narrow_age_df <- data.frame(
-    age         = seq(20, 60, length.out = 10000L),  # n=10000, range [20, 60]
-    sex         = sample(c("M", "F"), 10000L, replace = TRUE),
+    age = seq(20, 60, length.out = 10000L), # n=10000, range [20, 60]
+    sex = sample(c("M", "F"), 10000L, replace = TRUE),
     base_weight = 1,
     stringsAsFactors = FALSE
   )
   ref_narrow_age <- surveycore::survey_taylor(
-    data      = ref_narrow_age_df,
+    data = ref_narrow_age_df,
     variables = list(weights = "base_weight")
   )
 
   expect_warning(
-    result <- ipw(nps_with_wide_age, ref_narrow_age, selection = ~age + sex,
-                  estimating_eq = "mle"),
+    result <- ipw(
+      nps_with_wide_age,
+      ref_narrow_age,
+      selection = ~ age + sex,
+      estimating_eq = "mle"
+    ),
     class = "surveywts_warning_ipw_covariate_range_extrapolation"
   )
   expect_snapshot(
     expect_warning(
-      ipw(nps_with_wide_age, ref_narrow_age, selection = ~age + sex,
-          estimating_eq = "mle"),
+      ipw(
+        nps_with_wide_age,
+        ref_narrow_age,
+        selection = ~ age + sex,
+        estimating_eq = "mle"
+      ),
       class = "surveywts_warning_ipw_covariate_range_extrapolation"
     )
   )
@@ -1405,26 +1550,26 @@ test_that("numeric covariate within reference range — no range warning (Rule 8
   # Use small NPS (nps_fraction <= 0.05) to avoid adjust_reference warnings.
   set.seed(42L)
   nps_narrow_age <- data.frame(
-    age         = seq(25, 55, length.out = 10L),
-    sex         = sample(c("M", "F"), 10L, replace = TRUE),
+    age = seq(25, 55, length.out = 10L),
+    sex = sample(c("M", "F"), 10L, replace = TRUE),
     base_weight = 1,
     stringsAsFactors = FALSE
   )
   set.seed(99L)
   ref_wide_age_df <- data.frame(
-    age         = seq(20, 60, length.out = 10000L),
-    sex         = sample(c("M", "F"), 10000L, replace = TRUE),
+    age = seq(20, 60, length.out = 10000L),
+    sex = sample(c("M", "F"), 10000L, replace = TRUE),
     base_weight = 1,
     stringsAsFactors = FALSE
   )
   ref_wide_age <- surveycore::survey_taylor(
-    data      = ref_wide_age_df,
+    data = ref_wide_age_df,
     variables = list(weights = "base_weight")
   )
 
   expect_no_warning(
     suppressWarnings(
-      ipw(nps_narrow_age, ref_wide_age, selection = ~age + sex)
+      ipw(nps_narrow_age, ref_wide_age, selection = ~ age + sex)
     ),
     class = "surveywts_warning_ipw_covariate_range_extrapolation"
   )
@@ -1436,35 +1581,40 @@ test_that("reference factor levels absent from NPS warns (Rule 8c)", {
   # Use small NPS (nps_fraction <= 0.05) to avoid adjust_reference warnings.
   set.seed(42L)
   nps_no_other <- data.frame(
-    age_group   = sample(c("18-34", "35-54", "55+"), 10L,
-                         replace = TRUE),
-    sex         = sample(c("M", "F"), 10L, replace = TRUE),
+    age_group = sample(c("18-34", "35-54", "55+"), 10L, replace = TRUE),
+    sex = sample(c("M", "F"), 10L, replace = TRUE),
     base_weight = 1,
     stringsAsFactors = FALSE
   )
   set.seed(99L)
   ref_with_other_df <- data.frame(
-    age_group   = sample(c("18-34", "35-54", "55+"), 10000L,
-                         replace = TRUE),
-    sex         = c(sample(c("M", "F"), 9900L, replace = TRUE),
-                    rep("Other", 100L)),
+    age_group = sample(c("18-34", "35-54", "55+"), 10000L, replace = TRUE),
+    sex = c(sample(c("M", "F"), 9900L, replace = TRUE), rep("Other", 100L)),
     base_weight = 1,
     stringsAsFactors = FALSE
   )
   ref_with_other <- surveycore::survey_taylor(
-    data      = ref_with_other_df,
+    data = ref_with_other_df,
     variables = list(weights = "base_weight")
   )
 
   expect_warning(
-    result <- ipw(nps_no_other, ref_with_other, selection = ~age_group + sex,
-                  estimating_eq = "mle"),
+    result <- ipw(
+      nps_no_other,
+      ref_with_other,
+      selection = ~ age_group + sex,
+      estimating_eq = "mle"
+    ),
     class = "surveywts_warning_ipw_reference_levels_absent_from_nps"
   )
   expect_snapshot(
     expect_warning(
-      ipw(nps_no_other, ref_with_other, selection = ~age_group + sex,
-          estimating_eq = "mle"),
+      ipw(
+        nps_no_other,
+        ref_with_other,
+        selection = ~ age_group + sex,
+        estimating_eq = "mle"
+      ),
       class = "surveywts_warning_ipw_reference_levels_absent_from_nps"
     )
   )
@@ -1476,28 +1626,25 @@ test_that("NPS levels absent from reference still errors (Rule 8 regression)", {
   # This is the existing Rule 8 — NPS level absent from reference → error.
   set.seed(42L)
   nps_with_other <- data.frame(
-    age_group   = sample(c("18-34", "35-54", "55+"), 100L,
-                         replace = TRUE),
-    sex         = c(sample(c("M", "F"), 90L, replace = TRUE),
-                    rep("Other", 10L)),
+    age_group = sample(c("18-34", "35-54", "55+"), 100L, replace = TRUE),
+    sex = c(sample(c("M", "F"), 90L, replace = TRUE), rep("Other", 10L)),
     base_weight = 1,
     stringsAsFactors = FALSE
   )
   set.seed(99L)
   ref_no_other_df <- data.frame(
-    age_group   = sample(c("18-34", "35-54", "55+"), 1000L,
-                         replace = TRUE),
-    sex         = sample(c("M", "F"), 1000L, replace = TRUE),
+    age_group = sample(c("18-34", "35-54", "55+"), 1000L, replace = TRUE),
+    sex = sample(c("M", "F"), 1000L, replace = TRUE),
     base_weight = 1,
     stringsAsFactors = FALSE
   )
   ref_no_other <- surveycore::survey_taylor(
-    data      = ref_no_other_df,
+    data = ref_no_other_df,
     variables = list(weights = "base_weight")
   )
 
   expect_error(
-    ipw(nps_with_other, ref_no_other, selection = ~age_group + sex),
+    ipw(nps_with_other, ref_no_other, selection = ~ age_group + sex),
     class = "surveywts_error_propensity_level_not_in_reference"
   )
 })
@@ -1508,33 +1655,32 @@ test_that("range and reverse-factor warnings can both fire (M-1 block 5)", {
   # Use small NPS (nps_fraction <= 0.05) to avoid adjust_reference warnings.
   set.seed(42L)
   nps_wide_age <- data.frame(
-    age         = c(10, seq(20, 60, length.out = 8L), 70),  # n=10, range [10, 70]
-    sex         = sample(c("M", "F"), 10L, replace = TRUE),
+    age = c(10, seq(20, 60, length.out = 8L), 70), # n=10, range [10, 70]
+    sex = sample(c("M", "F"), 10L, replace = TRUE),
     base_weight = 1,
     stringsAsFactors = FALSE
   )
   set.seed(99L)
   ref_narrow_other_df <- data.frame(
-    age         = seq(20, 60, length.out = 10000L),  # range [20, 60]
-    sex         = c(sample(c("M", "F"), 9900L, replace = TRUE),
-                    rep("Other", 100L)),
+    age = seq(20, 60, length.out = 10000L), # range [20, 60]
+    sex = c(sample(c("M", "F"), 9900L, replace = TRUE), rep("Other", 100L)),
     base_weight = 1,
     stringsAsFactors = FALSE
   )
   ref_narrow_other <- surveycore::survey_taylor(
-    data      = ref_narrow_other_df,
+    data = ref_narrow_other_df,
     variables = list(weights = "base_weight")
   )
 
   # Range warning fires (NPS age outside ref range)
   expect_warning(
-    ipw(nps_wide_age, ref_narrow_other, selection = ~age + sex),
+    ipw(nps_wide_age, ref_narrow_other, selection = ~ age + sex),
     class = "surveywts_warning_ipw_covariate_range_extrapolation"
   )
 
   # Reverse-factor warning fires ("Other" in reference but not in NPS)
   expect_warning(
-    ipw(nps_wide_age, ref_narrow_other, selection = ~age + sex),
+    ipw(nps_wide_age, ref_narrow_other, selection = ~ age + sex),
     class = "surveywts_warning_ipw_reference_levels_absent_from_nps"
   )
 })
@@ -1551,8 +1697,8 @@ test_that("range and reverse-factor warnings can both fire (M-1 block 5)", {
 .make_gee_nps <- function() {
   set.seed(42L)
   data.frame(
-    age_group   = sample(c("18-34", "35-54", "55+"), 200L, replace = TRUE),
-    sex         = sample(c("M", "F"), 200L, replace = TRUE),
+    age_group = sample(c("18-34", "35-54", "55+"), 200L, replace = TRUE),
+    sex = sample(c("M", "F"), 200L, replace = TRUE),
     base_weight = 1,
     stringsAsFactors = FALSE
   )
@@ -1561,13 +1707,20 @@ test_that("range and reverse-factor warnings can both fire (M-1 block 5)", {
 .make_gee_ref <- function() {
   set.seed(99L)
   ref_df <- data.frame(
-    age_group   = sample(c("18-34", "35-54", "55+"), 1000L,
-                         replace = TRUE, prob = c(0.4, 0.4, 0.2)),
-    sex         = sample(c("M", "F"), 1000L, replace = TRUE),
+    age_group = sample(
+      c("18-34", "35-54", "55+"),
+      1000L,
+      replace = TRUE,
+      prob = c(0.4, 0.4, 0.2)
+    ),
+    sex = sample(c("M", "F"), 1000L, replace = TRUE),
     base_weight = 1,
     stringsAsFactors = FALSE
   )
-  surveycore::survey_taylor(data = ref_df, variables = list(weights = "base_weight"))
+  surveycore::survey_taylor(
+    data = ref_df,
+    variables = list(weights = "base_weight")
+  )
 }
 
 test_that("estimating_eq = 'gee' converges on balanced data (H-6 block 1)", {
@@ -1578,8 +1731,8 @@ test_that("estimating_eq = 'gee' converges on balanced data (H-6 block 1)", {
     ipw(
       nps,
       ref,
-      selection        = ~age_group + sex,
-      estimating_eq    = "gee",
+      selection = ~ age_group + sex,
+      estimating_eq = "gee",
       adjust_reference = FALSE
     )
   )
@@ -1598,25 +1751,25 @@ test_that("GEE covariate balance guarantee at convergence (H-6 block 2)", {
     ipw(
       nps,
       ref,
-      selection        = ~age_group + sex,
-      estimating_eq    = "gee",
+      selection = ~ age_group + sex,
+      estimating_eq = "gee",
       adjust_reference = FALSE
     )
   )
 
   # Extract weights and build model matrices
-  w       <- result@data[["ipw_weight"]]
-  sel     <- ~age_group + sex
+  w <- result@data[["ipw_weight"]]
+  sel <- ~ age_group + sex
   nps_fit <- result@data
-  ref_df  <- ref@data
+  ref_df <- ref@data
   ref_wts <- ref_df[[ref@variables$weights]]
 
   # Align factor levels: use ref as authoritative
   for (v in all.vars(sel)) {
     if (is.character(ref_df[[v]]) || is.factor(ref_df[[v]])) {
-      ref_lv       <- sort(unique(as.character(ref_df[[v]][!is.na(ref_df[[v]])])))
+      ref_lv <- sort(unique(as.character(ref_df[[v]][!is.na(ref_df[[v]])])))
       nps_fit[[v]] <- factor(as.character(nps_fit[[v]]), levels = ref_lv)
-      ref_df[[v]]  <- factor(ref_df[[v]], levels = ref_lv)
+      ref_df[[v]] <- factor(ref_df[[v]], levels = ref_lv)
     }
   }
   X_nps <- stats::model.matrix(sel, data = nps_fit)
@@ -1628,176 +1781,172 @@ test_that("GEE covariate balance guarantee at convergence (H-6 block 2)", {
   expect_equal(nps_totals, ref_totals, tolerance = 1e-6)
 })
 
-test_that(
-  "GEE balance holds against Valliant-adjusted reference totals (H-6 block 2b)",
-  {
-    # When nps_fraction > 0.05, adjust_reference = TRUE adjusts d_ref by
-    # (1 - nps_fraction). GEE calibration target is the adjusted totals.
-    set.seed(42L)
-    nps_small_df <- data.frame(
-      age_group   = sample(c("18-34", "35-54", "55+"), 50L,
-                           replace = TRUE, prob = c(0.3, 0.4, 0.3)),
-      sex         = sample(c("M", "F"), 50L, replace = TRUE),
-      base_weight = 1,
-      stringsAsFactors = FALSE
-    )
-    # Reference: 500 rows with weight 1 → n_hat = 500,  nps_fraction = 0.1 > 0.05
-    set.seed(99L)
-    ref_df <- data.frame(
-      age_group   = sample(c("18-34", "35-54", "55+"), 500L,
-                           replace = TRUE, prob = c(0.4, 0.4, 0.2)),
-      sex         = sample(c("M", "F"), 500L, replace = TRUE),
-      base_weight = 1,
-      stringsAsFactors = FALSE
-    )
-    ref_small <- surveycore::survey_taylor(
-      data      = ref_df,
-      variables = list(weights = "base_weight")
-    )
+test_that("GEE balance holds against Valliant-adjusted reference totals (H-6 block 2b)", {
+  # When nps_fraction > 0.05, adjust_reference = TRUE adjusts d_ref by
+  # (1 - nps_fraction). GEE calibration target is the adjusted totals.
+  set.seed(42L)
+  nps_small_df <- data.frame(
+    age_group = sample(
+      c("18-34", "35-54", "55+"),
+      50L,
+      replace = TRUE,
+      prob = c(0.3, 0.4, 0.3)
+    ),
+    sex = sample(c("M", "F"), 50L, replace = TRUE),
+    base_weight = 1,
+    stringsAsFactors = FALSE
+  )
+  # Reference: 500 rows with weight 1 → n_hat = 500,  nps_fraction = 0.1 > 0.05
+  set.seed(99L)
+  ref_df <- data.frame(
+    age_group = sample(
+      c("18-34", "35-54", "55+"),
+      500L,
+      replace = TRUE,
+      prob = c(0.4, 0.4, 0.2)
+    ),
+    sex = sample(c("M", "F"), 500L, replace = TRUE),
+    base_weight = 1,
+    stringsAsFactors = FALSE
+  )
+  ref_small <- surveycore::survey_taylor(
+    data = ref_df,
+    variables = list(weights = "base_weight")
+  )
 
-    # Run with adjust_reference = TRUE (default); expect warning
-    result <- suppressWarnings(
-      ipw(
-        nps_small_df,
-        ref_small,
-        selection        = ~age_group + sex,
-        estimating_eq    = "gee",
-        adjust_reference = TRUE
-      )
+  # Run with adjust_reference = TRUE (default); expect warning
+  result <- suppressWarnings(
+    ipw(
+      nps_small_df,
+      ref_small,
+      selection = ~ age_group + sex,
+      estimating_eq = "gee",
+      adjust_reference = TRUE
     )
+  )
 
-    hist        <- result@metadata@weighting_history[[1L]]
-    adj_factor  <- hist$adjust_factor
-    w           <- result@data[["ipw_weight"]]
+  hist <- result@metadata@weighting_history[[1L]]
+  adj_factor <- hist$adjust_factor
+  w <- result@data[["ipw_weight"]]
 
-    # Align factor levels
-    sel      <- ~age_group + sex
-    nps_fit  <- result@data
-    ref_df2  <- ref_small@data
-    ref_wts  <- ref_df2[[ref_small@variables$weights]]
-    for (v in all.vars(sel)) {
-      if (is.character(ref_df2[[v]]) || is.factor(ref_df2[[v]])) {
-        ref_lv       <- sort(unique(as.character(ref_df2[[v]])))
-        nps_fit[[v]] <- factor(as.character(nps_fit[[v]]), levels = ref_lv)
-        ref_df2[[v]] <- factor(ref_df2[[v]], levels = ref_lv)
-      }
+  # Align factor levels
+  sel <- ~ age_group + sex
+  nps_fit <- result@data
+  ref_df2 <- ref_small@data
+  ref_wts <- ref_df2[[ref_small@variables$weights]]
+  for (v in all.vars(sel)) {
+    if (is.character(ref_df2[[v]]) || is.factor(ref_df2[[v]])) {
+      ref_lv <- sort(unique(as.character(ref_df2[[v]])))
+      nps_fit[[v]] <- factor(as.character(nps_fit[[v]]), levels = ref_lv)
+      ref_df2[[v]] <- factor(ref_df2[[v]], levels = ref_lv)
     }
-    X_nps <- stats::model.matrix(sel, data = nps_fit)
-    X_ref <- stats::model.matrix(sel, data = ref_df2)
-
-    nps_totals <- colSums(X_nps * w)
-    adj_totals <- colSums(X_ref * ref_wts) * adj_factor
-
-    expect_equal(nps_totals, adj_totals, tolerance = 1e-6)
   }
-)
+  X_nps <- stats::model.matrix(sel, data = nps_fit)
+  X_ref <- stats::model.matrix(sel, data = ref_df2)
 
-test_that(
-  "estimating_eq is recorded as 'gee' or 'mle' in history entry (H-6 block 3)",
-  {
-    nps <- .make_gee_nps()
-    ref <- .make_gee_ref()
+  nps_totals <- colSums(X_nps * w)
+  adj_totals <- colSums(X_ref * ref_wts) * adj_factor
 
-    result_gee <- suppressWarnings(
+  expect_equal(nps_totals, adj_totals, tolerance = 1e-6)
+})
+
+test_that("estimating_eq is recorded as 'gee' or 'mle' in history entry (H-6 block 3)", {
+  nps <- .make_gee_nps()
+  ref <- .make_gee_ref()
+
+  result_gee <- suppressWarnings(
+    ipw(
+      nps,
+      ref,
+      selection = ~ age_group + sex,
+      estimating_eq = "gee",
+      adjust_reference = FALSE
+    )
+  )
+  result_mle <- suppressWarnings(
+    ipw(
+      nps,
+      ref,
+      selection = ~ age_group + sex,
+      estimating_eq = "mle",
+      adjust_reference = FALSE
+    )
+  )
+
+  expect_identical(
+    result_gee@metadata@weighting_history[[1L]]$estimating_eq,
+    "gee"
+  )
+  expect_identical(
+    result_mle@metadata@weighting_history[[1L]]$estimating_eq,
+    "mle"
+  )
+})
+
+test_that("estimating_eq = 'gee' and 'mle' produce different weights (H-6 block 4)", {
+  nps <- .make_gee_nps()
+  ref <- .make_gee_ref()
+
+  result_gee <- suppressWarnings(
+    ipw(
+      nps,
+      ref,
+      selection = ~ age_group + sex,
+      estimating_eq = "gee",
+      adjust_reference = FALSE
+    )
+  )
+  result_mle <- suppressWarnings(
+    ipw(
+      nps,
+      ref,
+      selection = ~ age_group + sex,
+      estimating_eq = "mle",
+      adjust_reference = FALSE
+    )
+  )
+
+  w_gee <- result_gee@data[["ipw_weight"]]
+  w_mle <- result_mle@data[["ipw_weight"]]
+
+  expect_false(isTRUE(all.equal(w_gee, w_mle)))
+})
+
+test_that("MLE saturation guard triggers surveywts_error_propensity_scores_degenerate (H-6 block 5)", {
+  # NPS has 50% F but reference has only 0.1% F — the MLE NR diverges
+  # and final scores saturate at the float boundary, triggering the error.
+  # This tests the MLE path saturation guard (GEE uses nleqslv which does
+  # not diverge in the same way; MLE NR is the path where scores saturate).
+  set.seed(1L)
+  nps_df <- data.frame(
+    sex = c(rep("M", 50L), rep("F", 50L)),
+    base_weight = 1,
+    stringsAsFactors = FALSE
+  )
+  set.seed(2L)
+  ref_df <- data.frame(
+    sex = c(rep("M", 9990L), rep("F", 10L)),
+    base_weight = 1,
+    stringsAsFactors = FALSE
+  )
+  ref_design <- surveycore::survey_taylor(
+    data = ref_df,
+    variables = list(weights = "base_weight")
+  )
+
+  expect_error(
+    suppressWarnings(
       ipw(
-        nps,
-        ref,
-        selection        = ~age_group + sex,
-        estimating_eq    = "gee",
+        nps_df,
+        ref_design,
+        selection = ~sex,
+        estimating_eq = "mle",
         adjust_reference = FALSE
       )
-    )
-    result_mle <- suppressWarnings(
-      ipw(
-        nps,
-        ref,
-        selection        = ~age_group + sex,
-        estimating_eq    = "mle",
-        adjust_reference = FALSE
-      )
-    )
-
-    expect_identical(
-      result_gee@metadata@weighting_history[[1L]]$estimating_eq,
-      "gee"
-    )
-    expect_identical(
-      result_mle@metadata@weighting_history[[1L]]$estimating_eq,
-      "mle"
-    )
-  }
-)
-
-test_that(
-  "estimating_eq = 'gee' and 'mle' produce different weights (H-6 block 4)",
-  {
-    nps <- .make_gee_nps()
-    ref <- .make_gee_ref()
-
-    result_gee <- suppressWarnings(
-      ipw(
-        nps,
-        ref,
-        selection        = ~age_group + sex,
-        estimating_eq    = "gee",
-        adjust_reference = FALSE
-      )
-    )
-    result_mle <- suppressWarnings(
-      ipw(
-        nps,
-        ref,
-        selection        = ~age_group + sex,
-        estimating_eq    = "mle",
-        adjust_reference = FALSE
-      )
-    )
-
-    w_gee <- result_gee@data[["ipw_weight"]]
-    w_mle <- result_mle@data[["ipw_weight"]]
-
-    expect_false(isTRUE(all.equal(w_gee, w_mle)))
-  }
-)
-
-test_that(
-  "MLE saturation guard triggers surveywts_error_propensity_scores_degenerate (H-6 block 5)",
-  {
-    # NPS has 50% F but reference has only 0.1% F — the MLE NR diverges
-    # and final scores saturate at the float boundary, triggering the error.
-    # This tests the MLE path saturation guard (GEE uses nleqslv which does
-    # not diverge in the same way; MLE NR is the path where scores saturate).
-    set.seed(1L)
-    nps_df <- data.frame(
-      sex         = c(rep("M", 50L), rep("F", 50L)),
-      base_weight = 1,
-      stringsAsFactors = FALSE
-    )
-    set.seed(2L)
-    ref_df <- data.frame(
-      sex         = c(rep("M", 9990L), rep("F", 10L)),
-      base_weight = 1,
-      stringsAsFactors = FALSE
-    )
-    ref_design <- surveycore::survey_taylor(
-      data      = ref_df,
-      variables = list(weights = "base_weight")
-    )
-
-    expect_error(
-      suppressWarnings(
-        ipw(
-          nps_df,
-          ref_design,
-          selection        = ~sex,
-          estimating_eq    = "mle",
-          adjust_reference = FALSE
-        )
-      ),
-      class = "surveywts_error_propensity_scores_degenerate"
-    )
-  }
-)
+    ),
+    class = "surveywts_error_propensity_scores_degenerate"
+  )
+})
 
 # ---------------------------------------------------------------------------
 # DAGJK-PR1 — ipw() history entry includes maxit, epsilon, trim_threshold
@@ -1807,7 +1956,7 @@ test_that("ipw() history entry includes maxit and epsilon with default values", 
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref()
 
-  result <- ipw(nps, ref, selection = ~age_group + sex)
+  result <- ipw(nps, ref, selection = ~ age_group + sex)
 
   entry <- result@metadata@weighting_history[[1L]]
   expect_identical(entry$maxit, 25L)
@@ -1819,7 +1968,7 @@ test_that("ipw() history entry includes trim_threshold = NULL when trim = FALSE"
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref()
 
-  result <- ipw(nps, ref, selection = ~age_group + sex, trim = FALSE)
+  result <- ipw(nps, ref, selection = ~ age_group + sex, trim = FALSE)
 
   entry <- result@metadata@weighting_history[[1L]]
   expect_null(entry$trim_threshold)
@@ -1830,11 +1979,11 @@ test_that("ipw() history entry includes correct numeric trim_threshold when trim
   ref <- .make_ipw_ref()
 
   # Run without trimming to get the pre-trim weights.
-  result_notrim <- ipw(nps, ref, selection = ~age_group + sex, trim = FALSE)
+  result_notrim <- ipw(nps, ref, selection = ~ age_group + sex, trim = FALSE)
   w_notrim <- result_notrim@data[["ipw_weight"]]
   expected_threshold <- median(w_notrim) + 5 * IQR(w_notrim)
 
-  result <- ipw(nps, ref, selection = ~age_group + sex, trim = TRUE)
+  result <- ipw(nps, ref, selection = ~ age_group + sex, trim = TRUE)
 
   entry <- result@metadata@weighting_history[[1L]]
   expect_true(is.numeric(entry$trim_threshold))
@@ -1844,61 +1993,62 @@ test_that("ipw() history entry includes correct numeric trim_threshold when trim
   expect_equal(entry$trim_threshold, expected_threshold, tolerance = 1e-10)
 })
 
-test_that(
-  "estimating_eq = 'gee' + missing_method = 'separate' emits no gee partial warning (H-6 block 6)",
-  {
-    # Decision 1 from decisions-ipw-extensions.md: no runtime warning for this
-    # combination. The limitation is doc-only. Assert that the call does NOT
-    # produce surveywts_warning_ipw_gee_calibration_partial.
-    # Use synthetic unit-weight data so GEE converges (population-scaled
-    # weights cause divergence from gamma=0).
-    set.seed(7L)
-    nps_with_na <- data.frame(
-      age_group   = sample(c("18-34", "35-54", "55+"), 200L, replace = TRUE),
-      sex         = c(
-        sample(c("M", "F"), 180L, replace = TRUE),
-        rep(NA_character_, 20L)
-      ),
-      base_weight = 1,
-      stringsAsFactors = FALSE
-    )
-    set.seed(8L)
-    ref_df2 <- data.frame(
-      age_group   = sample(c("18-34", "35-54", "55+"), 1000L,
-                           replace = TRUE, prob = c(0.4, 0.4, 0.2)),
-      sex         = sample(c("M", "F"), 1000L, replace = TRUE),
-      base_weight = 1,
-      stringsAsFactors = FALSE
-    )
-    ref2 <- surveycore::survey_taylor(
-      data      = ref_df2,
-      variables = list(weights = "base_weight")
-    )
+test_that("estimating_eq = 'gee' + missing_method = 'separate' emits no gee partial warning (H-6 block 6)", {
+  # Decision 1 from decisions-ipw-extensions.md: no runtime warning for this
+  # combination. The limitation is doc-only. Assert that the call does NOT
+  # produce surveywts_warning_ipw_gee_calibration_partial.
+  # Use synthetic unit-weight data so GEE converges (population-scaled
+  # weights cause divergence from gamma=0).
+  set.seed(7L)
+  nps_with_na <- data.frame(
+    age_group = sample(c("18-34", "35-54", "55+"), 200L, replace = TRUE),
+    sex = c(
+      sample(c("M", "F"), 180L, replace = TRUE),
+      rep(NA_character_, 20L)
+    ),
+    base_weight = 1,
+    stringsAsFactors = FALSE
+  )
+  set.seed(8L)
+  ref_df2 <- data.frame(
+    age_group = sample(
+      c("18-34", "35-54", "55+"),
+      1000L,
+      replace = TRUE,
+      prob = c(0.4, 0.4, 0.2)
+    ),
+    sex = sample(c("M", "F"), 1000L, replace = TRUE),
+    base_weight = 1,
+    stringsAsFactors = FALSE
+  )
+  ref2 <- surveycore::survey_taylor(
+    data = ref_df2,
+    variables = list(weights = "base_weight")
+  )
 
-    # Capture warnings explicitly so we can inspect classes
-    w_classes <- character(0L)
-    withCallingHandlers(
-      suppressWarnings(
-        ipw(
-          nps_with_na,
-          ref2,
-          selection        = ~age_group + sex,
-          estimating_eq    = "gee",
-          missing_method   = "separate",
-          adjust_reference = FALSE
-        )
-      ),
-      warning = function(w) {
-        w_classes <<- c(w_classes, class(w))
-        invokeRestart("muffleWarning")
-      }
-    )
+  # Capture warnings explicitly so we can inspect classes
+  w_classes <- character(0L)
+  withCallingHandlers(
+    suppressWarnings(
+      ipw(
+        nps_with_na,
+        ref2,
+        selection = ~ age_group + sex,
+        estimating_eq = "gee",
+        missing_method = "separate",
+        adjust_reference = FALSE
+      )
+    ),
+    warning = function(w) {
+      w_classes <<- c(w_classes, class(w))
+      invokeRestart("muffleWarning")
+    }
+  )
 
-    expect_false(
-      "surveywts_warning_ipw_gee_calibration_partial" %in% w_classes
-    )
-  }
-)
+  expect_false(
+    "surveywts_warning_ipw_gee_calibration_partial" %in% w_classes
+  )
+})
 
 # ---------------------------------------------------------------------------
 # GEE nleqslv rewrite — Acceptance criteria tests
@@ -1909,9 +2059,13 @@ test_that(
 test_that("ipw() GEE converges with population-scale reference weights (AC-1)", {
   set.seed(42L)
   ref_df <- data.frame(
-    age_group   = sample(c("18-34", "35-54", "55+"), 500L, replace = TRUE,
-                         prob = c(0.3, 0.4, 0.3)),
-    sex         = sample(c("M", "F"), 500L, replace = TRUE),
+    age_group = sample(
+      c("18-34", "35-54", "55+"),
+      500L,
+      replace = TRUE,
+      prob = c(0.3, 0.4, 0.3)
+    ),
+    sex = sample(c("M", "F"), 500L, replace = TRUE),
     base_weight = rep(2000, 500L),
     stringsAsFactors = FALSE
   )
@@ -1921,14 +2075,14 @@ test_that("ipw() GEE converges with population-scale reference weights (AC-1)", 
   )
   nps_df <- data.frame(
     age_group = sample(c("18-34", "35-54", "55+"), 100L, replace = TRUE),
-    sex       = sample(c("M", "F"), 100L, replace = TRUE),
+    sex = sample(c("M", "F"), 100L, replace = TRUE),
     stringsAsFactors = FALSE
   )
 
   result <- ipw(
     nps_df,
     ref_big,
-    selection     = ~age_group + sex,
+    selection = ~ age_group + sex,
     estimating_eq = "gee"
   )
 
@@ -1939,9 +2093,13 @@ test_that("ipw() GEE converges with population-scale reference weights (AC-1)", 
 test_that("ipw() GEE satisfies calibration constraint at convergence (AC-2)", {
   set.seed(42L)
   ref_df <- data.frame(
-    age_group   = sample(c("18-34", "35-54", "55+"), 500L, replace = TRUE,
-                         prob = c(0.3, 0.4, 0.3)),
-    sex         = sample(c("M", "F"), 500L, replace = TRUE),
+    age_group = sample(
+      c("18-34", "35-54", "55+"),
+      500L,
+      replace = TRUE,
+      prob = c(0.3, 0.4, 0.3)
+    ),
+    sex = sample(c("M", "F"), 500L, replace = TRUE),
     base_weight = rep(2000, 500L),
     stringsAsFactors = FALSE
   )
@@ -1951,28 +2109,28 @@ test_that("ipw() GEE satisfies calibration constraint at convergence (AC-2)", {
   )
   nps_df <- data.frame(
     age_group = sample(c("18-34", "35-54", "55+"), 100L, replace = TRUE),
-    sex       = sample(c("M", "F"), 100L, replace = TRUE),
+    sex = sample(c("M", "F"), 100L, replace = TRUE),
     stringsAsFactors = FALSE
   )
 
   result <- ipw(
     nps_df,
     ref_big,
-    selection     = ~age_group + sex,
+    selection = ~ age_group + sex,
     estimating_eq = "gee"
   )
 
   test_invariants(result)
-  w   <- result@data[["ipw_weight"]]
-  sel <- ~age_group + sex
+  w <- result@data[["ipw_weight"]]
+  sel <- ~ age_group + sex
 
   # Align factor levels
   nps_fit <- result@data
   ref_dat <- ref_big@data
-  d_ref   <- ref_dat[["base_weight"]]
+  d_ref <- ref_dat[["base_weight"]]
   for (v in all.vars(sel)) {
     if (is.character(ref_dat[[v]]) || is.factor(ref_dat[[v]])) {
-      ref_lv       <- sort(unique(as.character(ref_dat[[v]][!is.na(ref_dat[[v]])])))
+      ref_lv <- sort(unique(as.character(ref_dat[[v]][!is.na(ref_dat[[v]])])))
       nps_fit[[v]] <- factor(as.character(nps_fit[[v]]), levels = ref_lv)
       ref_dat[[v]] <- factor(ref_dat[[v]], levels = ref_lv)
     }
@@ -1989,9 +2147,13 @@ test_that("ipw() GEE satisfies calibration constraint at convergence (AC-2)", {
 test_that("ipw() MLE converges with unit-scale reference weights (AC-3a)", {
   set.seed(7L)
   ref_unit_df <- data.frame(
-    age_group   = sample(c("18-34", "35-54", "55+"), 500L, replace = TRUE,
-                         prob = c(0.3, 0.4, 0.3)),
-    sex         = sample(c("M", "F"), 500L, replace = TRUE),
+    age_group = sample(
+      c("18-34", "35-54", "55+"),
+      500L,
+      replace = TRUE,
+      prob = c(0.3, 0.4, 0.3)
+    ),
+    sex = sample(c("M", "F"), 500L, replace = TRUE),
     base_weight = 1,
     stringsAsFactors = FALSE
   )
@@ -2001,7 +2163,7 @@ test_that("ipw() MLE converges with unit-scale reference weights (AC-3a)", {
   )
   nps_unit_df <- data.frame(
     age_group = sample(c("18-34", "35-54", "55+"), 200L, replace = TRUE),
-    sex       = sample(c("M", "F"), 200L, replace = TRUE),
+    sex = sample(c("M", "F"), 200L, replace = TRUE),
     stringsAsFactors = FALSE
   )
 
@@ -2009,8 +2171,8 @@ test_that("ipw() MLE converges with unit-scale reference weights (AC-3a)", {
     ipw(
       nps_unit_df,
       ref_unit,
-      selection        = ~age_group + sex,
-      estimating_eq    = "mle",
+      selection = ~ age_group + sex,
+      estimating_eq = "mle",
       adjust_reference = FALSE
     )
   )
@@ -2022,9 +2184,13 @@ test_that("ipw() MLE converges with unit-scale reference weights (AC-3a)", {
 test_that("ipw() MLE converges with population-scale reference weights (AC-3b)", {
   set.seed(42L)
   ref_df <- data.frame(
-    age_group   = sample(c("18-34", "35-54", "55+"), 500L, replace = TRUE,
-                         prob = c(0.3, 0.4, 0.3)),
-    sex         = sample(c("M", "F"), 500L, replace = TRUE),
+    age_group = sample(
+      c("18-34", "35-54", "55+"),
+      500L,
+      replace = TRUE,
+      prob = c(0.3, 0.4, 0.3)
+    ),
+    sex = sample(c("M", "F"), 500L, replace = TRUE),
     base_weight = rep(2000, 500L),
     stringsAsFactors = FALSE
   )
@@ -2034,7 +2200,7 @@ test_that("ipw() MLE converges with population-scale reference weights (AC-3b)",
   )
   nps_df <- data.frame(
     age_group = sample(c("18-34", "35-54", "55+"), 100L, replace = TRUE),
-    sex       = sample(c("M", "F"), 100L, replace = TRUE),
+    sex = sample(c("M", "F"), 100L, replace = TRUE),
     stringsAsFactors = FALSE
   )
 
@@ -2042,7 +2208,7 @@ test_that("ipw() MLE converges with population-scale reference weights (AC-3b)",
     ipw(
       nps_df,
       ref_big,
-      selection     = ~age_group + sex,
+      selection = ~ age_group + sex,
       estimating_eq = "mle"
     )
   )
@@ -2054,9 +2220,13 @@ test_that("ipw() MLE converges with population-scale reference weights (AC-3b)",
 test_that("ipw() GEE issues non-convergence warning with maxit = 1L (AC-4)", {
   set.seed(42L)
   ref_df <- data.frame(
-    age_group   = sample(c("18-34", "35-54", "55+"), 500L, replace = TRUE,
-                         prob = c(0.3, 0.4, 0.3)),
-    sex         = sample(c("M", "F"), 500L, replace = TRUE),
+    age_group = sample(
+      c("18-34", "35-54", "55+"),
+      500L,
+      replace = TRUE,
+      prob = c(0.3, 0.4, 0.3)
+    ),
+    sex = sample(c("M", "F"), 500L, replace = TRUE),
     base_weight = rep(2000, 500L),
     stringsAsFactors = FALSE
   )
@@ -2066,7 +2236,7 @@ test_that("ipw() GEE issues non-convergence warning with maxit = 1L (AC-4)", {
   )
   nps_df <- data.frame(
     age_group = sample(c("18-34", "35-54", "55+"), 100L, replace = TRUE),
-    sex       = sample(c("M", "F"), 100L, replace = TRUE),
+    sex = sample(c("M", "F"), 100L, replace = TRUE),
     stringsAsFactors = FALSE
   )
 
@@ -2074,9 +2244,9 @@ test_that("ipw() GEE issues non-convergence warning with maxit = 1L (AC-4)", {
     result <- ipw(
       nps_df,
       ref_big,
-      selection     = ~age_group + sex,
+      selection = ~ age_group + sex,
       estimating_eq = "gee",
-      maxit         = 1L
+      maxit = 1L
     ),
     class = "surveywts_warning_propensity_nr_no_convergence"
   )
@@ -2088,9 +2258,13 @@ test_that("ipw() GEE issues non-convergence warning with maxit = 1L (AC-4)", {
 test_that("ipw() GEE non-convergence warning snapshot (AC-4)", {
   set.seed(42L)
   ref_df <- data.frame(
-    age_group   = sample(c("18-34", "35-54", "55+"), 500L, replace = TRUE,
-                         prob = c(0.3, 0.4, 0.3)),
-    sex         = sample(c("M", "F"), 500L, replace = TRUE),
+    age_group = sample(
+      c("18-34", "35-54", "55+"),
+      500L,
+      replace = TRUE,
+      prob = c(0.3, 0.4, 0.3)
+    ),
+    sex = sample(c("M", "F"), 500L, replace = TRUE),
     base_weight = rep(2000, 500L),
     stringsAsFactors = FALSE
   )
@@ -2100,7 +2274,7 @@ test_that("ipw() GEE non-convergence warning snapshot (AC-4)", {
   )
   nps_df <- data.frame(
     age_group = sample(c("18-34", "35-54", "55+"), 100L, replace = TRUE),
-    sex       = sample(c("M", "F"), 100L, replace = TRUE),
+    sex = sample(c("M", "F"), 100L, replace = TRUE),
     stringsAsFactors = FALSE
   )
 
@@ -2109,9 +2283,9 @@ test_that("ipw() GEE non-convergence warning snapshot (AC-4)", {
       ipw(
         nps_df,
         ref_big,
-        selection     = ~age_group + sex,
+        selection = ~ age_group + sex,
         estimating_eq = "gee",
-        maxit         = 1L
+        maxit = 1L
       ),
       class = "surveywts_warning_propensity_nr_no_convergence"
     )
@@ -2122,12 +2296,12 @@ test_that("ipw() GEE still errors when NPS level is absent from reference (AC-5)
   set.seed(99L)
   nps_missing_level <- data.frame(
     age_group = c("18-34", "35-54", "65+"),
-    sex       = c("M", "F", "M"),
+    sex = c("M", "F", "M"),
     stringsAsFactors = FALSE
   )
   ref_no_65plus_df <- data.frame(
-    age_group   = c("18-34", "35-54", "55+"),
-    sex         = c("M", "F", "M"),
+    age_group = c("18-34", "35-54", "55+"),
+    sex = c("M", "F", "M"),
     base_weight = rep(2000, 3L),
     stringsAsFactors = FALSE
   )
@@ -2140,7 +2314,7 @@ test_that("ipw() GEE still errors when NPS level is absent from reference (AC-5)
     ipw(
       nps_missing_level,
       ref_no_65plus,
-      selection     = ~age_group + sex,
+      selection = ~ age_group + sex,
       estimating_eq = "gee"
     ),
     class = "surveywts_error_propensity_level_not_in_reference"
@@ -2150,7 +2324,7 @@ test_that("ipw() GEE still errors when NPS level is absent from reference (AC-5)
     ipw(
       nps_missing_level,
       ref_no_65plus,
-      selection     = ~age_group + sex,
+      selection = ~ age_group + sex,
       estimating_eq = "gee"
     )
   )
@@ -2167,7 +2341,7 @@ test_that("ipw() GEE warns and returns valid scores on extreme imbalance (Rule 1
     stringsAsFactors = FALSE
   )
   ref_extreme_df <- data.frame(
-    sex         = c(rep("M", 9990L), rep("F", 1L)),
+    sex = c(rep("M", 9990L), rep("F", 1L)),
     base_weight = 1,
     stringsAsFactors = FALSE
   )
@@ -2180,8 +2354,8 @@ test_that("ipw() GEE warns and returns valid scores on extreme imbalance (Rule 1
     result <- ipw(
       nps_extreme,
       ref_extreme,
-      selection        = ~sex,
-      estimating_eq    = "gee",
+      selection = ~sex,
+      estimating_eq = "gee",
       adjust_reference = FALSE
     ),
     class = "surveywts_warning_propensity_nr_no_convergence"
@@ -2194,9 +2368,13 @@ test_that("ipw() GEE warns and returns valid scores on extreme imbalance (Rule 1
 test_that("ipw() GEE history entry records estimating_eq = 'gee' and correct propensity_scores", {
   set.seed(42L)
   ref_df <- data.frame(
-    age_group   = sample(c("18-34", "35-54", "55+"), 500L, replace = TRUE,
-                         prob = c(0.3, 0.4, 0.3)),
-    sex         = sample(c("M", "F"), 500L, replace = TRUE),
+    age_group = sample(
+      c("18-34", "35-54", "55+"),
+      500L,
+      replace = TRUE,
+      prob = c(0.3, 0.4, 0.3)
+    ),
+    sex = sample(c("M", "F"), 500L, replace = TRUE),
     base_weight = rep(2000, 500L),
     stringsAsFactors = FALSE
   )
@@ -2206,20 +2384,20 @@ test_that("ipw() GEE history entry records estimating_eq = 'gee' and correct pro
   )
   nps_df <- data.frame(
     age_group = sample(c("18-34", "35-54", "55+"), 100L, replace = TRUE),
-    sex       = sample(c("M", "F"), 100L, replace = TRUE),
+    sex = sample(c("M", "F"), 100L, replace = TRUE),
     stringsAsFactors = FALSE
   )
 
   result <- ipw(
     nps_df,
     ref_big,
-    selection     = ~age_group + sex,
+    selection = ~ age_group + sex,
     estimating_eq = "gee"
   )
 
   test_invariants(result)
   history <- result@metadata@weighting_history
-  entry   <- history[[length(history)]]
+  entry <- history[[length(history)]]
   expect_identical(entry$operation, "ipw")
   expect_identical(entry$estimating_eq, "gee")
   expect_true(is.numeric(entry$propensity_scores))
@@ -2229,9 +2407,13 @@ test_that("ipw() GEE history entry records estimating_eq = 'gee' and correct pro
 test_that("ipw() GEE converges with unit-scale reference weights", {
   set.seed(7L)
   ref_unit_df <- data.frame(
-    age_group   = sample(c("18-34", "35-54", "55+"), 500L, replace = TRUE,
-                         prob = c(0.3, 0.4, 0.3)),
-    sex         = sample(c("M", "F"), 500L, replace = TRUE),
+    age_group = sample(
+      c("18-34", "35-54", "55+"),
+      500L,
+      replace = TRUE,
+      prob = c(0.3, 0.4, 0.3)
+    ),
+    sex = sample(c("M", "F"), 500L, replace = TRUE),
     base_weight = 1,
     stringsAsFactors = FALSE
   )
@@ -2241,7 +2423,7 @@ test_that("ipw() GEE converges with unit-scale reference weights", {
   )
   nps_unit_df <- data.frame(
     age_group = sample(c("18-34", "35-54", "55+"), 200L, replace = TRUE),
-    sex       = sample(c("M", "F"), 200L, replace = TRUE),
+    sex = sample(c("M", "F"), 200L, replace = TRUE),
     stringsAsFactors = FALSE
   )
 
@@ -2249,8 +2431,8 @@ test_that("ipw() GEE converges with unit-scale reference weights", {
     ipw(
       nps_unit_df,
       ref_unit,
-      selection        = ~age_group + sex,
-      estimating_eq    = "gee",
+      selection = ~ age_group + sex,
+      estimating_eq = "gee",
       adjust_reference = FALSE
     )
   )
@@ -2270,17 +2452,18 @@ test_that("ipw() GEE converges with unit-scale reference weights", {
   n_reps <- 10L
   repmat <- matrix(
     sample(c(0, 2), n_rows * n_reps, replace = TRUE) * ref_df$base_weight,
-    nrow = n_rows, ncol = n_reps
+    nrow = n_rows,
+    ncol = n_reps
   )
   colnames(repmat) <- paste0("repwt", seq_len(n_reps))
   ref_data_reps <- cbind(ref_df, repmat)
   surveycore::as_survey_replicate(
-    data       = ref_data_reps,
-    weights    = "base_weight",
+    data = ref_data_reps,
+    weights = "base_weight",
     repweights = paste0("repwt", seq_len(n_reps)),
-    type       = "bootstrap",
-    scale      = 1 / n_reps,
-    rscales    = rep(1, n_reps)
+    type = "bootstrap",
+    scale = 1 / n_reps,
+    rscales = rep(1, n_reps)
   )
 }
 
@@ -2292,7 +2475,7 @@ test_that("H-R1: ipw() returns survey_nonprob for survey_replicate reference", {
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref_replicate()
 
-  result <- suppressWarnings(ipw(nps, ref, selection = ~age_group + sex))
+  result <- suppressWarnings(ipw(nps, ref, selection = ~ age_group + sex))
 
   test_invariants(result)
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
@@ -2302,7 +2485,7 @@ test_that("H-R2: all original NPS columns preserved; ipw_weight present; nrow un
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref_replicate()
 
-  result <- suppressWarnings(ipw(nps, ref, selection = ~age_group + sex))
+  result <- suppressWarnings(ipw(nps, ref, selection = ~ age_group + sex))
 
   expect_true("ipw_weight" %in% names(result@data))
   for (cn in names(nps)) {
@@ -2315,7 +2498,7 @@ test_that("H-R3: all IPW weights strictly positive with survey_replicate referen
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref_replicate()
 
-  result <- suppressWarnings(ipw(nps, ref, selection = ~age_group + sex))
+  result <- suppressWarnings(ipw(nps, ref, selection = ~ age_group + sex))
 
   expect_true(all(result@data$ipw_weight > 0))
 })
@@ -2324,7 +2507,7 @@ test_that("H-R4: history entry has operation='ipw'; reference_design is survey_r
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref_replicate()
 
-  result <- suppressWarnings(ipw(nps, ref, selection = ~age_group + sex))
+  result <- suppressWarnings(ipw(nps, ref, selection = ~ age_group + sex))
 
   entry <- result@metadata@weighting_history[[1L]]
   expect_identical(entry$operation, "ipw")
@@ -2338,7 +2521,7 @@ test_that("H-R5: survey_replicate and survey_taylor with same main weights produ
   ref_df <- make_nps_reference(n = 1000L, seed = 99L)@data
 
   ref_taylor <- surveycore::survey_taylor(
-    data      = ref_df,
+    data = ref_df,
     variables = list(weights = "base_weight")
   )
 
@@ -2347,20 +2530,29 @@ test_that("H-R5: survey_replicate and survey_taylor with same main weights produ
   n_reps <- 10L
   repmat <- matrix(
     sample(c(0, 2), n_rows * n_reps, replace = TRUE) * ref_df$base_weight,
-    nrow = n_rows, ncol = n_reps
+    nrow = n_rows,
+    ncol = n_reps
   )
   colnames(repmat) <- paste0("repwt", seq_len(n_reps))
   ref_replicate <- surveycore::as_survey_replicate(
-    data       = cbind(ref_df, repmat),
-    weights    = "base_weight",
+    data = cbind(ref_df, repmat),
+    weights = "base_weight",
     repweights = paste0("repwt", seq_len(n_reps)),
-    type       = "bootstrap",
-    scale      = 1 / n_reps,
-    rscales    = rep(1, n_reps)
+    type = "bootstrap",
+    scale = 1 / n_reps,
+    rscales = rep(1, n_reps)
   )
 
-  result_taylor    <- suppressWarnings(ipw(nps, ref_taylor,    selection = ~age_group + sex))
-  result_replicate <- suppressWarnings(ipw(nps, ref_replicate, selection = ~age_group + sex))
+  result_taylor <- suppressWarnings(ipw(
+    nps,
+    ref_taylor,
+    selection = ~ age_group + sex
+  ))
+  result_replicate <- suppressWarnings(ipw(
+    nps,
+    ref_replicate,
+    selection = ~ age_group + sex
+  ))
 
   expect_equal(
     result_replicate@data$ipw_weight,
@@ -2377,12 +2569,12 @@ test_that("E-3: ipw() errors when reference is NULL", {
   nps <- .make_ipw_nps()
 
   expect_error(
-    ipw(nps, NULL, selection = ~age_group + sex),
+    ipw(nps, NULL, selection = ~ age_group + sex),
     class = "surveywts_error_reference_not_survey_design"
   )
   expect_snapshot(
     error = TRUE,
-    ipw(nps, NULL, selection = ~age_group + sex)
+    ipw(nps, NULL, selection = ~ age_group + sex)
   )
 })
 
@@ -2390,12 +2582,12 @@ test_that("E-4: ipw() errors when reference is a plain list", {
   nps <- .make_ipw_nps()
 
   expect_error(
-    ipw(nps, list(a = 1), selection = ~age_group + sex),
+    ipw(nps, list(a = 1), selection = ~ age_group + sex),
     class = "surveywts_error_reference_not_survey_design"
   )
   expect_snapshot(
     error = TRUE,
-    ipw(nps, list(a = 1), selection = ~age_group + sex)
+    ipw(nps, list(a = 1), selection = ~ age_group + sex)
   )
 })
 
@@ -2408,7 +2600,7 @@ test_that("E-5: ipw() errors when survey_replicate reference has zero in main we
   attr(ref, "data") <- bad_data
 
   expect_error(
-    ipw(nps, ref, selection = ~age_group + sex),
+    ipw(nps, ref, selection = ~ age_group + sex),
     class = "surveywts_error_reference_weights_nonpositive"
   )
 })
@@ -2425,21 +2617,22 @@ test_that("EC-1: survey_replicate with BRR zeros in replicate columns; weights c
   n_reps <- 10L
   repmat <- matrix(
     sample(c(0, 2), n_rows * n_reps, replace = TRUE) * ref_df$base_weight,
-    nrow = n_rows, ncol = n_reps
+    nrow = n_rows,
+    ncol = n_reps
   )
   # BRR-style zeros in some replicate cells; main weight stays positive
   repmat[seq_len(100L), c(1L, 3L, 5L)] <- 0
   colnames(repmat) <- paste0("repwt", seq_len(n_reps))
   ref_brr <- surveycore::as_survey_replicate(
-    data       = cbind(ref_df, repmat),
-    weights    = "base_weight",
+    data = cbind(ref_df, repmat),
+    weights = "base_weight",
     repweights = paste0("repwt", seq_len(n_reps)),
-    type       = "bootstrap",
-    scale      = 1 / n_reps,
-    rscales    = rep(1, n_reps)
+    type = "bootstrap",
+    scale = 1 / n_reps,
+    rscales = rep(1, n_reps)
   )
 
-  result <- suppressWarnings(ipw(nps, ref_brr, selection = ~age_group + sex))
+  result <- suppressWarnings(ipw(nps, ref_brr, selection = ~ age_group + sex))
 
   test_invariants(result)
   expect_true(all(result@data$ipw_weight > 0))
@@ -2451,7 +2644,7 @@ test_that("EC-2: survey_replicate reference; wt_name conflict errors correctly",
 
   suppressWarnings(
     expect_error(
-      ipw(nps, ref, selection = ~age_group + sex, wt_name = "base_weight"),
+      ipw(nps, ref, selection = ~ age_group + sex, wt_name = "base_weight"),
       class = "surveywts_error_wt_name_conflict"
     )
   )
@@ -2466,7 +2659,7 @@ test_that("EC-3: survey_replicate reference; selection variable absent from refe
   attr(ref, "data") <- ref_data
 
   expect_error(
-    ipw(nps, ref, selection = ~age_group + sex),
+    ipw(nps, ref, selection = ~ age_group + sex),
     class = "surveywts_error_formula_variable_not_in_reference"
   )
 })
@@ -2478,7 +2671,7 @@ test_that("EC-4: survey_replicate reference; NPS factor level absent from refere
   ref <- .make_ipw_ref_replicate()
 
   expect_error(
-    ipw(nps_extra, ref, selection = ~age_group + sex),
+    ipw(nps_extra, ref, selection = ~ age_group + sex),
     class = "surveywts_error_propensity_level_not_in_reference"
   )
 })
@@ -2492,7 +2685,7 @@ test_that("EC-5: survey_replicate reference; zero main weight errors with refere
   attr(ref, "data") <- bad_data
 
   expect_error(
-    ipw(nps, ref, selection = ~age_group + sex),
+    ipw(nps, ref, selection = ~ age_group + sex),
     class = "surveywts_error_reference_weights_nonpositive"
   )
 })
@@ -2502,7 +2695,7 @@ test_that("EC-6: survey_replicate reference with trim=TRUE; test_invariants pass
   ref <- .make_ipw_ref_replicate()
 
   result <- suppressWarnings(
-    ipw(nps, ref, selection = ~age_group + sex, trim = TRUE)
+    ipw(nps, ref, selection = ~ age_group + sex, trim = TRUE)
   )
 
   test_invariants(result)

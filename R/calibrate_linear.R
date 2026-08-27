@@ -265,7 +265,10 @@ calibrate_linear <- function(
 
   # ---- 9. Validate population marginals ------------------------------------
   .validate_population_marginals(
-    targets_a, variable_names, plain_df, type,
+    targets_a,
+    variable_names,
+    plain_df,
+    type,
     target_name = "targets"
   )
 
@@ -347,7 +350,11 @@ calibrate_linear <- function(
     NULL
   }
   # q-weights used in T_x computation: default to 1 for all units
-  q_for_engine <- if (!is.null(q_weights_vec)) q_weights_vec else rep(1, nrow(plain_df))
+  q_for_engine <- if (!is.null(q_weights_vec)) {
+    q_weights_vec
+  } else {
+    rep(1, nrow(plain_df))
+  }
 
   # ---- 14. Build calibration function and run engine -----------------------
   # For absolute bounds: transform to multiplicative g-weight space
@@ -381,28 +388,27 @@ calibrate_linear <- function(
     calfun <- .make_calfun_linear(L = L_vec, U = U_vec)
 
     engine_result_raw <- .calibrate_nr_engine(
-      x_matrix    = x_matrix,
+      x_matrix = x_matrix,
       weights_vec = weights_vec,
-      calfun      = calfun,
-      population  = population_totals_vec,
-      epsilon     = control$epsilon,
-      maxit       = as.integer(control$maxit),
-      q_weights   = q_for_engine
+      calfun = calfun,
+      population = population_totals_vec,
+      epsilon = control$epsilon,
+      maxit = as.integer(control$maxit),
+      q_weights = q_for_engine
     )
 
     new_weights <- engine_result_raw$weights
 
     engine_result <- list(
-      weights    = new_weights,
-      lambda     = engine_result_raw$lambda,
+      weights = new_weights,
+      lambda = engine_result_raw$lambda,
       n_iterations = engine_result_raw$n_iterations,
-      converged  = engine_result_raw$converged,
+      converged = engine_result_raw$converged,
       convergence = list(
-        converged  = engine_result_raw$converged,
+        converged = engine_result_raw$converged,
         iterations = engine_result_raw$n_iterations
       )
     )
-
   } else if (!is.null(bounds)) {
     # Multiplicative bounds: g-weights in [L, U]
     L <- bounds[[1L]]
@@ -410,51 +416,50 @@ calibrate_linear <- function(
     calfun <- .make_calfun_linear(L = L, U = U)
 
     engine_result_raw <- .calibrate_nr_engine(
-      x_matrix    = x_matrix,
+      x_matrix = x_matrix,
       weights_vec = weights_vec,
-      calfun      = calfun,
-      population  = population_totals_vec,
-      epsilon     = control$epsilon,
-      maxit       = as.integer(control$maxit),
-      q_weights   = q_for_engine
+      calfun = calfun,
+      population = population_totals_vec,
+      epsilon = control$epsilon,
+      maxit = as.integer(control$maxit),
+      q_weights = q_for_engine
     )
 
     new_weights <- engine_result_raw$weights
 
     engine_result <- list(
-      weights    = new_weights,
-      lambda     = engine_result_raw$lambda,
+      weights = new_weights,
+      lambda = engine_result_raw$lambda,
       n_iterations = engine_result_raw$n_iterations,
-      converged  = engine_result_raw$converged,
+      converged = engine_result_raw$converged,
       convergence = list(
-        converged  = engine_result_raw$converged,
+        converged = engine_result_raw$converged,
         iterations = engine_result_raw$n_iterations
       )
     )
-
   } else {
     # Plain unbounded linear: F(u) = 1 + u, exact in one step
     calfun <- .make_calfun_linear()
 
     engine_result_raw <- .calibrate_nr_engine(
-      x_matrix    = x_matrix,
+      x_matrix = x_matrix,
       weights_vec = weights_vec,
-      calfun      = calfun,
-      population  = population_totals_vec,
-      epsilon     = control$epsilon,
-      maxit       = as.integer(control$maxit),
-      q_weights   = q_for_engine
+      calfun = calfun,
+      population = population_totals_vec,
+      epsilon = control$epsilon,
+      maxit = as.integer(control$maxit),
+      q_weights = q_for_engine
     )
 
     new_weights <- engine_result_raw$weights
 
     engine_result <- list(
-      weights    = new_weights,
-      lambda     = engine_result_raw$lambda,
+      weights = new_weights,
+      lambda = engine_result_raw$lambda,
       n_iterations = engine_result_raw$n_iterations,
-      converged  = engine_result_raw$converged,
+      converged = engine_result_raw$converged,
       convergence = list(
-        converged  = engine_result_raw$converged,
+        converged = engine_result_raw$converged,
         iterations = engine_result_raw$n_iterations
       )
     )
@@ -496,15 +501,15 @@ calibrate_linear <- function(
     # vector) so the matrix multiply is well-defined. The @calibration$q_weights
     # slot is then overridden to store the user's unit_scale (NULL or a vector).
     caldata <- .build_calibration_provenance(
-      engine_result     = engine_result,
-      x_matrix          = x_matrix,
-      base_weights      = provenance_base_weights,
-      q_weights         = q_for_engine,
+      engine_result = engine_result,
+      x_matrix = x_matrix,
+      base_weights = provenance_base_weights,
+      q_weights = q_for_engine,
       population_totals = population_totals_vec,
-      method            = method_str,
-      lambda            = engine_result$lambda,
-      cell_factors      = NULL,
-      bounds_scale      = if (!is.null(bounds)) bounds_scale else NULL
+      method = method_str,
+      lambda = engine_result$lambda,
+      cell_factors = NULL,
+      bounds_scale = if (!is.null(bounds)) bounds_scale else NULL
     )
     # Override q_weights slot to store the user-supplied unit_scale (may be NULL)
     caldata$q_weights <- q_weights_vec
@@ -527,7 +532,9 @@ calibrate_linear <- function(
         } else {
           # type = "count": scale by sum(rep_wt) / sum(base_wt)
           scale_ratio <- rep_total_w / total_w
-          rep_pop_counts <- lapply(population_counts, function(p) p * scale_ratio)
+          rep_pop_counts <- lapply(population_counts, function(p) {
+            p * scale_ratio
+          })
         }
 
         # Build rep population totals vector
@@ -557,24 +564,24 @@ calibrate_linear <- function(
               rep_U_vec[nonzero] <- abs_U / rep_wt[nonzero]
               rep_calfun <- .make_calfun_linear(L = rep_L_vec, U = rep_U_vec)
               rep_engine <- .calibrate_nr_engine(
-                x_matrix    = x_matrix,
+                x_matrix = x_matrix,
                 weights_vec = rep_wt,
-                calfun      = rep_calfun,
-                population  = rep_pop_vec,
-                epsilon     = control$epsilon,
-                maxit       = as.integer(control$maxit),
-                q_weights   = q_for_engine
+                calfun = rep_calfun,
+                population = rep_pop_vec,
+                epsilon = control$epsilon,
+                maxit = as.integer(control$maxit),
+                q_weights = q_for_engine
               )
               data@data[[repwt_col]] <- rep_engine$weights
             } else {
               rep_engine <- .calibrate_nr_engine(
-                x_matrix    = x_matrix,
+                x_matrix = x_matrix,
                 weights_vec = rep_wt,
-                calfun      = calfun,
-                population  = rep_pop_vec,
-                epsilon     = control$epsilon,
-                maxit       = as.integer(control$maxit),
-                q_weights   = q_for_engine
+                calfun = calfun,
+                population = rep_pop_vec,
+                epsilon = control$epsilon,
+                maxit = as.integer(control$maxit),
+                q_weights = q_for_engine
               )
               data@data[[repwt_col]] <- rep_engine$weights
             }
@@ -631,10 +638,16 @@ calibrate_linear <- function(
       reference_design = reference_design
     ),
     before_stats = before_stats,
-    after_stats  = after_stats,
-    convergence  = engine_result$convergence
+    after_stats = after_stats,
+    convergence = engine_result$convergence
   )
 
   # ---- 18. Build output ----------------------------------------------------
-  .update_survey_weights(data, new_weights, history_entry, wt_name = wt_name, caldata = caldata)
+  .update_survey_weights(
+    data,
+    new_weights,
+    history_entry,
+    wt_name = wt_name,
+    caldata = caldata
+  )
 }

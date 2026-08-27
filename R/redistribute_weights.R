@@ -83,9 +83,9 @@ redistribute_weights <- function(
   control = list()
 ) {
   # ---- Capture call and quosures -------------------------------------------
-  call_str     <- paste0(deparse(match.call()), collapse = " ")
-  weights_quo  <- rlang::enquo(weights)
-  reduce_quo   <- rlang::enquo(reduce_if)
+  call_str <- paste0(deparse(match.call()), collapse = " ")
+  weights_quo <- rlang::enquo(weights)
+  reduce_quo <- rlang::enquo(reduce_if)
   increase_quo <- rlang::enquo(increase_if)
 
   # ---- 1. Input class check -------------------------------------------------
@@ -134,7 +134,7 @@ redistribute_weights <- function(
   control <- utils::modifyList(list(min_cell = 20L, max_adjust = 2.0), control)
 
   # ---- 10. Resolve indicator column names -----------------------------------
-  reduce_col   <- rlang::as_name(reduce_quo)
+  reduce_col <- rlang::as_name(reduce_quo)
   increase_col <- rlang::as_name(increase_quo)
 
   # ---- 11. Check indicator columns exist ------------------------------------
@@ -173,9 +173,10 @@ redistribute_weights <- function(
 
   # ---- 12. Binary validation for reduce_if ----------------------------------
   .validate_response_status_binary(
-    plain_df, reduce_col,
-    col_label   = "reduce_if column",
-    fn_name     = "redistribute_weights",
+    plain_df,
+    reduce_col,
+    col_label = "reduce_if column",
+    fn_name = "redistribute_weights",
     error_class = "surveywts_error_reduce_if_not_binary"
   )
 
@@ -200,9 +201,10 @@ redistribute_weights <- function(
 
   # ---- 14. Binary validation for increase_if --------------------------------
   .validate_response_status_binary(
-    plain_df, increase_col,
-    col_label   = "increase_if column",
-    fn_name     = "redistribute_weights",
+    plain_df,
+    increase_col,
+    col_label = "increase_if column",
+    fn_name = "redistribute_weights",
     error_class = "surveywts_error_increase_if_not_binary"
   )
 
@@ -226,7 +228,7 @@ redistribute_weights <- function(
   }
 
   # ---- 16. Convert to logical and check overlap -----------------------------
-  is_reduce  <- as.logical(plain_df[[reduce_col]])
+  is_reduce <- as.logical(plain_df[[reduce_col]])
   is_increase <- as.logical(plain_df[[increase_col]])
 
   n_overlap <- sum(is_reduce & is_increase, na.rm = TRUE)
@@ -250,7 +252,7 @@ redistribute_weights <- function(
   }
 
   # ---- 17. Resolve by variable names ----------------------------------------
-  by_quo   <- rlang::enquo(by)
+  by_quo <- rlang::enquo(by)
   by_names <- if (rlang::quo_is_null(by_quo)) {
     character(0)
   } else {
@@ -278,7 +280,7 @@ redistribute_weights <- function(
   }
 
   # ---- 19. Extract weights and compute before-stats -------------------------
-  weights_vec  <- plain_df[[weight_col]]
+  weights_vec <- plain_df[[weight_col]]
   before_stats <- .compute_weight_stats(weights_vec)
 
   # ---- 20. Build cell keys --------------------------------------------------
@@ -287,22 +289,23 @@ redistribute_weights <- function(
   } else {
     cell_keys <- do.call(
       paste,
-      c(lapply(by_names, function(v) as.character(plain_df[[v]])),
-        sep = "//")
+      c(lapply(by_names, function(v) as.character(plain_df[[v]])), sep = "//")
     )
   }
 
   # ---- 21. Per-group redistribution -----------------------------------------
-  new_weights  <- weights_vec
+  new_weights <- weights_vec
   unique_cells <- unique(cell_keys)
 
   for (cell in unique_cells) {
-    cell_idx     <- which(cell_keys == cell)
-    reduce_idx   <- cell_idx[is_reduce[cell_idx]]
+    cell_idx <- which(cell_keys == cell)
+    reduce_idx <- cell_idx[is_reduce[cell_idx]]
     increase_idx <- cell_idx[is_increase[cell_idx]]
 
     # No reduce_if rows in this group: skip (nothing to redistribute)
-    if (length(reduce_idx) == 0L) next
+    if (length(reduce_idx) == 0L) {
+      next
+    }
 
     # reduce_if rows present but no increase_if rows: error
     if (length(increase_idx) == 0L) {
@@ -323,10 +326,10 @@ redistribute_weights <- function(
       )
     }
 
-    w_reduce   <- sum(weights_vec[reduce_idx])
+    w_reduce <- sum(weights_vec[reduce_idx])
     w_increase <- sum(weights_vec[increase_idx])
     adj_factor <- (w_reduce + w_increase) / w_increase
-    n_increase  <- length(increase_idx)
+    n_increase <- length(increase_idx)
 
     # Warn on sparse or extreme-adjustment groups
     cell_label <- if (cell == "__global__") "(global)" else cell
@@ -349,27 +352,27 @@ redistribute_weights <- function(
     }
 
     new_weights[increase_idx] <- weights_vec[increase_idx] * adj_factor
-    new_weights[reduce_idx]   <- 0
+    new_weights[reduce_idx] <- 0
   }
 
   # ---- 22. Build history entry ---------------------------------------------
-  after_stats     <- .compute_weight_stats(new_weights[is_increase])
+  after_stats <- .compute_weight_stats(new_weights[is_increase])
   current_history <- .get_history(data)
 
   history_entry <- .make_history_entry(
-    step        = length(current_history) + 1L,
-    operation   = "redistribute_weights",
-    weight_col  = if (is.null(wt_name)) data@variables$weights else wt_name,
-    call_str    = call_str,
-    parameters  = list(
-      reduce_col   = reduce_col,
+    step = length(current_history) + 1L,
+    operation = "redistribute_weights",
+    weight_col = if (is.null(wt_name)) data@variables$weights else wt_name,
+    call_str = call_str,
+    parameters = list(
+      reduce_col = reduce_col,
       increase_col = increase_col,
       by_variables = by_names,
-      method       = "general_redistribution"
+      method = "general_redistribution"
     ),
     before_stats = before_stats,
-    after_stats  = after_stats,
-    convergence  = NULL
+    after_stats = after_stats,
+    convergence = NULL
   )
 
   # ---- 23. Return output ----------------------------------------------------
@@ -378,6 +381,10 @@ redistribute_weights <- function(
   keep_rows <- which(!is_reduce)
   filtered_design <- data
   filtered_design@data <- plain_df[keep_rows, , drop = FALSE]
-  .update_survey_weights(filtered_design, new_weights[keep_rows], history_entry,
-                         wt_name = wt_name)
+  .update_survey_weights(
+    filtered_design,
+    new_weights[keep_rows],
+    history_entry,
+    wt_name = wt_name
+  )
 }

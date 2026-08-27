@@ -197,8 +197,15 @@ ns_wave1$ns_income <- factor(
 # "No answer" in ns_income maps to NA so both datasets treat missing income
 # consistently (dropped by ipw() when missing_method = "omit").
 hh_income_f9_levels <- c(
-  "<$20k", "$20-35k", "$35-50k", "$50-65k", "$65-80k",
-  "$80-100k", "$100-125k", "$125-200k", "≥$200k"
+  "<$20k",
+  "$20-35k",
+  "$35-50k",
+  "$50-65k",
+  "$65-80k",
+  "$80-100k",
+  "$100-125k",
+  "$125-200k",
+  "≥$200k"
 )
 ns_wave1$hh_income_f9 <- factor(
   ifelse(
@@ -335,20 +342,53 @@ ns_wave1$weight <- ns_wave1_svy@data$weight
 rm(ns_wave1_svy)
 
 # Add "label" attributes to derived columns
-attr(ns_wave1$sex, "label")    <- "Sex (factor, derived from gender: 1=Male, 2=Female)"
+attr(
+  ns_wave1$sex,
+  "label"
+) <- "Sex (factor, derived from gender: 1=Male, 2=Female)"
 attr(ns_wave1$age_f3, "label") <- "Age group (3 levels: 18-34, 35-54, 55+)"
-attr(ns_wave1$race_f4, "label") <- "Race/ethnicity (4 levels: White, Black, Hispanic, Other)"
+attr(
+  ns_wave1$race_f4,
+  "label"
+) <- "Race/ethnicity (4 levels: White, Black, Hispanic, Other)"
 attr(ns_wave1$edu_f3, "label") <- "Educational attainment (3 levels)"
 attr(ns_wave1$pid_f3, "label") <- "Party identification (3 levels)"
-attr(ns_wave1$hh_income_f9, "label") <- "Household income (9 brackets, harmonized with cps_2023)"
-attr(ns_wave1$ns_region, "label")     <- "Census region (Nationscape raking variable)"
-attr(ns_wave1$ns_hispanic, "label")   <- "Hispanic ethnicity (3 categories, Nationscape raking variable)"
-attr(ns_wave1$ns_race, "label")       <- "Race (4 categories, Nationscape raking variable)"
-attr(ns_wave1$ns_age, "label")        <- "Age group (7 categories, Nationscape raking variable)"
-attr(ns_wave1$ns_language, "label")   <- "Household language (Nationscape raking variable)"
-attr(ns_wave1$ns_foreign_born, "label") <- "Foreign-born status (Nationscape raking variable)"
-attr(ns_wave1$ns_income, "label")     <- "Household income (10 brackets, Nationscape raking variable)"
-attr(ns_wave1$ns_vote_2016, "label")  <- "2016 presidential vote (Nationscape raking variable)"
+attr(
+  ns_wave1$hh_income_f9,
+  "label"
+) <- "Household income (9 brackets, harmonized with cps_2023)"
+attr(
+  ns_wave1$ns_region,
+  "label"
+) <- "Census region (Nationscape raking variable)"
+attr(
+  ns_wave1$ns_hispanic,
+  "label"
+) <- "Hispanic ethnicity (3 categories, Nationscape raking variable)"
+attr(
+  ns_wave1$ns_race,
+  "label"
+) <- "Race (4 categories, Nationscape raking variable)"
+attr(
+  ns_wave1$ns_age,
+  "label"
+) <- "Age group (7 categories, Nationscape raking variable)"
+attr(
+  ns_wave1$ns_language,
+  "label"
+) <- "Household language (Nationscape raking variable)"
+attr(
+  ns_wave1$ns_foreign_born,
+  "label"
+) <- "Foreign-born status (Nationscape raking variable)"
+attr(
+  ns_wave1$ns_income,
+  "label"
+) <- "Household income (10 brackets, Nationscape raking variable)"
+attr(
+  ns_wave1$ns_vote_2016,
+  "label"
+) <- "2016 presidential vote (Nationscape raking variable)"
 
 ns_wave1 <- tibble::as_tibble(ns_wave1)
 

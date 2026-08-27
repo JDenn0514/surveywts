@@ -29,10 +29,16 @@
   surveycore::survey_replicate(
     data = df,
     variables = list(
-      ids = NULL, strata = NULL, fpc = NULL,
-      weights = "base_weight", nest = FALSE,
-      repweights = c("base_weight"), scale = 0.5, rscales = 1,
-      type = "BRR", mse = TRUE
+      ids = NULL,
+      strata = NULL,
+      fpc = NULL,
+      weights = "base_weight",
+      nest = FALSE,
+      repweights = c("base_weight"),
+      scale = 0.5,
+      rscales = 1,
+      type = "BRR",
+      mse = TRUE
     ),
     metadata = meta,
     groups = character(0),
@@ -108,8 +114,11 @@ test_that("adjust_nonresponse() returns survey_nonprob for survey_nonprob input"
   calibrated <- surveycore::survey_nonprob(
     data = df,
     variables = list(
-      ids = NULL, strata = NULL, fpc = NULL,
-      weights = "base_weight", nest = FALSE
+      ids = NULL,
+      strata = NULL,
+      fpc = NULL,
+      weights = "base_weight",
+      nest = FALSE
     ),
     metadata = surveycore::survey_metadata(),
     groups = character(0),
@@ -135,7 +144,7 @@ test_that("adjust_nonresponse() returns survey_nonprob for survey_nonprob input"
 
 test_that("adjust_nonresponse() performs global redistribution when by = NULL", {
   df <- make_surveywts_data(seed = 6, include_nonrespondents = TRUE)
-  df$base_weight <- 1  # uniform weights for easy verification
+  df$base_weight <- 1 # uniform weights for easy verification
   design <- .make_test_taylor_nr(df)
 
   result <- adjust_nonresponse(design, response_status = responded)
@@ -212,7 +221,11 @@ test_that("adjust_nonresponse() matches hand calculation for 2-class example", {
   design <- surveycore::survey_taylor(
     data = df,
     variables = list(
-      ids = NULL, strata = NULL, fpc = NULL, weights = "w", nest = FALSE
+      ids = NULL,
+      strata = NULL,
+      fpc = NULL,
+      weights = "w",
+      nest = FALSE
     )
   )
 
@@ -299,8 +312,12 @@ test_that("adjust_nonresponse() conserves weight within each by-cell", {
     sum_before <- sum(df$base_weight[df$age_group == grp])
     result_grp <- result@data[result@data[["age_group"]] == grp, ]
     sum_after <- sum(result_grp[[wt_col]])
-    expect_equal(sum_before, sum_after, tolerance = 1e-10,
-                 label = paste("weight conservation in age_group =", grp))
+    expect_equal(
+      sum_before,
+      sum_after,
+      tolerance = 1e-10,
+      label = paste("weight conservation in age_group =", grp)
+    )
   }
 })
 
@@ -392,7 +409,7 @@ test_that("adjust_nonresponse() rejects response_status with NA values", {
 # ---------------------------------------------------------------------------
 
 test_that("adjust_nonresponse() rejects missing response_status column", {
-  df <- make_surveywts_data(seed = 13)  # no responded column
+  df <- make_surveywts_data(seed = 13) # no responded column
   design <- .make_test_taylor_nr(df)
 
   expect_error(
@@ -478,7 +495,11 @@ test_that("adjust_nonresponse() rejects by-cell with no respondents", {
   design <- surveycore::survey_taylor(
     data = df,
     variables = list(
-      ids = NULL, strata = NULL, fpc = NULL, weights = "w", nest = FALSE
+      ids = NULL,
+      strata = NULL,
+      fpc = NULL,
+      weights = "w",
+      nest = FALSE
     )
   )
 
@@ -507,7 +528,11 @@ test_that("adjust_nonresponse() warns when a cell has fewer than 20 respondents"
   design_small <- surveycore::survey_taylor(
     data = df_small,
     variables = list(
-      ids = NULL, strata = NULL, fpc = NULL, weights = "w", nest = FALSE
+      ids = NULL,
+      strata = NULL,
+      fpc = NULL,
+      weights = "w",
+      nest = FALSE
     )
   )
 
@@ -545,7 +570,11 @@ test_that("adjust_nonresponse() warns when adjustment factor exceeds 2.0", {
   design_high_adj <- surveycore::survey_taylor(
     data = df_high_adj,
     variables = list(
-      ids = NULL, strata = NULL, fpc = NULL, weights = "w", nest = FALSE
+      ids = NULL,
+      strata = NULL,
+      fpc = NULL,
+      weights = "w",
+      nest = FALSE
     )
   )
 
@@ -589,7 +618,9 @@ test_that("adjust_nonresponse() single by-cell gives same result as global", {
 
   result_global <- adjust_nonresponse(design, response_status = responded)
   result_single <- adjust_nonresponse(
-    design, response_status = responded, by = const_class
+    design,
+    response_status = responded,
+    by = const_class
   )
 
   expect_equal(
@@ -705,8 +736,11 @@ test_that("adjust_nonresponse() preserves survey_nonprob metadata with zero weig
   snp <- surveycore::survey_nonprob(
     data = df,
     variables = list(
-      ids = NULL, strata = NULL, fpc = NULL,
-      weights = "base_weight", nest = FALSE
+      ids = NULL,
+      strata = NULL,
+      fpc = NULL,
+      weights = "base_weight",
+      nest = FALSE
     ),
     metadata = meta,
     groups = character(0),
@@ -756,7 +790,11 @@ test_that("calibrate_linear() rejects post-nonresponse survey_nonprob with zero 
   snp <- surveycore::survey_nonprob(
     data = df,
     variables = list(
-      ids = NULL, strata = NULL, fpc = NULL, weights = "w", nest = FALSE
+      ids = NULL,
+      strata = NULL,
+      fpc = NULL,
+      weights = "w",
+      nest = FALSE
     ),
     metadata = surveycore::survey_metadata(),
     groups = character(0),
@@ -814,14 +852,18 @@ test_that("adjust_nonresponse() rejects NA wt_name", {
   design <- .make_test_taylor_nr(df)
   expect_error(
     adjust_nonresponse(
-      design, response_status = responded, wt_name = NA_character_
+      design,
+      response_status = responded,
+      wt_name = NA_character_
     ),
     class = "surveywts_error_wt_name_empty"
   )
   expect_snapshot(
     error = TRUE,
     adjust_nonresponse(
-      design, response_status = responded, wt_name = NA_character_
+      design,
+      response_status = responded,
+      wt_name = NA_character_
     )
   )
 })
@@ -842,7 +884,9 @@ test_that("adjust_nonresponse() uses custom wt_name for output column", {
   df <- make_surveywts_data(seed = 1, include_nonrespondents = TRUE)
   design <- .make_test_taylor_nr(df)
   result <- adjust_nonresponse(
-    design, response_status = responded, wt_name = "nr_wt"
+    design,
+    response_status = responded,
+    wt_name = "nr_wt"
   )
   test_invariants(result)
   expect_identical(result@variables$weights, "nr_wt")
@@ -858,7 +902,9 @@ test_that("adjust_nonresponse() preserves input weight column when wt_name diffe
   design <- .make_test_taylor_nr(df)
   orig_wt_col <- design@variables$weights
   result <- adjust_nonresponse(
-    design, response_status = responded, wt_name = "nr_wt"
+    design,
+    response_status = responded,
+    wt_name = "nr_wt"
   )
   test_invariants(result)
   expect_true(orig_wt_col %in% names(result@data))
@@ -870,7 +916,9 @@ test_that("adjust_nonresponse() overwrites input column when wt_name matches", {
   df <- make_surveywts_data(seed = 1, include_nonrespondents = TRUE)
   design <- .make_test_taylor_nr(df)
   result <- adjust_nonresponse(
-    design, response_status = responded, wt_name = "base_weight"
+    design,
+    response_status = responded,
+    wt_name = "base_weight"
   )
   test_invariants(result)
   expect_identical(result@variables$weights, "base_weight")
@@ -888,7 +936,9 @@ test_that("adjust_nonresponse() has no phantom column when wt_name is custom", {
   df <- make_surveywts_data(seed = 1, include_nonrespondents = TRUE)
   design <- .make_test_taylor_nr(df)
   result <- adjust_nonresponse(
-    design, response_status = responded, wt_name = "nr_wt"
+    design,
+    response_status = responded,
+    wt_name = "nr_wt"
   )
   test_invariants(result)
   expect_true("nr_wt" %in% names(result@data))
@@ -904,8 +954,11 @@ test_that("adjust_nonresponse() creates new column and updates @variables$weight
   snp <- surveycore::survey_nonprob(
     data = df,
     variables = list(
-      ids = NULL, strata = NULL, fpc = NULL,
-      weights = "base_weight", nest = FALSE
+      ids = NULL,
+      strata = NULL,
+      fpc = NULL,
+      weights = "base_weight",
+      nest = FALSE
     ),
     metadata = surveycore::survey_metadata(),
     groups = character(0),
@@ -913,7 +966,9 @@ test_that("adjust_nonresponse() creates new column and updates @variables$weight
     calibration = NULL
   )
   result <- adjust_nonresponse(
-    snp, response_status = responded, wt_name = "new_wt"
+    snp,
+    response_status = responded,
+    wt_name = "new_wt"
   )
   expect_identical(result@variables$weights, "new_wt")
   expect_true("new_wt" %in% names(result@data))
@@ -929,8 +984,11 @@ test_that("adjust_nonresponse() sets nonrespondent weights to 0 in custom wt_nam
   snp <- surveycore::survey_nonprob(
     data = df,
     variables = list(
-      ids = NULL, strata = NULL, fpc = NULL,
-      weights = "base_weight", nest = FALSE
+      ids = NULL,
+      strata = NULL,
+      fpc = NULL,
+      weights = "base_weight",
+      nest = FALSE
     ),
     metadata = surveycore::survey_metadata(),
     groups = character(0),
@@ -938,7 +996,9 @@ test_that("adjust_nonresponse() sets nonrespondent weights to 0 in custom wt_nam
     calibration = NULL
   )
   result <- adjust_nonresponse(
-    snp, response_status = responded, wt_name = "nr_wt"
+    snp,
+    response_status = responded,
+    wt_name = "nr_wt"
   )
   is_resp <- df$responded == 1L
   expect_true(all(result@data[["nr_wt"]][!is_resp] == 0))
@@ -953,7 +1013,9 @@ test_that("adjust_nonresponse() records wt_name in weighting history", {
   df <- make_surveywts_data(seed = 1, include_nonrespondents = TRUE)
   design <- .make_test_taylor_nr(df)
   result <- adjust_nonresponse(
-    design, response_status = responded, wt_name = "nr_wt"
+    design,
+    response_status = responded,
+    wt_name = "nr_wt"
   )
   history <- result@metadata@weighting_history
   expect_identical(history[[length(history)]]$weight_col, "nr_wt")
@@ -969,11 +1031,15 @@ test_that("adjust_nonresponse() records wt_name in weighting history", {
 
 test_that("redistribute_weights() aborts with cli error for data.frame input", {
   df <- make_surveywts_data(seed = 20, include_nonrespondents = TRUE)
-  df$reduce_col   <- 1L - df$responded
+  df$reduce_col <- 1L - df$responded
   df$increase_col <- df$responded
 
   expect_error(
-    redistribute_weights(df, reduce_if = reduce_col, increase_if = increase_col),
+    redistribute_weights(
+      df,
+      reduce_if = reduce_col,
+      increase_if = increase_col
+    ),
     class = "surveywts_error_not_survey_base"
   )
   expect_snapshot(
@@ -988,14 +1054,17 @@ test_that("redistribute_weights() aborts with cli error for data.frame input", {
 
 test_that("redistribute_weights() with survey_nonprob input returns survey_nonprob", {
   df <- make_surveywts_data(seed = 22, include_nonrespondents = TRUE)
-  df$reduce_col   <- 1L - df$responded
+  df$reduce_col <- 1L - df$responded
   df$increase_col <- df$responded
 
   snp <- surveycore::survey_nonprob(
     data = df,
     variables = list(
-      ids = NULL, strata = NULL, fpc = NULL,
-      weights = "base_weight", nest = FALSE
+      ids = NULL,
+      strata = NULL,
+      fpc = NULL,
+      weights = "base_weight",
+      nest = FALSE
     ),
     metadata = surveycore::survey_metadata(),
     groups = character(0),
@@ -1003,7 +1072,11 @@ test_that("redistribute_weights() with survey_nonprob input returns survey_nonpr
     calibration = NULL
   )
 
-  result <- redistribute_weights(snp, reduce_if = reduce_col, increase_if = increase_col)
+  result <- redistribute_weights(
+    snp,
+    reduce_if = reduce_col,
+    increase_if = increase_col
+  )
 
   test_invariants(result)
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
@@ -1018,11 +1091,15 @@ test_that("redistribute_weights() with survey_nonprob input returns survey_nonpr
 
 test_that("redistribute_weights() with survey_taylor input returns survey_taylor, respondents only", {
   df <- make_surveywts_data(seed = 23, include_nonrespondents = TRUE)
-  df$reduce_col   <- 1L - df$responded
+  df$reduce_col <- 1L - df$responded
   df$increase_col <- df$responded
   design <- .make_test_taylor_nr(df)
 
-  result <- redistribute_weights(design, reduce_if = reduce_col, increase_if = increase_col)
+  result <- redistribute_weights(
+    design,
+    reduce_if = reduce_col,
+    increase_if = increase_col
+  )
 
   test_invariants(result)
   expect_true(S7::S7_inherits(result, surveycore::survey_taylor))
@@ -1039,18 +1116,24 @@ test_that("redistribute_weights() with survey_taylor input returns survey_taylor
 test_that("redistribute_weights() with by = NULL performs global redistribution", {
   n <- 100L
   df <- data.frame(
-    wt         = rep(1, n),
-    reduce_col  = c(rep(1L, 20L), rep(0L, 80L)),
+    wt = rep(1, n),
+    reduce_col = c(rep(1L, 20L), rep(0L, 80L)),
     increase_col = c(rep(0L, 20L), rep(1L, 80L))
   )
   design <- surveycore::survey_taylor(
     data = df,
-    variables = list(ids = NULL, strata = NULL, fpc = NULL, weights = "wt", nest = FALSE)
+    variables = list(
+      ids = NULL,
+      strata = NULL,
+      fpc = NULL,
+      weights = "wt",
+      nest = FALSE
+    )
   )
 
   result <- redistribute_weights(
     design,
-    reduce_if  = reduce_col,
+    reduce_if = reduce_col,
     increase_if = increase_col
   )
 
@@ -1068,22 +1151,28 @@ test_that("redistribute_weights() with by = NULL performs global redistribution"
 
 test_that("redistribute_weights() with by groups processes each group independently", {
   df <- data.frame(
-    grp        = c(rep("A", 10L), rep("B", 10L)),
-    wt         = rep(1, 20L),
-    reduce_col  = c(rep(1L, 3L), rep(0L, 7L), rep(1L, 4L), rep(0L, 6L)),
+    grp = c(rep("A", 10L), rep("B", 10L)),
+    wt = rep(1, 20L),
+    reduce_col = c(rep(1L, 3L), rep(0L, 7L), rep(1L, 4L), rep(0L, 6L)),
     increase_col = c(rep(0L, 3L), rep(1L, 7L), rep(0L, 4L), rep(1L, 6L))
   )
   design <- surveycore::survey_taylor(
     data = df,
-    variables = list(ids = NULL, strata = NULL, fpc = NULL, weights = "wt", nest = FALSE)
+    variables = list(
+      ids = NULL,
+      strata = NULL,
+      fpc = NULL,
+      weights = "wt",
+      nest = FALSE
+    )
   )
 
   result <- redistribute_weights(
     design,
-    reduce_if  = reduce_col,
+    reduce_if = reduce_col,
     increase_if = increase_col,
-    by         = grp,
-    control    = list(min_cell = 1L)
+    by = grp,
+    control = list(min_cell = 1L)
   )
 
   wt_col <- result@variables$weights
@@ -1101,20 +1190,26 @@ test_that("redistribute_weights() with by groups processes each group independen
 
 test_that("redistribute_weights() rows matching neither indicator have unchanged weights", {
   df <- data.frame(
-    wt         = c(1, 2, 3, 4, 5),
-    reduce_col  = c(1L, 0L, 0L, 0L, 0L),
+    wt = c(1, 2, 3, 4, 5),
+    reduce_col = c(1L, 0L, 0L, 0L, 0L),
     increase_col = c(0L, 1L, 0L, 0L, 0L)
   )
   design <- surveycore::survey_taylor(
     data = df,
-    variables = list(ids = NULL, strata = NULL, fpc = NULL, weights = "wt", nest = FALSE)
+    variables = list(
+      ids = NULL,
+      strata = NULL,
+      fpc = NULL,
+      weights = "wt",
+      nest = FALSE
+    )
   )
 
   result <- redistribute_weights(
     design,
-    reduce_if  = reduce_col,
+    reduce_if = reduce_col,
     increase_if = increase_col,
-    control    = list(min_cell = 1L)
+    control = list(min_cell = 1L)
   )
 
   wt_col <- result@variables$weights
@@ -1132,13 +1227,13 @@ test_that("redistribute_weights() rows matching neither indicator have unchanged
 
 test_that("redistribute_weights() result matches adjust_nonresponse() weighting-class for equivalent inputs", {
   df <- make_surveywts_data(seed = 27, include_nonrespondents = TRUE)
-  df$reduce_col   <- 1L - df$responded
+  df$reduce_col <- 1L - df$responded
   df$increase_col <- df$responded
   design <- .make_test_taylor_nr(df)
 
   result_rw <- redistribute_weights(
     design,
-    reduce_if  = reduce_col,
+    reduce_if = reduce_col,
     increase_if = increase_col
   )
   result_adj <- adjust_nonresponse(design, response_status = responded)
@@ -1172,20 +1267,36 @@ test_that("redistribute_weights() errors for survey_replicate input", {
 
 test_that("redistribute_weights() errors for 0-row survey design", {
   empty_df <- data.frame(
-    wt = numeric(0), reduce_col = integer(0), increase_col = integer(0)
+    wt = numeric(0),
+    reduce_col = integer(0),
+    increase_col = integer(0)
   )
   empty_design <- surveycore::survey_taylor(
     data = empty_df,
-    variables = list(ids = NULL, strata = NULL, fpc = NULL, weights = "wt", nest = FALSE)
+    variables = list(
+      ids = NULL,
+      strata = NULL,
+      fpc = NULL,
+      weights = "wt",
+      nest = FALSE
+    )
   )
 
   expect_error(
-    redistribute_weights(empty_design, reduce_if = reduce_col, increase_if = increase_col),
+    redistribute_weights(
+      empty_design,
+      reduce_if = reduce_col,
+      increase_if = increase_col
+    ),
     class = "surveywts_error_empty_data"
   )
   expect_snapshot(
     error = TRUE,
-    redistribute_weights(empty_design, reduce_if = reduce_col, increase_if = increase_col)
+    redistribute_weights(
+      empty_design,
+      reduce_if = reduce_col,
+      increase_if = increase_col
+    )
   )
 })
 
@@ -1197,16 +1308,32 @@ test_that("redistribute_weights() errors when wt_name is not character(1)", {
   df <- data.frame(wt = 1, reduce_col = 1L, increase_col = 0L)
   design <- surveycore::survey_taylor(
     data = df,
-    variables = list(ids = NULL, strata = NULL, fpc = NULL, weights = "wt", nest = FALSE)
+    variables = list(
+      ids = NULL,
+      strata = NULL,
+      fpc = NULL,
+      weights = "wt",
+      nest = FALSE
+    )
   )
 
   expect_error(
-    redistribute_weights(design, reduce_if = reduce_col, increase_if = increase_col, wt_name = 42),
+    redistribute_weights(
+      design,
+      reduce_if = reduce_col,
+      increase_if = increase_col,
+      wt_name = 42
+    ),
     class = "surveywts_error_wt_name_not_scalar"
   )
   expect_snapshot(
     error = TRUE,
-    redistribute_weights(design, reduce_if = reduce_col, increase_if = increase_col, wt_name = 42)
+    redistribute_weights(
+      design,
+      reduce_if = reduce_col,
+      increase_if = increase_col,
+      wt_name = 42
+    )
   )
 })
 
@@ -1218,20 +1345,39 @@ test_that("redistribute_weights() errors when wt_name is NA or empty string", {
   df <- data.frame(wt = 1, reduce_col = 1L, increase_col = 0L)
   design <- surveycore::survey_taylor(
     data = df,
-    variables = list(ids = NULL, strata = NULL, fpc = NULL, weights = "wt", nest = FALSE)
+    variables = list(
+      ids = NULL,
+      strata = NULL,
+      fpc = NULL,
+      weights = "wt",
+      nest = FALSE
+    )
   )
 
   expect_error(
-    redistribute_weights(design, reduce_if = reduce_col, increase_if = increase_col, wt_name = ""),
+    redistribute_weights(
+      design,
+      reduce_if = reduce_col,
+      increase_if = increase_col,
+      wt_name = ""
+    ),
     class = "surveywts_error_wt_name_empty"
   )
   expect_snapshot(
     error = TRUE,
-    redistribute_weights(design, reduce_if = reduce_col, increase_if = increase_col, wt_name = "")
+    redistribute_weights(
+      design,
+      reduce_if = reduce_col,
+      increase_if = increase_col,
+      wt_name = ""
+    )
   )
   expect_error(
     redistribute_weights(
-      design, reduce_if = reduce_col, increase_if = increase_col, wt_name = NA_character_
+      design,
+      reduce_if = reduce_col,
+      increase_if = increase_col,
+      wt_name = NA_character_
     ),
     class = "surveywts_error_wt_name_empty"
   )
@@ -1243,7 +1389,7 @@ test_that("redistribute_weights() errors when wt_name is NA or empty string", {
 
 test_that("redistribute_weights() errors when wt_name conflicts with an existing non-weight column", {
   df <- make_surveywts_data(seed = 31, include_nonrespondents = TRUE)
-  df$reduce_col   <- 1L - df$responded
+  df$reduce_col <- 1L - df$responded
   df$increase_col <- df$responded
   design <- .make_test_taylor_nr(df)
 
@@ -1251,9 +1397,9 @@ test_that("redistribute_weights() errors when wt_name conflicts with an existing
   expect_error(
     redistribute_weights(
       design,
-      reduce_if  = reduce_col,
+      reduce_if = reduce_col,
       increase_if = increase_col,
-      wt_name    = "age_group"
+      wt_name = "age_group"
     ),
     class = "surveywts_error_wt_name_conflict"
   )
@@ -1261,9 +1407,9 @@ test_that("redistribute_weights() errors when wt_name conflicts with an existing
     error = TRUE,
     redistribute_weights(
       design,
-      reduce_if  = reduce_col,
+      reduce_if = reduce_col,
       increase_if = increase_col,
-      wt_name    = "age_group"
+      wt_name = "age_group"
     )
   )
 })
@@ -1278,12 +1424,20 @@ test_that("redistribute_weights() errors when reduce_if column is not found", {
   design <- .make_test_taylor_nr(df)
 
   expect_error(
-    redistribute_weights(design, reduce_if = no_such_col, increase_if = increase_col),
+    redistribute_weights(
+      design,
+      reduce_if = no_such_col,
+      increase_if = increase_col
+    ),
     class = "surveywts_error_reduce_if_not_found"
   )
   expect_snapshot(
     error = TRUE,
-    redistribute_weights(design, reduce_if = no_such_col, increase_if = increase_col)
+    redistribute_weights(
+      design,
+      reduce_if = no_such_col,
+      increase_if = increase_col
+    )
   )
 })
 
@@ -1297,12 +1451,20 @@ test_that("redistribute_weights() errors when increase_if column is not found", 
   design <- .make_test_taylor_nr(df)
 
   expect_error(
-    redistribute_weights(design, reduce_if = reduce_col, increase_if = no_such_col),
+    redistribute_weights(
+      design,
+      reduce_if = reduce_col,
+      increase_if = no_such_col
+    ),
     class = "surveywts_error_increase_if_not_found"
   )
   expect_snapshot(
     error = TRUE,
-    redistribute_weights(design, reduce_if = reduce_col, increase_if = no_such_col)
+    redistribute_weights(
+      design,
+      reduce_if = reduce_col,
+      increase_if = no_such_col
+    )
   )
 })
 
@@ -1312,17 +1474,25 @@ test_that("redistribute_weights() errors when increase_if column is not found", 
 
 test_that("redistribute_weights() errors when reduce_if is not binary (factor input)", {
   df <- make_surveywts_data(seed = 34, include_nonrespondents = TRUE)
-  df$reduce_col   <- factor(1L - df$responded)
+  df$reduce_col <- factor(1L - df$responded)
   df$increase_col <- df$responded
   design <- .make_test_taylor_nr(df)
 
   expect_error(
-    redistribute_weights(design, reduce_if = reduce_col, increase_if = increase_col),
+    redistribute_weights(
+      design,
+      reduce_if = reduce_col,
+      increase_if = increase_col
+    ),
     class = "surveywts_error_reduce_if_not_binary"
   )
   expect_snapshot(
     error = TRUE,
-    redistribute_weights(design, reduce_if = reduce_col, increase_if = increase_col)
+    redistribute_weights(
+      design,
+      reduce_if = reduce_col,
+      increase_if = increase_col
+    )
   )
 })
 
@@ -1332,17 +1502,25 @@ test_that("redistribute_weights() errors when reduce_if is not binary (factor in
 
 test_that("redistribute_weights() errors when increase_if is not binary (character input)", {
   df <- make_surveywts_data(seed = 35, include_nonrespondents = TRUE)
-  df$reduce_col   <- 1L - df$responded
+  df$reduce_col <- 1L - df$responded
   df$increase_col <- as.character(df$responded)
   design <- .make_test_taylor_nr(df)
 
   expect_error(
-    redistribute_weights(design, reduce_if = reduce_col, increase_if = increase_col),
+    redistribute_weights(
+      design,
+      reduce_if = reduce_col,
+      increase_if = increase_col
+    ),
     class = "surveywts_error_increase_if_not_binary"
   )
   expect_snapshot(
     error = TRUE,
-    redistribute_weights(design, reduce_if = reduce_col, increase_if = increase_col)
+    redistribute_weights(
+      design,
+      reduce_if = reduce_col,
+      increase_if = increase_col
+    )
   )
 })
 
@@ -1352,18 +1530,26 @@ test_that("redistribute_weights() errors when increase_if is not binary (charact
 
 test_that("redistribute_weights() errors when reduce_if has NA values", {
   df <- make_surveywts_data(seed = 36, include_nonrespondents = TRUE)
-  df$reduce_col   <- 1L - df$responded
+  df$reduce_col <- 1L - df$responded
   df$reduce_col[1L] <- NA_integer_
   df$increase_col <- df$responded
   design <- .make_test_taylor_nr(df)
 
   expect_error(
-    redistribute_weights(design, reduce_if = reduce_col, increase_if = increase_col),
+    redistribute_weights(
+      design,
+      reduce_if = reduce_col,
+      increase_if = increase_col
+    ),
     class = "surveywts_error_reduce_if_has_na"
   )
   expect_snapshot(
     error = TRUE,
-    redistribute_weights(design, reduce_if = reduce_col, increase_if = increase_col)
+    redistribute_weights(
+      design,
+      reduce_if = reduce_col,
+      increase_if = increase_col
+    )
   )
 })
 
@@ -1373,18 +1559,26 @@ test_that("redistribute_weights() errors when reduce_if has NA values", {
 
 test_that("redistribute_weights() errors when increase_if has NA values", {
   df <- make_surveywts_data(seed = 37, include_nonrespondents = TRUE)
-  df$reduce_col   <- 1L - df$responded
+  df$reduce_col <- 1L - df$responded
   df$increase_col <- df$responded
   df$increase_col[1L] <- NA_integer_
   design <- .make_test_taylor_nr(df)
 
   expect_error(
-    redistribute_weights(design, reduce_if = reduce_col, increase_if = increase_col),
+    redistribute_weights(
+      design,
+      reduce_if = reduce_col,
+      increase_if = increase_col
+    ),
     class = "surveywts_error_increase_if_has_na"
   )
   expect_snapshot(
     error = TRUE,
-    redistribute_weights(design, reduce_if = reduce_col, increase_if = increase_col)
+    redistribute_weights(
+      design,
+      reduce_if = reduce_col,
+      increase_if = increase_col
+    )
   )
 })
 
@@ -1394,22 +1588,36 @@ test_that("redistribute_weights() errors when increase_if has NA values", {
 
 test_that("redistribute_weights() errors when reduce_if and increase_if overlap", {
   df <- data.frame(
-    wt          = c(1, 1, 1, 1, 1),
-    reduce_col  = c(1L, 1L, 0L, 0L, 0L),
-    increase_col = c(1L, 0L, 1L, 1L, 1L)  # row 1: both 1 → overlap
+    wt = c(1, 1, 1, 1, 1),
+    reduce_col = c(1L, 1L, 0L, 0L, 0L),
+    increase_col = c(1L, 0L, 1L, 1L, 1L) # row 1: both 1 → overlap
   )
   design <- surveycore::survey_taylor(
     data = df,
-    variables = list(ids = NULL, strata = NULL, fpc = NULL, weights = "wt", nest = FALSE)
+    variables = list(
+      ids = NULL,
+      strata = NULL,
+      fpc = NULL,
+      weights = "wt",
+      nest = FALSE
+    )
   )
 
   expect_error(
-    redistribute_weights(design, reduce_if = reduce_col, increase_if = increase_col),
+    redistribute_weights(
+      design,
+      reduce_if = reduce_col,
+      increase_if = increase_col
+    ),
     class = "surveywts_error_indicators_overlap"
   )
   expect_snapshot(
     error = TRUE,
-    redistribute_weights(design, reduce_if = reduce_col, increase_if = increase_col)
+    redistribute_weights(
+      design,
+      reduce_if = reduce_col,
+      increase_if = increase_col
+    )
   )
 })
 
@@ -1419,22 +1627,36 @@ test_that("redistribute_weights() errors when reduce_if and increase_if overlap"
 
 test_that("redistribute_weights() errors when a group has no increase_if rows", {
   df <- data.frame(
-    wt          = rep(1, 5L),
-    reduce_col  = rep(1L, 5L),   # everyone is reduce_if
-    increase_col = rep(0L, 5L)   # nobody is increase_if
+    wt = rep(1, 5L),
+    reduce_col = rep(1L, 5L), # everyone is reduce_if
+    increase_col = rep(0L, 5L) # nobody is increase_if
   )
   design <- surveycore::survey_taylor(
     data = df,
-    variables = list(ids = NULL, strata = NULL, fpc = NULL, weights = "wt", nest = FALSE)
+    variables = list(
+      ids = NULL,
+      strata = NULL,
+      fpc = NULL,
+      weights = "wt",
+      nest = FALSE
+    )
   )
 
   expect_error(
-    redistribute_weights(design, reduce_if = reduce_col, increase_if = increase_col),
+    redistribute_weights(
+      design,
+      reduce_if = reduce_col,
+      increase_if = increase_col
+    ),
     class = "surveywts_error_no_recipients_in_group"
   )
   expect_snapshot(
     error = TRUE,
-    redistribute_weights(design, reduce_if = reduce_col, increase_if = increase_col)
+    redistribute_weights(
+      design,
+      reduce_if = reduce_col,
+      increase_if = increase_col
+    )
   )
 })
 
@@ -1444,18 +1666,28 @@ test_that("redistribute_weights() errors when a group has no increase_if rows", 
 
 test_that("redistribute_weights() errors when a by variable has NA values", {
   df <- make_surveywts_data(seed = 38, include_nonrespondents = TRUE)
-  df$reduce_col   <- 1L - df$responded
+  df$reduce_col <- 1L - df$responded
   df$increase_col <- df$responded
   df$age_group[1L] <- NA_character_
   design <- .make_test_taylor_nr(df)
 
   expect_error(
-    redistribute_weights(design, reduce_if = reduce_col, increase_if = increase_col, by = age_group),
+    redistribute_weights(
+      design,
+      reduce_if = reduce_col,
+      increase_if = increase_col,
+      by = age_group
+    ),
     class = "surveywts_error_variable_has_na"
   )
   expect_snapshot(
     error = TRUE,
-    redistribute_weights(design, reduce_if = reduce_col, increase_if = increase_col, by = age_group)
+    redistribute_weights(
+      design,
+      reduce_if = reduce_col,
+      increase_if = increase_col,
+      by = age_group
+    )
   )
 })
 
@@ -1465,19 +1697,25 @@ test_that("redistribute_weights() errors when a by variable has NA values", {
 
 test_that("redistribute_weights() warns when a group has fewer than min_cell recipients", {
   df <- data.frame(
-    wt          = rep(1, 25L),
-    reduce_col  = c(rep(1L, 22L), rep(0L, 3L)),
-    increase_col = c(rep(0L, 22L), rep(1L, 3L))  # 3 recipients < min_cell default of 20
+    wt = rep(1, 25L),
+    reduce_col = c(rep(1L, 22L), rep(0L, 3L)),
+    increase_col = c(rep(0L, 22L), rep(1L, 3L)) # 3 recipients < min_cell default of 20
   )
   design <- surveycore::survey_taylor(
     data = df,
-    variables = list(ids = NULL, strata = NULL, fpc = NULL, weights = "wt", nest = FALSE)
+    variables = list(
+      ids = NULL,
+      strata = NULL,
+      fpc = NULL,
+      weights = "wt",
+      nest = FALSE
+    )
   )
 
   expect_warning(
     result <- redistribute_weights(
       design,
-      reduce_if  = reduce_col,
+      reduce_if = reduce_col,
       increase_if = increase_col
     ),
     class = "surveywts_warning_class_near_empty"
@@ -1493,8 +1731,8 @@ test_that("redistribute_weights() warns when adjustment factor exceeds max_adjus
   # 30 reduce rows (wt=10 each) and 30 increase rows (wt=1 each)
   # W_total = 330, W_increase = 30; factor = 330/30 = 11 > 2.0
   df <- data.frame(
-    wt          = c(rep(10, 30L), rep(1, 30L)),
-    reduce_col  = c(rep(1L, 30L), rep(0L, 30L)),
+    wt = c(rep(10, 30L), rep(1, 30L)),
+    reduce_col = c(rep(1L, 30L), rep(0L, 30L)),
     increase_col = c(rep(0L, 30L), rep(1L, 30L))
   )
   design <- surveycore::as_survey_nonprob(df, weights = wt)
@@ -1502,9 +1740,9 @@ test_that("redistribute_weights() warns when adjustment factor exceeds max_adjus
   expect_warning(
     result <- redistribute_weights(
       design,
-      reduce_if  = reduce_col,
+      reduce_if = reduce_col,
       increase_if = increase_col,
-      control    = list(min_cell = 1L)  # suppress sparse warning; only want factor warning
+      control = list(min_cell = 1L) # suppress sparse warning; only want factor warning
     ),
     class = "surveywts_warning_class_near_empty"
   )
@@ -1517,11 +1755,15 @@ test_that("redistribute_weights() warns when adjustment factor exceeds max_adjus
 
 test_that("redistribute_weights() with no reduce_if rows leaves weights unchanged", {
   df <- make_surveywts_data(seed = 39, include_nonrespondents = TRUE)
-  df$reduce_col   <- 0L  # nobody is reduced
+  df$reduce_col <- 0L # nobody is reduced
   df$increase_col <- df$responded
   design <- .make_test_taylor_nr(df)
 
-  result <- redistribute_weights(design, reduce_if = reduce_col, increase_if = increase_col)
+  result <- redistribute_weights(
+    design,
+    reduce_if = reduce_col,
+    increase_if = increase_col
+  )
 
   test_invariants(result)
   expect_true(S7::S7_inherits(result, surveycore::survey_taylor))
@@ -1540,22 +1782,28 @@ test_that("redistribute_weights() with no reduce_if rows leaves weights unchange
 
 test_that("redistribute_weights() with by: one group all-reduce triggers error, other groups succeed", {
   df <- data.frame(
-    grp         = c("A", "A", "A", "B", "B"),
-    wt          = rep(1, 5L),
-    reduce_col  = c(0L, 0L, 0L, 1L, 1L),  # group B: all reduce, no increase
+    grp = c("A", "A", "A", "B", "B"),
+    wt = rep(1, 5L),
+    reduce_col = c(0L, 0L, 0L, 1L, 1L), # group B: all reduce, no increase
     increase_col = c(1L, 1L, 1L, 0L, 0L)
   )
   design <- surveycore::survey_taylor(
     data = df,
-    variables = list(ids = NULL, strata = NULL, fpc = NULL, weights = "wt", nest = FALSE)
+    variables = list(
+      ids = NULL,
+      strata = NULL,
+      fpc = NULL,
+      weights = "wt",
+      nest = FALSE
+    )
   )
 
   expect_error(
     redistribute_weights(
       design,
-      reduce_if  = reduce_col,
+      reduce_if = reduce_col,
       increase_if = increase_col,
-      by         = grp
+      by = grp
     ),
     class = "surveywts_error_no_recipients_in_group"
   )
@@ -1563,9 +1811,9 @@ test_that("redistribute_weights() with by: one group all-reduce triggers error, 
     error = TRUE,
     redistribute_weights(
       design,
-      reduce_if  = reduce_col,
+      reduce_if = reduce_col,
       increase_if = increase_col,
-      by         = grp
+      by = grp
     )
   )
 })
@@ -1576,11 +1824,15 @@ test_that("redistribute_weights() with by: one group all-reduce triggers error, 
 
 test_that("redistribute_weights() history step number is 1 for fresh design", {
   df <- make_surveywts_data(seed = 40, include_nonrespondents = TRUE)
-  df$reduce_col   <- 1L - df$responded
+  df$reduce_col <- 1L - df$responded
   df$increase_col <- df$responded
   design <- .make_test_taylor_nr(df)
 
-  result <- redistribute_weights(design, reduce_if = reduce_col, increase_if = increase_col)
+  result <- redistribute_weights(
+    design,
+    reduce_if = reduce_col,
+    increase_if = increase_col
+  )
 
   history <- result@metadata@weighting_history
   expect_equal(length(history), 1L)
@@ -1696,16 +1948,22 @@ test_that("propensity-cell respondent weights within each cell scale correctly",
 
   # Replicate propensity scores and cell assignment to verify per-cell scaling
   old_wts <- df$base_weight
-  model  <- stats::glm(responded ~ age_group, family = stats::binomial,
-                       data = df, weights = old_wts)
+  model <- stats::glm(
+    responded ~ age_group,
+    family = stats::binomial,
+    data = df,
+    weights = old_wts
+  )
   scores <- stats::predict(model, type = "response")
-  n_cells <- 5L  # default
-  cuts    <- stats::quantile(scores, probs = seq(0, 1, 1 / n_cells))
-  cells   <- findInterval(scores, cuts, rightmost.closed = TRUE)
+  n_cells <- 5L # default
+  cuts <- stats::quantile(scores, probs = seq(0, 1, 1 / n_cells))
+  cells <- findInterval(scores, cuts, rightmost.closed = TRUE)
 
   for (k in seq_len(n_cells)) {
     in_cell <- cells == k
-    if (!any(in_cell & is_resp)) next
+    if (!any(in_cell & is_resp)) {
+      next
+    }
     resp_in_cell_orig_ids <- which(in_cell & is_resp)
     new_wts_in_cell <- result@data[[wt_col]][
       result@data$id %in% df$id[resp_in_cell_orig_ids]
@@ -1727,12 +1985,20 @@ test_that("adjust_nonresponse() errors when method='propensity-cell' and formula
   design <- .make_test_taylor_nr(df)
 
   expect_error(
-    adjust_nonresponse(design, response_status = responded, method = "propensity-cell"),
+    adjust_nonresponse(
+      design,
+      response_status = responded,
+      method = "propensity-cell"
+    ),
     class = "surveywts_error_formula_required_for_propensity_cell"
   )
   expect_snapshot(
     error = TRUE,
-    adjust_nonresponse(design, response_status = responded, method = "propensity-cell")
+    adjust_nonresponse(
+      design,
+      response_status = responded,
+      method = "propensity-cell"
+    )
   )
 })
 
@@ -1745,14 +2011,22 @@ test_that("adjust_nonresponse() errors when formula is not a formula object (pro
   design <- .make_test_taylor_nr(df)
 
   expect_error(
-    adjust_nonresponse(design, response_status = responded,
-                       formula = "age_group", method = "propensity-cell"),
+    adjust_nonresponse(
+      design,
+      response_status = responded,
+      formula = "age_group",
+      method = "propensity-cell"
+    ),
     class = "surveywts_error_formula_invalid"
   )
   expect_snapshot(
     error = TRUE,
-    adjust_nonresponse(design, response_status = responded,
-                       formula = "age_group", method = "propensity-cell")
+    adjust_nonresponse(
+      design,
+      response_status = responded,
+      formula = "age_group",
+      method = "propensity-cell"
+    )
   )
 })
 
@@ -1765,14 +2039,22 @@ test_that("adjust_nonresponse() errors when a formula variable is missing (prope
   design <- .make_test_taylor_nr(df)
 
   expect_error(
-    adjust_nonresponse(design, response_status = responded,
-                       formula = ~nonexistent_var, method = "propensity-cell"),
+    adjust_nonresponse(
+      design,
+      response_status = responded,
+      formula = ~nonexistent_var,
+      method = "propensity-cell"
+    ),
     class = "surveywts_error_formula_variable_not_found"
   )
   expect_snapshot(
     error = TRUE,
-    adjust_nonresponse(design, response_status = responded,
-                       formula = ~nonexistent_var, method = "propensity-cell")
+    adjust_nonresponse(
+      design,
+      response_status = responded,
+      formula = ~nonexistent_var,
+      method = "propensity-cell"
+    )
   )
 })
 
@@ -1786,14 +2068,22 @@ test_that("adjust_nonresponse() errors when a formula variable has NA values", {
   design <- .make_test_taylor_nr(df)
 
   expect_error(
-    adjust_nonresponse(design, response_status = responded,
-                       formula = ~age_group, method = "propensity-cell"),
+    adjust_nonresponse(
+      design,
+      response_status = responded,
+      formula = ~age_group,
+      method = "propensity-cell"
+    ),
     class = "surveywts_error_formula_variable_has_na"
   )
   expect_snapshot(
     error = TRUE,
-    adjust_nonresponse(design, response_status = responded,
-                       formula = ~age_group, method = "propensity-cell")
+    adjust_nonresponse(
+      design,
+      response_status = responded,
+      formula = ~age_group,
+      method = "propensity-cell"
+    )
   )
 })
 
@@ -1806,16 +2096,24 @@ test_that("adjust_nonresponse() errors when control$n_cells = 1", {
   design <- .make_test_taylor_nr(df)
 
   expect_error(
-    adjust_nonresponse(design, response_status = responded,
-                       formula = ~age_group, method = "propensity-cell",
-                       control = list(n_cells = 1)),
+    adjust_nonresponse(
+      design,
+      response_status = responded,
+      formula = ~age_group,
+      method = "propensity-cell",
+      control = list(n_cells = 1)
+    ),
     class = "surveywts_error_n_cells_invalid"
   )
   expect_snapshot(
     error = TRUE,
-    adjust_nonresponse(design, response_status = responded,
-                       formula = ~age_group, method = "propensity-cell",
-                       control = list(n_cells = 1))
+    adjust_nonresponse(
+      design,
+      response_status = responded,
+      formula = ~age_group,
+      method = "propensity-cell",
+      control = list(n_cells = 1)
+    )
   )
 })
 
@@ -1825,26 +2123,43 @@ test_that("adjust_nonresponse() errors when control$n_cells = 1", {
 
 test_that("adjust_nonresponse() errors when a propensity cell contains no respondents", {
   set.seed(60)
-  x_pred     <- runif(30)
-  responded  <- sample(c(rep(1L, 2L), rep(0L, 28L)))
-  df_no_resp <- data.frame(x_pred = x_pred, responded = responded,
-                            wt = rep(1, 30))
+  x_pred <- runif(30)
+  responded <- sample(c(rep(1L, 2L), rep(0L, 28L)))
+  df_no_resp <- data.frame(
+    x_pred = x_pred,
+    responded = responded,
+    wt = rep(1, 30)
+  )
   design_no_resp <- surveycore::survey_taylor(
     data = df_no_resp,
-    variables = list(ids = NULL, strata = NULL, fpc = NULL, weights = "wt", nest = FALSE)
+    variables = list(
+      ids = NULL,
+      strata = NULL,
+      fpc = NULL,
+      weights = "wt",
+      nest = FALSE
+    )
   )
 
   expect_error(
-    adjust_nonresponse(design_no_resp, response_status = responded,
-                       formula = ~x_pred, method = "propensity-cell",
-                       control = list(n_cells = 10)),
+    adjust_nonresponse(
+      design_no_resp,
+      response_status = responded,
+      formula = ~x_pred,
+      method = "propensity-cell",
+      control = list(n_cells = 10)
+    ),
     class = "surveywts_error_no_respondents_in_propensity_cell"
   )
   expect_snapshot(
     error = TRUE,
-    adjust_nonresponse(design_no_resp, response_status = responded,
-                       formula = ~x_pred, method = "propensity-cell",
-                       control = list(n_cells = 10))
+    adjust_nonresponse(
+      design_no_resp,
+      response_status = responded,
+      formula = ~x_pred,
+      method = "propensity-cell",
+      control = list(n_cells = 10)
+    )
   )
 })
 
@@ -1933,7 +2248,7 @@ test_that("propensity-cell works with control$n_cells = 2", {
   test_invariants(result)
   # Only respondent rows returned for survey_taylor
   expect_true(nrow(result@data) < nrow(df))
-  wt_col  <- result@variables$weights
+  wt_col <- result@variables$weights
   expect_true(all(result@data[[wt_col]] > 0))
 })
 
@@ -1946,16 +2261,22 @@ test_that("propensity-cell handles high propensity concentration (all scores nea
   # trigger class_near_empty warnings (expected in this edge case)
   set.seed(57)
   df_bimodal <- data.frame(
-    x_pred    = rep(c(0L, 1L), each = 50L),
+    x_pred = rep(c(0L, 1L), each = 50L),
     responded = c(
-      sample(c(rep(1L, 5L), rep(0L, 45L))),   # 10% response when x=0
-      sample(c(rep(1L, 45L), rep(0L, 5L)))    # 90% response when x=1
+      sample(c(rep(1L, 5L), rep(0L, 45L))), # 10% response when x=0
+      sample(c(rep(1L, 45L), rep(0L, 5L))) # 90% response when x=1
     ),
     wt = rep(1, 100)
   )
   design_bimodal <- surveycore::survey_taylor(
     data = df_bimodal,
-    variables = list(ids = NULL, strata = NULL, fpc = NULL, weights = "wt", nest = FALSE)
+    variables = list(
+      ids = NULL,
+      strata = NULL,
+      fpc = NULL,
+      weights = "wt",
+      nest = FALSE
+    )
   )
 
   result <- suppressWarnings(
@@ -1969,11 +2290,15 @@ test_that("propensity-cell handles high propensity concentration (all scores nea
   )
 
   test_invariants(result)
-  wt_col  <- result@variables$weights
+  wt_col <- result@variables$weights
   # Only respondent rows returned for survey_taylor
   expect_true(all(result@data[[wt_col]] > 0))
   # Total weight conserved
-  expect_equal(sum(result@data[[wt_col]]), sum(df_bimodal$wt), tolerance = 1e-10)
+  expect_equal(
+    sum(result@data[[wt_col]]),
+    sum(df_bimodal$wt),
+    tolerance = 1e-10
+  )
 })
 
 # ===========================================================================
@@ -1993,14 +2318,14 @@ test_that("adjust_nonresponse(propensity) accepts survey_taylor and returns resp
   result <- adjust_nonresponse(
     design,
     response_status = responded,
-    formula         = ~age_group + sex,
-    method          = "propensity"
+    formula = ~ age_group + sex,
+    method = "propensity"
   )
 
   test_invariants(result)
   expect_true(S7::S7_inherits(result, surveycore::survey_taylor))
   expect_equal(nrow(result@data), n_resp)
-  wt_col  <- result@variables$weights
+  wt_col <- result@variables$weights
   expect_true(all(result@data[[wt_col]] > 0))
 })
 
@@ -2009,15 +2334,15 @@ test_that("adjust_nonresponse(propensity) accepts survey_taylor and returns resp
 # ---------------------------------------------------------------------------
 
 test_that("adjust_nonresponse(propensity) accepts survey_taylor and returns respondent rows only", {
-  df     <- make_surveywts_data(n = 200L, seed = 72L, include_nonrespondents = TRUE)
+  df <- make_surveywts_data(n = 200L, seed = 72L, include_nonrespondents = TRUE)
   df$base_weight <- rep(1L, nrow(df))
   design <- .make_test_taylor_nr(df)
 
   result <- adjust_nonresponse(
     design,
     response_status = responded,
-    formula         = ~age_group + sex,
-    method          = "propensity"
+    formula = ~ age_group + sex,
+    method = "propensity"
   )
 
   test_invariants(result)
@@ -2035,22 +2360,25 @@ test_that("adjust_nonresponse(propensity) accepts survey_nonprob and returns sur
   df <- make_surveywts_data(n = 200L, seed = 73L, include_nonrespondents = TRUE)
   df$base_weight <- rep(1L, nrow(df))
   nonprob_obj <- surveycore::survey_nonprob(
-    data      = df,
+    data = df,
     variables = list(
-      ids = NULL, strata = NULL, fpc = NULL,
-      weights = "base_weight", nest = FALSE
+      ids = NULL,
+      strata = NULL,
+      fpc = NULL,
+      weights = "base_weight",
+      nest = FALSE
     ),
-    metadata    = surveycore::survey_metadata(),
-    groups      = character(0L),
-    call        = NULL,
+    metadata = surveycore::survey_metadata(),
+    groups = character(0L),
+    call = NULL,
     calibration = NULL
   )
 
   result <- adjust_nonresponse(
     nonprob_obj,
     response_status = responded,
-    formula         = ~age_group + sex,
-    method          = "propensity"
+    formula = ~ age_group + sex,
+    method = "propensity"
   )
 
   test_invariants(result)
@@ -2065,7 +2393,7 @@ test_that("adjust_nonresponse(propensity) accepts survey_nonprob and returns sur
 # ---------------------------------------------------------------------------
 
 test_that("adjust_nonresponse(propensity) records correct history operation", {
-  df     <- make_surveywts_data(n = 200L, seed = 74L, include_nonrespondents = TRUE)
+  df <- make_surveywts_data(n = 200L, seed = 74L, include_nonrespondents = TRUE)
   df$base_weight <- rep(1L, nrow(df))
   design <- .make_test_taylor_nr(df)
   n_resp <- sum(df$responded == 1L)
@@ -2073,14 +2401,14 @@ test_that("adjust_nonresponse(propensity) records correct history operation", {
   result <- adjust_nonresponse(
     design,
     response_status = responded,
-    formula         = ~age_group + sex,
-    method          = "propensity"
+    formula = ~ age_group + sex,
+    method = "propensity"
   )
 
   wt_col <- result@variables$weights
   expect_equal(nrow(result@data), n_resp)
 
-  hist  <- result@metadata@weighting_history
+  hist <- result@metadata@weighting_history
   entry <- hist[[length(hist)]]
   expect_identical(entry$operation, "nonresponse_propensity")
   expect_identical(entry$parameters$method, "propensity")
@@ -2092,31 +2420,35 @@ test_that("adjust_nonresponse(propensity) records correct history operation", {
 
 test_that("adjust_nonresponse(propensity) produces weights equal to w / predicted score", {
   df <- make_surveywts_data(n = 200L, seed = 75L, include_nonrespondents = TRUE)
-  df$base_weight <- 1  # uniform for easy verification
+  df$base_weight <- 1 # uniform for easy verification
   design <- .make_test_taylor_nr(df)
   is_resp <- df$responded == 1L
 
   # Reproduce the exact GLM the implementation uses
   prop_form <- stats::as.formula(paste("responded", "~", "age_group + sex"))
-  fit_ref   <- stats::glm(
+  fit_ref <- stats::glm(
     prop_form,
-    data    = df,
+    data = df,
     weights = df$base_weight,
-    family  = stats::binomial(link = "logit"),
+    family = stats::binomial(link = "logit"),
     control = stats::glm.control(maxit = 25L, epsilon = 1e-8)
   )
-  scores_ref   <- stats::predict(fit_ref, type = "response")
+  scores_ref <- stats::predict(fit_ref, type = "response")
   expected_wts_resp <- (df$base_weight / scores_ref)[is_resp]
 
   result <- suppressWarnings(adjust_nonresponse(
     design,
     response_status = responded,
-    formula         = ~age_group + sex,
-    method          = "propensity"
+    formula = ~ age_group + sex,
+    method = "propensity"
   ))
 
   wt_col <- result@variables$weights
-  expect_equal(result@data[[wt_col]], unname(expected_wts_resp), tolerance = 1e-10)
+  expect_equal(
+    result@data[[wt_col]],
+    unname(expected_wts_resp),
+    tolerance = 1e-10
+  )
 })
 
 # ---------------------------------------------------------------------------
@@ -2128,12 +2460,20 @@ test_that("adjust_nonresponse(propensity) errors when formula = NULL", {
   design <- .make_test_taylor_nr(df)
 
   expect_error(
-    adjust_nonresponse(design, response_status = responded, method = "propensity"),
+    adjust_nonresponse(
+      design,
+      response_status = responded,
+      method = "propensity"
+    ),
     class = "surveywts_error_formula_required_for_propensity"
   )
   expect_snapshot(
     error = TRUE,
-    adjust_nonresponse(design, response_status = responded, method = "propensity")
+    adjust_nonresponse(
+      design,
+      response_status = responded,
+      method = "propensity"
+    )
   )
 })
 
@@ -2146,14 +2486,22 @@ test_that("adjust_nonresponse(propensity) errors when formula is not a formula",
   design <- .make_test_taylor_nr(df)
 
   expect_error(
-    adjust_nonresponse(design, response_status = responded,
-                       formula = "age_group + sex", method = "propensity"),
+    adjust_nonresponse(
+      design,
+      response_status = responded,
+      formula = "age_group + sex",
+      method = "propensity"
+    ),
     class = "surveywts_error_formula_invalid"
   )
   expect_snapshot(
     error = TRUE,
-    adjust_nonresponse(design, response_status = responded,
-                       formula = "age_group + sex", method = "propensity")
+    adjust_nonresponse(
+      design,
+      response_status = responded,
+      formula = "age_group + sex",
+      method = "propensity"
+    )
   )
 })
 
@@ -2166,14 +2514,22 @@ test_that("adjust_nonresponse(propensity) errors when formula variable is missin
   design <- .make_test_taylor_nr(df)
 
   expect_error(
-    adjust_nonresponse(design, response_status = responded,
-                       formula = ~nonexistent_var, method = "propensity"),
+    adjust_nonresponse(
+      design,
+      response_status = responded,
+      formula = ~nonexistent_var,
+      method = "propensity"
+    ),
     class = "surveywts_error_formula_variable_not_found"
   )
   expect_snapshot(
     error = TRUE,
-    adjust_nonresponse(design, response_status = responded,
-                       formula = ~nonexistent_var, method = "propensity")
+    adjust_nonresponse(
+      design,
+      response_status = responded,
+      formula = ~nonexistent_var,
+      method = "propensity"
+    )
   )
 })
 
@@ -2187,14 +2543,22 @@ test_that("adjust_nonresponse(propensity) errors when formula variable has NA", 
   design <- .make_test_taylor_nr(df)
 
   expect_error(
-    adjust_nonresponse(design, response_status = responded,
-                       formula = ~age_group, method = "propensity"),
+    adjust_nonresponse(
+      design,
+      response_status = responded,
+      formula = ~age_group,
+      method = "propensity"
+    ),
     class = "surveywts_error_formula_variable_has_na"
   )
   expect_snapshot(
     error = TRUE,
-    adjust_nonresponse(design, response_status = responded,
-                       formula = ~age_group, method = "propensity")
+    adjust_nonresponse(
+      design,
+      response_status = responded,
+      formula = ~age_group,
+      method = "propensity"
+    )
   )
 })
 
@@ -2211,9 +2575,9 @@ test_that("adjust_nonresponse(propensity) warns when by is non-NULL", {
     result <- adjust_nonresponse(
       design,
       response_status = responded,
-      by              = age_group,
-      formula         = ~sex,
-      method          = "propensity"
+      by = age_group,
+      formula = ~sex,
+      method = "propensity"
     ),
     class = "surveywts_warning_by_ignored_for_propensity"
   )
@@ -2230,18 +2594,22 @@ test_that("adjust_nonresponse(propensity) warns on extreme scores < 0.01", {
   # 1 respondent at low x vs 200 nonrespondents at low x → propensity << 0.01
   set.seed(77)
   df_extreme <- data.frame(
-    x_pred    = c(
-      runif(99L, 0.8, 1.0),   # respondents clustered at high x
-      0.0,                      # 1 respondent at x = 0 (very low propensity)
-      runif(200L, 0.0, 0.1)   # 200 nonrespondents at low x
+    x_pred = c(
+      runif(99L, 0.8, 1.0), # respondents clustered at high x
+      0.0, # 1 respondent at x = 0 (very low propensity)
+      runif(200L, 0.0, 0.1) # 200 nonrespondents at low x
     ),
     responded = c(rep(1L, 100L), rep(0L, 200L)),
-    wt        = rep(1, 300L)
+    wt = rep(1, 300L)
   )
   design_extreme <- surveycore::survey_taylor(
     data = df_extreme,
     variables = list(
-      ids = NULL, strata = NULL, fpc = NULL, weights = "wt", nest = FALSE
+      ids = NULL,
+      strata = NULL,
+      fpc = NULL,
+      weights = "wt",
+      nest = FALSE
     )
   )
 
@@ -2249,8 +2617,8 @@ test_that("adjust_nonresponse(propensity) warns on extreme scores < 0.01", {
     result <- adjust_nonresponse(
       design_extreme,
       response_status = responded,
-      formula         = ~x_pred,
-      method          = "propensity"
+      formula = ~x_pred,
+      method = "propensity"
     ),
     class = "surveywts_warning_extreme_propensity_scores"
   )
@@ -2271,9 +2639,9 @@ test_that("adjust_nonresponse(propensity) warns when adjustment exceeds max_adju
     result <- adjust_nonresponse(
       design,
       response_status = responded,
-      formula         = ~age_group + sex,
-      method          = "propensity",
-      control         = list(max_adjust = 1.01)
+      formula = ~ age_group + sex,
+      method = "propensity",
+      control = list(max_adjust = 1.01)
     ),
     class = "surveywts_warning_extreme_propensity_adjustment"
   )
@@ -2290,14 +2658,18 @@ test_that("adjust_nonresponse(propensity) warns when GLM does not converge", {
   # 25 iterations because the deviance keeps decreasing as the coefficient
   # diverges. The convergence warning fires; scores remain strictly in (0, 1).
   df_conv <- data.frame(
-    x_pred    = c(rep(0L, 100L), rep(1L, 100L)),
+    x_pred = c(rep(0L, 100L), rep(1L, 100L)),
     responded = c(rep(1L, 100L), rep(0L, 100L)),
-    wt        = rep(1, 200L)
+    wt = rep(1, 200L)
   )
   design_conv <- surveycore::survey_taylor(
     data = df_conv,
     variables = list(
-      ids = NULL, strata = NULL, fpc = NULL, weights = "wt", nest = FALSE
+      ids = NULL,
+      strata = NULL,
+      fpc = NULL,
+      weights = "wt",
+      nest = FALSE
     )
   )
 
@@ -2305,8 +2677,8 @@ test_that("adjust_nonresponse(propensity) warns when GLM does not converge", {
     result <- adjust_nonresponse(
       design_conv,
       response_status = responded,
-      formula         = ~x_pred,
-      method          = "propensity"
+      formula = ~x_pred,
+      method = "propensity"
     ),
     class = "surveywts_warning_propensity_glm_convergence"
   )
@@ -2323,25 +2695,31 @@ test_that("adjust_nonresponse(propensity) works with 95% response rate (no warni
   n <- 200L
   responded <- as.integer(stats::rbinom(n, 1L, 0.95))
   # Ensure at least some nonrespondents
-  if (sum(responded == 0L) == 0L) responded[1L] <- 0L
+  if (sum(responded == 0L) == 0L) {
+    responded[1L] <- 0L
+  }
   df_high <- data.frame(
     age_group = sample(c("18-34", "35-54", "55+"), n, replace = TRUE),
-    sex       = sample(c("M", "F"), n, replace = TRUE),
+    sex = sample(c("M", "F"), n, replace = TRUE),
     responded = responded,
-    wt        = rep(1, n)
+    wt = rep(1, n)
   )
   design_high <- surveycore::survey_taylor(
     data = df_high,
     variables = list(
-      ids = NULL, strata = NULL, fpc = NULL, weights = "wt", nest = FALSE
+      ids = NULL,
+      strata = NULL,
+      fpc = NULL,
+      weights = "wt",
+      nest = FALSE
     )
   )
 
   result <- adjust_nonresponse(
     design_high,
     response_status = responded,
-    formula         = ~age_group + sex,
-    method          = "propensity"
+    formula = ~ age_group + sex,
+    method = "propensity"
   )
 
   test_invariants(result)
@@ -2359,17 +2737,23 @@ test_that("adjust_nonresponse(propensity) warns on high adjustment with 20% resp
   set.seed(80)
   n <- 300L
   responded <- as.integer(stats::rbinom(n, 1L, 0.20))
-  if (sum(responded) < 5L) responded[seq_len(5L)] <- 1L
+  if (sum(responded) < 5L) {
+    responded[seq_len(5L)] <- 1L
+  }
   df_low <- data.frame(
     age_group = sample(c("18-34", "35-54", "55+"), n, replace = TRUE),
-    sex       = sample(c("M", "F"), n, replace = TRUE),
+    sex = sample(c("M", "F"), n, replace = TRUE),
     responded = responded,
-    wt        = rep(1, n)
+    wt = rep(1, n)
   )
   design_low <- surveycore::survey_taylor(
     data = df_low,
     variables = list(
-      ids = NULL, strata = NULL, fpc = NULL, weights = "wt", nest = FALSE
+      ids = NULL,
+      strata = NULL,
+      fpc = NULL,
+      weights = "wt",
+      nest = FALSE
     )
   )
 
@@ -2378,8 +2762,8 @@ test_that("adjust_nonresponse(propensity) warns on high adjustment with 20% resp
     result <- adjust_nonresponse(
       design_low,
       response_status = responded,
-      formula         = ~age_group + sex,
-      method          = "propensity"
+      formula = ~ age_group + sex,
+      method = "propensity"
     ),
     class = "surveywts_warning_extreme_propensity_adjustment"
   )
@@ -2405,9 +2789,9 @@ test_that("adjust_nonresponse(propensity) ignores control$n_cells without warnin
     result <- adjust_nonresponse(
       design,
       response_status = responded,
-      formula         = ~age_group + sex,
-      method          = "propensity",
-      control         = list(n_cells = 10L, max_adjust = Inf)
+      formula = ~ age_group + sex,
+      method = "propensity",
+      control = list(n_cells = 10L, max_adjust = Inf)
     )
   )
 

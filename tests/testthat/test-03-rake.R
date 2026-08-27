@@ -119,8 +119,11 @@ test_that("calibrate_rake() preserves survey_nonprob class", {
   sc_input <- surveycore::survey_nonprob(
     data = df,
     variables = list(
-      ids = NULL, strata = NULL, fpc = NULL,
-      weights = "base_weight", nest = FALSE
+      ids = NULL,
+      strata = NULL,
+      fpc = NULL,
+      weights = "base_weight",
+      nest = FALSE
     ),
     metadata = surveycore::survey_metadata(),
     groups = character(0),
@@ -171,8 +174,16 @@ test_that("calibrate_rake() Format B targets gives same result as Format A", {
     stringsAsFactors = FALSE
   )
 
-  result_a <- calibrate_rake(design, targets = targets_a, algorithm = "classic_ipf")
-  result_b <- calibrate_rake(design, targets = targets_b, algorithm = "classic_ipf")
+  result_a <- calibrate_rake(
+    design,
+    targets = targets_a,
+    algorithm = "classic_ipf"
+  )
+  result_b <- calibrate_rake(
+    design,
+    targets = targets_b,
+    algorithm = "classic_ipf"
+  )
 
   test_invariants(result_a)
   test_invariants(result_b)
@@ -243,7 +254,7 @@ test_that("calibrate_rake(algorithm='nr') matches survey::calibrate(raking) with
 
   # Build oracle via survey::calibrate(calfun = survey::cal.raking)
   svy_design <- survey::svydesign(ids = ~1, weights = ~base_weight, data = df)
-  mm <- stats::model.matrix(~age_group + sex, data = df)
+  mm <- stats::model.matrix(~ age_group + sex, data = df)
   pop_totals_vec <- stats::setNames(numeric(ncol(mm)), colnames(mm))
   pop_totals_vec["(Intercept)"] <- total_w
   for (lev in names(targets$age_group)) {
@@ -260,7 +271,7 @@ test_that("calibrate_rake(algorithm='nr') matches survey::calibrate(raking) with
   }
   svy_cal <- survey::calibrate(
     svy_design,
-    formula = ~age_group + sex,
+    formula = ~ age_group + sex,
     population = pop_totals_vec,
     calfun = survey::cal.raking,
     epsilon = 1e-10
@@ -300,10 +311,16 @@ test_that("calibrate_rake() no longer rejects survey_replicate at class-check ga
   rep_design <- surveycore::survey_replicate(
     data = df,
     variables = list(
-      ids = NULL, strata = NULL, fpc = NULL,
-      weights = "base_weight", nest = FALSE,
-      repweights = c("base_weight"), scale = 0.5,
-      rscales = 1, type = "BRR", mse = TRUE
+      ids = NULL,
+      strata = NULL,
+      fpc = NULL,
+      weights = "base_weight",
+      nest = FALSE,
+      repweights = c("base_weight"),
+      scale = 0.5,
+      rscales = 1,
+      type = "BRR",
+      mse = TRUE
     ),
     metadata = meta,
     groups = character(0),
@@ -321,13 +338,20 @@ test_that("calibrate_rake() no longer rejects survey_replicate at class-check ga
 
 test_that("calibrate_rake() rejects 0-row survey_taylor", {
   empty_df <- data.frame(
-    age_group = character(0), sex = character(0),
-    base_weight = numeric(0), stringsAsFactors = FALSE
+    age_group = character(0),
+    sex = character(0),
+    base_weight = numeric(0),
+    stringsAsFactors = FALSE
   )
   empty_design <- surveycore::survey_taylor(
     data = empty_df,
-    variables = list(ids = NULL, strata = NULL, fpc = NULL,
-                     weights = "base_weight", nest = FALSE)
+    variables = list(
+      ids = NULL,
+      strata = NULL,
+      fpc = NULL,
+      weights = "base_weight",
+      nest = FALSE
+    )
   )
   targets <- .make_targets_rake()
 
@@ -393,8 +417,11 @@ test_that("calibrate_rake() wt_name='cal_wt' writes new column, updates @variabl
   sc_input <- surveycore::survey_nonprob(
     data = df,
     variables = list(
-      ids = NULL, strata = NULL, fpc = NULL,
-      weights = "base_weight", nest = FALSE
+      ids = NULL,
+      strata = NULL,
+      fpc = NULL,
+      weights = "base_weight",
+      nest = FALSE
     ),
     metadata = surveycore::survey_metadata(),
     groups = character(0),
@@ -455,9 +482,10 @@ test_that("calibrate_rake() rejects Format B data frame missing 'level' column",
   df <- make_surveywts_data(seed = 20)
   design <- .make_test_taylor_rake(df)
   bad_df <- data.frame(
-    variable = "age_group", target = 0.5,
+    variable = "age_group",
+    target = 0.5,
     stringsAsFactors = FALSE
-  )  # missing 'level' column
+  ) # missing 'level' column
 
   expect_error(
     calibrate_rake(design, targets = bad_df),
@@ -542,7 +570,7 @@ test_that("calibrate_rake() rejects targets missing a data level", {
   df <- make_surveywts_data(seed = 24)
   design <- .make_test_taylor_rake(df)
   targets <- list(
-    age_group = c("18-34" = 0.50, "35-54" = 0.50),  # missing "55+"
+    age_group = c("18-34" = 0.50, "35-54" = 0.50), # missing "55+"
     sex = c("M" = 0.48, "F" = 0.52)
   )
 
@@ -586,7 +614,7 @@ test_that("calibrate_rake() rejects proportions summing to 1.1", {
   df <- make_surveywts_data(seed = 26)
   design <- .make_test_taylor_rake(df)
   targets <- list(
-    age_group = c("18-34" = 0.40, "35-54" = 0.40, "55+" = 0.30),  # sums to 1.1
+    age_group = c("18-34" = 0.40, "35-54" = 0.40, "55+" = 0.30), # sums to 1.1
     sex = c("M" = 0.48, "F" = 0.52)
   )
 
@@ -609,8 +637,8 @@ test_that("calibrate_rake() rejects type='count' with inconsistent marginal sums
   design <- .make_test_taylor_rake(df)
   # age_group sums to 500, sex sums to 550 — differ by 50 > 1e-3
   targets <- list(
-    age_group = c("18-34" = 150, "35-54" = 200, "55+" = 150),  # sum = 500
-    sex = c("M" = 270, "F" = 280)                               # sum = 550
+    age_group = c("18-34" = 150, "35-54" = 200, "55+" = 150), # sum = 500
+    sex = c("M" = 270, "F" = 280) # sum = 550
   )
 
   expect_error(
@@ -634,7 +662,9 @@ test_that("calibrate_rake() throws calibration_not_converged hitting maxit (nr)"
 
   expect_error(
     calibrate_rake(
-      design, targets = targets, algorithm = "nr",
+      design,
+      targets = targets,
+      algorithm = "nr",
       control = list(maxit = 1L, epsilon = 1e-20)
     ),
     class = "surveywts_error_calibration_not_converged"
@@ -642,7 +672,9 @@ test_that("calibrate_rake() throws calibration_not_converged hitting maxit (nr)"
   expect_snapshot(
     error = TRUE,
     calibrate_rake(
-      design, targets = targets, algorithm = "nr",
+      design,
+      targets = targets,
+      algorithm = "nr",
       control = list(maxit = 1L, epsilon = 1e-20)
     )
   )
@@ -678,14 +710,20 @@ test_that("calibrate_rake() rejects cap = 0", {
 
   expect_error(
     calibrate_rake(
-      design, targets = targets, cap = 0, algorithm = "classic_ipf"
+      design,
+      targets = targets,
+      cap = 0,
+      algorithm = "classic_ipf"
     ),
     class = "surveywts_error_cap_not_positive"
   )
   expect_snapshot(
     error = TRUE,
     calibrate_rake(
-      design, targets = targets, cap = 0, algorithm = "classic_ipf"
+      design,
+      targets = targets,
+      cap = 0,
+      algorithm = "classic_ipf"
     )
   )
 })
@@ -701,14 +739,18 @@ test_that("calibrate_rake() warns for classic_ipf-specific control param with al
 
   expect_warning(
     result <- calibrate_rake(
-      design, targets = targets, algorithm = "nr",
+      design,
+      targets = targets,
+      algorithm = "nr",
       control = list(pval = 0.01)
     ),
     class = "surveywts_warning_control_param_ignored"
   )
   expect_snapshot(
     calibrate_rake(
-      design, targets = targets, algorithm = "nr",
+      design,
+      targets = targets,
+      algorithm = "nr",
       control = list(pval = 0.01)
     )
   )
@@ -725,14 +767,18 @@ test_that("calibrate_rake() warns for nr-specific control param with algorithm='
 
   expect_warning(
     result <- calibrate_rake(
-      design, targets = targets, algorithm = "classic_ipf",
+      design,
+      targets = targets,
+      algorithm = "classic_ipf",
       control = list(epsilon = 1e-9)
     ),
     class = "surveywts_warning_control_param_ignored"
   )
   expect_snapshot(
     calibrate_rake(
-      design, targets = targets, algorithm = "classic_ipf",
+      design,
+      targets = targets,
+      algorithm = "classic_ipf",
       control = list(epsilon = 1e-9)
     )
   )
@@ -751,8 +797,11 @@ test_that("calibrate_rake() emits already_calibrated when data matches targets",
   design_exact <- surveycore::survey_taylor(
     data = df_exact,
     variables = list(
-      ids = NULL, strata = NULL, fpc = NULL,
-      weights = "w", nest = FALSE
+      ids = NULL,
+      strata = NULL,
+      fpc = NULL,
+      weights = "w",
+      nest = FALSE
     )
   )
   targets <- list(
@@ -797,8 +846,16 @@ test_that("calibrate_rake() Format B targets gives identical result to Format A"
     stringsAsFactors = FALSE
   )
 
-  result_a <- calibrate_rake(design, targets = targets_a, algorithm = "classic_ipf")
-  result_b <- calibrate_rake(design, targets = targets_b, algorithm = "classic_ipf")
+  result_a <- calibrate_rake(
+    design,
+    targets = targets_a,
+    algorithm = "classic_ipf"
+  )
+  result_b <- calibrate_rake(
+    design,
+    targets = targets_b,
+    algorithm = "classic_ipf"
+  )
 
   test_invariants(result_a)
   test_invariants(result_b)
@@ -941,9 +998,18 @@ test_that("calibrate_rake() @calibration has all 12 required fields", {
   result <- calibrate_rake(design, targets = targets)
 
   required_fields <- c(
-    "x_matrix", "base_weights", "g_weights", "crossproduct_inv",
-    "population_totals", "discrepancy", "lambda", "method",
-    "cell_factors", "q_weights", "converged", "n_iterations"
+    "x_matrix",
+    "base_weights",
+    "g_weights",
+    "crossproduct_inv",
+    "population_totals",
+    "discrepancy",
+    "lambda",
+    "method",
+    "cell_factors",
+    "q_weights",
+    "converged",
+    "n_iterations"
   )
   expect_true(all(required_fields %in% names(result@calibration)))
 })
@@ -1032,7 +1098,11 @@ test_that("calibrate_rake() @calibration$q_weights are all 1", {
 
   result <- calibrate_rake(design, targets = targets)
 
-  expect_equal(result@calibration$q_weights, rep(1, nrow(df)), tolerance = 1e-10)
+  expect_equal(
+    result@calibration$q_weights,
+    rep(1, nrow(df)),
+    tolerance = 1e-10
+  )
 })
 
 # ---------------------------------------------------------------------------
@@ -1159,9 +1229,18 @@ test_that("calibrate_rake() survey_replicate @calibration has 12 required fields
   result <- calibrate_rake(rep_design, targets = targets)
 
   required_fields <- c(
-    "x_matrix", "base_weights", "g_weights", "crossproduct_inv",
-    "population_totals", "discrepancy", "lambda", "method",
-    "cell_factors", "q_weights", "converged", "n_iterations"
+    "x_matrix",
+    "base_weights",
+    "g_weights",
+    "crossproduct_inv",
+    "population_totals",
+    "discrepancy",
+    "lambda",
+    "method",
+    "cell_factors",
+    "q_weights",
+    "converged",
+    "n_iterations"
   )
   expect_true(all(required_fields %in% names(result@calibration)))
 })
@@ -1192,10 +1271,16 @@ test_that("calibrate_rake() with 0 repweights gives replicate_converged length 0
   rep_empty <- surveycore::survey_replicate(
     data = df,
     variables = list(
-      ids = NULL, strata = NULL, fpc = NULL,
-      weights = "base_weight", nest = FALSE,
-      repweights = character(0), scale = 1, rscales = numeric(0),
-      type = "bootstrap", mse = TRUE
+      ids = NULL,
+      strata = NULL,
+      fpc = NULL,
+      weights = "base_weight",
+      nest = FALSE,
+      repweights = character(0),
+      scale = 1,
+      rscales = numeric(0),
+      type = "bootstrap",
+      mse = TRUE
     ),
     metadata = meta,
     groups = character(0),
@@ -1336,7 +1421,9 @@ test_that("calibrate_rake() nr with maxit=1 + tiny epsilon throws not_converged"
 
   expect_error(
     calibrate_rake(
-      design, targets = targets, algorithm = "nr",
+      design,
+      targets = targets,
+      algorithm = "nr",
       control = list(maxit = 1L, epsilon = 1e-20)
     ),
     class = "surveywts_error_calibration_not_converged"
@@ -1354,7 +1441,9 @@ test_that("calibrate_rake() algorithm='nr' warns on classic_ipf-specific control
 
   expect_warning(
     calibrate_rake(
-      design, targets = targets, algorithm = "nr",
+      design,
+      targets = targets,
+      algorithm = "nr",
       control = list(improvement = 0.01)
     ),
     class = "surveywts_warning_control_param_ignored"
@@ -1372,7 +1461,9 @@ test_that("calibrate_rake() algorithm='nr' warns on pval control param", {
 
   expect_warning(
     calibrate_rake(
-      design, targets = targets, algorithm = "nr",
+      design,
+      targets = targets,
+      algorithm = "nr",
       control = list(pval = 0.05)
     ),
     class = "surveywts_warning_control_param_ignored"
@@ -1441,13 +1532,15 @@ test_that("calibrate_rake() nr with type='count' conserves weight sum to target 
   df <- make_surveywts_data(n = 300, seed = 624)
   design <- .make_test_taylor_rake(df)
   targets <- list(
-    age_group = c("18-34" = 90, "35-54" = 120, "55+" = 90),  # sum = 300
-    sex = c("M" = 144, "F" = 156)                             # sum = 300
+    age_group = c("18-34" = 90, "35-54" = 120, "55+" = 90), # sum = 300
+    sex = c("M" = 144, "F" = 156) # sum = 300
   )
 
   result <- calibrate_rake(
-    design, targets = targets,
-    algorithm = "nr", type = "count"
+    design,
+    targets = targets,
+    algorithm = "nr",
+    type = "count"
   )
 
   w <- result@data[[result@variables$weights]]
@@ -1476,14 +1569,16 @@ test_that("calibrate_rake() nr @calibration$method == 'raking' (not 'raking_nr')
 test_that("calibrate_rake() nr replicate loop scales count targets correctly", {
   df <- make_surveywts_data(n = 200, seed = 626)
   targets_count <- list(
-    age_group = c("18-34" = 60, "35-54" = 80, "55+" = 60),  # sum = 200
-    sex = c("M" = 96, "F" = 104)                             # sum = 200
+    age_group = c("18-34" = 60, "35-54" = 80, "55+" = 60), # sum = 200
+    sex = c("M" = 96, "F" = 104) # sum = 200
   )
   rep_design <- .make_replicate_design(df, seed = 626)
 
   result <- calibrate_rake(
-    rep_design, targets = targets_count,
-    algorithm = "nr", type = "count"
+    rep_design,
+    targets = targets_count,
+    algorithm = "nr",
+    type = "count"
   )
 
   expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
@@ -1567,7 +1662,11 @@ test_that("N2: calibrate_rake(algorithm='classic_ipf') matches survey::rake() wi
   base_wt <- df$base_weight
 
   # surveywts result
-  sw_result <- calibrate_rake(design, targets = targets, algorithm = "classic_ipf")
+  sw_result <- calibrate_rake(
+    design,
+    targets = targets,
+    algorithm = "classic_ipf"
+  )
   sw_weights <- sw_result@data[[sw_result@variables$weights]]
 
   # survey::rake() oracle.
@@ -1576,11 +1675,11 @@ test_that("N2: calibrate_rake(algorithm='classic_ipf') matches survey::rake() wi
   # (each scaled to sum to 1) so both algorithms are on the same scale.
   pop_age <- data.frame(
     age_group = c("18-34", "35-54", "55+"),
-    Freq      = c(0.30, 0.40, 0.30) * sum(base_wt),
+    Freq = c(0.30, 0.40, 0.30) * sum(base_wt),
     stringsAsFactors = FALSE
   )
   pop_sex <- data.frame(
-    sex  = c("M", "F"),
+    sex = c("M", "F"),
     Freq = c(0.48, 0.52) * sum(base_wt),
     stringsAsFactors = FALSE
   )

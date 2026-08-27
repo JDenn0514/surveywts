@@ -380,12 +380,27 @@ repwt_cols <- pew_2016_optin_svy@variables$repweights # "repwt_1" ... "repwt_200
 pew_2016_optin[repwt_cols] <- pew_2016_optin_svy@data[repwt_cols]
 
 # Add "label" attributes to derived factor columns
-attr(pew_2016_optin$sex, "label") <- "Sex (factor, derived from gender: 1=Male, 2=Female)"
-attr(pew_2016_optin$race_f4, "label") <- "Race/ethnicity (4 levels: White, Black, Hispanic, Other)"
+attr(
+  pew_2016_optin$sex,
+  "label"
+) <- "Sex (factor, derived from gender: 1=Male, 2=Female)"
+attr(
+  pew_2016_optin$race_f4,
+  "label"
+) <- "Race/ethnicity (4 levels: White, Black, Hispanic, Other)"
 attr(pew_2016_optin$edu_f3, "label") <- "Educational attainment (3 levels)"
-attr(pew_2016_optin$pid_f3, "label") <- "Party identification (3 levels: Republican, Independent, Democrat)"
-attr(pew_2016_optin$age_f3, "label") <- "Age group (3 levels: 18-34, 35-54, 55+)"
-attr(pew_2016_optin$weight, "label") <- "Calibrated survey weight (raked to synth_pop targets, 5th/95th percentile trim)"
+attr(
+  pew_2016_optin$pid_f3,
+  "label"
+) <- "Party identification (3 levels: Republican, Independent, Democrat)"
+attr(
+  pew_2016_optin$age_f3,
+  "label"
+) <- "Age group (3 levels: 18-34, 35-54, 55+)"
+attr(
+  pew_2016_optin$weight,
+  "label"
+) <- "Calibrated survey weight (raked to synth_pop targets, 5th/95th percentile trim)"
 for (col in repwt_cols) {
   attr(pew_2016_optin[[col]], "label") <- paste0(
     "Quasi-randomization bootstrap replicate weight ",

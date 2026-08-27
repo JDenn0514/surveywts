@@ -117,7 +117,9 @@ Use `@family calibration`, `@family sample-calibration`, `@family nonresponse`, 
 
 | Function type | Return |
 |---------------|--------|
-| Calibration / nonresponse functions | Visible (new object) |
+| Calibration / nonresponse functions | Visible (updated object, same class as input) |
+| Utility functions (`trim_weights()`, `rescale_weights()`) | Visible (updated object, same class as input) |
+| `ipw()` — always returns `survey_nonprob` regardless of input class | Visible (`survey_nonprob`) |
 | Diagnostic functions | Visible (named scalar or tibble) |
 | Internal constructors (`.make_*()`) | Visible (the new object) |
 | Print / summary methods | `invisible(x)` |

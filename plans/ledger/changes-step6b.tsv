@@ -40,3 +40,4 @@ file	verdict	what	evidence
 .claude/standards/github-strategy.md	DEDUPED	"### Scopes" bare scope list paragraph (calibration, weights, utils, ...)	core.md:54-56 "- Valid scopes: `calibration`, `weights`, `utils`, `validators`, `replicate`, `propensity`, `diagnostics`, `data`, `docs`, `plans`, `pipeline`, `ci`, `description`."
 .claude/standards/testing-surveywts.md	DELETED	test_invariants() 26-line function body	B5
 .claude/standards/engineering-preferences.md	DELETED	Version/Created/Status header (3 lines)	C2
+.claude/standards/surveywts-conventions.md	DEDUPED	code-style §4 return-visibility rows for utilities, ipw(), and the "same class as input" guarantee — survivor table was narrower than the removed copy	surveywts-conventions.md:66-72, table extended in the follow-up commit to carry all three

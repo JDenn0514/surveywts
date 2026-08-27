@@ -8,6 +8,7 @@ description: >
   "prepare release", "ship this", "release vX.Y.Z", or "merge develop to main".
   CRITICAL: This skill only edits NEWS.md and DESCRIPTION. It does NOT write
   or edit R source files, test files, or any other source code.
+disable-model-invocation: true
 ---
 
 **Announce at start:** "Running merge-main skill."

@@ -7,6 +7,7 @@ description: >
   (3) Generate acknowledgments sections with contributor lists, (4) Format posts following specific
   blog platform requirements. Supports both Tidyverse (hugodown) and Shiny (Quarto) blog formats with
   automated contributor fetching and comprehensive style guidance.
+disable-model-invocation: true
 source: "https://github.com/posit-dev/skills (MIT License, © Posit, PBC)"
 ---
 

@@ -29,7 +29,7 @@ Choose the tier based on change size. When in doubt, go one tier higher.
 
 | Tier | When to use | Workflow |
 |------|-------------|----------|
-| **1 — Full** | New releases, new exported functions, new S7 classes, anything where correct behavior is undecided | spec → implementation plan → `/r-implement` → `/commit-and-pr` |
+| **1 — Full** | New releases, new exported functions, new statistical methods, anything where correct behavior is undecided | spec → implementation plan → `/r-implement` → `/commit-and-pr` |
 | **2 — Plan only** | Medium bug fixes, new arguments, edge case additions — behavior obvious, approach isn't | implementation plan → `/r-implement` → `/commit-and-pr` |
 | **3 — Direct** | Clear bug fixes localized to 1–2 functions, test additions, roxygen changes | branch → `/r-implement` → `/commit-and-pr` |
 | **0 — Commit** | Typos, comments, `.gitignore`, README tweaks | direct commit to `develop` (no branch) |
@@ -92,7 +92,7 @@ Format: `{type}/{short-description}`
 ```
 feature/calibration-core
 feature/calibration-rake
-fix/weighted-df-history
+fix/history-timestamp
 test/calibrate-edge-cases
 chore/ci-coverage-workflow
 docs/readme-examples
@@ -110,7 +110,7 @@ docs/readme-examples
 
 | Type | Use for |
 |------|---------|
-| `feat` | New exported function, new class, new property |
+| `feat` | New exported function, new argument, new bundled dataset |
 | `fix` | Bug fix (behavioral change to existing code) |
 | `docs` | Roxygen comments, README, vignettes, plans |
 | `test` | Adding or updating tests (no production code change) |
@@ -120,16 +120,20 @@ docs/readme-examples
 
 ### Scopes
 
-`classes`, `constructors`, `validators`, `weights`, `calibration`, `utils`, `ci`
+`calibration`, `weights`, `utils`, `validators`, `replicate`, `propensity`,
+`diagnostics`, `data`, `docs`, `plans`, `pipeline`, `ci`, `description`
+
+`classes` and `constructors` are retired scopes. surveywts defines no classes
+and no constructors — see `surveywts-conventions.md` §6.
 
 ### Examples
 
 ```
-feat(calibration): implement rake() with iterative proportional fitting
-feat(classes): add weighted_df S3 class with weighting_history attribute
+feat(calibration): implement calibrate_rake() with iterative proportional fitting
+feat(propensity): add ipw() with calibration GEE for exact covariate balance
 fix(calibration): handle single-level target variable in poststratify()
-test(calibration): add edge case tests for zero-weight rows in rake()
-docs(calibration): add tidy-select examples to calibrate() roxygen
+test(calibration): add edge case tests for zero-weight rows in calibrate_rake()
+docs(calibration): add targets format examples to calibrate() roxygen
 chore(ci): add test-coverage GitHub Actions workflow
 chore(description): bump version to 0.1.0 for Calibration release
 ```
@@ -138,7 +142,7 @@ chore(description): bump version to 0.1.0 for Calibration release
 
 Write it as a conventional commit summarizing the whole PR:
 ```
-feat(calibration): implement rake() with iterative proportional fitting (#12)
+feat(calibration): implement calibrate_rake() with iterative proportional fitting (#12)
 ```
 GitHub auto-appends `(#PR_NUMBER)` if you set the PR title as a conventional commit.
 
@@ -195,7 +199,7 @@ The `/merge-main` skill handles choosing the correct strategy automatically.
 
 | Tag | DESCRIPTION version | What it means |
 |-----|---------------------|---------------|
-| `v0.1.0` | `0.1.0` | Calibration complete — `weighted_df`, `survey_nonprob`, `calibrate()`, `rake()`, `poststratify()`, basic diagnostics |
+| `v0.1.0` | `0.1.0` | Calibration complete — `calibrate()`, `calibrate_rake()`, `poststratify()`, basic diagnostics |
 | minor bump | minor bump | Replicate complete — replicate weight generation + bootstrap variance |
 | minor bump | minor bump | Utilities complete — `trim_weights()`, `rescale_weights()` |
 | minor bump | minor bump | Nonresponse complete — sample-based calibration, advanced nonresponse |
@@ -225,19 +229,33 @@ PR `develop` → `main` → tag → post-release `.9000` bump.
 
 | Workflow | Trigger |
 |----------|---------|
-| `R-CMD-check.yaml` | Push to any branch, PR to `main` or `develop` |
-| `test-coverage.yaml` | Push to `main` or `develop`, PRs |
-| `pkgdown.yaml` | Push to `main` only |
+| `R-CMD-check.yaml` | Push to `main` or `develop`; PR to `main` or `develop` |
+| `test-coverage.yaml` | Push to `main` or `develop`; PR to `main` or `develop` |
+| `pkgdown.yaml` | Push to `main`; any PR; published release; manual dispatch |
+
+R-CMD-check does **not** run on a push to a feature branch. It runs when the
+PR opens. Run `devtools::check()` locally before pushing.
 
 ### R-CMD-check matrix
 
+Four configurations, not the full os x version cross product. Only Ubuntu
+runs R-devel:
+
 ```yaml
-# Matrix: {os: [ubuntu-latest, windows-latest, macos-latest], r: [release, devel]}
+matrix:
+  config:
+    - {os: ubuntu-latest,  r: 'release'}
+    - {os: ubuntu-latest,  r: 'devel', http-user-agent: 'release'}
+    - {os: windows-latest, r: 'release'}
+    - {os: macos-latest,   r: 'release'}
 ```
+
+The check runs with `args: 'c("--as-cran", "--no-manual")'`.
 
 ### Required status checks for branch protection
 
-Set `R-CMD-check (ubuntu-latest, release)` as the required status check for
+The workflow names each job `${{ matrix.config.os }} (${{ matrix.config.r }})`,
+so the status check to require is `R-CMD-check / ubuntu-latest (release)`, for
 both `main` and `develop`. Windows and macOS checks are informational.
 
 ### Branch protection settings

@@ -1,9 +1,5 @@
 # Engineering Preferences
 
-**Version:** 1.0
-**Created:** February 2026
-**Status:** Decided — applies to all surveyverse packages
-
 **Scope:** These preferences are owned by this repo but intended as guidance
 for the full surveyverse ecosystem. If another package adopts them, they should
 copy this file to their own `.claude/standards/`.

@@ -5,6 +5,15 @@ description: Run covr::package_coverage() and identify uncovered lines in R/ sou
 
 You are a test coverage analyst for the surveywts R package.
 
+## Step 0 — Read your standards
+
+Before anything else, read these files in full:
+
+1. `.claude/standards/testing-standards.md`
+2. `.claude/standards/testing-surveywts.md`
+
+Then record the list under `Standards read:` in your output artifact.
+
 When invoked:
 
 1. Run coverage:

@@ -16,8 +16,6 @@ surface from the implementation plan. You do NOT receive `test-spec-{id}.md`,
 - `impl-{id}.md` excerpt for your PR — tasks, acceptance criteria, write surface
 - `request.md` and `impact.md` — context
 - `comprehension.md` — if methods-heavy (read this; it has the formulas)
-- Project rules (`CLAUDE.md` plus `.claude/rules/`) auto-load into your
-  context. Do NOT read them again.
 - `.claude/skills/pipeline-shared/references/r-package-profile.md`
 - On BLOCK re-dispatch: the BLOCK body only — NEVER the full `audit.md`,
   NEVER `test-spec-{id}.md`
@@ -37,6 +35,19 @@ surface from the implementation plan. You do NOT receive `test-spec-{id}.md`,
 - Modifies files outside the assigned write surface
 - Writes to `status.md`, `decisions-{id}.md`, or `plans/spec-*.md`
 - Skips `devtools::document()` after changing roxygen
+
+## Step 0 — Read your standards
+
+Before anything else, read these files in full:
+
+1. `.claude/standards/code-style.md`
+2. `.claude/standards/function-documentation.md`
+3. `.claude/standards/r-package-conventions.md`
+4. `.claude/standards/surveywts-conventions.md`
+5. `.claude/standards/testing-standards.md`
+6. `.claude/standards/testing-surveywts.md`
+
+Then record the list under `Standards read:` in your output artifact.
 
 ## Step 1 — Challenge Gate
 
@@ -91,8 +102,6 @@ After implementing any function with roxygen changes:
   `@section` blocks (Algorithm, Convergence, Missing Data, etc.), mathematical
   notation (`\eqn{}`/`\deqn{}`), `@examples` package-data requirement, and
   `@seealso` requirements — see `.claude/standards/function-documentation.md`
-- No `@importFrom` except S3 method registration (see `r-package-conventions.md`)
-- Use `::` everywhere for external calls
 - `@family` tags per `surveywts-conventions.md §2`
 
 ## Step 4 — CRAN compliance self-check
@@ -127,6 +136,7 @@ Include:
 - Task checklist with `[x]` marks
 - Any HOLDs raised
 - CRAN compliance checklist
+- `Standards read:` — the exact file list from Step 0
 - "Notes for tester" only if you noticed something neutral and useful (e.g.,
   "this function requires R ≥ 4.1 for `|>` syntax")
 

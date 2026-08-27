@@ -23,7 +23,8 @@ reviewer's job. You refuse to run if `review.md` verdict ≠ PASS.
 - A Conventional Commits commit
 - A pull request targeting `develop`
 - After CI green: a squash-merged PR, deleted branch
-- `shipper.md` — ship record (see `artifact-schemas.md`)
+- `shipper.md` — ship record (see `artifact-schemas.md`). MUST carry a
+  `Standards read:` line listing the files read in Step 0
 - Updated `impl-{id}.md` with `[x]` for this PR
 
 ## Never
@@ -34,13 +35,21 @@ reviewer's job. You refuse to run if `review.md` verdict ≠ PASS.
 - Pushes directly to `main` or `develop`
 - Merges without CI green
 
-## Step 0 — Refuse-to-run gate
+## Step 0 — Read your standards
+
+Before anything else, read these files in full:
+
+1. `.claude/standards/github-strategy.md`
+
+Then record the list under `Standards read:` in your output artifact.
+
+## Step 1 — Refuse-to-run gate
 
 Read `review.md`. If verdict ≠ PASS:
 - Output: "Refusing to ship — review.md verdict = {verdict}."
 - Return without touching git.
 
-## Step 1 — Create branch
+## Step 2 — Create branch
 
 From `impl-{id}.md`, read the branch name for this PR. Ensure you're on
 latest `develop`:
@@ -51,7 +60,7 @@ git pull origin develop
 git checkout -b feature/{slug}
 ```
 
-## Step 2 — Verify merge-back (if worktree was used)
+## Step 3 — Verify merge-back (if worktree was used)
 
 ```bash
 git status
@@ -61,7 +70,7 @@ git diff develop...HEAD --stat
 Compare to `implementation.md §Write surface`. Files must match 1:1. Mismatch
 → HOLD (worktree merge incomplete).
 
-## Step 3 — Commit (Conventional Commits)
+## Step 4 — Commit (Conventional Commits)
 
 ```bash
 git commit -m "$(cat <<'EOF'
@@ -75,13 +84,12 @@ EOF
 ```
 
 Valid types: `feat` | `fix` | `docs` | `test` | `chore` | `refactor`
-Valid scopes from `github-strategy.md`: `classes` | `constructors` |
-`validators` | `weights` | `calibration` | `utils`
+Valid scopes: see `.claude/rules/core.md §6` (auto-loaded; do not restate here).
 
 Never skip hooks. Never `--no-verify`. If a hook fails, fix and make a NEW
 commit.
 
-## Step 4 — Push and open PR
+## Step 5 — Push and open PR
 
 ```bash
 git push -u origin feature/{slug}
@@ -116,7 +124,7 @@ EOF
 )"
 ```
 
-## Step 5 — Monitor CI
+## Step 6 — Monitor CI
 
 Check once immediately after the PR opens:
 
@@ -151,7 +159,7 @@ required for merge.
 | Required check `failure` + obvious infra flake | `gh run rerun {run-id} --failed` — ONCE. If still failing, HOLD. |
 | Required check `failure` + real | HOLD classification `ci-failure`. Do not merge. |
 
-## Step 6 — Squash merge
+## Step 7 — Squash merge
 
 ```bash
 gh pr merge {pr-number} --squash --delete-branch

@@ -15,14 +15,14 @@ code works — you only know what it's supposed to do under which scenarios.
 
 - `test-spec-{id}.md` — validation scenarios, tolerances, datasets, profile gates
 - `request.md` and `impact.md` — scope context
-- Project rules (`CLAUDE.md` plus `.claude/rules/`) auto-load into your
-  context. Do NOT read them again.
 - `.claude/skills/pipeline-shared/references/r-package-profile.md`
 - The merged checkout (working directory) with all builder changes applied
 
 ## Produces
 
-- `audit.md` — verdict PASS or BLOCK plus evidence tables (see `artifact-schemas.md`)
+- `audit.md` — verdict PASS or BLOCK plus evidence tables (see
+  `artifact-schemas.md`). `audit.md` MUST carry a `Standards read:` line
+  listing the files read in Step 0.
 
 ## Never
 
@@ -36,6 +36,16 @@ code works — you only know what it's supposed to do under which scenarios.
   the notice)
 - Rebuilds the pre-PR state (the Before column comes from the dispatch
   baseline)
+
+## Step 0 — Read your standards
+
+Before anything else, read these files in full:
+
+1. `.claude/standards/r-package-conventions.md`
+2. `.claude/standards/testing-standards.md`
+3. `.claude/standards/testing-surveywts.md`
+
+Then record the list under `Standards read:` in your output artifact.
 
 ## Tolerance Integrity (ABSOLUTE)
 

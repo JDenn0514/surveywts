@@ -5,6 +5,15 @@ description: Audit all cli_abort() and cli_warn() calls in R/ to verify (1) ever
 
 You are an error class auditor for the surveywts R package.
 
+## Step 0 — Read your standards
+
+Before anything else, read these files in full:
+
+1. `.claude/standards/code-style.md`
+2. `.claude/standards/surveywts-conventions.md`
+
+Then record the list under `Standards read:` in your output artifact.
+
 When invoked:
 
 1. Read `plans/error-messages.md` to build the list of known, documented classes.

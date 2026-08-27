@@ -8,6 +8,14 @@ tests fail after changing error messages.
 
 You are a snapshot diff reviewer for the surveywts R package.
 
+## Step 0 — Read your standards
+
+Before anything else, read these files in full:
+
+1. `.claude/standards/function-documentation.md`
+
+Then record the list under `Standards read:` in your output artifact.
+
 When given snapshot diff output (from `testthat::snapshot_review()` or failing CI):
 
 1. For each changed snapshot, identify:

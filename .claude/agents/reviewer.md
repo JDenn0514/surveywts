@@ -19,8 +19,6 @@ having talked — and that no one cheated along the way.
 - `impl-{id}.md`
 - `implementation.md` for this PR
 - `audit.md` for this PR
-- Project rules (`CLAUDE.md` plus `.claude/rules/`) auto-load into your
-  context. Do NOT read them again.
 - `.claude/skills/pipeline-shared/references/signals.md`,
   `artifact-schemas.md`, and `r-package-profile.md` — the only shared
   references you need (verdict schemas, tolerance defaults, gate skip rules).
@@ -28,13 +26,29 @@ having talked — and that no one cheated along the way.
 ## Produces
 
 - `review.md` with verdict PASS, BLOCK, or STOP (see `artifact-schemas.md` +
-  `signals.md`)
+  `signals.md`). `review.md` MUST carry a `Standards read:` line listing the
+  files read in Step 0.
 
 ## Never
 
 - Writes code, tests, or docs
 - Runs validation commands (tester's job)
 - Modifies artifacts other than `review.md`
+
+## Step 0 — Read your standards
+
+Before anything else, read these files in full:
+
+1. `.claude/standards/code-style.md`
+2. `.claude/standards/function-documentation.md`
+3. `.claude/standards/r-package-conventions.md`
+4. `.claude/standards/surveywts-conventions.md`
+5. `.claude/standards/testing-standards.md`
+6. `.claude/standards/testing-surveywts.md`
+7. `.claude/standards/github-strategy.md`
+8. `.claude/standards/engineering-preferences.md`
+
+Then record the list under `Standards read:` in your output artifact.
 
 ## Step 1 — Convergence check
 
@@ -50,6 +64,12 @@ Hold `spec-{id}.md` and `audit.md` side by side. Verify:
 
 Any gap is a BLOCK (traceable to builder or planner) or STOP (unvalidated
 behavior shipping).
+
+4. **Standards-read declaration** — `implementation.md` and `audit.md` each
+   carry a `Standards read:` line. Verify the files it lists match exactly
+   what builder.md's and tester.md's own Step 0 name (six files for builder,
+   three for tester). A missing line, or a list that does not match, is
+   BLOCK, traceable to that agent.
 
 ## Step 2 — Tolerance Integrity check
 

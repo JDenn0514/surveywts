@@ -57,7 +57,7 @@ Stages 2 and 3 may loop with their resolve counterparts until verdict PASS.
 
 ## Stage 0 — Deep Comprehension
 
-Determine if methods-heavy per `planner.md §Step 0 criteria`. Also check:
+Determine if methods-heavy per `planner.md §Step 1 criteria`. Also check:
 - Did the user attach papers, PDFs, or markdown files of journal articles?
 - If yes, how many?
 
@@ -67,7 +67,7 @@ with status line `(no methods — auto)`.
 ### Single paper (exactly 1 attached) or methods-heavy with no paper
 
 1. Dispatch `planner` agent with prompt:
-   > Run Step 0 (Deep Comprehension Protocol) only. Write `comprehension.md`
+   > Run Step 1 (Deep Comprehension Protocol) only. Write `comprehension.md`
    > per `artifact-schemas.md`. If a paper was attached, read it in full before
    > writing. Do not draft spec-{id}.md or test-spec-{id}.md yet.
    > Paper/attachment: {path or content}
@@ -93,7 +93,7 @@ needed for synthesis. Use parallel extraction first:
    claim. Re-dispatch any extractor that produced a thin or incomplete result.
 
 3. **Dispatch `planner` agent for synthesis**:
-   > Run Step 0 (Deep Comprehension Protocol) — synthesis pass only. All papers
+   > Run Step 1 (Deep Comprehension Protocol) — synthesis pass only. All papers
    > have been pre-read by extraction agents. Their outputs are at:
    > {list all extraction-{slug}.md paths}
    >

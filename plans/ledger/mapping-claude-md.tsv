@@ -11,7 +11,7 @@ claude-md-009	MOVED	.claude/rules/core.md:3-5	Full conventions — including nam
 claude-md-010	MOVED	.claude/rules/core.md:37	Error classes: `surveywts_error_{snake_case_condition}`
 claude-md-011	MOVED	.claude/rules/core.md:38	Warning classes: `surveywts_warning_{snake_case_condition}`
 claude-md-012	MOVED	.claude/rules/core.md:44-45	Internal helpers carry a `.` prefix (e.g., `.validate_weights()`) and are never exported.
-claude-md-013	MOVED	.claude/rules/core.md:9	Never remove a weight column.
+claude-md-013	MOVED	.claude/rules/core.md:9	"heading ""## 1. Design variables are sacred"" plus ""Never remove a weight column."" Banner phrase restored verbatim."
 claude-md-014	MOVED	.claude/rules/core.md:9-12	Every weighting function either overwrites the existing weight column in place (`wt_name = NULL`, the default) or writes a new column and repoints `@variables$weights` at it.
 claude-md-015	MOVED	.claude/rules/core.md:10	(`wt_name = NULL`, the default)
 claude-md-016	MOVED	.claude/rules/core.md:11-12	It never drops the old column

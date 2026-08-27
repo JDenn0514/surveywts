@@ -4,7 +4,7 @@ Cross-role rules: every rule below is one any role can violate. Full
 conventions — including naming beyond the two classes below — are in
 `.claude/standards/surveywts-conventions.md` §1.
 
-## 1. Weight columns are sacred
+## 1. Design variables are sacred
 
 Never remove a weight column. Every weighting function either overwrites the
 existing weight column in place (`wt_name = NULL`, the default) or writes a

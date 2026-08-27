@@ -1,0 +1,122 @@
+id	verdict	location	evidence
+github-strategy-001	MOVED	.claude/standards/github-strategy.md:3	"Applies to the surveywts package. Adapted from the surveycore version."
+github-strategy-002	MOVED	.claude/standards/github-strategy.md:4	"Read on-demand when creating PRs or setting up CI — not auto-loaded."
+github-strategy-003	DELETED		Approved deletion C2 (Version/Created/Status headers), plans/spec-rules-redesign.md §13.4
+github-strategy-004	DELETED		Approved deletion C2 (Version/Created/Status headers), plans/spec-rules-redesign.md §13.4
+github-strategy-005	DEDUPED	.claude/standards/github-strategy.md:37-44	Quick Reference row dropped, but same file's Branching Model diagram states it: "main ← always stable... / develop ← integration branch; all feature work lands here first / feature/* ← individual units of work; branch from develop / hotfix/* ← urgent fixes only; branch from main"
+github-strategy-006	PRESERVED	.claude/rules/core.md:51-52	"Branch naming: `feature/`, `fix/`, `hotfix/`, `test/`, `docs/`, `chore/`, `refactor/`."
+github-strategy-007	MOVED	.claude/standards/github-strategy.md:12	"| Merge strategy | Squash for feature PRs; merge commit for release PRs |"
+github-strategy-008	PRESERVED	.claude/rules/core.md:53	"All commits use Conventional Commits format: `feat(scope): description`."
+github-strategy-009	MOVED	.claude/standards/github-strategy.md:13	"| PR granularity | One PR per logical unit of work |"
+github-strategy-010	MOVED	.claude/standards/github-strategy.md:14	"| Versioning | `X.Y.Z.9000` on `develop`; `X.Y.Z` on `main` after release |"
+github-strategy-011	MOVED	.claude/standards/github-strategy.md:15	"| CI | R-CMD-check required on `main` and `develop`; all PRs |"
+github-strategy-012	MOVED	.claude/standards/github-strategy.md:16	"| Release workflow | Use `/merge-main` |"
+github-strategy-013	MOVED	.claude/standards/github-strategy.md:24	"Choose the tier based on change size."
+github-strategy-014	MOVED	.claude/standards/github-strategy.md:24	"When in doubt, go one tier higher."
+github-strategy-015	MOVED	.claude/standards/github-strategy.md:28	"**1 — Full** | ... | spec → implementation plan → `/r-implement` → `/commit-and-pr`"
+github-strategy-016	MOVED	.claude/standards/github-strategy.md:29	"**2 — Plan only** | ... | implementation plan → `/r-implement` → `/commit-and-pr`"
+github-strategy-017	MOVED	.claude/standards/github-strategy.md:30	"**3 — Direct** | ... | branch → `/r-implement` → `/commit-and-pr`"
+github-strategy-018	MOVED	.claude/standards/github-strategy.md:31	"**0 — Commit** | Typos, comments, `.gitignore`, README tweaks | direct commit to `develop` (no branch)"
+github-strategy-019	MOVED	.claude/standards/github-strategy.md:38	"main          ← always stable; every commit is a tagged release"
+github-strategy-020	MOVED	.claude/standards/github-strategy.md:40	"develop       ← integration branch; all feature work lands here first"
+github-strategy-021	MOVED	.claude/standards/github-strategy.md:42	"feature/*     ← individual units of work; branch from develop"
+github-strategy-022	MOVED	.claude/standards/github-strategy.md:43	"hotfix/*      ← urgent fixes only; branch from main"
+github-strategy-023	MOVED	.claude/standards/github-strategy.md:46	"Feature branches always cut from `develop` and merge back to `develop`."
+github-strategy-024	MOVED	.claude/standards/github-strategy.md:47	"Never open a feature PR directly against `main`."
+github-strategy-025	MOVED	.claude/standards/github-strategy.md:49-50	"Hotfixes branch from `main`, merge to `main`, then **immediately** open a second PR from the hotfix branch (or `main`) into `develop` to stay in sync."
+github-strategy-026	MOVED	.claude/standards/github-strategy.md:51-52	"Do not leave `main` ahead of `develop` — this causes merge conflicts at release time."
+github-strategy-027	MOVED	.claude/standards/github-strategy.md:54-55	"**Required check before any release PR:** run `git log origin/develop..origin/main --oneline`."
+github-strategy-028	MOVED	.claude/standards/github-strategy.md:56	"If it shows anything, sync `develop` first."
+github-strategy-029	MOVED	.claude/standards/github-strategy.md:62	"| New R source file | Yes |"
+github-strategy-030	MOVED	.claude/standards/github-strategy.md:63	"| New test file | Yes |"
+github-strategy-031	MOVED	.claude/standards/github-strategy.md:64	"| Any change to exported function | Yes |"
+github-strategy-032	MOVED	.claude/standards/github-strategy.md:65	"| README / docs update | No |"
+github-strategy-033	MOVED	.claude/standards/github-strategy.md:66	"| Comment or typo fix | No |"
+github-strategy-034	MOVED	.claude/standards/github-strategy.md:67	"| `.Rbuildignore` / `.gitignore` | No |"
+github-strategy-035	MOVED	.claude/standards/github-strategy.md:68	"| Version bump + NEWS.md (release prep) | Direct commit to `develop` |"
+github-strategy-036	MOVED	.claude/standards/github-strategy.md:74	"Format: `{type}/{short-description}`"
+github-strategy-037	MOVED	.claude/standards/github-strategy.md:78	"| `feature/` | `develop` | New functionality |"
+github-strategy-038	MOVED	.claude/standards/github-strategy.md:79	"| `fix/` | `develop` | Bug fix in existing implementation |"
+github-strategy-039	MOVED	.claude/standards/github-strategy.md:80	"| `hotfix/` | `main` | Urgent fix that can't wait for next release |"
+github-strategy-040	MOVED	.claude/standards/github-strategy.md:81	"| `docs/` | `develop` | Documentation-only changes |"
+github-strategy-041	MOVED	.claude/standards/github-strategy.md:82	"| `test/` | `develop` | Test-only additions or fixes |"
+github-strategy-042	MOVED	.claude/standards/github-strategy.md:83	"| `chore/` | `develop` | Maintenance (CI config, build tooling) |"
+github-strategy-043	MOVED	.claude/standards/github-strategy.md:84	"| `refactor/` | `develop` | Internal restructuring, no behavioral change |"
+github-strategy-044	MOVED	.claude/standards/github-strategy.md:89	"feature/calibration-core"
+github-strategy-045	MOVED	.claude/standards/github-strategy.md:90	"feature/calibration-rake"
+github-strategy-046	MOVED	.claude/standards/github-strategy.md:91	"fix/history-timestamp"
+github-strategy-047	MOVED	.claude/standards/github-strategy.md:92	"test/calibrate-edge-cases"
+github-strategy-048	MOVED	.claude/standards/github-strategy.md:93	"chore/ci-coverage-workflow"
+github-strategy-049	MOVED	.claude/standards/github-strategy.md:94	"docs/readme-examples"
+github-strategy-050	MOVED	.claude/standards/github-strategy.md:102	"{type}({scope}): {short description}"
+github-strategy-051	MOVED	.claude/standards/github-strategy.md:111	"| `feat` | New exported function, new argument, new bundled dataset |"
+github-strategy-052	MOVED	.claude/standards/github-strategy.md:112	"| `fix` | Bug fix (behavioral change to existing code) |"
+github-strategy-053	MOVED	.claude/standards/github-strategy.md:113	"| `docs` | Roxygen comments, README, vignettes, plans |"
+github-strategy-054	MOVED	.claude/standards/github-strategy.md:114	"| `test` | Adding or updating tests (no production code change) |"
+github-strategy-055	MOVED	.claude/standards/github-strategy.md:115	"| `chore` | CI config, DESCRIPTION, NAMESPACE, build tooling |"
+github-strategy-056	MOVED	.claude/standards/github-strategy.md:116	"| `refactor` | Internal restructuring with no behavioral change |"
+github-strategy-057	MOVED	.claude/standards/github-strategy.md:117	"| `perf` | Performance improvement |"
+github-strategy-058	PRESERVED	.claude/rules/core.md:54-56	"Valid scopes: `calibration`, `weights`, `utils`, `validators`, `replicate`, `propensity`, `diagnostics`, `data`, `docs`, `plans`, `pipeline`, `ci`, `description`."
+github-strategy-059	MOVED	.claude/standards/github-strategy.md:121	"`classes` and `constructors` are retired scopes."
+github-strategy-060	MOVED	.claude/standards/github-strategy.md:121-122	"surveywts defines no classes and no constructors — see `surveywts-conventions.md` §6."
+github-strategy-061	MOVED	.claude/standards/github-strategy.md:127	"feat(calibration): implement calibrate_rake() with iterative proportional fitting"
+github-strategy-062	MOVED	.claude/standards/github-strategy.md:128	"feat(propensity): add ipw() with calibration GEE for exact covariate balance"
+github-strategy-063	MOVED	.claude/standards/github-strategy.md:129	"fix(calibration): handle single-level target variable in poststratify()"
+github-strategy-064	MOVED	.claude/standards/github-strategy.md:130	"test(calibration): add edge case tests for zero-weight rows in calibrate_rake()"
+github-strategy-065	MOVED	.claude/standards/github-strategy.md:131	"docs(calibration): add targets format examples to calibrate() roxygen"
+github-strategy-066	MOVED	.claude/standards/github-strategy.md:132	"chore(ci): add test-coverage GitHub Actions workflow"
+github-strategy-067	MOVED	.claude/standards/github-strategy.md:133	"chore(description): bump version to 0.1.0 for Calibration release"
+github-strategy-068	MOVED	.claude/standards/github-strategy.md:138	"Write it as a conventional commit summarizing the whole PR:"
+github-strategy-069	MOVED	.claude/standards/github-strategy.md:140	"feat(calibration): implement calibrate_rake() with iterative proportional fitting (#12)"
+github-strategy-070	MOVED	.claude/standards/github-strategy.md:142	"GitHub auto-appends `(#PR_NUMBER)` if you set the PR title as a conventional commit."
+github-strategy-071	MOVED	.claude/standards/github-strategy.md:148	"See `.github/PULL_REQUEST_TEMPLATE.md` for the checklist every PR uses."
+github-strategy-072	DELETED		Approved deletion B2 (PR template body), plans/spec-rules-redesign.md §13.3; rule that uses it survives at .claude/standards/github-strategy.md:148 ("See `.github/PULL_REQUEST_TEMPLATE.md` for the checklist every PR uses.")
+github-strategy-073	DELETED		Approved deletion B2 (PR template body), plans/spec-rules-redesign.md §13.3
+github-strategy-074	DELETED		Approved deletion B2 (PR template body), plans/spec-rules-redesign.md §13.3
+github-strategy-075	DELETED		Approved deletion B2 (PR template body), plans/spec-rules-redesign.md §13.3
+github-strategy-076	DELETED		Approved deletion B2 (PR template body), plans/spec-rules-redesign.md §13.3
+github-strategy-077	DELETED		Approved deletion B2 (PR template body), plans/spec-rules-redesign.md §13.3
+github-strategy-078	MOVED	.claude/standards/github-strategy.md:150-151	"Changelog entry format (required before every PR) is defined in `.claude/skills/changelog-workflow.md`."
+github-strategy-079	MOVED	.claude/standards/github-strategy.md:159	"Feature → `develop` | **Squash and merge** | Consolidates WIP commits into a clean single commit"
+github-strategy-080	MOVED	.claude/standards/github-strategy.md:160	"`develop` → `main` (release) | **Merge commit** | Preserves git ancestry between branches; prevents divergence"
+github-strategy-081	DELETED		Approved deletion B3 (merge-settings checkboxes), plans/spec-rules-redesign.md §13.3; the surviving strategy statement is at .claude/standards/github-strategy.md:159-160
+github-strategy-082	DELETED		Approved deletion B3 (merge-settings checkboxes), plans/spec-rules-redesign.md §13.3
+github-strategy-083	DELETED		Approved deletion B3 (merge-settings checkboxes), plans/spec-rules-redesign.md §13.3
+github-strategy-084	DELETED		Approved deletion B3 (merge-settings checkboxes), plans/spec-rules-redesign.md §13.3
+github-strategy-085	DELETED		Approved deletion B3 (merge-settings checkboxes), plans/spec-rules-redesign.md §13.3
+github-strategy-086	MOVED	.claude/standards/github-strategy.md:162	"The `/merge-main` skill handles choosing the correct strategy automatically."
+github-strategy-087	MOVED	.claude/standards/github-strategy.md:170	"| Active development on `develop` | `X.Y.Z.9000` | `0.1.0.9000` |"
+github-strategy-088	MOVED	.claude/standards/github-strategy.md:171	"| Released on `main` | `X.Y.Z` | `0.1.0` |"
+github-strategy-089	MOVED	.claude/standards/github-strategy.md:177	"| `v0.1.0` | `0.1.0` | Calibration complete — `calibrate()`, `calibrate_rake()`, `poststratify()`, basic diagnostics |"
+github-strategy-090	MOVED	.claude/standards/github-strategy.md:178	"minor bump | minor bump | Replicate complete — replicate weight generation + bootstrap variance"
+github-strategy-091	MOVED	.claude/standards/github-strategy.md:179	"minor bump | minor bump | Utilities complete — `trim_weights()`, `rescale_weights()`"
+github-strategy-092	MOVED	.claude/standards/github-strategy.md:180	"minor bump | minor bump | Nonresponse complete — sample-based calibration, advanced nonresponse"
+github-strategy-093	MOVED	.claude/standards/github-strategy.md:181	"minor bump | minor bump | Propensity complete — propensity score weighting"
+github-strategy-094	MOVED	.claude/standards/github-strategy.md:182	"minor bump | minor bump | Diagnostics complete — balance assessment, visual diagnostics"
+github-strategy-095	MOVED	.claude/standards/github-strategy.md:183	"minor bump | minor bump | Polish complete — vignettes, CRAN submission"
+github-strategy-096	MOVED	.claude/standards/github-strategy.md:187	"Between tags, DESCRIPTION carries the `.9000` suffix:"
+github-strategy-097	MOVED	.claude/standards/github-strategy.md:189	"Version: 0.1.0.9000  # during Calibration development"
+github-strategy-098	MOVED	.claude/standards/github-strategy.md:196	"Use `/merge-main`."
+github-strategy-099	MOVED	.claude/standards/github-strategy.md:196-197	"It handles: NEWS.md update → version bump → `devtools::check()` → PR `develop` → `main` → tag → post-release `.9000` bump."
+github-strategy-100	MOVED	.claude/standards/github-strategy.md:207	"| `R-CMD-check.yaml` | Push to `main` or `develop`; PR to `main` or `develop` |"
+github-strategy-101	MOVED	.claude/standards/github-strategy.md:208	"| `test-coverage.yaml` | Push to `main` or `develop`; PR to `main` or `develop` |"
+github-strategy-102	MOVED	.claude/standards/github-strategy.md:209	"| `pkgdown.yaml` | Push to `main`; any PR; published release; manual dispatch |"
+github-strategy-103	MOVED	.claude/standards/github-strategy.md:211	"R-CMD-check does **not** run on a push to a feature branch."
+github-strategy-104	MOVED	.claude/standards/github-strategy.md:211-212	"It runs when the PR opens."
+github-strategy-105	MOVED	.claude/standards/github-strategy.md:212	"Run `devtools::check()` locally before pushing."
+github-strategy-106	MOVED	.claude/standards/github-strategy.md:216	"Four configurations, not the full os x version cross product."
+github-strategy-107	MOVED	.claude/standards/github-strategy.md:216-217	"Only Ubuntu runs R-devel. See `.github/workflows/R-CMD-check.yaml` for the matrix."
+github-strategy-108	DELETED		Approved deletion B1 (CI matrix YAML), plans/spec-rules-redesign.md §13.3; rule that uses it survives at .claude/standards/github-strategy.md:216-217
+github-strategy-109	DELETED		Approved deletion B1 (CI matrix YAML), plans/spec-rules-redesign.md §13.3
+github-strategy-110	DELETED		Approved deletion B1 (CI matrix YAML), plans/spec-rules-redesign.md §13.3
+github-strategy-111	DELETED		Approved deletion B1 (CI matrix YAML), plans/spec-rules-redesign.md §13.3
+github-strategy-112	MOVED	.claude/standards/github-strategy.md:219	"The check runs with `args: 'c(\"--as-cran\", \"--no-manual\")'`."
+github-strategy-113	MOVED	.claude/standards/github-strategy.md:223	"The workflow names each job `${{ matrix.config.os }} (${{ matrix.config.r }})`,"
+github-strategy-114	MOVED	.claude/standards/github-strategy.md:224-225	"so the status check to require is `R-CMD-check / ubuntu-latest (release)`, for both `main` and `develop`."
+github-strategy-115	MOVED	.claude/standards/github-strategy.md:225	"Windows and macOS checks are informational."
+github-strategy-116	DELETED		Approved deletion B4 (branch-protection checkboxes), plans/spec-rules-redesign.md §13.3; required-check name survives at .claude/standards/github-strategy.md:224-225
+github-strategy-117	DELETED		Approved deletion B4 (branch-protection checkboxes), plans/spec-rules-redesign.md §13.3
+github-strategy-118	DELETED		Approved deletion B4 (branch-protection checkboxes), plans/spec-rules-redesign.md §13.3
+github-strategy-119	DELETED		Approved deletion B4 (branch-protection checkboxes), plans/spec-rules-redesign.md §13.3
+github-strategy-120	DELETED		Approved deletion B4 (branch-protection checkboxes), plans/spec-rules-redesign.md §13.3
+github-strategy-121	DELETED		Approved deletion B4 (branch-protection checkboxes), plans/spec-rules-redesign.md §13.3

@@ -1,0 +1,114 @@
+id	verdict	location	evidence
+testing-surveywts-001	MOVED	.claude/standards/testing-surveywts.md:3	"Extends `testing-standards.md`. Read that document first; this file covers only what is specific to surveywts." — verbatim.
+testing-surveywts-002	MOVED	.claude/standards/testing-surveywts.md:12	"| Invariant checker | `test_invariants(obj)` — defined in `helper-test-data.R` |" — verbatim.
+testing-surveywts-003	MOVED	.claude/standards/testing-surveywts.md:13	"| Synthetic data generator | `make_surveywts_data(n, seed, include_nonrespondents)` |" — verbatim.
+testing-surveywts-004	MOVED	.claude/standards/testing-surveywts.md:14	"| Layer 1 errors (S7 validators) | `class=` only — no snapshot; classes are `surveycore_error_*` |" — verbatim.
+testing-surveywts-005	MOVED	.claude/standards/testing-surveywts.md:15	"| Layer 3 errors (constructors/functions) | Dual: `expect_error(class=)` + `expect_snapshot(error=TRUE)` |" — verbatim.
+testing-surveywts-006	MOVED	.claude/standards/testing-surveywts.md:16	"| Weight computation tolerance | `1e-10` |" — verbatim.
+testing-surveywts-007	MOVED	.claude/standards/testing-surveywts.md:17	"| Numerical correctness vs reference package | `1e-8` |" — verbatim.
+testing-surveywts-008	MOVED	.claude/standards/testing-surveywts.md:25	"| `R/calibrate.R` | `tests/testthat/test-02-calibrate.R` |" — verbatim.
+testing-surveywts-009	MOVED	.claude/standards/testing-surveywts.md:26	"| `R/calibrate_rake.R` | `tests/testthat/test-03-rake.R` |" — verbatim.
+testing-surveywts-010	MOVED	.claude/standards/testing-surveywts.md:27	"| `R/poststratify.R` | `tests/testthat/test-04-poststratify.R` |" — verbatim.
+testing-surveywts-011	MOVED	.claude/standards/testing-surveywts.md:28	"| `R/adjust_nonresponse.R`, `R/redistribute_weights.R`, `R/nonresponse-utils.R` | `tests/testthat/test-05-nonresponse.R` |" — verbatim.
+testing-surveywts-012	MOVED	.claude/standards/testing-surveywts.md:29	"| `R/effective_sample_size.R`, `R/weight_variability.R`, `R/summarize_weights.R`, `R/diagnostics-utils.R` | `tests/testthat/test-06-diagnostics.R` |" — verbatim.
+testing-surveywts-013	MOVED	.claude/standards/testing-surveywts.md:30	"| `R/calibrate_linear.R` | `tests/testthat/test-calibrate-linear.R` |" — verbatim.
+testing-surveywts-014	MOVED	.claude/standards/testing-surveywts.md:31	"| `R/calibrate_logit.R` | `tests/testthat/test-calibrate-logit.R` |" — verbatim.
+testing-surveywts-015	MOVED	.claude/standards/testing-surveywts.md:32	"| `R/calibrate-utils.R` | `tests/testthat/test-calibrate-utils-nr.R` |" — verbatim.
+testing-surveywts-016	MOVED	.claude/standards/testing-surveywts.md:33	"| `R/calibrate_to_survey.R`, `R/calibrate_to_estimate.R` | `tests/testthat/test-sample-calibration.R` |" — verbatim.
+testing-surveywts-017	MOVED	.claude/standards/testing-surveywts.md:34	"| `R/trim_weights.R`, `R/rescale_weights.R`, `R/weight-utils.R` | `tests/testthat/test-weight-utils.R` |" — verbatim.
+testing-surveywts-018	MOVED	.claude/standards/testing-surveywts.md:35	"| `R/create_bootstrap_weights.R`, and other `create_*_weights.R`, `R/replicate-utils.R` | `tests/testthat/test-replicate-weights.R` |" — verbatim.
+testing-surveywts-019	MOVED	.claude/standards/testing-surveywts.md:36	"| `R/create_replicate_weights.R`, `R/as_taylor_design.R` | `tests/testthat/test-replicate-dispatch.R` |" — verbatim.
+testing-surveywts-020	MOVED	.claude/standards/testing-surveywts.md:37	"| `R/methods-print.R` | `tests/testthat/test-replicate-print.R` |" — verbatim.
+testing-surveywts-021	MOVED	.claude/standards/testing-surveywts.md:38	"| `R/ipw.R` | `tests/testthat/test-nonprob-ipw.R` |" — verbatim.
+testing-surveywts-022	MOVED	.claude/standards/testing-surveywts.md:39	"| `R/jackknife-dagjk-utils.R` | `tests/testthat/test-nps-jackknife.R` |" — verbatim.
+testing-surveywts-023	MOVED	.claude/standards/testing-surveywts.md:40	"| `R/replicate-utils.R` — quasi-randomization bootstrap | `tests/testthat/test-08-nps-bootstrap.R` |" — verbatim.
+testing-surveywts-024	MOVED	.claude/standards/testing-surveywts.md:41	"| `R/data.R` and the bundled datasets | `tests/testthat/test-datasets.R` |" — verbatim.
+testing-surveywts-025	MOVED	.claude/standards/testing-surveywts.md:42	"| `R/surveywts-package.R` | `tests/testthat/test-package.R` |" — verbatim.
+testing-surveywts-026	MOVED	.claude/standards/testing-surveywts.md:43	"| `R/utils.R` | (tested indirectly via all test files) |" — verbatim.
+testing-surveywts-027	MOVED	.claude/standards/testing-surveywts.md:47	"## `test_invariants()` — required in every constructor test" — verbatim heading, matched as the tracked normative statement itself.
+testing-surveywts-028	MOVED	.claude/standards/testing-surveywts.md:49-51	"Every `test_that()` block that creates a `survey_nonprob`, `survey_taylor`, or `survey_replicate` object must call `test_invariants(obj)` as its **first** assertion." — verbatim.
+testing-surveywts-029	MOVED	.claude/standards/testing-surveywts.md:53-54	was: "Definition (from `tests/testthat/helper-test-data.R`):" / now: "`test_invariants()` is defined in `tests/testthat/helper-test-data.R`. That file is the real source of truth for the code; read it there." Same mapping fact, reworded from a code-block preamble into a full sentence — meaning preserved.
+testing-surveywts-030	DELETED		B5 (test_invariants() function body) covers the `test_invariants <- function(obj) {` signature line. The rule that uses the value survives: `test_invariants(obj)` still appears at .claude/standards/testing-surveywts.md:12 and :50.
+testing-surveywts-031	DELETED		B5 covers this compound if-condition. Only the `exists("survey_nonprob")` fragment survives, folded into .claude/standards/testing-surveywts.md:62; the `S7::S7_inherits(obj, survey_nonprob)` half of the condition is not restated anywhere. Torn between DELETED and MOVED — chose DELETED because the compound condition itself is gone and only a fragment of it survives.
+testing-surveywts-032	DELETED		B5 covers the survey_nonprob-branch `is.character(obj@variables$weights)` check; not restated in surviving prose.
+testing-surveywts-033	DELETED		B5 covers the survey_nonprob-branch `obj@variables$weights %in% names(obj@data)` check; not restated in surviving prose.
+testing-surveywts-034	DELETED		B5 covers the survey_nonprob-branch `is.numeric(obj@data[[obj@variables$weights]])` check; not restated in surviving prose.
+testing-surveywts-035	MOVED	.claude/standards/testing-surveywts.md:57-58	"The `survey_nonprob` and `survey_taylor` branches assert `all(w >= 0) && any(w > 0)`, which matches what the surveycore validator enforces." The survey_nonprob branch's literal check survives in this summary sentence even though its per-branch code line was removed under B5.
+testing-surveywts-036	DELETED		B5 covers the `if (S7::S7_inherits(obj, surveycore::survey_taylor))` line; not restated verbatim anywhere.
+testing-surveywts-037	DELETED		B5 covers the survey_taylor-branch `is.character(obj@variables$weights)` check; not restated in surviving prose.
+testing-surveywts-038	DELETED		B5 covers the survey_taylor-branch `obj@variables$weights %in% names(obj@data)` check; not restated in surviving prose.
+testing-surveywts-039	DELETED		B5 covers the survey_taylor-branch `is.numeric(obj@data[[obj@variables$weights]])` check; not restated in surviving prose.
+testing-surveywts-040	MOVED	.claude/standards/testing-surveywts.md:57-58	Same surviving sentence as row 035 — "The `survey_nonprob` and `survey_taylor` branches assert `all(w >= 0) && any(w > 0)`" covers the survey_taylor branch's check too.
+testing-surveywts-041	DELETED		B5 covers the `if (S7::S7_inherits(obj, surveycore::survey_replicate))` line; not restated verbatim.
+testing-surveywts-042	DELETED		B5 covers the inner `S7::S7_inherits(obj, surveycore::survey_replicate)` re-check; not restated verbatim.
+testing-surveywts-043	DELETED		B5 covers `wt_col <- obj@variables$weights` and the `is.character(wt_col) && length(wt_col) == 1` check; not restated verbatim.
+testing-surveywts-044	DELETED		B5 covers `wt_col %in% names(obj@data)`; not restated verbatim.
+testing-surveywts-045	DELETED		B5 covers `is.numeric(obj@data[[wt_col]])`; not restated verbatim.
+testing-surveywts-046	MOVED	.claude/standards/testing-surveywts.md:59-60	"Only the `survey_replicate` branch asserts strict positivity, via `all(obj@data[[wt_col]] > 0)`." The exact literal survives, now quoted directly in prose instead of inside the deleted code block.
+testing-surveywts-047	MOVED	.claude/standards/testing-surveywts.md:56-57	"Three branches, and an object can match more than one — every branch that matches runs." — verbatim.
+testing-surveywts-048	MOVED	.claude/standards/testing-surveywts.md:57-59	"The `survey_nonprob` and `survey_taylor` branches assert `all(w >= 0) && any(w > 0)`, which matches what the surveycore validator enforces." — verbatim.
+testing-surveywts-049	MOVED	.claude/standards/testing-surveywts.md:59-60	was: "Only the `survey_replicate` branch asserts strict positivity." / now: "Only the `survey_replicate` branch asserts strict positivity, via `all(obj@data[[wt_col]] > 0)`." Same claim, elaborated with the literal — meaning preserved.
+testing-surveywts-050	MOVED	.claude/standards/testing-surveywts.md:62-63	was: "The `survey_nonprob` branch uses a bare name behind an `exists()` guard rather than `surveycore::survey_nonprob`." / now: "The `survey_nonprob` branch guards with `exists("survey_nonprob")` rather than testing `surveycore::survey_nonprob` directly." Same meaning, reworded and made more specific.
+testing-surveywts-051	MOVED	.claude/standards/testing-surveywts.md:63-65	"surveywts does not define or export `survey_nonprob`, so that guard is what keeps the branch from erroring when the bare name does not resolve." — verbatim.
+testing-surveywts-052	MOVED	.claude/standards/testing-surveywts.md:71-74	"**Layer 1 — S7 class validators** (structural invariants enforced by S7). These validators live in surveycore, so their classes are `surveycore_error_*` and surveywts does not own the message text." — verbatim.
+testing-surveywts-053	MOVED	.claude/standards/testing-surveywts.md:73-74	"Test with `class=` only — no snapshot." — verbatim.
+testing-surveywts-054	MOVED	.claude/standards/testing-surveywts.md:78	"df <- make_surveywts_data(seed = 1)" — verbatim, inside the Layer 1 example code block.
+testing-surveywts-055	MOVED	.claude/standards/testing-surveywts.md:79	"df$base_weight[1] <- -1" — verbatim.
+testing-surveywts-056	MOVED	.claude/standards/testing-surveywts.md:81-84	"expect_error(\n    surveycore::survey_nonprob(df, variables = list(weights = \"base_weight\")),\n    class = \"surveycore_error_weights_negative\"\n  )" — verbatim.
+testing-surveywts-057	MOVED	.claude/standards/testing-surveywts.md:88-89	"**Layer 3 — Constructor/function input validation** (user-facing errors from `cli::cli_abort()`). Test with the dual pattern." — verbatim.
+testing-surveywts-058	MOVED	.claude/standards/testing-surveywts.md:93-94	"df <- make_surveywts_data(seed = 1)" and "df$base_weight[1] <- -1" — verbatim, inside the Layer 3 example.
+testing-surveywts-059	MOVED	.claude/standards/testing-surveywts.md:95	"design  <- surveycore::as_survey(df, weights = base_weight)" — verbatim.
+testing-surveywts-060	MOVED	.claude/standards/testing-surveywts.md:96	"targets <- list(age_group = c(\"18-34\" = 0.35, \"35-54\" = 0.40, \"55+\" = 0.25))" — verbatim.
+testing-surveywts-061	MOVED	.claude/standards/testing-surveywts.md:98-101	"expect_error(\n    calibrate(design, targets = targets, type = \"prop\"),\n    class = \"surveywts_error_weights_nonpositive\"\n  )" — verbatim.
+testing-surveywts-062	MOVED	.claude/standards/testing-surveywts.md:102-105	"expect_snapshot(\n    error = TRUE,\n    calibrate(design, targets = targets, type = \"prop\")\n  )" — verbatim.
+testing-surveywts-063	MOVED	.claude/standards/testing-surveywts.md:109	"A plain `data.frame` cannot reach either layer." — verbatim.
+testing-surveywts-064	MOVED	.claude/standards/testing-surveywts.md:109-111	"`.check_input_class()` rejects it first with `surveywts_error_not_survey_base`, so every function test must build a survey object." — verbatim.
+testing-surveywts-065	MOVED	.claude/standards/testing-surveywts.md:117	"`make_surveywts_data()` is defined in `tests/testthat/helper-test-data.R`." — verbatim.
+testing-surveywts-066	MOVED	.claude/standards/testing-surveywts.md:122	"make_surveywts_data(n = 500, seed = 42, include_nonrespondents = FALSE)" — verbatim.
+testing-surveywts-067	MOVED	.claude/standards/testing-surveywts.md:125	"**Returns:** A plain `data.frame` with columns:" — verbatim.
+testing-surveywts-068	MOVED	.claude/standards/testing-surveywts.md:129	"| `id` | `integer` | `1L..nL` |" — verbatim.
+testing-surveywts-069	MOVED	.claude/standards/testing-surveywts.md:130	"| `age_group` | `character` | `\"18-34\"`, `\"35-54\"`, `\"55+\"` (unequal probabilities) |" — verbatim.
+testing-surveywts-070	MOVED	.claude/standards/testing-surveywts.md:131	"| `sex` | `character` | `\"M\"`, `\"F\"` |" — verbatim.
+testing-surveywts-071	MOVED	.claude/standards/testing-surveywts.md:132	"| `education` | `character` | `\"<HS\"`, `\"HS\"`, `\"College\"`, `\"Graduate\"` |" — verbatim.
+testing-surveywts-072	MOVED	.claude/standards/testing-surveywts.md:133	"| `region` | `character` | `\"Northeast\"`, `\"South\"`, `\"Midwest\"`, `\"West\"` |" — verbatim.
+testing-surveywts-073	MOVED	.claude/standards/testing-surveywts.md:134	"| `base_weight` | `numeric` | Positive, log-normally distributed |" — verbatim.
+testing-surveywts-074	MOVED	.claude/standards/testing-surveywts.md:135	"| `responded` | `integer` | `0`/`1`; ≥ 20% nonrespondents; only if `include_nonrespondents = TRUE` |" — verbatim.
+testing-surveywts-075	MOVED	.claude/standards/testing-surveywts.md:138	"Uses `set.seed(seed)` at the top" — verbatim.
+testing-surveywts-076	MOVED	.claude/standards/testing-surveywts.md:139	"Groups are NOT equal-sized — use `prob =` with unequal probabilities" — verbatim.
+testing-surveywts-077	MOVED	.claude/standards/testing-surveywts.md:140	"`base_weight` is log-normally distributed: `exp(rnorm(n, 0, 0.4))`" — verbatim.
+testing-surveywts-078	MOVED	.claude/standards/testing-surveywts.md:141	"When `include_nonrespondents = TRUE`, realistic split with ≥ 20% nonrespondents" — verbatim.
+testing-surveywts-079	MOVED	.claude/standards/testing-surveywts.md:142-143	"Edge case inputs (0-row, NA columns, negative weights) are constructed inline in each test — never via generator parameters" — verbatim.
+testing-surveywts-080	MOVED	.claude/standards/testing-surveywts.md:147-148	"`make_surveywts_data()` returns a plain `data.frame`, which no weighting function accepts." — verbatim.
+testing-surveywts-081	MOVED	.claude/standards/testing-surveywts.md:148-149	"`helper-test-data.R` therefore also defines the survey objects the tests actually pass in." — verbatim.
+testing-surveywts-082	MOVED	.claude/standards/testing-surveywts.md:149-150	"Use these rather than building a design inline:" — verbatim.
+testing-surveywts-083	MOVED	.claude/standards/testing-surveywts.md:154	"| `make_taylor_design()` | `survey_taylor` — clustered and stratified, with PSU IDs |" — verbatim.
+testing-surveywts-084	MOVED	.claude/standards/testing-surveywts.md:155	"| `make_paired_design()` | `survey_taylor` — exactly 2 PSUs per stratum, for BRR |" — verbatim.
+testing-surveywts-085	MOVED	.claude/standards/testing-surveywts.md:156	"| `make_replicate_design()` | `survey_replicate` — bootstrap replicates from a `survey_taylor` |" — verbatim.
+testing-surveywts-086	MOVED	.claude/standards/testing-surveywts.md:157	"| `make_nps_reference()`, `make_nps_ref()` | `survey_taylor` — probability-sample reference for `ipw()` |" — verbatim.
+testing-surveywts-087	MOVED	.claude/standards/testing-surveywts.md:158	"| `make_nps_level_a()`, `make_nps_level_b()` | `survey_nonprob` — post-`ipw()`, post-`calibrate_rake()` |" — verbatim.
+testing-surveywts-088	MOVED	.claude/standards/testing-surveywts.md:159	"| `make_nonprob_replicate_design()` | `survey_nonprob` with replicate weights |" — verbatim.
+testing-surveywts-089	MOVED	.claude/standards/testing-surveywts.md:160	"| `make_nonprob_no_repweights()` | `survey_nonprob` without replicate weights, for error paths |" — verbatim.
+testing-surveywts-090	MOVED	.claude/standards/testing-surveywts.md:161	"| `make_dagjk_datasets()` | Named list of DAGJK inputs A–F plus `ref` |" — verbatim.
+testing-surveywts-091	MOVED	.claude/standards/testing-surveywts.md:162	"| `make_gss_taylor()`, `make_npors_taylor()`, `make_ns_nonprob()` | Survey objects over the bundled datasets |" — verbatim.
+testing-surveywts-092	MOVED	.claude/standards/testing-surveywts.md:163	"| `.pin_ts()` | The same object with every history timestamp pinned, for stable snapshots |" — verbatim.
+testing-surveywts-093	MOVED	.claude/standards/testing-surveywts.md:165-167	"`.pin_ts()` is required before any snapshot that renders weighting history — `.make_history_entry()` stamps `Sys.time()`, which would otherwise change on every run." — verbatim.
+testing-surveywts-094	MOVED	.claude/standards/testing-surveywts.md:175	"| Weight computations (ESS, CV, conservation) | `1e-10` | `expect_equal(result, expected, tolerance = 1e-10)` |" — verbatim.
+testing-surveywts-095	MOVED	.claude/standards/testing-surveywts.md:176	"| Numerical correctness vs `survey` package | `1e-8` | `expect_equal(sw_result, survey_result, tolerance = 1e-8)` |" — verbatim.
+testing-surveywts-096	MOVED	.claude/standards/testing-surveywts.md:178-179	"Reference package comparisons use `skip_if_not_installed(\"survey\")` **inside** the relevant `test_that()` block" — verbatim.
+testing-surveywts-097	MOVED	.claude/standards/testing-surveywts.md:179	"(never at file level)" — verbatim, same sentence as row 096.
+testing-surveywts-098	MOVED	.claude/standards/testing-surveywts.md:185	"### Print method test file (`test-replicate-print.R`)" — verbatim heading, matched as the tracked normative statement itself.
+testing-surveywts-099	MOVED	.claude/standards/testing-surveywts.md:187	"# 1. survey_nonprob — print snapshot" — verbatim.
+testing-surveywts-100	MOVED	.claude/standards/testing-surveywts.md:188	"# 2. survey_replicate — print snapshot" — verbatim.
+testing-surveywts-101	MOVED	.claude/standards/testing-surveywts.md:189	"# 3. Weighting history rendering — pin timestamps with .pin_ts() first" — verbatim.
+testing-surveywts-102	MOVED	.claude/standards/testing-surveywts.md:192	"### Calibration / nonresponse function test files (`test-02-*.R` through `test-05-*.R`)" — verbatim heading, matched as the tracked normative statement itself.
+testing-surveywts-103	MOVED	.claude/standards/testing-surveywts.md:194-195	"# 1. Happy paths (one block per input class: survey_taylor,\n#    survey_nonprob, survey_replicate)" — same content, line-wrapped within the code fence; not a loss.
+testing-surveywts-104	MOVED	.claude/standards/testing-surveywts.md:196	"# 2. Numerical correctness (skip_if_not_installed inside block)" — verbatim.
+testing-surveywts-105	MOVED	.claude/standards/testing-surveywts.md:197	"# 3. Standard error paths SE-1 through SE-7" — verbatim.
+testing-surveywts-106	MOVED	.claude/standards/testing-surveywts.md:198	"# 4. Function-specific error paths (one block per error class)" — verbatim.
+testing-surveywts-107	MOVED	.claude/standards/testing-surveywts.md:199	"# 5. Edge cases" — verbatim.
+testing-surveywts-108	MOVED	.claude/standards/testing-surveywts.md:200	"# 6. History / metadata correctness" — verbatim.
+testing-surveywts-109	MOVED	.claude/standards/testing-surveywts.md:203	"### Diagnostics test file (`test-06-diagnostics.R`)" — verbatim heading, matched as the tracked normative statement itself.
+testing-surveywts-110	MOVED	.claude/standards/testing-surveywts.md:205	"# 1. Correctness vs hand calculation" — verbatim.
+testing-surveywts-111	MOVED	.claude/standards/testing-surveywts.md:206	"# 2. Weight auto-detection (survey_taylor, survey_nonprob, survey_replicate)" — verbatim.
+testing-surveywts-112	MOVED	.claude/standards/testing-surveywts.md:207	"# 3. summarize_weights() — by = NULL and by = grouping" — verbatim.
+testing-surveywts-113	MOVED	.claude/standards/testing-surveywts.md:208	"# 4. Error paths" — verbatim.

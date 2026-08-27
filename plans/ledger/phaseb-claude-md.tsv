@@ -1,0 +1,45 @@
+id	verdict	location	evidence
+claude-md-001	PRESERVED	CLAUDE.md:13	"Calibration | `v0.1.0` | ✅ Complete | `calibrate()`, `calibrate_rake()`, `calibrate_linear()`, `calibrate_logit()`, `poststratify()`, basic diagnostics" — row unchanged verbatim in the Release Status table.
+claude-md-002	PRESERVED	CLAUDE.md:14	"Replicate | minor bump | ✅ Complete | All `create_*_weights()` functions; `as_taylor_design()`" — unchanged verbatim.
+claude-md-003	PRESERVED	CLAUDE.md:15	"Utilities | minor bump | ✅ Complete | `trim_weights()`, `rescale_weights()`" — unchanged verbatim.
+claude-md-004	PRESERVED	CLAUDE.md:16	"Nonresponse | minor bump | ✅ Complete | `calibrate_to_survey()`, `calibrate_to_estimate()`, `adjust_nonresponse()`, `redistribute_weights()`" — unchanged verbatim.
+claude-md-005	PRESERVED	CLAUDE.md:17	"Propensity | minor bump | ✅ Complete | Non-probability sample IPW; unlocks propensity nonresponse" — unchanged verbatim.
+claude-md-006	PRESERVED	CLAUDE.md:18	"Diagnostics | minor bump | 🔜 Next | Balance assessment, `check_balance()`, `diagnose_propensity()`, `compare_weighted_estimates()`" — unchanged verbatim.
+claude-md-007	PRESERVED	CLAUDE.md:19	"Polish | minor bump | ⬜ Pending | Vignettes, `--as-cran` clean, pkgdown" — unchanged verbatim.
+claude-md-008	PRESERVED	CLAUDE.md:21	"Full roadmap at `plans/roadmap.md`." — unchanged verbatim.
+claude-md-009	PRESERVED	.claude/rules/core.md:3-5	"Full conventions — including naming beyond the two classes below — are in `.claude/standards/surveywts-conventions.md` §1." Pointer target and section number preserved; path updated from .claude/rules/ to .claude/standards/, which is the approved directory rename (spec §4.2), not a meaning change. "The three below" narrowed to a description of the two class rules immediately following, but the pointer's substance (fuller conventions live in surveywts-conventions.md §1) is intact.
+claude-md-010	PRESERVED	.claude/rules/core.md:37	"Error classes: `surveywts_error_{snake_case_condition}`" — unchanged verbatim.
+claude-md-011	PRESERVED	.claude/rules/core.md:38	"Warning classes: `surveywts_warning_{snake_case_condition}`" — unchanged verbatim.
+claude-md-012	PRESERVED	.claude/rules/core.md:44-45	"Internal helpers carry a `.` prefix (e.g., `.validate_weights()`) and are never exported." — same rule, same example, restated as prose instead of a bullet.
+claude-md-013	PRESERVED	.claude/rules/core.md:7,9	"## 1. Design variables are sacred" / "Never remove a weight column." — heading + sentence preserve the exact prohibition, not narrowed.
+claude-md-014	PRESERVED	.claude/rules/core.md:9-11	"Every weighting function either overwrites the existing weight column in place (`wt_name = NULL`, the default) or writes a new column and repoints `@variables$weights` at it." — verbatim.
+claude-md-015	PRESERVED	.claude/rules/core.md:10	"(`wt_name = NULL`, the default)" — verbatim, embedded in the same sentence as claude-md-014; also restated standalone at core.md:30.
+claude-md-016	PRESERVED	.claude/rules/core.md:11-12	"It never drops the old column" — verbatim.
+claude-md-017	PRESERVED	.claude/rules/core.md:12-13	"and it refuses to write over a non-weight column: that throws `surveywts_error_wt_name_conflict`." — verbatim.
+claude-md-018	PRESERVED	.claude/rules/core.md:15-16	"In-place overwrite of the main weight column is silent — no warning." — verbatim.
+claude-md-019	PRESERVED	.claude/rules/core.md:16-18	"Only replicate weight columns warn when overwritten, via `surveywts_warning_repweights_overwritten` and `surveywts_warning_jackknife_repweights_overwritten`." — verbatim, both class names intact.
+claude-md-020	PRESERVED	.claude/rules/core.md:25	"Every adjustment appends an entry to `@metadata@weighting_history`, built by" — verbatim opening clause.
+claude-md-021	PRESERVED	.claude/rules/core.md:25-26	"built by `.make_history_entry()`" — verbatim.
+claude-md-022	PRESERVED	.claude/rules/core.md:26	"and written by `.update_survey_weights()`." — verbatim (reads "`.make_history_entry()` and written by `.update_survey_weights()`.").
+claude-md-023	PRESERVED	.claude/rules/core.md:20	"Column removal and rename hooks are surveycore and surveytidy concerns." — verbatim.
+claude-md-024	PRESERVED	.claude/rules/core.md:21	"surveywts has no code path that removes or renames a column." — verbatim.
+claude-md-025	PRESERVED	.claude/rules/core.md:49-50	"Every non-trivial change lives on a feature branch — never commit" — verbatim opening clause.
+claude-md-026	PRESERVED	.claude/rules/core.md:49-50	"never commit implementation code to `main` or `develop`." — verbatim.
+claude-md-027	PRESERVED	.claude/rules/core.md:51-52	"Branch naming: `feature/`, `fix/`, `hotfix/`, `test/`, `docs/`, `chore/`, `refactor/`." — verbatim, same order.
+claude-md-028	PRESERVED	.claude/rules/core.md:53	"All commits use Conventional Commits format: `feat(scope): description`." — verbatim.
+claude-md-029	PRESERVED	.claude/rules/core.md:54-56	"Valid scopes: `calibration`, `weights`, `utils`, `validators`, `replicate`, `propensity`, `diagnostics`, `data`, `docs`, `plans`, `pipeline`, `ci`, `description`." — full list verbatim, same order. The trailing "— see .claude/rules/github-strategy.md" no longer sits on this line, but .claude/standards/github-strategy.md:105 now cross-references back ("`core.md` §6 has the valid scope list"), so the two-way link survives; only the path prefix changed (rules/ -> standards/), the approved rename.
+claude-md-030	PRESERVED	.claude/rules/core.md:60-61	"Run `devtools::document()` before committing any file with roxygen2 changes." — verbatim.
+claude-md-031	PRESERVED	.claude/rules/core.md:62	"Run `devtools::check()` before opening a PR." — verbatim.
+claude-md-032	MOVED	.claude/standards/function-documentation.md:205	"**Examples must load Imports packages explicitly.**" — verbatim, now in the standards tier (Tier: @examples section) rather than CLAUDE.md's old "R CMD Check Gotchas".
+claude-md-033	MOVED	.claude/standards/function-documentation.md:205-206	"`R CMD check` runs examples in a fresh session with only `library(surveywts)` loaded." — same content; "R CMD check" now in code markup, no meaning change.
+claude-md-034	MOVED	.claude/standards/function-documentation.md:206-208	"If an example calls a bare function from an Imports package, add `library(pkg)` at the top of the block." — verbatim.
+claude-md-035	PRESERVED	CLAUDE.md:27-28	"`plans/error-messages.md` — canonical error/warning class names and CLI message templates" — verbatim, now under "Where Things Live".
+claude-md-036	PRESERVED	CLAUDE.md:29-30	"`.claude/WORKFLOW.md` — how the skills fit together (planning arc → implementation loop)" — verbatim.
+claude-md-037	PRESERVED	.claude/rules/core.md:79-80	"`code-style.md` covers S7 patterns, cli errors, argument order, the air formatter." — same four topics; "arg order" spelled out as "argument order", no meaning change; path is now bare filename backed by the table at core.md:70.
+claude-md-038	PRESERVED	.claude/rules/core.md:80-81	"`r-package-conventions.md` covers imports, NAMESPACE, roxygen2, export policy." — same four topics verbatim.
+claude-md-039	PRESERVED	.claude/rules/core.md:81-82	"`surveywts-conventions.md` covers package-specific naming, families, visibility, class ownership." — verbatim.
+claude-md-040	PRESERVED	.claude/rules/core.md:82-83	"`function-documentation.md` covers roxygen2 tiers, required sections, the `@examples` policy." — verbatim (adds "the").
+claude-md-041	PRESERVED	.claude/rules/core.md:83-84	"`testing-standards.md` covers test structure, coverage targets, assertion patterns." — verbatim.
+claude-md-042	PRESERVED	.claude/rules/core.md:85-86	"`testing-surveywts.md` covers package-specific test invariants and data generators." — verbatim.
+claude-md-043	PRESERVED	.claude/rules/core.md:86-87	"`github-strategy.md` covers branching model, commit format, versioning." — verbatim.
+claude-md-044	PRESERVED	.claude/rules/core.md:87-88	"`engineering-preferences.md` covers DRY, edge cases, over/under-engineering." — verbatim.

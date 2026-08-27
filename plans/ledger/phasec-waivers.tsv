@@ -1,0 +1,7 @@
+# Phase C waivers. ONLY an ALTERED verdict can be waived, and only for an
+# alteration that was itself an instructed, documented edit of the restructure.
+# A LOST row can never be waived - a real loss is fixed, not excused.
+# Columns: id <TAB> reason
+id	reason
+testing-standards-003	The path in "each package's .claude/rules/ directory" was updated to .claude/standards/ because the file itself moved there. Instructed in step 6a (exception b); pointing readers at the old directory would be the actual defect.
+engineering-preferences-003	Same instructed edit: "copy this file to their own .claude/rules/" updated to .claude/standards/ to match the real layout after the move.

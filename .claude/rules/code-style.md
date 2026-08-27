@@ -15,12 +15,12 @@
 | Auto-formatter | `air` (Posit's R formatter) |
 | Pipe operator | Native `\|>` only |
 | Style guide | tidyverse style (via air) |
-| Property access | Direct `@` everywhere on surveycore S7 objects — no accessor functions defined in surveywts |
+| Property access | Direct `@` everywhere on surveycore S7 objects — surveywts defines no accessor generics; the only wrappers are the internal `.get_*()` helpers in `utils.R` |
 | Argument order | `x`/`data` first → required NSE → required scalar → optional NSE → optional scalar → `...` |
 | Internal helper placement | Inline if used in 1 file; shared utils file if used in 2+ files |
-| Dispatch rule | `S7::method()` for extending existing generics; plain function + `S7::S7_inherits()` for surveywts-owned generics |
+| Dispatch rule | `S7::method()` for extending existing generics; plain function + `S7::S7_inherits()` for everything else — surveywts defines no generics and no classes |
 | Type check (S7 objects) | `S7::S7_inherits(x, surveycore::survey_taylor)` — fully qualified, never a string |
-| Type check (weighted_df) | `inherits(x, "weighted_df")` — bare `inherits()` for the S3 class |
+| Accepted input classes | `survey_base` objects only — `.check_input_class()` rejects everything else |
 | Print method file | `methods-print.R`; registered via `S7::methods_register()` in `.onLoad()` |
 | Weighting function returns | Visible (updated object, same class as input) |
 | Diagnostic function returns | Visible (named scalar or tibble) |
@@ -42,20 +42,20 @@
 
 ```r
 # Correct
-survey_taylor <- S7::new_class(
-  "survey_taylor",
-  parent = survey_base,
-  validator = function(self) {
-    if (is.null(self@variables$weights)) {
-      cli::cli_abort("...")
-    }
+.check_input_class <- function(data) {
+  if (!S7::S7_inherits(data, surveycore::survey_base)) {
+    cli::cli_abort(
+      c("x" = "{.arg data} must be a survey object."),
+      class = "surveywts_error_not_survey_base"
+    )
   }
-)
+  invisible(TRUE)
+}
 
 # Wrong
-survey_taylor <- S7::new_class(
-    "survey_taylor",           # 4-space indent
-    parent = survey_base,
+.check_input_class <- function(data) {
+    if (!S7::S7_inherits(data, surveycore::survey_base)) {   # 4-space indent
+        cli::cli_abort(
 ```
 
 ### Line length
@@ -175,10 +175,10 @@ Always use **`S7::S7_inherits(x, ClassName)`** with the class object — never a
 
 ```r
 # Correct — fully qualified when the class comes from surveycore
-if (!S7::S7_inherits(data, surveycore::survey_nonprob)) {
+if (!S7::S7_inherits(data, surveycore::survey_base)) {
   cli::cli_abort(
-    c("x" = "{.arg data} must be a {.cls survey_nonprob}."),
-    class = "surveywts_error_not_nonprob"
+    c("x" = "{.arg data} must be a {.cls survey_base} object."),
+    class = "surveywts_error_not_survey_base"
   )
 }
 
@@ -192,79 +192,68 @@ if (!S7::S7_inherits(data, surveycore::survey_taylor)) {
 if (!inherits(data, "survey_taylor")) {
   cli::cli_abort(...)
 }
+```
 
-# weighted_df uses base inherits() — it is an S3 class, not S7
-if (inherits(data, "weighted_df")) {
-  # weighted_df path
+Base `inherits()` is still correct for classes that are genuinely S3 — for
+example `inherits(formula, "formula")` in `.validate_formula()`. Use it only
+for S3 classes, never for a surveycore class.
+
+### Survey object input handling
+
+Every weighting function in surveywts requires a `survey_base` object —
+`survey_nonprob`, `survey_taylor`, or `survey_replicate`. Plain data frames and
+tibbles are not accepted. The single gate is `.check_input_class()` from
+`utils.R`, which throws `surveywts_error_not_survey_base` on anything else:
+
+```r
+# First statement in every weighting function, before any other validation
+.check_input_class(data)
+```
+
+After that gate passes, branch only where the classes genuinely behave
+differently — for example when replicate weight columns need the same
+treatment as the full-sample weight:
+
+```r
+if (S7::S7_inherits(data, surveycore::survey_replicate)) {
+  # Apply the method to @variables$repweights as well as the main weight
 } else if (S7::S7_inherits(data, surveycore::survey_nonprob)) {
-  # survey_nonprob path
-} else if (is.data.frame(data)) {
-  # plain data.frame path
+  # survey_nonprob-specific path (e.g., reading @calibration provenance)
 }
 ```
 
-### weighted_df S3 class
+Test for the specific class, not for `is.data.frame()`. A survey object holds
+its data in `@data`; the object itself is not a data frame.
 
-`weighted_df` is surveywts's only home-grown class — an S3 subclass of tibble returned
-from all calibration, nonresponse, and utility functions when the input is a plain
-`data.frame` or `weighted_df`.
-
-**Type check:** Use base `inherits()`, not `S7::S7_inherits()` — it is an S3 class:
-
-```r
-# weighted_df full class vector:
-# c("weighted_df", "tbl_df", "tbl", "data.frame")
-inherits(x, "weighted_df")       # correct — matches position 1
-S7::S7_inherits(x, weighted_df)  # wrong — weighted_df is not an S7 class
-```
-
-**Attributes:**
-```r
-attr(x, "weight_col")         # character(1) — name of the weight column
-attr(x, "weighting_history")  # list — ordered history entries
-```
-
-**Never construct directly.** Users receive `weighted_df` as output; they never build
-one themselves. Internally, use `.make_weighted_df()` from `utils.R`.
-
-### Three-path input handling
-
-Every weighting function in surveywts accepts `data.frame`, `weighted_df`, and S7 survey
-objects. The canonical dispatch order is:
+**History entry construction.** Do not assemble or append history entries by
+hand. Build the entry with `.make_history_entry()`, then write it with
+`.update_survey_weights()`, which appends to `@metadata@weighting_history`,
+updates the weight column, and returns an object of the same class as the input:
 
 ```r
-if (S7::S7_inherits(data, surveycore::survey_nonprob)) {
-  # S7 path: extract @data, operate, write back, update @metadata@weighting_history
-} else if (inherits(data, "weighted_df")) {
-  # weighted_df path: update weight column, append to attr(, "weighting_history")
-} else {
-  # plain data.frame path: create a new weighted_df via .make_weighted_df()
-}
-```
-
-Check S7 objects before `weighted_df` because `survey_nonprob` inherits from `data.frame`
-and would pass an `is.data.frame()` check if tested last.
-
-**History entry construction** (append pattern for each path):
-```r
-new_entry <- list(
-  step      = length(attr(result, "weighting_history")) + 1L,  # or result@metadata@weighting_history for S7
-  timestamp = Sys.time(),
-  operation = "fn_name"
-  # additional function-specific fields follow
+history_entry <- .make_history_entry(
+  step         = length(.get_history(data)) + 1L,
+  operation    = "raking",
+  weight_col   = weight_col,
+  call_str     = paste(deparse(match.call()), collapse = " "),
+  parameters   = parameters,
+  before_stats = .compute_weight_stats(wt_vec),
+  after_stats  = .compute_weight_stats(new_wt_vec),
+  convergence  = convergence
 )
 
-# weighted_df path:
-attr(result, "weighting_history") <- c(
-  attr(result, "weighting_history"),
-  list(new_entry)
+result <- .update_survey_weights(
+  design          = data,
+  new_weights_vec = new_wt_vec,
+  history_entry   = history_entry,
+  wt_name         = wt_name
 )
-
-# survey_nonprob path:
-meta <- result@metadata
-meta@weighting_history <- c(meta@weighting_history, list(new_entry))
-result@metadata <- meta
 ```
+
+`wt_name = NULL` overwrites the existing weight column in place. A non-NULL
+`wt_name` writes a new column and updates `@variables$weights`; it throws
+`surveywts_error_wt_name_conflict` when that name is already taken by a
+non-weight column.
 
 ---
 
@@ -292,15 +281,15 @@ cli::cli_abort(
 # Good
 cli::cli_abort(
   c(
-    "x" = "{.arg fpc} column {.field {fpc_var}} contains {sum(is.na(fpc_col))} NA value(s).",
-    "i" = "FPC must be fully observed for finite population correction.",
-    "v" = "Remove rows with missing FPC or set {.arg fpc = NULL} to omit the correction."
+    "x" = "Weight column {.field {weight_col}} contains {n_na} NA value(s).",
+    "i" = "Weights must be fully observed.",
+    "v" = "Remove rows with missing weights before proceeding."
   ),
-  class = "surveywts_error_fpc_na"
+  class = "surveywts_error_weights_na"
 )
 
 # Bad — no class, no context
-cli::cli_abort("FPC has NAs")
+cli::cli_abort("weights have NAs")
 ```
 
 ### `cli_warn()` structure
@@ -331,14 +320,14 @@ Class naming convention:
 
 ```r
 # Error class examples
-"surveywts_error_not_data_frame"
+"surveywts_error_not_survey_base"
 "surveywts_error_weights_nonpositive"
-"surveywts_error_subset_degenerate"
+"surveywts_error_calibration_not_converged"
 
 # Warning class examples
-"surveywts_warning_srs_no_weights"
-"surveywts_warning_single_stratum"
-"surveywts_warning_psu_multi_strata"
+"surveywts_warning_no_weights_trimmed"
+"surveywts_warning_class_near_empty"
+"surveywts_warning_negative_calibrated_weights"
 ```
 
 ### cli inline markup
@@ -375,7 +364,7 @@ For the full inline markup reference (50+ classes, pluralization, progress bars,
 | `ipw()` — always returns `survey_nonprob` regardless of input class | Visible (`survey_nonprob`) |
 | Print methods: `S7::method(print, surveycore::survey_nonprob)`, etc. | `invisible(x)` |
 | Internal validators: `.validate_weights()`, `.validate_wt_name()`, etc. | `invisible(TRUE)` on success |
-| Internal constructors: `.make_weighted_df()` | Visible (the new object) |
+| Internal constructors: `.make_history_entry()` | Visible (the new object) |
 
 ```r
 # Weighting function — always returns visible, same class as input
@@ -406,7 +395,7 @@ effective_sample_size <- function(x, weights = NULL) {
 **Required before optional. Object/data always first. NSE/tidy-select before scalar. `...` last.**
 
 Full precedence:
-1. `x` / `data` — the survey object or data frame (always mandatory, always first)
+1. `x` / `data` — the survey object (always mandatory, always first)
 2. Required NSE/tidy-select arguments (bare names the user must provide)
 3. Required scalar arguments (non-NSE arguments with no default)
 4. Optional NSE/tidy-select arguments (`ids = NULL`, `weights = NULL`, etc.)
@@ -421,10 +410,12 @@ ipw <- function(
   selection = NULL,
   predictors = NULL,
   missing_method = c("omit", "separate", "impute"),
+  mice_args = list(),
   method = "logit",
-  estimating_eq = c("mle", "gee"),
+  estimating_eq = c("gee", "mle"),
   maxit = 25L,
   epsilon = 1e-8,
+  adjust_reference = TRUE,
   trim = FALSE,
   population_size = NULL,
   wt_name = "ipw_weight"
@@ -436,7 +427,7 @@ calibrate_rake <- function(
   data,
   targets,
   weights = NULL,
-  wt_name = "wts",
+  wt_name = NULL,
   type = c("prop", "count"),
   algorithm = c("classic_ipf", "nr"),
   cap = NULL,
@@ -444,6 +435,10 @@ calibrate_rake <- function(
   reference_design = NULL
 )
 ```
+
+`wt_name = NULL` is the default for every weighting function except `ipw()`,
+which returns a new column named `"ipw_weight"`. `NULL` means overwrite the
+existing weight column in place.
 
 ### Dispatch rule
 
@@ -453,7 +448,7 @@ is always explicit via `S7::S7_inherits()` or `inherits()`.
 | Situation | Use |
 |-----------|-----|
 | Type checking a surveycore S7 object | `S7::S7_inherits(x, surveycore::survey_nonprob)` |
-| Type checking `weighted_df` | `inherits(x, "weighted_df")` |
+| Type checking a genuinely S3 class (e.g. `formula`) | `inherits(x, "formula")` |
 | Registering a print method for a surveycore class | `S7::method(print, surveycore::survey_nonprob) <- function(x, ...) { }` in `methods-print.R` |
 
 Never use `UseMethod()` in surveywts — S3 dispatch does not work for S7 objects.
@@ -478,8 +473,9 @@ non-obvious effect.
 
 ### Required tags on all exported functions
 - `@returns` — required on every exported function
-- `@examples` — must run during `R CMD check`; no `\dontrun{}`; use small
-  inline datasets for slow examples
+- `@examples` — must run during `R CMD check`. `\dontrun{}` only for examples
+  that genuinely require an external resource (a live database connection or a
+  network call); see `function-documentation.md`
 - `@family` — group exports by type (e.g., `calibration`, `diagnostics`)
 
 ### Internal helper documentation
@@ -491,11 +487,12 @@ non-obvious effect.
 ### Import style
 **`::` everywhere; no `@importFrom` in any source file.**
 
-**Exception: S3 method registration.** `@importFrom` is required when
-registering an S3 method for a generic from another package (e.g.,
-`dplyr::dplyr_reconstruct`, `dplyr::select`). Without it, `roxygen2`
-cannot generate the `S3method()` directive in `NAMESPACE`. This is the
-only approved use of `@importFrom`.
+**No exception applies today.** surveywts registers no S3 methods, so
+`NAMESPACE` holds no `S3method()` directives and no source file needs
+`@importFrom`. If surveywts ever registers an S3 method for a generic from
+another package, `@importFrom` becomes required for that one method, because
+`roxygen2` cannot generate the `S3method()` directive without it. Until then,
+an `@importFrom` tag anywhere in `R/` is a mistake.
 
 ```r
 # Correct
@@ -508,7 +505,7 @@ result <- enquo(x)  # requires @importFrom rlang enquo
 ### NAMESPACE hygiene
 - Never manually edit `NAMESPACE` — 100% generated by `devtools::document()`
 - Run `devtools::document()` before committing any file that changes roxygen2
-- Export policy: user-facing functions only; surveywts defines no S7 class objects; no re-exports
+- Export policy: user-facing functions only; no re-exports. surveywts defines no classes and no generics — see `surveywts-conventions.md` §6
 - Run `devtools::check()` before opening a PR; CI uses `--as-cran`
 
 ### R CMD check targets

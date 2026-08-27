@@ -16,7 +16,9 @@ conservation gate that a line count cannot pass.
 | 2 — `check-literals.sh` | **PASS on the untouched tree** | 874 literals, citations resolve, no force-load links, standards reachable |
 | 3 — your approvals | **COMPLETE** | All eight answered on 2026-08-27. See Section 13 |
 | 4 — reformat, gate 8, drop `.lintr`, delete Group A prose | **COMPLETE** | `air format .` as one commit, 49 files, proven formatting-only three ways. Gate 8 added and tested in three directions. `.lintr` deleted; both its defects confirmed against installed lintr. A1, A2, A5, A6 deleted; `code-style.md` 618 -> 526. See "Two additions step 4 needed" below |
-| 5 onward | not started | ready to begin |
+| 5 — core.md and trimmed CLAUDE.md | **COMPLETE** | CLAUDE.md 40 lines, core.md 94, sum 134 of 165. All 44 ledger rows mapped in `plans/ledger/mapping-claude-md.tsv`, 0 LOST. The narrowed "Design variables are sacred" banner was caught and restored |
+| 6 — move and dedupe the 7 standards files | **COMPLETE** | 8 files moved with names kept; dedupes in two passes (`plans/ledger/changes-step6a.tsv`, `changes-step6b.tsv`). Every removal verified against the pinned inventory: 98 statements removed across both passes, each traced to an approved row or a quoted survivor. One narrow survivor (cluster 4) found and widened. New standing rule: a dedupe that would strip a portable file (`testing-standards.md`, `r-package-conventions.md`, `engineering-preferences.md`) in favour of a surveywts-only survivor is skipped — the portable file keeps its copy |
+| 7 onward | not started | ready to begin |
 
 ### Two additions step 4 needed
 

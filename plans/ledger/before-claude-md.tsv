@@ -1,0 +1,45 @@
+id	source_file	source_line	category	verbatim	literals
+claude-md-001	CLAUDE.md	13	mapping	Calibration | `v0.1.0` | Complete | `calibrate()`, `calibrate_rake()`, `calibrate_linear()`, `calibrate_logit()`, `poststratify()`, basic diagnostics	Calibration;v0.1.0;calibrate();calibrate_rake();calibrate_linear();calibrate_logit();poststratify()
+claude-md-002	CLAUDE.md	14	mapping	Replicate | minor bump | Complete | All `create_*_weights()` functions; `as_taylor_design()`	Replicate;minor bump;create_*_weights();as_taylor_design()
+claude-md-003	CLAUDE.md	15	mapping	Utilities | minor bump | Complete | `trim_weights()`, `rescale_weights()`	Utilities;minor bump;trim_weights();rescale_weights()
+claude-md-004	CLAUDE.md	16	mapping	Nonresponse | minor bump | Complete | `calibrate_to_survey()`, `calibrate_to_estimate()`, `adjust_nonresponse()`, `redistribute_weights()`	Nonresponse;minor bump;calibrate_to_survey();calibrate_to_estimate();adjust_nonresponse();redistribute_weights()
+claude-md-005	CLAUDE.md	17	mapping	Propensity | minor bump | Complete | Non-probability sample IPW; unlocks propensity nonresponse	Propensity;minor bump;IPW
+claude-md-006	CLAUDE.md	18	mapping	Diagnostics | minor bump | Next | Balance assessment, `check_balance()`, `diagnose_propensity()`, `compare_weighted_estimates()`	Diagnostics;minor bump;check_balance();diagnose_propensity();compare_weighted_estimates()
+claude-md-007	CLAUDE.md	19	mapping	Polish | minor bump | Pending | Vignettes, `--as-cran` clean, pkgdown	Polish;minor bump;--as-cran;pkgdown
+claude-md-008	CLAUDE.md	21	mapping	"Full roadmap at `plans/roadmap.md`."	plans/roadmap.md
+claude-md-009	CLAUDE.md	27	tiebreaker	"Full conventions are in `.claude/rules/surveywts-conventions.md` §1. The three below are the ones that come up most often."	.claude/rules/surveywts-conventions.md;§1
+claude-md-010	CLAUDE.md	30	value	"Error classes: `surveywts_error_{snake_case_condition}`"	surveywts_error_{snake_case_condition}
+claude-md-011	CLAUDE.md	31	value	"Warning classes: `surveywts_warning_{snake_case_condition}`"	surveywts_warning_{snake_case_condition}
+claude-md-012	CLAUDE.md	32	requirement	"Internal helpers: prefix with `.` (e.g., `.validate_weights()`)"	.;.validate_weights()
+claude-md-013	CLAUDE.md	36	prohibition	"**Design variables are sacred** — never remove a weight column."	
+claude-md-014	CLAUDE.md	36	requirement	"Every weighting function either overwrites the existing weight column in place (`wt_name = NULL`, the default) or writes a new column and repoints `@variables$weights` at it."	wt_name = NULL;@variables$weights
+claude-md-015	CLAUDE.md	38	default	"(`wt_name = NULL`, the default)"	wt_name = NULL
+claude-md-016	CLAUDE.md	39	prohibition	"It never drops the old column"	
+claude-md-017	CLAUDE.md	39	prohibition	"and it refuses to write over a non-weight column: that throws `surveywts_error_wt_name_conflict`."	surveywts_error_wt_name_conflict
+claude-md-018	CLAUDE.md	43	requirement	"In-place overwrite of the main weight column is silent — no warning."	
+claude-md-019	CLAUDE.md	43	requirement	"Only replicate weight columns warn when overwritten, via `surveywts_warning_repweights_overwritten` and `surveywts_warning_jackknife_repweights_overwritten`."	surveywts_warning_repweights_overwritten;surveywts_warning_jackknife_repweights_overwritten
+claude-md-020	CLAUDE.md	48	requirement	"**Weighting history** — every adjustment appends an entry to `@metadata@weighting_history`"	@metadata@weighting_history
+claude-md-021	CLAUDE.md	49	requirement	"built by `.make_history_entry()`"	.make_history_entry()
+claude-md-022	CLAUDE.md	49	requirement	"and written by `.update_survey_weights()`"	.update_survey_weights()
+claude-md-023	CLAUDE.md	50	mapping	"Column removal and rename hooks are surveycore and surveytidy concerns"	surveycore;surveytidy
+claude-md-024	CLAUDE.md	51	prohibition	"surveywts has no code path that removes or renames a column."	surveywts
+claude-md-025	CLAUDE.md	58	requirement	"Every non-trivial change lives on a feature branch"	
+claude-md-026	CLAUDE.md	58	prohibition	"never commit implementation code to `main` or `develop`"	main;develop
+claude-md-027	CLAUDE.md	59	value	"Branch naming: `feature/`, `fix/`, `hotfix/`, `test/`, `docs/`, `chore/`, `refactor/`"	feature/;fix/;hotfix/;test/;docs/;chore/;refactor/
+claude-md-028	CLAUDE.md	60	requirement	"All commits use Conventional Commits format: `feat(scope): description`"	feat(scope): description
+claude-md-029	CLAUDE.md	61	value	"Valid scopes: `calibration`, `weights`, `utils`, `validators`, `replicate`, `propensity`, `diagnostics`, `data`, `docs`, `plans`, `pipeline`, `ci`, `description` — see `.claude/rules/github-strategy.md`"	calibration;weights;utils;validators;replicate;propensity;diagnostics;data;docs;plans;pipeline;ci;description;.claude/rules/github-strategy.md
+claude-md-030	CLAUDE.md	64	procedure	"Run `devtools::document()` before committing any file with roxygen2 changes"	devtools::document();roxygen2
+claude-md-031	CLAUDE.md	65	procedure	"Run `devtools::check()` before opening a PR"	devtools::check()
+claude-md-032	CLAUDE.md	69	requirement	"**Examples must load Imports packages explicitly.**"	Imports
+claude-md-033	CLAUDE.md	69	value	"R CMD check runs examples in a fresh session with only `library(surveywts)` loaded."	R CMD check;library(surveywts)
+claude-md-034	CLAUDE.md	70	procedure	"If an example calls a bare function from an Imports package, add `library(pkg)` at the top of the block."	Imports;library(pkg)
+claude-md-035	CLAUDE.md	75	mapping	"`plans/error-messages.md` — canonical error/warning class names and CLI message templates"	plans/error-messages.md
+claude-md-036	CLAUDE.md	76	mapping	"`.claude/WORKFLOW.md` — how the skills fit together (planning arc → implementation loop)"	.claude/WORKFLOW.md
+claude-md-037	CLAUDE.md	77	mapping	"`.claude/rules/code-style.md` — S7 patterns, cli errors, arg order, air formatter"	.claude/rules/code-style.md
+claude-md-038	CLAUDE.md	78	mapping	"`.claude/rules/r-package-conventions.md` — imports, NAMESPACE, roxygen2, export policy"	.claude/rules/r-package-conventions.md
+claude-md-039	CLAUDE.md	79	mapping	"`.claude/rules/surveywts-conventions.md` — package-specific naming, families, visibility, class ownership"	.claude/rules/surveywts-conventions.md
+claude-md-040	CLAUDE.md	80	mapping	"`.claude/rules/function-documentation.md` — roxygen2 tiers, required sections, `@examples` policy"	.claude/rules/function-documentation.md;@examples
+claude-md-041	CLAUDE.md	81	mapping	"`.claude/rules/testing-standards.md` — test structure, coverage targets, assertion patterns"	.claude/rules/testing-standards.md
+claude-md-042	CLAUDE.md	82	mapping	"`.claude/rules/testing-surveywts.md` — package-specific test invariants and data generators"	.claude/rules/testing-surveywts.md
+claude-md-043	CLAUDE.md	83	mapping	"`.claude/rules/github-strategy.md` — branching model, commit format, versioning"	.claude/rules/github-strategy.md
+claude-md-044	CLAUDE.md	84	mapping	"`.claude/rules/engineering-preferences.md` — DRY, edge cases, over/under-engineering"	.claude/rules/engineering-preferences.md

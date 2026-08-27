@@ -1,0 +1,114 @@
+id	source_file	source_line	category	verbatim	literals
+testing-surveywts-001	.claude/rules/testing-surveywts.md	3	requirement	"Extends `testing-standards.md`. Read that document first; this file covers only what is specific to surveywts."	testing-standards.md
+testing-surveywts-002	.claude/rules/testing-surveywts.md	12	value	"Invariant checker | `test_invariants(obj)` — defined in `helper-test-data.R`"	test_invariants(obj);helper-test-data.R
+testing-surveywts-003	.claude/rules/testing-surveywts.md	13	value	"Synthetic data generator | `make_surveywts_data(n, seed, include_nonrespondents)`"	make_surveywts_data;n;seed;include_nonrespondents
+testing-surveywts-004	.claude/rules/testing-surveywts.md	14	requirement	"Layer 1 errors (S7 validators) | `class=` only — no snapshot; classes are `surveycore_error_*`"	Layer 1;class=;surveycore_error_*
+testing-surveywts-005	.claude/rules/testing-surveywts.md	15	requirement	"Layer 3 errors (constructors/functions) | Dual: `expect_error(class=)` + `expect_snapshot(error=TRUE)`"	Layer 3;expect_error(class=);expect_snapshot(error=TRUE)
+testing-surveywts-006	.claude/rules/testing-surveywts.md	16	value	"Weight computation tolerance | `1e-10`"	1e-10
+testing-surveywts-007	.claude/rules/testing-surveywts.md	17	value	"Numerical correctness vs reference package | `1e-8`"	1e-8
+testing-surveywts-008	.claude/rules/testing-surveywts.md	25	mapping	"`R/calibrate.R` | `tests/testthat/test-02-calibrate.R`"	R/calibrate.R;tests/testthat/test-02-calibrate.R
+testing-surveywts-009	.claude/rules/testing-surveywts.md	26	mapping	"`R/calibrate_rake.R` | `tests/testthat/test-03-rake.R`"	R/calibrate_rake.R;tests/testthat/test-03-rake.R
+testing-surveywts-010	.claude/rules/testing-surveywts.md	27	mapping	"`R/poststratify.R` | `tests/testthat/test-04-poststratify.R`"	R/poststratify.R;tests/testthat/test-04-poststratify.R
+testing-surveywts-011	.claude/rules/testing-surveywts.md	28	mapping	"`R/adjust_nonresponse.R`, `R/redistribute_weights.R`, `R/nonresponse-utils.R` | `tests/testthat/test-05-nonresponse.R`"	R/adjust_nonresponse.R;R/redistribute_weights.R;R/nonresponse-utils.R;tests/testthat/test-05-nonresponse.R
+testing-surveywts-012	.claude/rules/testing-surveywts.md	29	mapping	"`R/effective_sample_size.R`, `R/weight_variability.R`, `R/summarize_weights.R`, `R/diagnostics-utils.R` | `tests/testthat/test-06-diagnostics.R`"	R/effective_sample_size.R;R/weight_variability.R;R/summarize_weights.R;R/diagnostics-utils.R;tests/testthat/test-06-diagnostics.R
+testing-surveywts-013	.claude/rules/testing-surveywts.md	30	mapping	"`R/calibrate_linear.R` | `tests/testthat/test-calibrate-linear.R`"	R/calibrate_linear.R;tests/testthat/test-calibrate-linear.R
+testing-surveywts-014	.claude/rules/testing-surveywts.md	31	mapping	"`R/calibrate_logit.R` | `tests/testthat/test-calibrate-logit.R`"	R/calibrate_logit.R;tests/testthat/test-calibrate-logit.R
+testing-surveywts-015	.claude/rules/testing-surveywts.md	32	mapping	"`R/calibrate-utils.R` | `tests/testthat/test-calibrate-utils-nr.R`"	R/calibrate-utils.R;tests/testthat/test-calibrate-utils-nr.R
+testing-surveywts-016	.claude/rules/testing-surveywts.md	33	mapping	"`R/calibrate_to_survey.R`, `R/calibrate_to_estimate.R` | `tests/testthat/test-sample-calibration.R`"	R/calibrate_to_survey.R;R/calibrate_to_estimate.R;tests/testthat/test-sample-calibration.R
+testing-surveywts-017	.claude/rules/testing-surveywts.md	34	mapping	"`R/trim_weights.R`, `R/rescale_weights.R`, `R/weight-utils.R` | `tests/testthat/test-weight-utils.R`"	R/trim_weights.R;R/rescale_weights.R;R/weight-utils.R;tests/testthat/test-weight-utils.R
+testing-surveywts-018	.claude/rules/testing-surveywts.md	35	mapping	"`R/create_bootstrap_weights.R`, and other `create_*_weights.R`, `R/replicate-utils.R` | `tests/testthat/test-replicate-weights.R`"	R/create_bootstrap_weights.R;create_*_weights.R;R/replicate-utils.R;tests/testthat/test-replicate-weights.R
+testing-surveywts-019	.claude/rules/testing-surveywts.md	36	mapping	"`R/create_replicate_weights.R`, `R/as_taylor_design.R` | `tests/testthat/test-replicate-dispatch.R`"	R/create_replicate_weights.R;R/as_taylor_design.R;tests/testthat/test-replicate-dispatch.R
+testing-surveywts-020	.claude/rules/testing-surveywts.md	37	mapping	"`R/methods-print.R` | `tests/testthat/test-replicate-print.R`"	R/methods-print.R;tests/testthat/test-replicate-print.R
+testing-surveywts-021	.claude/rules/testing-surveywts.md	38	mapping	"`R/ipw.R` | `tests/testthat/test-nonprob-ipw.R`"	R/ipw.R;tests/testthat/test-nonprob-ipw.R
+testing-surveywts-022	.claude/rules/testing-surveywts.md	39	mapping	"`R/jackknife-dagjk-utils.R` | `tests/testthat/test-nps-jackknife.R`"	R/jackknife-dagjk-utils.R;tests/testthat/test-nps-jackknife.R
+testing-surveywts-023	.claude/rules/testing-surveywts.md	40	mapping	"`R/replicate-utils.R` — quasi-randomization bootstrap | `tests/testthat/test-08-nps-bootstrap.R`"	R/replicate-utils.R;quasi-randomization bootstrap;tests/testthat/test-08-nps-bootstrap.R
+testing-surveywts-024	.claude/rules/testing-surveywts.md	41	mapping	"`R/data.R` and the bundled datasets | `tests/testthat/test-datasets.R`"	R/data.R;tests/testthat/test-datasets.R
+testing-surveywts-025	.claude/rules/testing-surveywts.md	42	mapping	"`R/surveywts-package.R` | `tests/testthat/test-package.R`"	R/surveywts-package.R;tests/testthat/test-package.R
+testing-surveywts-026	.claude/rules/testing-surveywts.md	43	mapping	"`R/utils.R` | (tested indirectly via all test files)"	R/utils.R
+testing-surveywts-027	.claude/rules/testing-surveywts.md	47	requirement	"`test_invariants()` — required in every constructor test"	test_invariants()
+testing-surveywts-028	.claude/rules/testing-surveywts.md	49	requirement	"Every `test_that()` block that creates a `survey_nonprob`, `survey_taylor`, or `survey_replicate` object must call `test_invariants(obj)` as its **first** assertion."	test_that();survey_nonprob;survey_taylor;survey_replicate;test_invariants(obj)
+testing-surveywts-029	.claude/rules/testing-surveywts.md	53	mapping	"Definition (from `tests/testthat/helper-test-data.R`):"	tests/testthat/helper-test-data.R
+testing-surveywts-030	.claude/rules/testing-surveywts.md	56	value	"`test_invariants <- function(obj) {` — the checker is a function of one argument, `obj`."	test_invariants;obj
+testing-surveywts-031	.claude/rules/testing-surveywts.md	57	requirement	"`if (exists(\"survey_nonprob\") && S7::S7_inherits(obj, survey_nonprob)) {`"	exists("survey_nonprob");S7::S7_inherits;survey_nonprob
+testing-surveywts-032	.claude/rules/testing-surveywts.md	59	requirement	"`testthat::expect_true(is.character(obj@variables$weights))` — survey_nonprob branch"	testthat::expect_true;is.character;obj@variables$weights;survey_nonprob
+testing-surveywts-033	.claude/rules/testing-surveywts.md	60	requirement	"`testthat::expect_true(obj@variables$weights %in% names(obj@data))` — survey_nonprob branch"	testthat::expect_true;obj@variables$weights;names(obj@data);survey_nonprob
+testing-surveywts-034	.claude/rules/testing-surveywts.md	61	requirement	"`testthat::expect_true(is.numeric(obj@data[[obj@variables$weights]]))` — survey_nonprob branch"	testthat::expect_true;is.numeric;obj@data[[obj@variables$weights]];survey_nonprob
+testing-surveywts-035	.claude/rules/testing-surveywts.md	63	requirement	"`w <- obj@data[[obj@variables$weights]]` then `testthat::expect_true(all(w >= 0) && any(w > 0))` — survey_nonprob branch"	testthat::expect_true;all(w >= 0);any(w > 0);survey_nonprob
+testing-surveywts-036	.claude/rules/testing-surveywts.md	65	requirement	"`if (S7::S7_inherits(obj, surveycore::survey_taylor)) {`"	S7::S7_inherits;surveycore::survey_taylor
+testing-surveywts-037	.claude/rules/testing-surveywts.md	66	requirement	"`testthat::expect_true(is.character(obj@variables$weights))` — survey_taylor branch"	testthat::expect_true;is.character;obj@variables$weights;survey_taylor
+testing-surveywts-038	.claude/rules/testing-surveywts.md	67	requirement	"`testthat::expect_true(obj@variables$weights %in% names(obj@data))` — survey_taylor branch"	testthat::expect_true;obj@variables$weights;names(obj@data);survey_taylor
+testing-surveywts-039	.claude/rules/testing-surveywts.md	68	requirement	"`testthat::expect_true(is.numeric(obj@data[[obj@variables$weights]]))` — survey_taylor branch"	testthat::expect_true;is.numeric;obj@data[[obj@variables$weights]];survey_taylor
+testing-surveywts-040	.claude/rules/testing-surveywts.md	70	requirement	"`w <- obj@data[[obj@variables$weights]]` then `testthat::expect_true(all(w >= 0) && any(w > 0))` — survey_taylor branch"	testthat::expect_true;all(w >= 0);any(w > 0);survey_taylor
+testing-surveywts-041	.claude/rules/testing-surveywts.md	72	requirement	"`if (S7::S7_inherits(obj, surveycore::survey_replicate)) {`"	S7::S7_inherits;surveycore::survey_replicate
+testing-surveywts-042	.claude/rules/testing-surveywts.md	73	requirement	"`testthat::expect_true(S7::S7_inherits(obj, surveycore::survey_replicate))` — survey_replicate branch"	testthat::expect_true;S7::S7_inherits;surveycore::survey_replicate
+testing-surveywts-043	.claude/rules/testing-surveywts.md	75	requirement	"`wt_col <- obj@variables$weights` then `testthat::expect_true(is.character(wt_col) && length(wt_col) == 1)` — survey_replicate branch"	wt_col;is.character(wt_col);length(wt_col) == 1;survey_replicate
+testing-surveywts-044	.claude/rules/testing-surveywts.md	76	requirement	"`testthat::expect_true(wt_col %in% names(obj@data))` — survey_replicate branch"	testthat::expect_true;wt_col;names(obj@data);survey_replicate
+testing-surveywts-045	.claude/rules/testing-surveywts.md	77	requirement	"`testthat::expect_true(is.numeric(obj@data[[wt_col]]))` — survey_replicate branch"	testthat::expect_true;is.numeric;obj@data[[wt_col]];survey_replicate
+testing-surveywts-046	.claude/rules/testing-surveywts.md	78	requirement	"`testthat::expect_true(all(obj@data[[wt_col]] > 0))` — survey_replicate branch"	testthat::expect_true;all(obj@data[[wt_col]] > 0);survey_replicate
+testing-surveywts-047	.claude/rules/testing-surveywts.md	83	tiebreaker	"Three branches, and an object can match more than one — every branch that matches runs."	
+testing-surveywts-048	.claude/rules/testing-surveywts.md	84	requirement	"The `survey_nonprob` and `survey_taylor` branches assert `all(w >= 0) && any(w > 0)`, which matches what the surveycore validator enforces."	survey_nonprob;survey_taylor;all(w >= 0) && any(w > 0);surveycore
+testing-surveywts-049	.claude/rules/testing-surveywts.md	86	requirement	"Only the `survey_replicate` branch asserts strict positivity."	survey_replicate
+testing-surveywts-050	.claude/rules/testing-surveywts.md	88	requirement	"The `survey_nonprob` branch uses a bare name behind an `exists()` guard rather than `surveycore::survey_nonprob`."	survey_nonprob;exists();surveycore::survey_nonprob
+testing-surveywts-051	.claude/rules/testing-surveywts.md	89	requirement	"surveywts does not define or export `survey_nonprob`, so that guard is what keeps the branch from erroring when the bare name does not resolve."	survey_nonprob
+testing-surveywts-052	.claude/rules/testing-surveywts.md	97	value	"**Layer 1 — S7 class validators** (structural invariants enforced by S7). These validators live in surveycore, so their classes are `surveycore_error_*` and surveywts does not own the message text."	Layer 1;surveycore;surveycore_error_*
+testing-surveywts-053	.claude/rules/testing-surveywts.md	99	prohibition	"Test with `class=` only — no snapshot."	class=
+testing-surveywts-054	.claude/rules/testing-surveywts.md	104	value	"`df <- make_surveywts_data(seed = 1)` — the Layer 1 example builds its data frame with seed 1."	make_surveywts_data;seed = 1
+testing-surveywts-055	.claude/rules/testing-surveywts.md	105	procedure	"`df$base_weight[1] <- -1` — the negative weight is set inline on the generated data frame."	df$base_weight[1] <- -1;base_weight
+testing-surveywts-056	.claude/rules/testing-surveywts.md	107	value	"`expect_error(surveycore::survey_nonprob(df, variables = list(weights = \"base_weight\")), class = \"surveycore_error_weights_negative\")`"	expect_error;surveycore::survey_nonprob;variables = list(weights = "base_weight");surveycore_error_weights_negative
+testing-surveywts-057	.claude/rules/testing-surveywts.md	114	requirement	"**Layer 3 — Constructor/function input validation** (user-facing errors from `cli::cli_abort()`). Test with the dual pattern."	Layer 3;cli::cli_abort()
+testing-surveywts-058	.claude/rules/testing-surveywts.md	119	value	"`df <- make_surveywts_data(seed = 1)` and `df$base_weight[1] <- -1` — the Layer 3 example builds its data frame with seed 1 and sets the negative weight inline."	make_surveywts_data;seed = 1;df$base_weight[1] <- -1
+testing-surveywts-059	.claude/rules/testing-surveywts.md	121	value	"`design  <- surveycore::as_survey(df, weights = base_weight)`"	surveycore::as_survey;weights = base_weight
+testing-surveywts-060	.claude/rules/testing-surveywts.md	122	value	"`targets <- list(age_group = c(\"18-34\" = 0.35, \"35-54\" = 0.40, \"55+\" = 0.25))`"	age_group;"18-34" = 0.35;"35-54" = 0.40;"55+" = 0.25
+testing-surveywts-061	.claude/rules/testing-surveywts.md	124	requirement	"`expect_error(calibrate(design, targets = targets, type = \"prop\"), class = \"surveywts_error_weights_nonpositive\")`"	expect_error;calibrate;type = "prop";surveywts_error_weights_nonpositive
+testing-surveywts-062	.claude/rules/testing-surveywts.md	128	requirement	"`expect_snapshot(error = TRUE, calibrate(design, targets = targets, type = \"prop\"))`"	expect_snapshot;error = TRUE;calibrate;type = "prop"
+testing-surveywts-063	.claude/rules/testing-surveywts.md	135	prohibition	"A plain `data.frame` cannot reach either layer."	data.frame
+testing-surveywts-064	.claude/rules/testing-surveywts.md	135	requirement	"`.check_input_class()` rejects it first with `surveywts_error_not_survey_base`, so every function test must build a survey object."	.check_input_class();surveywts_error_not_survey_base
+testing-surveywts-065	.claude/rules/testing-surveywts.md	143	mapping	"`make_surveywts_data()` is defined in `tests/testthat/helper-test-data.R`."	make_surveywts_data();tests/testthat/helper-test-data.R
+testing-surveywts-066	.claude/rules/testing-surveywts.md	148	value	"**Signature:** `make_surveywts_data(n = 500, seed = 42, include_nonrespondents = FALSE)`"	make_surveywts_data;n = 500;seed = 42;include_nonrespondents = FALSE
+testing-surveywts-067	.claude/rules/testing-surveywts.md	151	requirement	"**Returns:** A plain `data.frame` with columns:"	data.frame
+testing-surveywts-068	.claude/rules/testing-surveywts.md	155	value	"`id` | `integer` | `1L..nL`"	id;integer;1L..nL
+testing-surveywts-069	.claude/rules/testing-surveywts.md	156	value	"`age_group` | `character` | `\"18-34\"`, `\"35-54\"`, `\"55+\"` (unequal probabilities)"	age_group;character;"18-34";"35-54";"55+"
+testing-surveywts-070	.claude/rules/testing-surveywts.md	157	value	"`sex` | `character` | `\"M\"`, `\"F\"`"	sex;character;"M";"F"
+testing-surveywts-071	.claude/rules/testing-surveywts.md	158	value	"`education` | `character` | `\"<HS\"`, `\"HS\"`, `\"College\"`, `\"Graduate\"`"	education;character;"<HS";"HS";"College";"Graduate"
+testing-surveywts-072	.claude/rules/testing-surveywts.md	159	value	"`region` | `character` | `\"Northeast\"`, `\"South\"`, `\"Midwest\"`, `\"West\"`"	region;character;"Northeast";"South";"Midwest";"West"
+testing-surveywts-073	.claude/rules/testing-surveywts.md	160	value	"`base_weight` | `numeric` | Positive, log-normally distributed"	base_weight;numeric
+testing-surveywts-074	.claude/rules/testing-surveywts.md	161	value	"`responded` | `integer` | `0`/`1`; ≥ 20% nonrespondents; only if `include_nonrespondents = TRUE`"	responded;integer;0;1;20%;include_nonrespondents = TRUE
+testing-surveywts-075	.claude/rules/testing-surveywts.md	164	requirement	"Uses `set.seed(seed)` at the top"	set.seed(seed)
+testing-surveywts-076	.claude/rules/testing-surveywts.md	165	requirement	"Groups are NOT equal-sized — use `prob =` with unequal probabilities"	prob =
+testing-surveywts-077	.claude/rules/testing-surveywts.md	166	value	"`base_weight` is log-normally distributed: `exp(rnorm(n, 0, 0.4))`"	base_weight;exp(rnorm(n, 0, 0.4))
+testing-surveywts-078	.claude/rules/testing-surveywts.md	167	requirement	"When `include_nonrespondents = TRUE`, realistic split with ≥ 20% nonrespondents"	include_nonrespondents = TRUE;20%
+testing-surveywts-079	.claude/rules/testing-surveywts.md	168	prohibition	"Edge case inputs (0-row, NA columns, negative weights) are constructed inline in each test — never via generator parameters"	0-row;NA
+testing-surveywts-080	.claude/rules/testing-surveywts.md	173	value	"`make_surveywts_data()` returns a plain `data.frame`, which no weighting function accepts."	make_surveywts_data();data.frame
+testing-surveywts-081	.claude/rules/testing-surveywts.md	174	mapping	"`helper-test-data.R` therefore also defines the survey objects the tests actually pass in."	helper-test-data.R
+testing-surveywts-082	.claude/rules/testing-surveywts.md	175	requirement	"Use these rather than building a design inline:"	
+testing-surveywts-083	.claude/rules/testing-surveywts.md	180	mapping	"`make_taylor_design()` | `survey_taylor` — clustered and stratified, with PSU IDs"	make_taylor_design();survey_taylor;PSU
+testing-surveywts-084	.claude/rules/testing-surveywts.md	181	mapping	"`make_paired_design()` | `survey_taylor` — exactly 2 PSUs per stratum, for BRR"	make_paired_design();survey_taylor;2 PSUs;BRR
+testing-surveywts-085	.claude/rules/testing-surveywts.md	182	mapping	"`make_replicate_design()` | `survey_replicate` — bootstrap replicates from a `survey_taylor`"	make_replicate_design();survey_replicate;survey_taylor
+testing-surveywts-086	.claude/rules/testing-surveywts.md	183	mapping	"`make_nps_reference()`, `make_nps_ref()` | `survey_taylor` — probability-sample reference for `ipw()`"	make_nps_reference();make_nps_ref();survey_taylor;ipw()
+testing-surveywts-087	.claude/rules/testing-surveywts.md	184	mapping	"`make_nps_level_a()`, `make_nps_level_b()` | `survey_nonprob` — post-`ipw()`, post-`calibrate_rake()`"	make_nps_level_a();make_nps_level_b();survey_nonprob;ipw();calibrate_rake()
+testing-surveywts-088	.claude/rules/testing-surveywts.md	185	mapping	"`make_nonprob_replicate_design()` | `survey_nonprob` with replicate weights"	make_nonprob_replicate_design();survey_nonprob
+testing-surveywts-089	.claude/rules/testing-surveywts.md	186	mapping	"`make_nonprob_no_repweights()` | `survey_nonprob` without replicate weights, for error paths"	make_nonprob_no_repweights();survey_nonprob
+testing-surveywts-090	.claude/rules/testing-surveywts.md	187	mapping	"`make_dagjk_datasets()` | Named list of DAGJK inputs A–F plus `ref`"	make_dagjk_datasets();DAGJK;A–F;ref
+testing-surveywts-091	.claude/rules/testing-surveywts.md	188	mapping	"`make_gss_taylor()`, `make_npors_taylor()`, `make_ns_nonprob()` | Survey objects over the bundled datasets"	make_gss_taylor();make_npors_taylor();make_ns_nonprob()
+testing-surveywts-092	.claude/rules/testing-surveywts.md	189	mapping	"`.pin_ts()` | The same object with every history timestamp pinned, for stable snapshots"	.pin_ts()
+testing-surveywts-093	.claude/rules/testing-surveywts.md	191	requirement	"`.pin_ts()` is required before any snapshot that renders weighting history — `.make_history_entry()` stamps `Sys.time()`, which would otherwise change on every run."	.pin_ts();.make_history_entry();Sys.time()
+testing-surveywts-094	.claude/rules/testing-surveywts.md	201	value	"Weight computations (ESS, CV, conservation) | `1e-10` | `expect_equal(result, expected, tolerance = 1e-10)`"	ESS;CV;1e-10;expect_equal;tolerance = 1e-10
+testing-surveywts-095	.claude/rules/testing-surveywts.md	202	value	"Numerical correctness vs `survey` package | `1e-8` | `expect_equal(sw_result, survey_result, tolerance = 1e-8)`"	survey;1e-8;expect_equal;tolerance = 1e-8
+testing-surveywts-096	.claude/rules/testing-surveywts.md	204	requirement	"Reference package comparisons use `skip_if_not_installed(\"survey\")` **inside** the relevant `test_that()` block"	skip_if_not_installed("survey");test_that()
+testing-surveywts-097	.claude/rules/testing-surveywts.md	205	prohibition	"(never at file level)"	
+testing-surveywts-098	.claude/rules/testing-surveywts.md	211	mapping	"Print method test file (`test-replicate-print.R`)"	test-replicate-print.R
+testing-surveywts-099	.claude/rules/testing-surveywts.md	213	requirement	"# 1. survey_nonprob — print snapshot"	survey_nonprob
+testing-surveywts-100	.claude/rules/testing-surveywts.md	214	requirement	"# 2. survey_replicate — print snapshot"	survey_replicate
+testing-surveywts-101	.claude/rules/testing-surveywts.md	215	requirement	"# 3. Weighting history rendering — pin timestamps with .pin_ts() first"	.pin_ts()
+testing-surveywts-102	.claude/rules/testing-surveywts.md	218	mapping	"Calibration / nonresponse function test files (`test-02-*.R` through `test-05-*.R`)"	test-02-*.R;test-05-*.R
+testing-surveywts-103	.claude/rules/testing-surveywts.md	220	requirement	"# 1. Happy paths (one block per input class: survey_taylor, survey_nonprob, survey_replicate)"	survey_taylor;survey_nonprob;survey_replicate
+testing-surveywts-104	.claude/rules/testing-surveywts.md	222	requirement	"# 2. Numerical correctness (skip_if_not_installed inside block)"	skip_if_not_installed
+testing-surveywts-105	.claude/rules/testing-surveywts.md	223	requirement	"# 3. Standard error paths SE-1 through SE-7"	SE-1;SE-7
+testing-surveywts-106	.claude/rules/testing-surveywts.md	224	requirement	"# 4. Function-specific error paths (one block per error class)"	
+testing-surveywts-107	.claude/rules/testing-surveywts.md	225	requirement	"# 5. Edge cases"	
+testing-surveywts-108	.claude/rules/testing-surveywts.md	226	requirement	"# 6. History / metadata correctness"	
+testing-surveywts-109	.claude/rules/testing-surveywts.md	229	mapping	"Diagnostics test file (`test-06-diagnostics.R`)"	test-06-diagnostics.R
+testing-surveywts-110	.claude/rules/testing-surveywts.md	231	requirement	"# 1. Correctness vs hand calculation"	
+testing-surveywts-111	.claude/rules/testing-surveywts.md	232	requirement	"# 2. Weight auto-detection (survey_taylor, survey_nonprob, survey_replicate)"	survey_taylor;survey_nonprob;survey_replicate
+testing-surveywts-112	.claude/rules/testing-surveywts.md	233	requirement	"# 3. summarize_weights() — by = NULL and by = grouping"	summarize_weights();by = NULL
+testing-surveywts-113	.claude/rules/testing-surveywts.md	234	requirement	"# 4. Error paths"	

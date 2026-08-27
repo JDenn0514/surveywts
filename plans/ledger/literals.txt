@@ -1,0 +1,907 @@
+# Literal list for check-literals.sh
+# Machine-extracted from 45e8751 by literals.py extract.
+# Comparison collapses whitespace on both sides, so a literal
+# that the source line-wraps still matches. One per line.
+
+# --- class (16) ---
+surveycore_error_design_var_missing
+surveycore_error_weights_all_zero
+surveycore_error_weights_negative
+surveycore_error_weights_not_numeric
+surveywts_error_calibration_not_converged
+surveywts_error_not_survey_base
+surveywts_error_weights_na
+surveywts_error_weights_nonpositive
+surveywts_error_weights_not_numeric
+surveywts_error_wt_name_conflict
+surveywts_error_wt_name_invalid
+surveywts_warning_class_near_empty
+surveywts_warning_jackknife_repweights_overwritten
+surveywts_warning_negative_calibrated_weights
+surveywts_warning_no_weights_trimmed
+surveywts_warning_repweights_overwritten
+
+# --- fn (101) ---
+S3method()
+S7::S7_inherits()
+S7::method()
+S7::methods_register()
+S7::new_class()
+Sys.time()
+UseMethod()
+adjust_nonresponse()
+anesrake_engine()
+as_survey()
+as_taylor_design()
+calibrate()
+calibrate_linear()
+calibrate_logit()
+calibrate_nr_engine()
+calibrate_rake()
+calibrate_to_estimate()
+calibrate_to_survey()
+check_balance()
+check_input_class()
+check_weight_utils_class()
+cli::cli_abort()
+cli_abort()
+cli_warn()
+compare_weighted_estimates()
+compute_weight_stats()
+create_bootstrap_weights()
+create_brr_weights()
+create_gen_boot_weights()
+create_gen_rep_weights()
+create_jackknife_weights()
+create_replicate_weights()
+create_sdr_weights()
+describe()
+devtools::check()
+devtools::document()
+devtools::test()
+diag_validate_input()
+diagnose_propensity()
+effective_sample_size()
+exists()
+expect_equal()
+expect_identical()
+expect_warning()
+export()
+filter()
+get_weight_vec()
+inherits()
+internal_fn()
+invisible()
+ipw()
+is.data.frame()
+list()
+make_calfun_linear()
+make_dagjk_datasets()
+make_gss_taylor()
+make_history_entry()
+make_nonprob_no_repweights()
+make_nonprob_replicate_design()
+make_npors_taylor()
+make_nps_level_a()
+make_nps_level_b()
+make_nps_ref()
+make_nps_reference()
+make_ns_nonprob()
+make_paired_design()
+make_replicate_design()
+make_surveywts_data()
+make_taylor_design()
+match.call()
+mutate()
+my_fn()
+onAttach()
+onLoad()
+parse_margins()
+pin_ts()
+poststratify()
+redistribute_weights()
+rescale_weights()
+rlang::check_required()
+select()
+skip_if_not_installed()
+snapshot_review()
+summarize_weights()
+test_invariants()
+test_that()
+testthat::snapshot_accept()
+testthat::snapshot_review()
+trim_weights()
+tryCatch()
+update_survey_weights()
+utils::globalVariables()
+validate_calibration_variables()
+validate_formula()
+validate_fpc()
+validate_population_cells()
+validate_replicate_input()
+validate_weights()
+validate_wt_name()
+weight_variability()
+withCallingHandlers()
+
+# --- git (14) ---
+--as-cran
+--no-manual
+--oneline
+R-CMD-check / ubuntu-latest (release)
+X.Y.Z
+X.Y.Z.9000
+chore/
+docs/
+feature/
+fix/
+hotfix/
+refactor/
+test/
+v0.1.0
+
+# --- number (24) ---
+0.0
+0.1
+0.25
+0.35
+0.4
+0.40
+0.9000
+1.0
+1.1
+100%
+123
+1e-10
+1e-6
+1e-8
+1e6
+2.0
+20%
+200
+25L
+3.0
+3.6
+500
+95%
+98%
+
+# --- path (77) ---
+.claude/WORKFLOW.md
+.claude/rules/
+.claude/rules/code-style.md
+.claude/rules/engineering-preferences.md
+.claude/rules/function-documentation.md
+.claude/rules/github-strategy.md
+.claude/rules/r-package-conventions.md
+.claude/rules/surveywts-conventions.md
+.claude/rules/testing-standards.md
+.claude/rules/testing-standards.md.
+.claude/rules/testing-surveywts.md
+.claude/skills/changelog-workflow.md
+.claude/skills/cli/
+.github/PULL_REQUEST_TEMPLATE.md
+DESCRIPTION
+NAMESPACE
+R-CMD-check.yaml
+R/03-functions.R
+R/adjust_nonresponse.R
+R/as_taylor_design.R
+R/calibrate-utils.R
+R/calibrate.R
+R/calibrate_linear.R
+R/calibrate_logit.R
+R/calibrate_rake.R
+R/calibrate_to_estimate.R
+R/calibrate_to_survey.R
+R/core-classes.R
+R/create_bootstrap_weights.R
+R/create_replicate_weights.R
+R/data.R
+R/diagnostics-utils.R
+R/effective_sample_size.R
+R/ipw.R
+R/jackknife-dagjk-utils.R
+R/methods-print.R
+R/my-thing.R
+R/nonresponse-utils.R
+R/poststratify.R
+R/redistribute_weights.R
+R/replicate-utils.R
+R/rescale_weights.R
+R/summarize_weights.R
+R/surveywts-package.R
+R/trim_weights.R
+R/utils.R
+R/weight-utils.R
+R/weight_variability.R
+R/zzz.R
+air.toml
+my_function.Rd
+pkgdown.yaml
+plans/error-messages.md
+plans/roadmap.md
+test-coverage.yaml
+tests/testthat/_snaps
+tests/testthat/helper-*.R
+tests/testthat/helper-test-data.R
+tests/testthat/test-02-calibrate.R
+tests/testthat/test-03-rake.R
+tests/testthat/test-04-poststratify.R
+tests/testthat/test-05-nonresponse.R
+tests/testthat/test-06-diagnostics.R
+tests/testthat/test-08-nps-bootstrap.R
+tests/testthat/test-calibrate-linear.R
+tests/testthat/test-calibrate-logit.R
+tests/testthat/test-calibrate-utils-nr.R
+tests/testthat/test-datasets.R
+tests/testthat/test-my-thing.R
+tests/testthat/test-nonprob-ipw.R
+tests/testthat/test-nps-jackknife.R
+tests/testthat/test-package.R
+tests/testthat/test-replicate-dispatch.R
+tests/testthat/test-replicate-print.R
+tests/testthat/test-replicate-weights.R
+tests/testthat/test-sample-calibration.R
+tests/testthat/test-weight-utils.R
+
+# --- rd (7) ---
+\deqn{}
+\describe{
+\describe{}
+\dontrun{}
+\eqn{}
+\item{
+\item{}
+
+# --- s7class (4) ---
+survey_base
+survey_nonprob
+survey_replicate
+survey_taylor
+
+# --- setting (10) ---
+Posit.air-vscode
+charset = utf-8
+editor.defaultFormatter
+editor.formatOnSave
+end_of_line = lf
+indent-width = 2
+indent_size = 2
+indent_style = space
+line-width = 80
+set.seed(seed)
+
+# --- tag (26) ---
+@calibration
+@call
+@data
+@description
+@details
+@docType
+@examples
+@export
+@family
+@format
+@groups
+@importFrom
+@inheritParams
+@keywords
+@metadata
+@noRd
+@param
+@reference
+@references
+@return
+@returns
+@section
+@seealso
+@source
+@variables
+@weighting
+
+# --- version (4) ---
+S7 (>= 0.1.0)
+cli (>= 3.6.0)
+rlang (>= 1.1.0)
+testthat (>= 3.0.0)
+
+# --- agent-extracted (596) ---
+# From the `literals` column of plans/ledger/before-*.tsv.
+# Each confirmed present in the tree before admission.
+"18-34"
+"18-34" = 0.35
+"35-54"
+"35-54" = 0.40
+"55+"
+"55+" = 0.25
+"<HS"
+"College"
+"F"
+"Graduate"
+"HS"
+"M"
+"Midwest"
+"Northeast"
+"South"
+"West"
+"brr"
+"i"
+"ipw_weight"
+"raking"
+"v"
+# Brief scenario label
+# Generated by roxygen2: do not edit by hand
+# nocov
+# nocov end
+# nocov start
+${{ matrix.config.os }} (${{ matrix.config.r }})
+%>%
+(#12)
+(#PR_NUMBER)
+**Bold sub-headers**
+**Bold text**
+...
+../survey-standards/.claude/rules/testing-standards.md
+../survey-standards/ECOSYSTEM.md
+.9000
+.Rbuildignore
+.Rd
+.anesrake_engine()
+.calibrate_nr_engine()
+.check_input_class
+.check_input_class()
+.check_input_class(data)
+.check_weight_utils_class()
+.compute_weight_stats()
+.data$var
+.diag_validate_input()
+.editorconfig
+.get_*()
+.get_col
+.get_history()
+.get_weight_vec()
+.gitignore
+.internal_fn()
+.make_
+.make_*()
+.make_calfun_linear()
+.make_history_entry()
+.onAttach()
+.onLoad()
+.parse_margins()
+.pin_ts()
+.update_survey_weights()
+.validate_
+.validate_*()
+.validate_calibration_variables()
+.validate_design
+.validate_formula()
+.validate_fpc()
+.validate_population_cells()
+.validate_replicate_input()
+.validate_weights()
+.validate_wt_name
+.validate_wt_name()
+.vscode/settings.json
+/commit-and-pr
+/merge-main
+/r-implement
+0 errors
+0 warnings
+0-row
+0.0.0.9000
+0.1.0
+0.1.0.9000
+1 file
+1L..nL
+1–3
+2 PSUs
+2 notes
+2 spaces
+2+ files
+2–3
+4-space indent
+50+
+7.x.x
+98%+
+<survey_taylor>
+@docType data
+@family calibration
+@family diagnostics
+@family nonresponse
+@family propensity
+@family replicate-weights
+@family sample-calibration
+@family utilities
+@importFrom cli cli_abort
+@importFrom magrittr %>%
+@importFrom rlang enquo
+@keywords internal
+@metadata@weighting_history
+@param data
+@reference_sample
+@section Algorithm
+@section Convergence
+@section Documentation:
+@section Key Functions:
+@section Missing Data
+@section Replicate Weights
+@section Section Name:
+@variables$repweights
+@variables$weights
+A new entry with
+ALWAYS required
+AND
+Addins → Format with air
+Algorithm
+All-NA
+Always present
+Authors@R:
+A–F
+BRR
+CRAN
+Calibration
+Clip weights to a range
+Clipping of weights
+Compute IPW weights
+Convergence
+DAGJK
+DRY
+Decided
+Description:
+Deville & Särndal, 1992
+Diagnostics
+ESS
+Encoding:
+Estimate inverse probability weights
+GPL-3
+GREG
+IPW
+IWLS
+Imports
+John Wiley & Sons
+Kish (1965)
+Kish 1965
+Kish, L. (1965)
+Layer 1
+Layer 3
+License:
+Limitations
+Missing Data
+NAs
+NEWS.md
+NULL
+Newton-Raphson
+Nonresponse
+Over-engineered
+PSU
+Package:
+Polish
+Positron
+Propensity
+R CMD check
+R-CMD-check
+R-devel
+RECOMMENDED
+RStudio
+Replicate
+Replicate Weights
+Roxygen:
+RoxygenNote:
+S7::S7_inherits
+S7::S7_inherits(x, ClassName)
+S7::S7_inherits(x, surveycore::survey_nonprob)
+S7::S7_inherits(x, surveycore::survey_taylor)
+S7::method(print, ...)
+S7::method(print, surveycore::survey_nonprob)
+S7::method(print, surveycore::survey_replicate)
+S7::new_class
+SE-1
+SE-7
+Suggests
+Survey Sampling
+Tier 1
+Tier 2
+Tier 3
+Tier 4
+Title:
+UTF-8
+Ubuntu
+Under-engineered
+Universal Rules
+Usually present
+Utilities
+VS Code
+Version:
+Warnings
+Weight clipping
+Weighting History
+When fixable
+Windows
+You must...
+You provided...
+[*.R]
+[*.{md,yaml,yml}]
+[direct]
+[format]
+[lower, upper]
+[numerical]
+[r]
+_PACKAGE
+_engine
+acs_ipw_ref
+adjust_nonresponse.R
+adjust_reference = TRUE
+after_stats
+age_group
+air
+air format
+air format .
+air format R/calibrate.R
+algorithm
+algorithm = c("classic_ipf", "nr")
+all(obj@data[[wt_col]] > 0)
+all(w >= 0)
+all(w >= 0) && any(w > 0)
+any(w > 0)
+as_survey
+as_taylor_design.R
+attr(my_dataset[[col]], "label")
+aut
+base_weight
+before_stats
+bootstrap_weights
+bounds = NULL
+bounds = c(-Inf, Inf)
+bounds = c(1e-6, 1e6)
+bounds_scale = c("multiplicative", "absolute")
+by = NULL
+c("classic_ipf", "nr")
+c("gee", "mle")
+c("omit", "separate", "impute")
+c("prop", "count")
+calibrate
+calibrate-utils.R
+calibrate.R
+calibrate_linear.R
+calibrate_logit.R
+calibrate_rake
+calibrate_rake.R
+calibrate_to_estimate.R
+calibrate_to_survey.R
+calibration
+call_str
+cap = NULL
+character
+checking CRAN incoming feasibility
+checking for code/documentation mismatches ... WARNING
+chore
+chore(ci)
+chore(description)
+chore/ci-coverage-workflow
+chore:
+class =
+class=
+classes
+cli::cli_abort
+cli::cli_abort("weights have NAs")
+cloglog
+code-style.md
+codoc
+comprehension.md
+constructors
+control = list()
+control = list(min_cell = 20, max_adjust = 2.0, n_cells = 5)
+control_design
+convergence
+cre
+create_*_weights()
+create_*_weights.R
+create_bootstrap_weights.R
+create_brr_weights.R
+create_gen_boot_weights.R
+create_gen_rep_weights.R
+create_jackknife_weights.R
+create_replicate_weights.R
+create_sdr_weights.R
+data
+data.R
+data.frame
+data@data
+data@metadata
+data@variables$weights
+deparse(match.call())
+description
+design
+devel
+develop
+df$base_weight[1] <- -1
+diagnostics
+diagnostics-utils.R
+docs
+docs(calibration)
+docs(functions): update roxygen
+docs/readme-examples
+docs:
+edge = "empty"
+education
+effective_sample_size
+effective_sample_size.R
+empty domains
+enquo(x)
+epsilon = 1e-8
+error = TRUE
+ess
+estimating_eq = c("gee", "mle")
+exists("survey_nonprob")
+exp(rnorm(n, 0, 0.4))
+expect_equal
+expect_error
+expect_error(class = ...)
+expect_error(class=)
+expect_snapshot
+expect_snapshot(error = TRUE
+expect_snapshot(error=TRUE)
+expect_true
+expect_true()
+expect_warning
+feat
+feat(calibration)
+feat(propensity)
+feat(scope): description
+feat:
+feature/*
+feature/calibration-core
+feature/calibration-rake
+fix
+fix(calibration)
+fix/history-timestamp
+fix:
+formula = NULL
+fpc = NULL
+function-documentation.md
+git log origin/develop..origin/main --oneline
+helper-*.R
+helper-test-data.R
+history_entry
+hotfix
+hotfix/*
+http-user-agent
+ids = NULL
+include_nonrespondents
+include_nonrespondents = FALSE
+include_nonrespondents = TRUE
+increase_if
+inherits(data, "survey_taylor")
+inherits(formula, "formula")
+inherits(x, "formula")
+inherits(x, "survey_taylor")
+insert_final_newline = true
+integer
+invisible(TRUE)
+invisible(x)
+ipw
+ipw.R
+is appended to the weighting history
+is.character
+is.character(wt_col)
+is.numeric
+jackknife-dagjk-utils.R
+jackknife_weights
+k = 5
+length(wt_col) == 1
+library(pkg)
+library(surveywts)
+linear
+lintr
+list(markdown = TRUE)
+logit
+lower = NULL
+macOS
+macos-latest
+magrittr
+main
+make_pkg_data
+make_surveywts_data
+man/
+man/my_function.Rd
+max_adjust = 2.0
+maxit = 25L
+meta@weighting_history
+method
+method = "logit"
+method = c("rake", "linear", "logit")
+method = c("weighting-class", "propensity-cell", "propensity")
+methods-print.R
+mice_args = list()
+min_cell = 20
+minor bump
+missing_method
+missing_method = "omit"
+missing_method = c("omit", "separate", "impute")
+mse = TRUE
+my_constructor
+mypkg_error_empty_data
+mypkg_error_fpc_na
+mypkg_error_internal
+mypkg_error_not_data_frame
+mypkg_error_weights_nonpositive
+mypkg_warning_single_row
+n = 10
+n = 200
+n = 500
+n_cells = 5
+names(my_dataset)
+names(obj@data)
+nest = FALSE
+nest = TRUE
+new_weights_vec
+no visible binding
+no visible binding for global variable
+no visible binding for global variable 'X'
+nonresponse
+nonresponse-utils.R
+nonresponse_propensity
+nonresponse_propensity_cell
+nonresponse_weighting_class
+npors_2025_ipw
+numeric
+obj
+obj@data[[obj@variables$weights]]
+obj@data[[wt_col]]
+obj@variables$weights
+operation = "fn_name"
+pak::pak("posit-dev/air")
+perf
+pipeline
+pkgdown
+plans
+population_size = NULL
+poststratify.R
+predictors = NULL
+primary_design
+prob =
+probit
+probs = NULL
+propensity
+quasi-randomization bootstrap
+r-package-conventions.md
+rake
+redistribute_weights.R
+reduce_if
+ref
+ref_pkg
+refactor
+reference
+reference_design = NULL
+region
+release
+replicate
+replicate-utils.R
+replicate-weights
+replicate_creation
+rescale_weights.R
+responded
+response_status
+rlang::enquo
+rlang::enquo(x)
+root = true
+roxygen2
+sample-calibration
+sd(w) / mean(w)
+seed
+seed =
+seed = 1
+seed = 123
+seed = 42
+selection = NULL
+selection = ~age + sex
+set_var_label
+sex
+single-level groups
+six
+skip_if_not_installed
+skip_if_not_installed("ref_pkg")
+skip_if_not_installed("survey")
+strata = NULL
+strict = FALSE
+summarize_weights.R
+survey
+survey weights
+surveycore
+surveycore/R/core-classes.R
+surveycore::as_survey
+surveycore::survey_base
+surveycore::survey_nonprob
+surveycore::survey_replicate
+surveycore::survey_taylor
+surveycore_error_*
+surveypkg-package.R
+surveytidy
+surveyverse
+surveywts
+surveywts-conventions.md
+surveywts-package.R
+surveywts_error_*
+surveywts_error_{condition}
+surveywts_error_{snake_case_condition}
+surveywts_warning_*
+surveywts_warning_{condition}
+surveywts_warning_{snake_case_condition}
+targets
+targets = NULL
+test
+test(calibration)
+test-02-*.R
+test-05-*.R
+test-06-diagnostics.R
+test-replicate-print.R
+test/calibrate-edge-cases
+test:
+test_invariants
+test_invariants(obj)
+testing-standards.md
+testing-{package}.md
+tests/testthat/
+tests/testthat/_snaps/
+testthat::expect_true
+three
+tolerance = 1e-10
+tolerance = 1e-8
+trim = FALSE
+trim_trailing_whitespace = true
+trim_weights
+trim_weights.R
+true
+type
+type = "prop"
+type = c("absolute", "percentile")
+type = c("prop", "count")
+ubuntu-latest
+unit_scale = NULL
+upper = NULL
+utilities
+utils
+utils.R
+validate = TRUE
+validators
+variables
+variables = list(weights = "base_weight")
+vcov_estimate
+w / mean(w)
+weight-utils.R
+weight_col
+weight_variability.R
+weights
+weights = NULL
+weights = base_weight
+weights_var = names(weights_cols)
+windows-latest
+wt_col
+wt_name
+wt_name = "ipw_weight"
+wt_name = NULL
+zero-weight rows
+zzz.R
+{.arg data}
+{.arg fpc = NULL}
+{.arg weights}
+{.cls survey_base}
+{.cls survey_taylor}
+{.cls {class(wt_col)}}
+{.cls}
+{.code nest = TRUE}
+{.field wt}
+{.field {var}}
+{.field {weight_col}}
+{.field}
+{.fn as.numeric}
+{.fn as_survey}
+{.val "brr"}
+{.val}
+{family}-utils.R
+{n_na}
+{type}({scope}): {short description}
+{type}/{short-description}
+≤2 notes

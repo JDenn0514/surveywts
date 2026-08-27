@@ -1,0 +1,122 @@
+id	source_file	source_line	category	verbatim	literals
+github-strategy-001	.claude/rules/github-strategy.md	3	value	"Applies to the surveywts package. Adapted from the surveycore version."	surveywts;surveycore
+github-strategy-002	.claude/rules/github-strategy.md	4	requirement	"Read on-demand when creating PRs or setting up CI — not auto-loaded."	
+github-strategy-003	.claude/rules/github-strategy.md	6	value	"**Version:** 2.0"	2.0
+github-strategy-004	.claude/rules/github-strategy.md	7	prohibition	"**Status:** Decided — do not re-litigate without updating this document"	
+github-strategy-005	.claude/rules/github-strategy.md	15	mapping	"Branching model | `develop` integration branch — features → `develop`; `develop` → `main` for releases"	develop;main
+github-strategy-006	.claude/rules/github-strategy.md	16	mapping	"Branch naming | `feature/`, `fix/`, `hotfix/`, `docs/`, `chore/`, `refactor/`"	feature/;fix/;hotfix/;docs/;chore/;refactor/
+github-strategy-007	.claude/rules/github-strategy.md	17	mapping	"Merge strategy | Squash for feature PRs; merge commit for release PRs"	
+github-strategy-008	.claude/rules/github-strategy.md	18	mapping	"Commit format | Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `chore:`)"	feat:;fix:;docs:;test:;chore:
+github-strategy-009	.claude/rules/github-strategy.md	19	mapping	"PR granularity | One PR per logical unit of work"	
+github-strategy-010	.claude/rules/github-strategy.md	20	mapping	"Versioning | `X.Y.Z.9000` on `develop`; `X.Y.Z` on `main` after release"	X.Y.Z.9000;develop;X.Y.Z;main
+github-strategy-011	.claude/rules/github-strategy.md	21	mapping	"CI | R-CMD-check required on `main` and `develop`; all PRs"	R-CMD-check;main;develop
+github-strategy-012	.claude/rules/github-strategy.md	22	mapping	"Release workflow | Use `/merge-main`"	/merge-main
+github-strategy-013	.claude/rules/github-strategy.md	28	requirement	"Choose the tier based on change size."	
+github-strategy-014	.claude/rules/github-strategy.md	28	tiebreaker	"When in doubt, go one tier higher."	
+github-strategy-015	.claude/rules/github-strategy.md	32	mapping	"**1 — Full** | New releases, new exported functions, new statistical methods, anything where correct behavior is undecided | spec → implementation plan → `/r-implement` → `/commit-and-pr`"	/r-implement;/commit-and-pr
+github-strategy-016	.claude/rules/github-strategy.md	33	mapping	"**2 — Plan only** | Medium bug fixes, new arguments, edge case additions — behavior obvious, approach isn't | implementation plan → `/r-implement` → `/commit-and-pr`"	/r-implement;/commit-and-pr
+github-strategy-017	.claude/rules/github-strategy.md	34	mapping	"**3 — Direct** | Clear bug fixes localized to 1–2 functions, test additions, roxygen changes | branch → `/r-implement` → `/commit-and-pr`"	/r-implement;/commit-and-pr
+github-strategy-018	.claude/rules/github-strategy.md	35	mapping	"**0 — Commit** | Typos, comments, `.gitignore`, README tweaks | direct commit to `develop` (no branch)"	.gitignore;develop
+github-strategy-019	.claude/rules/github-strategy.md	42	value	"main ← always stable; every commit is a tagged release"	main
+github-strategy-020	.claude/rules/github-strategy.md	44	value	"develop ← integration branch; all feature work lands here first"	develop
+github-strategy-021	.claude/rules/github-strategy.md	46	value	"feature/* ← individual units of work; branch from develop"	feature/*;develop
+github-strategy-022	.claude/rules/github-strategy.md	47	value	"hotfix/* ← urgent fixes only; branch from main"	hotfix/*;main
+github-strategy-023	.claude/rules/github-strategy.md	50	requirement	"Feature branches always cut from `develop` and merge back to `develop`."	develop
+github-strategy-024	.claude/rules/github-strategy.md	51	prohibition	"Never open a feature PR directly against `main`."	main
+github-strategy-025	.claude/rules/github-strategy.md	53	procedure	"Hotfixes branch from `main`, merge to `main`, then **immediately** open a second PR from the hotfix branch (or `main`) into `develop` to stay in sync."	main;develop;hotfix
+github-strategy-026	.claude/rules/github-strategy.md	55	prohibition	"Do not leave `main` ahead of `develop` — this causes merge conflicts at release time."	main;develop
+github-strategy-027	.claude/rules/github-strategy.md	58	requirement	"**Required check before any release PR:** run `git log origin/develop..origin/main --oneline`."	git log origin/develop..origin/main --oneline
+github-strategy-028	.claude/rules/github-strategy.md	59	procedure	"If it shows anything, sync `develop` first."	develop
+github-strategy-029	.claude/rules/github-strategy.md	66	mapping	"New R source file | Yes"	
+github-strategy-030	.claude/rules/github-strategy.md	67	mapping	"New test file | Yes"	
+github-strategy-031	.claude/rules/github-strategy.md	68	mapping	"Any change to exported function | Yes"	
+github-strategy-032	.claude/rules/github-strategy.md	69	mapping	"README / docs update | No"	
+github-strategy-033	.claude/rules/github-strategy.md	70	mapping	"Comment or typo fix | No"	
+github-strategy-034	.claude/rules/github-strategy.md	71	mapping	"`.Rbuildignore` / `.gitignore` | No"	.Rbuildignore;.gitignore
+github-strategy-035	.claude/rules/github-strategy.md	72	mapping	"Version bump + NEWS.md (release prep) | Direct commit to `develop`"	NEWS.md;develop
+github-strategy-036	.claude/rules/github-strategy.md	78	value	"Format: `{type}/{short-description}`"	{type}/{short-description}
+github-strategy-037	.claude/rules/github-strategy.md	82	mapping	"`feature/` | `develop` | New functionality"	feature/;develop
+github-strategy-038	.claude/rules/github-strategy.md	83	mapping	"`fix/` | `develop` | Bug fix in existing implementation"	fix/;develop
+github-strategy-039	.claude/rules/github-strategy.md	84	mapping	"`hotfix/` | `main` | Urgent fix that can't wait for next release"	hotfix/;main
+github-strategy-040	.claude/rules/github-strategy.md	85	mapping	"`docs/` | `develop` | Documentation-only changes"	docs/;develop
+github-strategy-041	.claude/rules/github-strategy.md	86	mapping	"`test/` | `develop` | Test-only additions or fixes"	test/;develop
+github-strategy-042	.claude/rules/github-strategy.md	87	mapping	"`chore/` | `develop` | Maintenance (CI config, build tooling)"	chore/;develop
+github-strategy-043	.claude/rules/github-strategy.md	88	mapping	"`refactor/` | `develop` | Internal restructuring, no behavioral change"	refactor/;develop
+github-strategy-044	.claude/rules/github-strategy.md	93	value	"feature/calibration-core"	feature/calibration-core
+github-strategy-045	.claude/rules/github-strategy.md	94	value	"feature/calibration-rake"	feature/calibration-rake
+github-strategy-046	.claude/rules/github-strategy.md	95	value	"fix/history-timestamp"	fix/history-timestamp
+github-strategy-047	.claude/rules/github-strategy.md	96	value	"test/calibrate-edge-cases"	test/calibrate-edge-cases
+github-strategy-048	.claude/rules/github-strategy.md	97	value	"chore/ci-coverage-workflow"	chore/ci-coverage-workflow
+github-strategy-049	.claude/rules/github-strategy.md	98	value	"docs/readme-examples"	docs/readme-examples
+github-strategy-050	.claude/rules/github-strategy.md	106	value	"{type}({scope}): {short description}"	{type}({scope}): {short description}
+github-strategy-051	.claude/rules/github-strategy.md	113	mapping	"`feat` | New exported function, new argument, new bundled dataset"	feat
+github-strategy-052	.claude/rules/github-strategy.md	114	mapping	"`fix` | Bug fix (behavioral change to existing code)"	fix
+github-strategy-053	.claude/rules/github-strategy.md	115	mapping	"`docs` | Roxygen comments, README, vignettes, plans"	docs
+github-strategy-054	.claude/rules/github-strategy.md	116	mapping	"`test` | Adding or updating tests (no production code change)"	test
+github-strategy-055	.claude/rules/github-strategy.md	117	mapping	"`chore` | CI config, DESCRIPTION, NAMESPACE, build tooling"	chore;DESCRIPTION;NAMESPACE
+github-strategy-056	.claude/rules/github-strategy.md	118	mapping	"`refactor` | Internal restructuring with no behavioral change"	refactor
+github-strategy-057	.claude/rules/github-strategy.md	119	mapping	"`perf` | Performance improvement"	perf
+github-strategy-058	.claude/rules/github-strategy.md	123	value	"`calibration`, `weights`, `utils`, `validators`, `replicate`, `propensity`, `diagnostics`, `data`, `docs`, `plans`, `pipeline`, `ci`, `description`"	calibration;weights;utils;validators;replicate;propensity;diagnostics;data;docs;plans;pipeline;ci;description
+github-strategy-059	.claude/rules/github-strategy.md	126	prohibition	"`classes` and `constructors` are retired scopes."	classes;constructors
+github-strategy-060	.claude/rules/github-strategy.md	126	value	"surveywts defines no classes and no constructors — see `surveywts-conventions.md` §6."	surveywts;surveywts-conventions.md
+github-strategy-061	.claude/rules/github-strategy.md	132	value	"feat(calibration): implement calibrate_rake() with iterative proportional fitting"	feat(calibration)
+github-strategy-062	.claude/rules/github-strategy.md	133	value	"feat(propensity): add ipw() with calibration GEE for exact covariate balance"	feat(propensity)
+github-strategy-063	.claude/rules/github-strategy.md	134	value	"fix(calibration): handle single-level target variable in poststratify()"	fix(calibration)
+github-strategy-064	.claude/rules/github-strategy.md	135	value	"test(calibration): add edge case tests for zero-weight rows in calibrate_rake()"	test(calibration)
+github-strategy-065	.claude/rules/github-strategy.md	136	value	"docs(calibration): add targets format examples to calibrate() roxygen"	docs(calibration)
+github-strategy-066	.claude/rules/github-strategy.md	137	value	"chore(ci): add test-coverage GitHub Actions workflow"	chore(ci)
+github-strategy-067	.claude/rules/github-strategy.md	138	value	"chore(description): bump version to 0.1.0 for Calibration release"	chore(description);0.1.0
+github-strategy-068	.claude/rules/github-strategy.md	143	requirement	"Write it as a conventional commit summarizing the whole PR:"	
+github-strategy-069	.claude/rules/github-strategy.md	145	value	"feat(calibration): implement calibrate_rake() with iterative proportional fitting (#12)"	feat(calibration);(#12)
+github-strategy-070	.claude/rules/github-strategy.md	147	value	"GitHub auto-appends `(#PR_NUMBER)` if you set the PR title as a conventional commit."	(#PR_NUMBER)
+github-strategy-071	.claude/rules/github-strategy.md	153	value	"`.github/PULL_REQUEST_TEMPLATE.md`:"	.github/PULL_REQUEST_TEMPLATE.md
+github-strategy-072	.claude/rules/github-strategy.md	156	requirement	"## What <!-- One sentence: what does this PR add or fix? -->"	
+github-strategy-073	.claude/rules/github-strategy.md	162	requirement	"- [ ] Tests written and passing (`devtools::test()`)"	devtools::test()
+github-strategy-074	.claude/rules/github-strategy.md	163	requirement	"- [ ] R CMD check: 0 errors, 0 warnings (`devtools::check()`)"	devtools::check()
+github-strategy-075	.claude/rules/github-strategy.md	164	requirement	"- [ ] Roxygen docs updated and `devtools::document()` run"	devtools::document()
+github-strategy-076	.claude/rules/github-strategy.md	165	requirement	"- [ ] `plans/error-messages.md` updated (if new errors/warnings added)"	plans/error-messages.md
+github-strategy-077	.claude/rules/github-strategy.md	166	requirement	"- [ ] PR title is a valid Conventional Commit (`feat(scope): description`)"	feat(scope): description
+github-strategy-078	.claude/rules/github-strategy.md	169	requirement	"Changelog entry format (required before every PR) is defined in `.claude/skills/changelog-workflow.md`."	.claude/skills/changelog-workflow.md
+github-strategy-079	.claude/rules/github-strategy.md	178	mapping	"Feature → `develop` | **Squash and merge** | Consolidates WIP commits into a clean single commit"	develop
+github-strategy-080	.claude/rules/github-strategy.md	179	mapping	"`develop` → `main` (release) | **Merge commit** | Preserves git ancestry between branches; prevents divergence"	develop;main
+github-strategy-081	.claude/rules/github-strategy.md	181	procedure	"Configure in GitHub → Settings → Pull Requests:"	
+github-strategy-082	.claude/rules/github-strategy.md	182	requirement	"- [x] Allow squash merging"	
+github-strategy-083	.claude/rules/github-strategy.md	183	requirement	"- [x] Allow merge commits"	
+github-strategy-084	.claude/rules/github-strategy.md	184	prohibition	"- [ ] Allow rebase merging *(disable)*"	
+github-strategy-085	.claude/rules/github-strategy.md	185	requirement	"- [x] Automatically delete head branches"	
+github-strategy-086	.claude/rules/github-strategy.md	187	value	"The `/merge-main` skill handles choosing the correct strategy automatically."	/merge-main
+github-strategy-087	.claude/rules/github-strategy.md	195	mapping	"Active development on `develop` | `X.Y.Z.9000` | `0.1.0.9000`"	develop;X.Y.Z.9000;0.1.0.9000
+github-strategy-088	.claude/rules/github-strategy.md	196	mapping	"Released on `main` | `X.Y.Z` | `0.1.0`"	main;X.Y.Z;0.1.0
+github-strategy-089	.claude/rules/github-strategy.md	202	mapping	"`v0.1.0` | `0.1.0` | Calibration complete — `calibrate()`, `calibrate_rake()`, `poststratify()`, basic diagnostics"	v0.1.0;0.1.0
+github-strategy-090	.claude/rules/github-strategy.md	203	mapping	"minor bump | minor bump | Replicate complete — replicate weight generation + bootstrap variance"	
+github-strategy-091	.claude/rules/github-strategy.md	204	mapping	"minor bump | minor bump | Utilities complete — `trim_weights()`, `rescale_weights()`"	
+github-strategy-092	.claude/rules/github-strategy.md	205	mapping	"minor bump | minor bump | Nonresponse complete — sample-based calibration, advanced nonresponse"	
+github-strategy-093	.claude/rules/github-strategy.md	206	mapping	"minor bump | minor bump | Propensity complete — propensity score weighting"	
+github-strategy-094	.claude/rules/github-strategy.md	207	mapping	"minor bump | minor bump | Diagnostics complete — balance assessment, visual diagnostics"	
+github-strategy-095	.claude/rules/github-strategy.md	208	mapping	"minor bump | minor bump | Polish complete — vignettes, CRAN submission"	
+github-strategy-096	.claude/rules/github-strategy.md	212	requirement	"Between tags, DESCRIPTION carries the `.9000` suffix:"	DESCRIPTION;.9000
+github-strategy-097	.claude/rules/github-strategy.md	214	value	"Version: 0.1.0.9000  # during Calibration development"	0.1.0.9000
+github-strategy-098	.claude/rules/github-strategy.md	221	requirement	"Use `/merge-main`."	/merge-main
+github-strategy-099	.claude/rules/github-strategy.md	221	procedure	"It handles: NEWS.md update → version bump → `devtools::check()` → PR `develop` → `main` → tag → post-release `.9000` bump."	NEWS.md;devtools::check();develop;main;.9000
+github-strategy-100	.claude/rules/github-strategy.md	232	mapping	"`R-CMD-check.yaml` | Push to `main` or `develop`; PR to `main` or `develop`"	R-CMD-check.yaml;main;develop
+github-strategy-101	.claude/rules/github-strategy.md	233	mapping	"`test-coverage.yaml` | Push to `main` or `develop`; PR to `main` or `develop`"	test-coverage.yaml;main;develop
+github-strategy-102	.claude/rules/github-strategy.md	234	mapping	"`pkgdown.yaml` | Push to `main`; any PR; published release; manual dispatch"	pkgdown.yaml;main
+github-strategy-103	.claude/rules/github-strategy.md	236	prohibition	"R-CMD-check does **not** run on a push to a feature branch."	R-CMD-check
+github-strategy-104	.claude/rules/github-strategy.md	236	value	"It runs when the PR opens."	
+github-strategy-105	.claude/rules/github-strategy.md	237	requirement	"Run `devtools::check()` locally before pushing."	devtools::check()
+github-strategy-106	.claude/rules/github-strategy.md	241	value	"Four configurations, not the full os x version cross product."	
+github-strategy-107	.claude/rules/github-strategy.md	241	value	"Only Ubuntu runs R-devel:"	Ubuntu;R-devel
+github-strategy-108	.claude/rules/github-strategy.md	247	value	"- {os: ubuntu-latest,  r: 'release'}"	ubuntu-latest;release
+github-strategy-109	.claude/rules/github-strategy.md	248	value	"- {os: ubuntu-latest,  r: 'devel', http-user-agent: 'release'}"	ubuntu-latest;devel;http-user-agent;release
+github-strategy-110	.claude/rules/github-strategy.md	249	value	"- {os: windows-latest, r: 'release'}"	windows-latest;release
+github-strategy-111	.claude/rules/github-strategy.md	250	value	"- {os: macos-latest,   r: 'release'}"	macos-latest;release
+github-strategy-112	.claude/rules/github-strategy.md	253	value	"The check runs with `args: 'c(\"--as-cran\", \"--no-manual\")'`."	--as-cran;--no-manual
+github-strategy-113	.claude/rules/github-strategy.md	257	value	"The workflow names each job `${{ matrix.config.os }} (${{ matrix.config.r }})`"	${{ matrix.config.os }} (${{ matrix.config.r }})
+github-strategy-114	.claude/rules/github-strategy.md	258	requirement	"so the status check to require is `R-CMD-check / ubuntu-latest (release)`, for both `main` and `develop`"	R-CMD-check / ubuntu-latest (release);main;develop
+github-strategy-115	.claude/rules/github-strategy.md	259	value	"Windows and macOS checks are informational."	Windows;macOS
+github-strategy-116	.claude/rules/github-strategy.md	263	procedure	"For both `main` and `develop` (GitHub → Settings → Branches):"	main;develop
+github-strategy-117	.claude/rules/github-strategy.md	264	requirement	"**Require status checks to pass before merging:** ✅"	
+github-strategy-118	.claude/rules/github-strategy.md	265	requirement	"**Require branches to be up to date before merging:** ✅"	
+github-strategy-119	.claude/rules/github-strategy.md	266	prohibition	"**Require pull request reviews before merging:** ❌ (solo author)"	
+github-strategy-120	.claude/rules/github-strategy.md	267	prohibition	"**Allow force pushes:** ❌"	
+github-strategy-121	.claude/rules/github-strategy.md	268	prohibition	"**Allow deletions:** ❌"	

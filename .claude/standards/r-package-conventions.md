@@ -225,3 +225,15 @@ Suggests:
 ```
 
 Do NOT use exact version pins (`==`). They are rejected by CRAN and too fragile.
+
+---
+
+## 5. Package Metadata
+
+All surveyverse packages include the standard `DESCRIPTION` fields. Do not
+copy a template from this document — read this package's `DESCRIPTION` for
+the canonical set.
+
+Every surveyverse package has a documented entry point: a
+`{pkg}-package.R` file carrying the package-level roxygen block and the
+`"_PACKAGE"` sentinel. The live example is `R/surveywts-package.R`.

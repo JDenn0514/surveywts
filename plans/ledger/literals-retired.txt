@@ -62,7 +62,6 @@ select()	B7	surveypkg-package.R template deleted; example used surveytidy verbs,
 ../survey-standards/ECOSYSTEM.md	B7	surveypkg-package.R template deleted; the real file is R/surveywts-package.R
 @section Documentation:	B7	surveypkg-package.R template deleted; the real file is R/surveywts-package.R
 @section Key Functions:	B7	surveypkg-package.R template deleted; the real file is R/surveywts-package.R
-_PACKAGE	B7	surveypkg-package.R template deleted; the real file is R/surveywts-package.R
 surveypkg-package.R	B7	surveypkg-package.R template deleted; the real file is R/surveywts-package.R
 
 # --- B1 (1): R-CMD-check matrix YAML block deleted; the real workflow file is the source ---

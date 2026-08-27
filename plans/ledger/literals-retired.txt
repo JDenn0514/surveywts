@@ -64,3 +64,6 @@ select()	B7	surveypkg-package.R template deleted; example used surveytidy verbs,
 @section Key Functions:	B7	surveypkg-package.R template deleted; the real file is R/surveywts-package.R
 _PACKAGE	B7	surveypkg-package.R template deleted; the real file is R/surveywts-package.R
 surveypkg-package.R	B7	surveypkg-package.R template deleted; the real file is R/surveywts-package.R
+
+# --- B1 (1): R-CMD-check matrix YAML block deleted; the real workflow file is the source ---
+http-user-agent	B1	R-CMD-check matrix YAML block deleted; the real source is .github/workflows/R-CMD-check.yaml

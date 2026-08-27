@@ -3,23 +3,19 @@
 <!-- Applies to the surveywts package. Adapted from the surveycore version. -->
 <!-- Read on-demand when creating PRs or setting up CI — not auto-loaded. -->
 
-**Version:** 2.0
-**Status:** Decided — do not re-litigate without updating this document
-
 ---
 
 ## Quick Reference
 
 | Decision | Choice |
 |----------|--------|
-| Branching model | `develop` integration branch — features → `develop`; `develop` → `main` for releases |
-| Branch naming | `feature/`, `fix/`, `hotfix/`, `docs/`, `chore/`, `refactor/` |
 | Merge strategy | Squash for feature PRs; merge commit for release PRs |
-| Commit format | Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `chore:`) |
 | PR granularity | One PR per logical unit of work |
 | Versioning | `X.Y.Z.9000` on `develop`; `X.Y.Z` on `main` after release |
 | CI | R-CMD-check required on `main` and `develop`; all PRs |
 | Release workflow | Use `/merge-main` |
+
+`core.md` §6 has the branch-prefix list and the Conventional Commits format.
 
 ---
 
@@ -106,6 +102,8 @@ docs/readme-examples
 {type}({scope}): {short description}
 ```
 
+`core.md` §6 has the valid scope list.
+
 ### Types
 
 | Type | Use for |
@@ -119,9 +117,6 @@ docs/readme-examples
 | `perf` | Performance improvement |
 
 ### Scopes
-
-`calibration`, `weights`, `utils`, `validators`, `replicate`, `propensity`,
-`diagnostics`, `data`, `docs`, `plans`, `pipeline`, `ci`, `description`
 
 `classes` and `constructors` are retired scopes. surveywts defines no classes
 and no constructors — see `surveywts-conventions.md` §6.
@@ -150,21 +145,7 @@ GitHub auto-appends `(#PR_NUMBER)` if you set the PR title as a conventional com
 
 ## PR Template
 
-`.github/PULL_REQUEST_TEMPLATE.md`:
-
-```markdown
-## What
-
-<!-- One sentence: what does this PR add or fix? -->
-
-## Checklist
-
-- [ ] Tests written and passing (`devtools::test()`)
-- [ ] R CMD check: 0 errors, 0 warnings (`devtools::check()`)
-- [ ] Roxygen docs updated and `devtools::document()` run
-- [ ] `plans/error-messages.md` updated (if new errors/warnings added)
-- [ ] PR title is a valid Conventional Commit (`feat(scope): description`)
-```
+See `.github/PULL_REQUEST_TEMPLATE.md` for the checklist every PR uses.
 
 Changelog entry format (required before every PR) is defined in
 `.claude/skills/changelog-workflow.md`.
@@ -177,12 +158,6 @@ Changelog entry format (required before every PR) is defined in
 |---------|----------|-----|
 | Feature → `develop` | **Squash and merge** | Consolidates WIP commits into a clean single commit |
 | `develop` → `main` (release) | **Merge commit** | Preserves git ancestry between branches; prevents divergence |
-
-Configure in GitHub → Settings → Pull Requests:
-- [x] Allow squash merging
-- [x] Allow merge commits
-- [ ] Allow rebase merging *(disable)*
-- [x] Automatically delete head branches
 
 The `/merge-main` skill handles choosing the correct strategy automatically.
 
@@ -239,16 +214,7 @@ PR opens. Run `devtools::check()` locally before pushing.
 ### R-CMD-check matrix
 
 Four configurations, not the full os x version cross product. Only Ubuntu
-runs R-devel:
-
-```yaml
-matrix:
-  config:
-    - {os: ubuntu-latest,  r: 'release'}
-    - {os: ubuntu-latest,  r: 'devel', http-user-agent: 'release'}
-    - {os: windows-latest, r: 'release'}
-    - {os: macos-latest,   r: 'release'}
-```
+runs R-devel. See `.github/workflows/R-CMD-check.yaml` for the matrix.
 
 The check runs with `args: 'c("--as-cran", "--no-manual")'`.
 
@@ -257,12 +223,3 @@ The check runs with `args: 'c("--as-cran", "--no-manual")'`.
 The workflow names each job `${{ matrix.config.os }} (${{ matrix.config.r }})`,
 so the status check to require is `R-CMD-check / ubuntu-latest (release)`, for
 both `main` and `develop`. Windows and macOS checks are informational.
-
-### Branch protection settings
-
-For both `main` and `develop` (GitHub → Settings → Branches):
-- **Require status checks to pass before merging:** ✅
-- **Require branches to be up to date before merging:** ✅
-- **Require pull request reviews before merging:** ❌ (solo author)
-- **Allow force pushes:** ❌
-- **Allow deletions:** ❌

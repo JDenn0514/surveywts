@@ -10,8 +10,6 @@
 
 | Decision | Choice |
 |----------|--------|
-| Indentation | 2 spaces |
-| Line length | 80 characters |
 | Auto-formatter | `air` (Posit's R formatter) |
 | Pipe operator | Native `\|>` only |
 | Style guide | tidyverse style (via air) |
@@ -37,30 +35,7 @@
 
 ## 1. General R Style
 
-### Indentation
-**2 spaces** per indent level. No tabs. Matches rlang, tidyselect, cli, and S7 source.
-
-```r
-# Correct
-.check_input_class <- function(data) {
-  if (!S7::S7_inherits(data, surveycore::survey_base)) {
-    cli::cli_abort(
-      c("x" = "{.arg data} must be a survey object."),
-      class = "surveywts_error_not_survey_base"
-    )
-  }
-  invisible(TRUE)
-}
-
-# Wrong
-.check_input_class <- function(data) {
-    if (!S7::S7_inherits(data, surveycore::survey_base)) {   # 4-space indent
-        cli::cli_abort(
-```
-
 ### Line length
-**80 characters** maximum. Enforced by `air`.
-
 For long function signatures, break after the opening `(` and align arguments:
 ```r
 # Good — break after (
@@ -109,11 +84,6 @@ cli::cli_abort(
 
 ### Auto-formatter
 Use **`air`** (Posit's R formatter) for all formatting. Run on save or before committing.
-
-```r
-# Install
-pak::pak("posit-dev/air")
-```
 
 Do not manually adjust spacing after running `air`. If `air` output looks wrong, there's a syntax problem — don't work around it.
 
@@ -546,73 +516,11 @@ No exact pins (`==`) — CRAN rejects them.
 NOT `lintr` (which only reports violations). When `air` touches a file, the
 code is correct — do not manually undo its changes.
 
-#### Install
-
-```r
-pak::pak("posit-dev/air")
-```
-
-#### Format-on-save (Positron / VS Code) — RECOMMENDED
-
-Install the air extension, then add to `.vscode/settings.json` in the repo
-root (create it if it doesn't exist):
-
-```json
-{
-  "[r]": {
-    "editor.formatOnSave": true,
-    "editor.defaultFormatter": "Posit.air-vscode"
-  }
-}
-```
-
-After this, every R file is auto-reformatted whenever you save. No manual
-`air format` needed during normal development.
-
-#### Format-on-save (RStudio)
-
-RStudio does not support format-on-save natively. Use the air addin
-(Addins → Format with air) or run from the terminal before committing:
-
-```bash
-air format .
-```
-
-#### Manual formatting
-
-```bash
-# Format the entire package
-air format .
-
-# Format a single file
-air format R/calibrate.R
-```
-
 Run `air format .` before opening a PR. Do not commit air-reformatted files
 in the same commit as functional changes — reformat first, then make the
 functional change.
 
-### `air.toml` (in package root)
-
-```toml
-[format]
-line-width = 80
-indent-width = 2
-```
-
-### `.editorconfig` (in package root)
-
-```ini
-root = true
-
-[*.R]
-indent_style = space
-indent_size = 2
-end_of_line = lf
-charset = utf-8
-trim_trailing_whitespace = true
-insert_final_newline = true
-
-[*.{md,yaml,yml}]
-indent_size = 2
-```
+`air.toml` and `.editorconfig`, both in the package root, are the source of
+truth for width and indentation. Read them there; do not restate their
+values here. Gate 8 runs `air format --check .` and fails the build when any
+file drifts.

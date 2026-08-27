@@ -50,45 +50,19 @@ Every `test_that()` block that creates a `survey_nonprob`, `survey_taylor`, or
 `survey_replicate` object must call `test_invariants(obj)` as its **first**
 assertion.
 
-Definition (from `tests/testthat/helper-test-data.R`):
-
-```r
-test_invariants <- function(obj) {
-  if (exists("survey_nonprob") &&
-        S7::S7_inherits(obj, survey_nonprob)) {
-    testthat::expect_true(is.character(obj@variables$weights))
-    testthat::expect_true(obj@variables$weights %in% names(obj@data))
-    testthat::expect_true(is.numeric(obj@data[[obj@variables$weights]]))
-    w <- obj@data[[obj@variables$weights]]
-    testthat::expect_true(all(w >= 0) && any(w > 0))
-  }
-  if (S7::S7_inherits(obj, surveycore::survey_taylor)) {
-    testthat::expect_true(is.character(obj@variables$weights))
-    testthat::expect_true(obj@variables$weights %in% names(obj@data))
-    testthat::expect_true(is.numeric(obj@data[[obj@variables$weights]]))
-    w <- obj@data[[obj@variables$weights]]
-    testthat::expect_true(all(w >= 0) && any(w > 0))
-  }
-  if (S7::S7_inherits(obj, surveycore::survey_replicate)) {
-    testthat::expect_true(S7::S7_inherits(obj, surveycore::survey_replicate))
-    wt_col <- obj@variables$weights
-    testthat::expect_true(is.character(wt_col) && length(wt_col) == 1)
-    testthat::expect_true(wt_col %in% names(obj@data))
-    testthat::expect_true(is.numeric(obj@data[[wt_col]]))
-    testthat::expect_true(all(obj@data[[wt_col]] > 0))
-  }
-}
-```
+`test_invariants()` is defined in `tests/testthat/helper-test-data.R`. That
+file is the real source of truth for the code; read it there.
 
 Three branches, and an object can match more than one — every branch that
 matches runs. The `survey_nonprob` and `survey_taylor` branches assert
 `all(w >= 0) && any(w > 0)`, which matches what the surveycore validator
-enforces. Only the `survey_replicate` branch asserts strict positivity.
+enforces. Only the `survey_replicate` branch asserts strict positivity, via
+`all(obj@data[[wt_col]] > 0)`.
 
-The `survey_nonprob` branch uses a bare name behind an `exists()` guard rather
-than `surveycore::survey_nonprob`. surveywts does not define or export
-`survey_nonprob`, so that guard is what keeps the branch from erroring when the
-bare name does not resolve.
+The `survey_nonprob` branch guards with `exists("survey_nonprob")` rather
+than testing `surveycore::survey_nonprob` directly. surveywts does not
+define or export `survey_nonprob`, so that guard is what keeps the branch
+from erroring when the bare name does not resolve.
 
 ---
 

@@ -144,7 +144,6 @@ Use `@family calibration`, `@family sample-calibration`, `@family nonresponse`, 
   `.make_history_entry()`, `.check_input_class()`, etc.)
 - No classes. surveywts defines none — see §6
 - No S3 methods. `NAMESPACE` holds zero `S3method()` directives
-- No re-exports — not the pipe, not tidyselect helpers
 
 ---
 
@@ -230,6 +229,3 @@ Before committing any roxygen2 changes:
 - [ ] All `@examples` are runnable
 - [ ] Internal helpers have `@keywords internal` + `@noRd` if needed
 - [ ] `@family` tags are correct (see Section 2)
-- [ ] No `@importFrom` tags anywhere
-- [ ] All external calls use `::`
-- [ ] `R CMD check` passes with 0 errors, 0 warnings, ≤2 notes

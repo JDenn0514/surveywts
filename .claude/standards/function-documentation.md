@@ -206,6 +206,11 @@ remediation in planning docs — do not substitute inline data as a workaround.
 require external resources (e.g., a live database connection or network call).
 Every other example must run successfully during `R CMD check`.
 
+**Examples must load Imports packages explicitly.** `R CMD check` runs
+examples in a fresh session with only `library(surveywts)` loaded. If an
+example calls a bare function from an Imports package, add `library(pkg)` at
+the top of the block.
+
 **Required content:**
 
 - Always: the simplest working call, over a survey object built from package

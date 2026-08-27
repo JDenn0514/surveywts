@@ -41,6 +41,16 @@ import sys
 LEDGER = "plans/ledger"
 LIST = os.path.join(LEDGER, "literals.txt")
 REJECTS = os.path.join(LEDGER, "literals-rejected.txt")
+RETIRED = os.path.join(LEDGER, "literals-retired.txt")
+
+# Section 5 rows the user approved for deletion. A3, A4 and C3 were considered
+# and KEPT, so citing one of them to retire a literal is a mistake, not an
+# approval, and `check` refuses it.
+APPROVED_DELETIONS = {
+    "A1", "A2", "A5", "A6",
+    "B1", "B2", "B3", "B4", "B5", "B6", "B7",
+    "C1", "C2",
+}
 SEARCH_ROOTS = ["CLAUDE.md", ".claude"]
 MIN_LEN = 3
 
@@ -142,6 +152,43 @@ def read_list():
             else:
                 lits.append(line)
     return header, lits
+
+
+def read_retired():
+    """Literals removed by an approved deletion, as {literal: approval-row}.
+
+    Returns (retired, problems). A problem is a row that must not be honoured:
+    a missing or unapproved approval column, or a literal that was never in
+    literals.txt. Honouring either would let this file become the back door
+    that quietly shrinks the contract.
+    """
+    retired, problems = {}, []
+    if not os.path.exists(RETIRED):
+        return retired, problems
+    tracked = set(norm(l) for l in read_list()[1])
+    with open(RETIRED, encoding="utf-8") as fh:
+        for n, line in enumerate(fh, 1):
+            line = line.rstrip("\r\n")
+            if not line.strip() or line.startswith("#"):
+                continue
+            parts = line.split("\t")
+            lit = parts[0]
+            row = parts[1].strip() if len(parts) > 1 else ""
+            if not row:
+                problems.append(f"line {n}: no approval named for {lit!r}")
+                continue
+            if row not in APPROVED_DELETIONS:
+                problems.append(
+                    f"line {n}: {lit!r} cites {row}, which was not approved "
+                    f"for deletion")
+                continue
+            if norm(lit) not in tracked:
+                problems.append(
+                    f"line {n}: {lit!r} is not in {LIST}, so it was never "
+                    f"tracked")
+                continue
+            retired[norm(lit)] = row
+    return retired, problems
 
 
 # --- extract --------------------------------------------------------------
@@ -254,17 +301,48 @@ def cmd_check(args):
     if not lits:
         print(f"FAIL  literals: list is empty or missing: {LIST}")
         return 1
-    missing = [l for l in lits if not present(l)]
+
+    retired, problems = read_retired()
+    if problems:
+        print(f"FAIL  retired: {len(problems)} bad row(s) in {RETIRED}")
+        for pr in problems:
+            print(f"        {pr}")
+        return 1
+
+    active = [l for l in lits if norm(l) not in retired]
+    missing = [l for l in active if not present(l)]
+
+    # A retired literal that is still in the tree means the retirement is
+    # stale: the deletion did not happen, or the value came back somewhere
+    # else. Report it so the register cannot rot unnoticed, but do not fail -
+    # a value reappearing is not a loss.
+    back = [l for l in lits if norm(l) in retired and present(l)]
+
     if missing:
-        print(f"FAIL  literals: {len(missing)} of {len(lits)} not found")
+        print(f"FAIL  literals: {len(missing)} of {len(active)} not found")
         for m in missing:
             print(f"        {m}")
         return 1
-    print(f"PASS  literals: {len(lits)} of {len(lits)} found")
+
+    tail = f" ({len(retired)} removed on purpose)" if retired else ""
+    print(f"PASS  literals: {len(active)} of {len(active)} found{tail}")
+    for b in back:
+        print(f"NOTE  retired but still present: {b} ({retired[norm(b)]})")
     return 0
 
 
 def main():
+    # The console on Windows defaults to cp1252, which cannot encode the
+    # arrows, dashes and quotes that appear inside these literals. Printing a
+    # missing literal then raises UnicodeEncodeError and the run dies partway
+    # through the list - the gate fails to report the very failures it exists
+    # to report. Force UTF-8, and fall back to replacing the odd character
+    # rather than losing the report.
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
     e = sub.add_parser("extract"); e.add_argument("--ref", default="45e8751")

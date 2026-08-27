@@ -1,0 +1,47 @@
+# Literals removed on purpose, each naming the approval that removed it.
+#
+# plans/ledger/literals.txt is a pinned contract and never shrinks. When an
+# approved deletion takes a literal out of the tree, the literal is recorded
+# HERE instead, with the Section 5 row that approved it. `literals.py check`
+# subtracts these from the active set and reports the count, so the gate keeps
+# ringing for a real accident while staying quiet about an approved decision.
+#
+# Format, tab separated:   literal <TAB> approved-by <TAB> why
+#
+# An entry is refused when:
+#   - the approved-by column is empty, or names a row that was NOT approved
+#     for deletion. A3, A4 and C3 were kept, so they can never appear here.
+#   - the literal is not in literals.txt, so it was never tracked.
+#
+# Approved for deletion: A1 A2 A5 A6 B1-B7 C1 C2.
+# See plans/spec-rules-redesign.md Sections 5 and 13.
+
+# --- A1 (2): indentation prose deleted; air.toml and gate 8 enforce it ---
+2 spaces	A1	indentation prose deleted; air.toml and gate 8 enforce it
+4-space indent	A1	indentation prose deleted; air.toml and gate 8 enforce it
+
+# --- A5 (10): air install command and editor setup deleted; cached air's own docs ---
+.vscode/settings.json	A5	air install command and editor setup deleted; cached air's own docs
+Addins → Format with air	A5	air install command and editor setup deleted; cached air's own docs
+Posit.air-vscode	A5	air install command and editor setup deleted; cached air's own docs
+Positron	A5	air install command and editor setup deleted; cached air's own docs
+RECOMMENDED	A5	air install command and editor setup deleted; cached air's own docs
+[r]	A5	air install command and editor setup deleted; cached air's own docs
+air format R/calibrate.R	A5	air install command and editor setup deleted; cached air's own docs
+editor.defaultFormatter	A5	air install command and editor setup deleted; cached air's own docs
+editor.formatOnSave	A5	air install command and editor setup deleted; cached air's own docs
+pak::pak("posit-dev/air")	A5	air install command and editor setup deleted; cached air's own docs
+
+# --- A6 (12): inlined air.toml / .editorconfig bodies deleted; the files are the source ---
+[*.R]	A6	inlined air.toml / .editorconfig bodies deleted; the files are the source
+[*.{md,yaml,yml}]	A6	inlined air.toml / .editorconfig bodies deleted; the files are the source
+[format]	A6	inlined air.toml / .editorconfig bodies deleted; the files are the source
+charset = utf-8	A6	inlined air.toml / .editorconfig bodies deleted; the files are the source
+end_of_line = lf	A6	inlined air.toml / .editorconfig bodies deleted; the files are the source
+indent-width = 2	A6	inlined air.toml / .editorconfig bodies deleted; the files are the source
+indent_size = 2	A6	inlined air.toml / .editorconfig bodies deleted; the files are the source
+indent_style = space	A6	inlined air.toml / .editorconfig bodies deleted; the files are the source
+insert_final_newline = true	A6	inlined air.toml / .editorconfig bodies deleted; the files are the source
+line-width = 80	A6	inlined air.toml / .editorconfig bodies deleted; the files are the source
+root = true	A6	inlined air.toml / .editorconfig bodies deleted; the files are the source
+trim_trailing_whitespace = true	A6	inlined air.toml / .editorconfig bodies deleted; the files are the source

@@ -31,9 +31,10 @@ you act on it, then fix it:
    moved all weighting functions to survey_base objects. `grep -rl weighted_df
    R/ tests/ man/ NAMESPACE` returns nothing. The rules still present it as a
    live S3 class with a three-path input dispatch contract, attributes, and a
-   dplyr compatibility story. Grep for `weighted_df` across .claude/rules/ —
-   it appears in code-style.md, surveywts-conventions.md, and
-   testing-surveywts.md.
+   dplyr compatibility story. It appears in five rules files, by mention count:
+   code-style.md (21), surveywts-conventions.md (11), testing-surveywts.md (7),
+   function-documentation.md (2), github-strategy.md (2). Grep for it yourself
+   and work from your own result, not from these counts.
 2. `.make_weighted_df()` does not exist. The rules say it lives in utils.R.
 3. `print.weighted_df()` and `dplyr_reconstruct.weighted_df()` are documented
    as exported via @export. NAMESPACE has zero S3method() entries.

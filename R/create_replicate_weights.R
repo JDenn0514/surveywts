@@ -54,8 +54,11 @@
 create_replicate_weights <- function(
   data,
   method = c(
-    "bootstrap", "jackknife", "brr",
-    "generalized-bootstrap", "generalized-replicate",
+    "bootstrap",
+    "jackknife",
+    "brr",
+    "generalized-bootstrap",
+    "generalized-replicate",
     "successive-difference"
   ),
   ...
@@ -63,9 +66,9 @@ create_replicate_weights <- function(
   method <- rlang::arg_match(method)
   switch(
     method,
-    bootstrap               = create_bootstrap_weights(data, ...),
-    jackknife               = create_jackknife_weights(data, ...),
-    brr                     = create_brr_weights(data, ...),
+    bootstrap = create_bootstrap_weights(data, ...),
+    jackknife = create_jackknife_weights(data, ...),
+    brr = create_brr_weights(data, ...),
     "generalized-bootstrap" = create_gen_boot_weights(data, ...),
     "generalized-replicate" = create_gen_rep_weights(data, ...),
     "successive-difference" = create_sdr_weights(data, ...)

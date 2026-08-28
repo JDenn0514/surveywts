@@ -1,0 +1,45 @@
+id	verdict	location	evidence
+claude-md-001	PRESERVED	CLAUDE.md:13	Calibration | `v0.1.0` | Complete | `calibrate()`, `calibrate_rake()`, `calibrate_linear()`, `calibrate_logit()`, `poststratify()`, basic diagnostics
+claude-md-002	PRESERVED	CLAUDE.md:14	Replicate | minor bump | Complete | All `create_*_weights()` functions; `as_taylor_design()`
+claude-md-003	PRESERVED	CLAUDE.md:15	Utilities | minor bump | Complete | `trim_weights()`, `rescale_weights()`
+claude-md-004	PRESERVED	CLAUDE.md:16	Nonresponse | minor bump | Complete | `calibrate_to_survey()`, `calibrate_to_estimate()`, `adjust_nonresponse()`, `redistribute_weights()`
+claude-md-005	PRESERVED	CLAUDE.md:17	Propensity | minor bump | Complete | Non-probability sample IPW; unlocks propensity nonresponse
+claude-md-006	PRESERVED	CLAUDE.md:18	Diagnostics | minor bump | Next | Balance assessment, `check_balance()`, `diagnose_propensity()`, `compare_weighted_estimates()`
+claude-md-007	PRESERVED	CLAUDE.md:19	Polish | minor bump | Pending | Vignettes, `--as-cran` clean, pkgdown
+claude-md-008	PRESERVED	CLAUDE.md:21	Full roadmap at `plans/roadmap.md`.
+claude-md-009	MOVED	.claude/rules/core.md:3-5	Full conventions — including naming beyond the two classes below — are in `.claude/standards/surveywts-conventions.md` §1.
+claude-md-010	MOVED	.claude/rules/core.md:37	Error classes: `surveywts_error_{snake_case_condition}`
+claude-md-011	MOVED	.claude/rules/core.md:38	Warning classes: `surveywts_warning_{snake_case_condition}`
+claude-md-012	MOVED	.claude/rules/core.md:44-45	Internal helpers carry a `.` prefix (e.g., `.validate_weights()`) and are never exported.
+claude-md-013	MOVED	.claude/rules/core.md:9	"heading ""## 1. Design variables are sacred"" plus ""Never remove a weight column."" Banner phrase restored verbatim."
+claude-md-014	MOVED	.claude/rules/core.md:9-12	Every weighting function either overwrites the existing weight column in place (`wt_name = NULL`, the default) or writes a new column and repoints `@variables$weights` at it.
+claude-md-015	MOVED	.claude/rules/core.md:10	(`wt_name = NULL`, the default)
+claude-md-016	MOVED	.claude/rules/core.md:11-12	It never drops the old column
+claude-md-017	MOVED	.claude/rules/core.md:12-13	and it refuses to write over a non-weight column: that throws `surveywts_error_wt_name_conflict`.
+claude-md-018	MOVED	.claude/rules/core.md:15	In-place overwrite of the main weight column is silent — no warning.
+claude-md-019	MOVED	.claude/rules/core.md:16-18	Only replicate weight columns warn when overwritten, via `surveywts_warning_repweights_overwritten` and `surveywts_warning_jackknife_repweights_overwritten`.
+claude-md-020	MOVED	.claude/rules/core.md:25	Every adjustment appends an entry to `@metadata@weighting_history`
+claude-md-021	MOVED	.claude/rules/core.md:25-26	built by `.make_history_entry()`
+claude-md-022	MOVED	.claude/rules/core.md:26	and written by `.update_survey_weights()`
+claude-md-023	MOVED	.claude/rules/core.md:20	Column removal and rename hooks are surveycore and surveytidy concerns.
+claude-md-024	MOVED	.claude/rules/core.md:21	surveywts has no code path that removes or renames a column.
+claude-md-025	MOVED	.claude/rules/core.md:49	Every non-trivial change lives on a feature branch
+claude-md-026	MOVED	.claude/rules/core.md:49-50	never commit implementation code to `main` or `develop`
+claude-md-027	MOVED	.claude/rules/core.md:51-52	Branch naming: `feature/`, `fix/`, `hotfix/`, `test/`, `docs/`, `chore/`, `refactor/`.
+claude-md-028	MOVED	.claude/rules/core.md:53	All commits use Conventional Commits format: `feat(scope): description`.
+claude-md-029	MOVED	.claude/rules/core.md:54-56 (scopes); .claude/rules/core.md:76 (github-strategy.md pointer)	Valid scopes: `calibration`, `weights`, `utils`, `validators`, `replicate`, `propensity`, `diagnostics`, `data`, `docs`, `plans`, `pipeline`, `ci`, `description`.
+claude-md-030	MOVED	.claude/rules/core.md:60-61	Run `devtools::document()` before committing any file with roxygen2 changes.
+claude-md-031	MOVED	.claude/rules/core.md:62	Run `devtools::check()` before opening a PR.
+claude-md-032	MOVED	.claude/standards/function-documentation.md:209	**Examples must load Imports packages explicitly.**
+claude-md-033	MOVED	.claude/standards/function-documentation.md:209-210	`R CMD check` runs examples in a fresh session with only `library(surveywts)` loaded.
+claude-md-034	MOVED	.claude/standards/function-documentation.md:211-212	If an example calls a bare function from an Imports package, add `library(pkg)` at the top of the block.
+claude-md-035	PRESERVED	CLAUDE.md:27-28	`plans/error-messages.md` — canonical error/warning class names and CLI message templates
+claude-md-036	PRESERVED	CLAUDE.md:29-30	`.claude/WORKFLOW.md` — how the skills fit together (planning arc → implementation loop)
+claude-md-037	MOVED	.claude/rules/core.md:70,79	`.claude/standards/code-style.md` covers S7 patterns, cli errors, argument order, the air formatter.
+claude-md-038	MOVED	.claude/rules/core.md:72,80	`.claude/standards/r-package-conventions.md` covers imports, NAMESPACE, roxygen2, export policy.
+claude-md-039	MOVED	.claude/rules/core.md:73,81-82	`.claude/standards/surveywts-conventions.md` covers package-specific naming, families, visibility, class ownership.
+claude-md-040	MOVED	.claude/rules/core.md:71,82-83	`.claude/standards/function-documentation.md` covers roxygen2 tiers, required sections, the `@examples` policy.
+claude-md-041	MOVED	.claude/rules/core.md:74,83-84	`.claude/standards/testing-standards.md` covers test structure, coverage targets, assertion patterns.
+claude-md-042	MOVED	.claude/rules/core.md:75,85-86	`.claude/standards/testing-surveywts.md` covers package-specific test invariants and data generators.
+claude-md-043	MOVED	.claude/rules/core.md:76,86-87	`.claude/standards/github-strategy.md` covers branching model, commit format, versioning.
+claude-md-044	MOVED	.claude/rules/core.md:77,87-88	`.claude/standards/engineering-preferences.md` covers DRY, edge cases, over/under-engineering.

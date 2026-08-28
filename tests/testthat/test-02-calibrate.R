@@ -73,11 +73,11 @@ test_that("old calibrate() with variables + population args no longer exists", {
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() with method = 'rake' returns same result as calibrate_rake()", {
-  df      <- make_surveywts_data(seed = 101)
-  design  <- .make_test_taylor_greg(df)
+  df <- make_surveywts_data(seed = 101)
+  design <- .make_test_taylor_greg(df)
   targets <- .make_targets()
 
-  direct     <- calibrate_rake(design, targets = targets)
+  direct <- calibrate_rake(design, targets = targets)
   dispatcher <- calibrate(design, targets = targets, method = "rake")
 
   test_invariants(dispatcher)
@@ -94,11 +94,11 @@ test_that("calibrate() with method = 'rake' returns same result as calibrate_rak
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() with method = 'linear' returns same result as calibrate_linear()", {
-  df      <- make_surveywts_data(seed = 102)
-  design  <- .make_test_taylor_greg(df)
+  df <- make_surveywts_data(seed = 102)
+  design <- .make_test_taylor_greg(df)
   targets <- .make_targets()
 
-  direct     <- calibrate_linear(design, targets = targets)
+  direct <- calibrate_linear(design, targets = targets)
   dispatcher <- calibrate(design, targets = targets, method = "linear")
 
   test_invariants(dispatcher)
@@ -115,11 +115,11 @@ test_that("calibrate() with method = 'linear' returns same result as calibrate_l
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() with method = 'logit' returns same result as calibrate_logit()", {
-  df      <- make_surveywts_data(seed = 103)
-  design  <- .make_test_taylor_greg(df)
+  df <- make_surveywts_data(seed = 103)
+  design <- .make_test_taylor_greg(df)
   targets <- .make_targets()
 
-  direct     <- calibrate_logit(design, targets = targets)
+  direct <- calibrate_logit(design, targets = targets)
   dispatcher <- calibrate(design, targets = targets, method = "logit")
 
   test_invariants(dispatcher)
@@ -136,11 +136,11 @@ test_that("calibrate() with method = 'logit' returns same result as calibrate_lo
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() default method dispatches to calibrate_rake()", {
-  df      <- make_surveywts_data(seed = 104)
-  design  <- .make_test_taylor_greg(df)
+  df <- make_surveywts_data(seed = 104)
+  design <- .make_test_taylor_greg(df)
   targets <- .make_targets()
 
-  direct     <- calibrate_rake(design, targets = targets)
+  direct <- calibrate_rake(design, targets = targets)
   dispatcher <- calibrate(design, targets = targets)
 
   test_invariants(dispatcher)
@@ -157,11 +157,11 @@ test_that("calibrate() default method dispatches to calibrate_rake()", {
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() forwards NSE weights correctly to dispatched function", {
-  df      <- make_surveywts_data(seed = 105)
-  design  <- .make_test_taylor_greg(df)
+  df <- make_surveywts_data(seed = 105)
+  design <- .make_test_taylor_greg(df)
   targets <- .make_targets()
 
-  direct     <- calibrate_rake(design, targets = targets)
+  direct <- calibrate_rake(design, targets = targets)
   dispatcher <- calibrate(design, targets = targets)
 
   test_invariants(dispatcher)
@@ -193,8 +193,8 @@ test_that("calibrate() aborts with cli error for data.frame input", {
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() with invalid method triggers arg_match error", {
-  df      <- make_surveywts_data(seed = 106)
-  design  <- .make_test_taylor_greg(df)
+  df <- make_surveywts_data(seed = 106)
+  design <- .make_test_taylor_greg(df)
   targets <- .make_targets()
 
   expect_error(
@@ -207,8 +207,8 @@ test_that("calibrate() with invalid method triggers arg_match error", {
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() with method = 'greg' triggers arg_match error (removed in PR 4)", {
-  df      <- make_surveywts_data(seed = 107)
-  design  <- .make_test_taylor_greg(df)
+  df <- make_surveywts_data(seed = 107)
+  design <- .make_test_taylor_greg(df)
   targets <- .make_targets()
 
   expect_error(
@@ -221,8 +221,8 @@ test_that("calibrate() with method = 'greg' triggers arg_match error (removed in
 # ---------------------------------------------------------------------------
 
 test_that("calibrate() with method = 'poststrat' triggers arg_match error (removed in PR 4)", {
-  df      <- make_surveywts_data(seed = 108)
-  design  <- .make_test_taylor_greg(df)
+  df <- make_surveywts_data(seed = 108)
+  design <- .make_test_taylor_greg(df)
   targets <- .make_targets()
 
   expect_error(
@@ -258,76 +258,78 @@ test_that(".check_input_class() accepts survey_replicate without throwing", {
 # Infra-2a. .update_survey_weights() with caldata sets @calibration
 # ---------------------------------------------------------------------------
 
-test_that(
-  ".update_survey_weights() with caldata = list(...) sets design@calibration",
-  {
-    # Use survey_nonprob which has @calibration property (survey_taylor does not)
-    df <- make_surveywts_data(n = 50L, seed = 202)
-    design <- surveycore::survey_nonprob(
-      data = df,
-      variables = list(weights = "base_weight"),
-      metadata = surveycore::survey_metadata(),
-      groups = character(0),
-      call = NULL,
-      calibration = NULL
+test_that(".update_survey_weights() with caldata = list(...) sets design@calibration", {
+  # Use survey_nonprob which has @calibration property (survey_taylor does not)
+  df <- make_surveywts_data(n = 50L, seed = 202)
+  design <- surveycore::survey_nonprob(
+    data = df,
+    variables = list(weights = "base_weight"),
+    metadata = surveycore::survey_metadata(),
+    groups = character(0),
+    call = NULL,
+    calibration = NULL
+  )
+  new_wts <- design@data[["base_weight"]] * 1.05
+  entry <- .make_history_entry(
+    step = 1L,
+    operation = "calibration",
+    weight_col = "base_weight",
+    call_str = "test",
+    parameters = list(),
+    before_stats = .compute_weight_stats(design@data[["base_weight"]]),
+    after_stats = .compute_weight_stats(new_wts),
+    convergence = list(
+      converged = TRUE,
+      iterations = 1L,
+      max_error = 0,
+      tolerance = 1e-6
     )
-    new_wts <- design@data[["base_weight"]] * 1.05
-    entry <- .make_history_entry(
-      step = 1L,
-      operation = "calibration",
-      weight_col = "base_weight",
-      call_str = "test",
-      parameters = list(),
-      before_stats = .compute_weight_stats(design@data[["base_weight"]]),
-      after_stats = .compute_weight_stats(new_wts),
-      convergence = list(
-        converged = TRUE, iterations = 1L,
-        max_error = 0, tolerance = 1e-6
-      )
-    )
-    fake_caldata <- list(method = "linear", x_matrix = matrix(1, 1, 1))
-    result <- .update_survey_weights(design, new_wts, entry,
-                                     caldata = fake_caldata)
-    expect_identical(result@calibration, fake_caldata)
-  }
-)
+  )
+  fake_caldata <- list(method = "linear", x_matrix = matrix(1, 1, 1))
+  result <- .update_survey_weights(
+    design,
+    new_wts,
+    entry,
+    caldata = fake_caldata
+  )
+  expect_identical(result@calibration, fake_caldata)
+})
 
 # ---------------------------------------------------------------------------
 # Infra-2b. .update_survey_weights() with caldata = NULL leaves @calibration
 # ---------------------------------------------------------------------------
 
-test_that(
-  ".update_survey_weights() with caldata = NULL leaves @calibration unchanged",
-  {
-    # Use survey_nonprob which has @calibration property (survey_taylor does not)
-    df <- make_surveywts_data(n = 50L, seed = 203)
-    design <- surveycore::survey_nonprob(
-      data = df,
-      variables = list(weights = "base_weight"),
-      metadata = surveycore::survey_metadata(),
-      groups = character(0),
-      call = NULL,
-      calibration = NULL
+test_that(".update_survey_weights() with caldata = NULL leaves @calibration unchanged", {
+  # Use survey_nonprob which has @calibration property (survey_taylor does not)
+  df <- make_surveywts_data(n = 50L, seed = 203)
+  design <- surveycore::survey_nonprob(
+    data = df,
+    variables = list(weights = "base_weight"),
+    metadata = surveycore::survey_metadata(),
+    groups = character(0),
+    call = NULL,
+    calibration = NULL
+  )
+  new_wts <- design@data[["base_weight"]] * 1.02
+  entry <- .make_history_entry(
+    step = 1L,
+    operation = "calibration",
+    weight_col = "base_weight",
+    call_str = "test",
+    parameters = list(),
+    before_stats = .compute_weight_stats(design@data[["base_weight"]]),
+    after_stats = .compute_weight_stats(new_wts),
+    convergence = list(
+      converged = TRUE,
+      iterations = 1L,
+      max_error = 0,
+      tolerance = 1e-6
     )
-    new_wts <- design@data[["base_weight"]] * 1.02
-    entry <- .make_history_entry(
-      step = 1L,
-      operation = "calibration",
-      weight_col = "base_weight",
-      call_str = "test",
-      parameters = list(),
-      before_stats = .compute_weight_stats(design@data[["base_weight"]]),
-      after_stats = .compute_weight_stats(new_wts),
-      convergence = list(
-        converged = TRUE, iterations = 1L,
-        max_error = 0, tolerance = 1e-6
-      )
-    )
-    # @calibration is NULL before (newly constructed design)
-    result <- .update_survey_weights(design, new_wts, entry, caldata = NULL)
-    expect_null(result@calibration)
-  }
-)
+  )
+  # @calibration is NULL before (newly constructed design)
+  result <- .update_survey_weights(design, new_wts, entry, caldata = NULL)
+  expect_null(result@calibration)
+})
 
 # ---------------------------------------------------------------------------
 # Infra-3. .build_calibration_provenance() — direct tests
@@ -340,7 +342,7 @@ test_that(
   q_weights <- rep(1, n)
   age <- sample(c("A", "B", "C"), n, replace = TRUE, prob = c(0.3, 0.4, 0.3))
   x_matrix <- stats::model.matrix(
-    ~ age,
+    ~age,
     data = data.frame(age = factor(age, levels = c("A", "B", "C")))
   )
   J <- ncol(x_matrix)
@@ -354,18 +356,28 @@ test_that(
   pop_totals["ageC"] <- prop_c * total_w
 
   # Calibrate to get engine_result
-  data_df <- data.frame(age = factor(age, levels = c("A", "B", "C")),
-                        .wt_tmp = base_weights)
+  data_df <- data.frame(
+    age = factor(age, levels = c("A", "B", "C")),
+    .wt_tmp = base_weights
+  )
   svy_tmp <- survey::svydesign(ids = ~1, weights = ~.wt_tmp, data = data_df)
   fml <- stats::as.formula("~ age")
-  cal <- survey::calibrate(svy_tmp, formula = fml, population = pop_totals,
-                            calfun = survey::cal.linear)
+  cal <- survey::calibrate(
+    svy_tmp,
+    formula = fml,
+    population = pop_totals,
+    calfun = survey::cal.linear
+  )
   calibrated_weights <- as.numeric(stats::weights(cal))
 
   engine_result <- list(
     weights = calibrated_weights,
-    convergence = list(converged = TRUE, iterations = 1L,
-                       max_error = 0, tolerance = 1e-6)
+    convergence = list(
+      converged = TRUE,
+      iterations = 1L,
+      max_error = 0,
+      tolerance = 1e-6
+    )
   )
 
   list(
@@ -378,238 +390,211 @@ test_that(
   )
 }
 
-test_that(
-  ".build_calibration_provenance() returns named list with all 12 required fields",
-  {
-    skip_if_not_installed("survey")
-    inp <- .make_provenance_inputs()
-    result <- .build_calibration_provenance(
-      engine_result    = inp$engine_result,
-      x_matrix         = inp$x_matrix,
-      base_weights     = inp$base_weights,
-      q_weights        = inp$q_weights,
-      population_totals = inp$population_totals,
-      method           = "linear",
-      cell_factors     = NULL
-    )
-    required_fields <- c(
-      "x_matrix", "base_weights", "g_weights", "crossproduct_inv",
-      "population_totals", "discrepancy", "lambda", "method",
-      "cell_factors", "q_weights", "converged", "n_iterations"
-    )
-    expect_true(all(required_fields %in% names(result)))
-    # replicate_converged is NOT in the list — callers add it
-    expect_false("replicate_converged" %in% names(result))
-  }
-)
+test_that(".build_calibration_provenance() returns named list with all 12 required fields", {
+  skip_if_not_installed("survey")
+  inp <- .make_provenance_inputs()
+  result <- .build_calibration_provenance(
+    engine_result = inp$engine_result,
+    x_matrix = inp$x_matrix,
+    base_weights = inp$base_weights,
+    q_weights = inp$q_weights,
+    population_totals = inp$population_totals,
+    method = "linear",
+    cell_factors = NULL
+  )
+  required_fields <- c(
+    "x_matrix",
+    "base_weights",
+    "g_weights",
+    "crossproduct_inv",
+    "population_totals",
+    "discrepancy",
+    "lambda",
+    "method",
+    "cell_factors",
+    "q_weights",
+    "converged",
+    "n_iterations"
+  )
+  expect_true(all(required_fields %in% names(result)))
+  # replicate_converged is NOT in the list — callers add it
+  expect_false("replicate_converged" %in% names(result))
+})
 
-test_that(
-  ".build_calibration_provenance() g_weights identity: g_weights * base == engine weights",
-  {
-    skip_if_not_installed("survey")
-    inp <- .make_provenance_inputs()
-    result <- .build_calibration_provenance(
-      engine_result    = inp$engine_result,
-      x_matrix         = inp$x_matrix,
-      base_weights     = inp$base_weights,
-      q_weights        = inp$q_weights,
-      population_totals = inp$population_totals,
-      method           = "linear"
-    )
-    expect_equal(
-      result$g_weights * result$base_weights,
-      inp$calibrated_weights,
-      tolerance = 1e-10
-    )
-  }
-)
+test_that(".build_calibration_provenance() g_weights identity: g_weights * base == engine weights", {
+  skip_if_not_installed("survey")
+  inp <- .make_provenance_inputs()
+  result <- .build_calibration_provenance(
+    engine_result = inp$engine_result,
+    x_matrix = inp$x_matrix,
+    base_weights = inp$base_weights,
+    q_weights = inp$q_weights,
+    population_totals = inp$population_totals,
+    method = "linear"
+  )
+  expect_equal(
+    result$g_weights * result$base_weights,
+    inp$calibrated_weights,
+    tolerance = 1e-10
+  )
+})
 
-test_that(
-  ".build_calibration_provenance() discrepancy = population_totals - t(X) %*% base_weights",
-  {
-    skip_if_not_installed("survey")
-    inp <- .make_provenance_inputs()
-    result <- .build_calibration_provenance(
-      engine_result    = inp$engine_result,
-      x_matrix         = inp$x_matrix,
-      base_weights     = inp$base_weights,
-      q_weights        = inp$q_weights,
-      population_totals = inp$population_totals,
-      method           = "linear"
-    )
-    expected_discrepancy <- inp$population_totals -
-      drop(t(inp$x_matrix) %*% inp$base_weights)
-    expect_equal(result$discrepancy, expected_discrepancy, tolerance = 1e-10)
-  }
-)
+test_that(".build_calibration_provenance() discrepancy = population_totals - t(X) %*% base_weights", {
+  skip_if_not_installed("survey")
+  inp <- .make_provenance_inputs()
+  result <- .build_calibration_provenance(
+    engine_result = inp$engine_result,
+    x_matrix = inp$x_matrix,
+    base_weights = inp$base_weights,
+    q_weights = inp$q_weights,
+    population_totals = inp$population_totals,
+    method = "linear"
+  )
+  expected_discrepancy <- inp$population_totals -
+    drop(t(inp$x_matrix) %*% inp$base_weights)
+  expect_equal(result$discrepancy, expected_discrepancy, tolerance = 1e-10)
+})
 
-test_that(
-  ".build_calibration_provenance() crossproduct_inv %*% C approximates identity",
-  {
-    skip_if_not_installed("survey")
-    inp <- .make_provenance_inputs()
-    result <- .build_calibration_provenance(
-      engine_result    = inp$engine_result,
-      x_matrix         = inp$x_matrix,
-      base_weights     = inp$base_weights,
-      q_weights        = inp$q_weights,
-      population_totals = inp$population_totals,
-      method           = "linear"
-    )
-    J <- ncol(inp$x_matrix)
-    C <- t(inp$x_matrix) %*%
-      (inp$base_weights * inp$q_weights * inp$x_matrix)
-    identity_approx <- result$crossproduct_inv %*% C
-    # Strip dimnames before comparing — matrix multiplication retains names
-    # from the operands, but diag() has no dimnames.
-    dimnames(identity_approx) <- NULL
-    expect_equal(identity_approx, diag(J), tolerance = 1e-8)
-  }
-)
+test_that(".build_calibration_provenance() crossproduct_inv %*% C approximates identity", {
+  skip_if_not_installed("survey")
+  inp <- .make_provenance_inputs()
+  result <- .build_calibration_provenance(
+    engine_result = inp$engine_result,
+    x_matrix = inp$x_matrix,
+    base_weights = inp$base_weights,
+    q_weights = inp$q_weights,
+    population_totals = inp$population_totals,
+    method = "linear"
+  )
+  J <- ncol(inp$x_matrix)
+  C <- t(inp$x_matrix) %*%
+    (inp$base_weights * inp$q_weights * inp$x_matrix)
+  identity_approx <- result$crossproduct_inv %*% C
+  # Strip dimnames before comparing — matrix multiplication retains names
+  # from the operands, but diag() has no dimnames.
+  dimnames(identity_approx) <- NULL
+  expect_equal(identity_approx, diag(J), tolerance = 1e-8)
+})
 
-test_that(
-  ".build_calibration_provenance() lambda = crossproduct_inv %*% discrepancy for linear",
-  {
-    skip_if_not_installed("survey")
-    inp <- .make_provenance_inputs()
-    result <- .build_calibration_provenance(
-      engine_result    = inp$engine_result,
-      x_matrix         = inp$x_matrix,
-      base_weights     = inp$base_weights,
-      q_weights        = inp$q_weights,
-      population_totals = inp$population_totals,
-      method           = "linear"
-    )
-    expected_lambda <- result$crossproduct_inv %*% result$discrepancy
-    expect_equal(result$lambda, expected_lambda, tolerance = 1e-10)
-  }
-)
+test_that(".build_calibration_provenance() lambda = crossproduct_inv %*% discrepancy for linear", {
+  skip_if_not_installed("survey")
+  inp <- .make_provenance_inputs()
+  result <- .build_calibration_provenance(
+    engine_result = inp$engine_result,
+    x_matrix = inp$x_matrix,
+    base_weights = inp$base_weights,
+    q_weights = inp$q_weights,
+    population_totals = inp$population_totals,
+    method = "linear"
+  )
+  expected_lambda <- result$crossproduct_inv %*% result$discrepancy
+  expect_equal(result$lambda, expected_lambda, tolerance = 1e-10)
+})
 
-test_that(
-  ".build_calibration_provenance() lambda = crossproduct_inv %*% discrepancy for logit",
-  {
-    skip_if_not_installed("survey")
-    inp <- .make_provenance_inputs()
-    result <- .build_calibration_provenance(
-      engine_result    = inp$engine_result,
-      x_matrix         = inp$x_matrix,
-      base_weights     = inp$base_weights,
-      q_weights        = inp$q_weights,
-      population_totals = inp$population_totals,
-      method           = "logit"
-    )
-    expected_lambda <- result$crossproduct_inv %*% result$discrepancy
-    expect_equal(result$lambda, expected_lambda, tolerance = 1e-10)
-  }
-)
+test_that(".build_calibration_provenance() lambda = crossproduct_inv %*% discrepancy for logit", {
+  skip_if_not_installed("survey")
+  inp <- .make_provenance_inputs()
+  result <- .build_calibration_provenance(
+    engine_result = inp$engine_result,
+    x_matrix = inp$x_matrix,
+    base_weights = inp$base_weights,
+    q_weights = inp$q_weights,
+    population_totals = inp$population_totals,
+    method = "logit"
+  )
+  expected_lambda <- result$crossproduct_inv %*% result$discrepancy
+  expect_equal(result$lambda, expected_lambda, tolerance = 1e-10)
+})
 
-test_that(
-  ".build_calibration_provenance() lambda is NULL for method = 'raking'",
-  {
-    skip_if_not_installed("survey")
-    inp <- .make_provenance_inputs()
-    result <- .build_calibration_provenance(
-      engine_result    = inp$engine_result,
-      x_matrix         = inp$x_matrix,
-      base_weights     = inp$base_weights,
-      q_weights        = inp$q_weights,
-      population_totals = inp$population_totals,
-      method           = "raking"
-    )
-    expect_null(result$lambda)
-  }
-)
+test_that(".build_calibration_provenance() lambda is NULL for method = 'raking'", {
+  skip_if_not_installed("survey")
+  inp <- .make_provenance_inputs()
+  result <- .build_calibration_provenance(
+    engine_result = inp$engine_result,
+    x_matrix = inp$x_matrix,
+    base_weights = inp$base_weights,
+    q_weights = inp$q_weights,
+    population_totals = inp$population_totals,
+    method = "raking"
+  )
+  expect_null(result$lambda)
+})
 
-test_that(
-  ".build_calibration_provenance() lambda is NULL for method = 'poststrat'",
-  {
-    skip_if_not_installed("survey")
-    inp <- .make_provenance_inputs()
-    result <- .build_calibration_provenance(
-      engine_result    = inp$engine_result,
-      x_matrix         = inp$x_matrix,
-      base_weights     = inp$base_weights,
-      q_weights        = inp$q_weights,
-      population_totals = inp$population_totals,
-      method           = "poststrat"
-    )
-    expect_null(result$lambda)
-  }
-)
+test_that(".build_calibration_provenance() lambda is NULL for method = 'poststrat'", {
+  skip_if_not_installed("survey")
+  inp <- .make_provenance_inputs()
+  result <- .build_calibration_provenance(
+    engine_result = inp$engine_result,
+    x_matrix = inp$x_matrix,
+    base_weights = inp$base_weights,
+    q_weights = inp$q_weights,
+    population_totals = inp$population_totals,
+    method = "poststrat"
+  )
+  expect_null(result$lambda)
+})
 
-test_that(
-  ".build_calibration_provenance() converged = engine_result$convergence$converged",
-  {
-    skip_if_not_installed("survey")
-    inp <- .make_provenance_inputs()
-    result <- .build_calibration_provenance(
-      engine_result    = inp$engine_result,
-      x_matrix         = inp$x_matrix,
-      base_weights     = inp$base_weights,
-      q_weights        = inp$q_weights,
-      population_totals = inp$population_totals,
-      method           = "linear"
-    )
-    expect_identical(result$converged, inp$engine_result$convergence$converged)
-  }
-)
+test_that(".build_calibration_provenance() converged = engine_result$convergence$converged", {
+  skip_if_not_installed("survey")
+  inp <- .make_provenance_inputs()
+  result <- .build_calibration_provenance(
+    engine_result = inp$engine_result,
+    x_matrix = inp$x_matrix,
+    base_weights = inp$base_weights,
+    q_weights = inp$q_weights,
+    population_totals = inp$population_totals,
+    method = "linear"
+  )
+  expect_identical(result$converged, inp$engine_result$convergence$converged)
+})
 
-test_that(
-  ".build_calibration_provenance() n_iterations = as.integer(engine_result$convergence$iterations)",
-  {
-    skip_if_not_installed("survey")
-    inp <- .make_provenance_inputs()
-    result <- .build_calibration_provenance(
-      engine_result    = inp$engine_result,
-      x_matrix         = inp$x_matrix,
-      base_weights     = inp$base_weights,
-      q_weights        = inp$q_weights,
-      population_totals = inp$population_totals,
-      method           = "linear"
-    )
-    expect_identical(
-      result$n_iterations,
-      as.integer(inp$engine_result$convergence$iterations)
-    )
-  }
-)
+test_that(".build_calibration_provenance() n_iterations = as.integer(engine_result$convergence$iterations)", {
+  skip_if_not_installed("survey")
+  inp <- .make_provenance_inputs()
+  result <- .build_calibration_provenance(
+    engine_result = inp$engine_result,
+    x_matrix = inp$x_matrix,
+    base_weights = inp$base_weights,
+    q_weights = inp$q_weights,
+    population_totals = inp$population_totals,
+    method = "linear"
+  )
+  expect_identical(
+    result$n_iterations,
+    as.integer(inp$engine_result$convergence$iterations)
+  )
+})
 
-test_that(
-  ".build_calibration_provenance() cell_factors = NULL when not provided",
-  {
-    skip_if_not_installed("survey")
-    inp <- .make_provenance_inputs()
-    result <- .build_calibration_provenance(
-      engine_result    = inp$engine_result,
-      x_matrix         = inp$x_matrix,
-      base_weights     = inp$base_weights,
-      q_weights        = inp$q_weights,
-      population_totals = inp$population_totals,
-      method           = "linear",
-      cell_factors     = NULL
-    )
-    expect_null(result$cell_factors)
-  }
-)
+test_that(".build_calibration_provenance() cell_factors = NULL when not provided", {
+  skip_if_not_installed("survey")
+  inp <- .make_provenance_inputs()
+  result <- .build_calibration_provenance(
+    engine_result = inp$engine_result,
+    x_matrix = inp$x_matrix,
+    base_weights = inp$base_weights,
+    q_weights = inp$q_weights,
+    population_totals = inp$population_totals,
+    method = "linear",
+    cell_factors = NULL
+  )
+  expect_null(result$cell_factors)
+})
 
-test_that(
-  ".build_calibration_provenance() return value is visible (not invisible)",
-  {
-    skip_if_not_installed("survey")
-    inp <- .make_provenance_inputs()
-    # Direct assignment without print() — verifies the function is not invisible
-    caldata <- .build_calibration_provenance(
-      engine_result    = inp$engine_result,
-      x_matrix         = inp$x_matrix,
-      base_weights     = inp$base_weights,
-      q_weights        = inp$q_weights,
-      population_totals = inp$population_totals,
-      method           = "linear"
-    )
-    expect_true(is.list(caldata))
-    expect_true("x_matrix" %in% names(caldata))
-  }
-)
+test_that(".build_calibration_provenance() return value is visible (not invisible)", {
+  skip_if_not_installed("survey")
+  inp <- .make_provenance_inputs()
+  # Direct assignment without print() — verifies the function is not invisible
+  caldata <- .build_calibration_provenance(
+    engine_result = inp$engine_result,
+    x_matrix = inp$x_matrix,
+    base_weights = inp$base_weights,
+    q_weights = inp$q_weights,
+    population_totals = inp$population_totals,
+    method = "linear"
+  )
+  expect_true(is.list(caldata))
+  expect_true("x_matrix" %in% names(caldata))
+})
 
 # ===========================================================================
 # Dispatcher pass-through with survey_replicate (D-1r, D-2r additions, PR 4)

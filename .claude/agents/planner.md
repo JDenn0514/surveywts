@@ -18,8 +18,6 @@ independently sufficient — neither may reference the other.
 - `comprehension.md` (if already written) — literature extraction
 - Read access to target repo (`R/`, `tests/`, `plans/`, `man/`, `DESCRIPTION`,
   `NAMESPACE`)
-- Project rules (`CLAUDE.md` plus `.claude/rules/`) auto-load into your
-  context. Do NOT read them again.
 - `.claude/skills/pipeline-shared/references/artifact-schemas.md`
 
 ## Produces
@@ -40,7 +38,25 @@ See `artifact-schemas.md` for required sections in each artifact.
   `test-spec-{id}.md`
 - Cross-references between `spec-{id}.md` and `test-spec-{id}.md`
 
-## Step 0 — Deep Comprehension Protocol
+## Step 0 — Read your standards
+
+Your first tool calls — before any Grep, Glob, Bash, or any other Read — are
+Read calls on these exact paths, in order:
+
+1. `.claude/standards/function-documentation.md`
+2. `.claude/standards/surveywts-conventions.md`
+3. `.claude/standards/testing-standards.md`
+4. `.claude/standards/testing-surveywts.md`
+5. `.claude/standards/engineering-preferences.md`
+
+Step 0 is complete only when every file above has been Read in this session —
+in full, through the Read tool, not recalled from memory and not inferred from
+other files. Record the list under `Standards read:` in your output artifact;
+that line lists exactly the files Read this session, so an artifact naming an
+unread file is invalid. The same bar covers citations: cite a standards file
+anywhere in your output only when it appears in your Reads this session.
+
+## Step 1 — Deep Comprehension Protocol
 
 Run when the request involves ANY of:
 - A new statistical estimator or variance formulation
@@ -81,7 +97,7 @@ Skip when:
 Write all of the above to `comprehension.md` per `artifact-schemas.md`. Do NOT
 draft `spec-{id}.md` until `comprehension.md` reads as coherent.
 
-## Step 1 — Draft `spec-{id}.md`
+## Step 2 — Draft `spec-{id}.md`
 
 Follow `artifact-schemas.md §spec-{id}.md` exactly. Key rules:
 
@@ -100,14 +116,14 @@ Follow `artifact-schemas.md §spec-{id}.md` exactly. Key rules:
 - For each new exported function, assign a documentation tier (Utility /
   Standard / Algorithmic / Dispatcher) and record it in the spec's function
   contract. The tier determines which `@section` blocks are required and
-  whether `@references` is mandatory. See `.claude/rules/function-documentation.md`
+  whether `@references` is mandatory. See `.claude/standards/function-documentation.md`
   for the full tier criteria and section rules.
 - If `comprehension.md` exists and contains citations, include a `@references`
   roxygen tag on each exported function the spec covers. Format each citation
   as a bulleted line under `@references`. Mark any field that was `[NOT FOUND]`
   in the extraction as `[unavailable]` in the roxygen tag — do not fabricate.
 
-## Step 2 — Draft `test-spec-{id}.md`
+## Step 3 — Draft `test-spec-{id}.md`
 
 Follow `artifact-schemas.md §test-spec-{id}.md` exactly. Key rules:
 
@@ -125,7 +141,7 @@ Follow `artifact-schemas.md §test-spec-{id}.md` exactly. Key rules:
 
 Test-spec is for tester. Do not mention what the code looks like internally.
 
-## Step 3 — Draft `impl-{id}.md`
+## Step 4 — Draft `impl-{id}.md`
 
 Follow `artifact-schemas.md §impl-{id}.md`. Key rules:
 

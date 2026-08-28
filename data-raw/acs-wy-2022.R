@@ -8,10 +8,10 @@
 library(surveycore)
 library(dplyr)
 
-age_f3_bins    <- c(18, 35, 55, Inf)
-age_f3_labs    <- c("18-34", "35-54", "55+")
+age_f3_bins <- c(18, 35, 55, Inf)
+age_f3_labs <- c("18-34", "35-54", "55+")
 race_f4_levels <- c("White", "Black", "Hispanic", "Other")
-edu_f3_levels  <- c("Less than HS", "HS/Some college", "College+")
+edu_f3_levels <- c("Less than HS", "HS/Some college", "College+")
 
 ## ---- acs_wy_2022 ------------------------------------------------------------
 ## surveycore::acs_pums_wy filtered to adults (agep >= 18).
@@ -53,10 +53,10 @@ acs_wy_2022$age_f3 <- cut(
 # race_f4: Hispanic origin takes precedence; Asian (rac1p 4-6) collapsed into Other
 acs_wy_2022$race_f4 <- factor(
   dplyr::case_when(
-    acs_wy_2022$hisp > 1L           ~ "Hispanic",
-    acs_wy_2022$rac1p == 1L         ~ "White",
-    acs_wy_2022$rac1p == 2L         ~ "Black",
-    .default                         = "Other"
+    acs_wy_2022$hisp > 1L ~ "Hispanic",
+    acs_wy_2022$rac1p == 1L ~ "White",
+    acs_wy_2022$rac1p == 2L ~ "Black",
+    .default = "Other"
   ),
   levels = race_f4_levels
 )
@@ -66,10 +66,10 @@ acs_wy_2022$race_f4 <- factor(
 acs_wy_2022$edu_f3 <- factor(
   dplyr::recode_values(
     acs_wy_2022$schl,
-    c(1:11)  ~ "Less than HS",
+    c(1:11) ~ "Less than HS",
     c(12:15) ~ "HS/Some college",
     c(16:24) ~ "College+",
-    default  = NA_character_
+    default = NA_character_
   ),
   levels = edu_f3_levels
 )
@@ -87,9 +87,15 @@ stopifnot(sum(is.na(acs_wy_2022$race_f4)) == 0L)
 stopifnot(sum(is.na(acs_wy_2022$edu_f3)) == 0L)
 
 # Add "label" attributes to derived columns (ACS source columns already labeled by surveycore)
-attr(acs_wy_2022$sex, "label")    <- "Sex (factor, derived from raw sex: 1=Male, 2=Female)"
+attr(
+  acs_wy_2022$sex,
+  "label"
+) <- "Sex (factor, derived from raw sex: 1=Male, 2=Female)"
 attr(acs_wy_2022$age_f3, "label") <- "Age group (3 levels: 18-34, 35-54, 55+)"
-attr(acs_wy_2022$race_f4, "label") <- "Race/ethnicity (4 levels: White, Black, Hispanic, Other)"
+attr(
+  acs_wy_2022$race_f4,
+  "label"
+) <- "Race/ethnicity (4 levels: White, Black, Hispanic, Other)"
 attr(acs_wy_2022$edu_f3, "label") <- "Educational attainment (3 levels)"
 
 acs_wy_2022 <- tibble::as_tibble(acs_wy_2022)

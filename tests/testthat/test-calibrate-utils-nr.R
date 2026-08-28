@@ -260,7 +260,7 @@ test_that(".make_calfun_logit() F approaches L as u -> -Inf", {
   cf <- .make_calfun_logit(L = 0.3, U = 3)
   # large negative u -> exp(Au) -> 0 -> F -> L*(U-1)/(U-1) = L
   result <- as.vector(cf$Fm1(-1000))
-  expect_true(result > 0.3 - 1 - 0.01)  # Fm1 ~ L - 1 = -0.7
+  expect_true(result > 0.3 - 1 - 0.01) # Fm1 ~ L - 1 = -0.7
   expect_true(result < 0.3 - 1 + 0.01)
 })
 
@@ -268,7 +268,7 @@ test_that(".make_calfun_logit() F approaches U as u -> +Inf", {
   cf <- .make_calfun_logit(L = 0.3, U = 3)
   # large positive u -> exp(Au) -> Inf -> F -> U*(1-L)/(1-L) = U
   result <- as.vector(cf$Fm1(1000))
-  expect_true(result > 3 - 1 - 0.01)  # Fm1 ~ U - 1 = 2
+  expect_true(result > 3 - 1 - 0.01) # Fm1 ~ U - 1 = 2
   expect_true(result < 3 - 1 + 0.01)
 })
 
@@ -361,12 +361,12 @@ test_that(".calibrate_nr_engine() converges for linear calfun in 1 iteration", {
   prob <- .make_simple_calib(seed = 1)
   cf <- .make_calfun_linear()
   result <- .calibrate_nr_engine(
-    x_matrix    = prob$x_matrix,
+    x_matrix = prob$x_matrix,
     weights_vec = prob$weights_vec,
-    calfun      = cf,
-    population  = prob$population,
-    epsilon     = 1e-7,
-    maxit       = 50L
+    calfun = cf,
+    population = prob$population,
+    epsilon = 1e-7,
+    maxit = 50L
   )
   expect_equal(result$n_iterations, 1L)
   expect_true(result$converged)
@@ -385,12 +385,12 @@ test_that(".calibrate_nr_engine() returns lambda vector", {
   prob <- .make_simple_calib(seed = 2)
   cf <- .make_calfun_linear()
   result <- .calibrate_nr_engine(
-    x_matrix    = prob$x_matrix,
+    x_matrix = prob$x_matrix,
     weights_vec = prob$weights_vec,
-    calfun      = cf,
-    population  = prob$population,
-    epsilon     = 1e-7,
-    maxit       = 50L
+    calfun = cf,
+    population = prob$population,
+    epsilon = 1e-7,
+    maxit = 50L
   )
   expect_true(is.numeric(result$lambda))
   expect_equal(length(result$lambda), ncol(prob$x_matrix))
@@ -400,12 +400,12 @@ test_that(".calibrate_nr_engine() converges for raking calfun", {
   prob <- .make_simple_calib(seed = 3)
   cf <- .make_calfun_raking()
   result <- .calibrate_nr_engine(
-    x_matrix    = prob$x_matrix,
+    x_matrix = prob$x_matrix,
     weights_vec = prob$weights_vec,
-    calfun      = cf,
-    population  = prob$population,
-    epsilon     = 1e-7,
-    maxit       = 50L
+    calfun = cf,
+    population = prob$population,
+    epsilon = 1e-7,
+    maxit = 50L
   )
   expect_true(result$converged)
   # All weights must be strictly positive for raking
@@ -418,12 +418,12 @@ test_that(".calibrate_nr_engine() converges for logit calfun", {
   prob <- .make_simple_calib(seed = 4)
   cf <- .make_calfun_logit(L = 0.3, U = 3)
   result <- .calibrate_nr_engine(
-    x_matrix    = prob$x_matrix,
+    x_matrix = prob$x_matrix,
     weights_vec = prob$weights_vec,
-    calfun      = cf,
-    population  = prob$population,
-    epsilon     = 1e-7,
-    maxit       = 50L
+    calfun = cf,
+    population = prob$population,
+    epsilon = 1e-7,
+    maxit = 50L
   )
   expect_true(result$converged)
   expect_true(all(result$weights > 0))
@@ -448,12 +448,12 @@ test_that(".calibrate_nr_engine() throws surveywts_error_calibration_not_converg
   cf <- .make_calfun_raking()
   expect_error(
     .calibrate_nr_engine(
-      x_matrix    = x_mat,
+      x_matrix = x_mat,
       weights_vec = w,
-      calfun      = cf,
-      population  = pop,
-      epsilon     = 1e-20,  # impossibly tight
-      maxit       = 1L
+      calfun = cf,
+      population = pop,
+      epsilon = 1e-20, # impossibly tight
+      maxit = 1L
     ),
     class = "surveywts_error_calibration_not_converged"
   )
@@ -464,7 +464,8 @@ test_that(".calibrate_nr_engine() throws singular system error for rank-deficien
   n <- 50
   x_mat <- matrix(
     c(rep(1, n), rep(1, n), rep(1, n)),
-    nrow = n, ncol = 3,
+    nrow = n,
+    ncol = 3,
     dimnames = list(NULL, c("(Intercept)", "col2", "col3"))
   )
   w <- rep(1, n)
@@ -472,12 +473,12 @@ test_that(".calibrate_nr_engine() throws singular system error for rank-deficien
   cf <- .make_calfun_linear()
   expect_error(
     .calibrate_nr_engine(
-      x_matrix    = x_mat,
+      x_matrix = x_mat,
       weights_vec = w,
-      calfun      = cf,
-      population  = pop,
-      epsilon     = 1e-7,
-      maxit       = 50L
+      calfun = cf,
+      population = pop,
+      epsilon = 1e-7,
+      maxit = 50L
     ),
     class = "surveywts_error_calibration_singular_system"
   )
@@ -489,12 +490,12 @@ test_that(".calibrate_nr_engine() linear result matches manual GREG formula", {
   prob <- .make_simple_calib(seed = 5)
   cf <- .make_calfun_linear()
   result <- .calibrate_nr_engine(
-    x_matrix    = prob$x_matrix,
+    x_matrix = prob$x_matrix,
     weights_vec = prob$weights_vec,
-    calfun      = cf,
-    population  = prob$population,
-    epsilon     = 1e-7,
-    maxit       = 50L
+    calfun = cf,
+    population = prob$population,
+    epsilon = 1e-7,
+    maxit = 50L
   )
 
   # Manual GREG
@@ -521,7 +522,7 @@ test_that(".build_calibration_provenance() accepts explicit lambda argument", {
   x_mat <- cbind(1, matrix(rnorm(n * (p - 1L)), nrow = n))
   colnames(x_mat) <- c("(Intercept)", "v1", "v2")
   w <- rep(1, n)
-  cal_w <- w * 1.1  # dummy calibrated weights
+  cal_w <- w * 1.1 # dummy calibrated weights
 
   engine_result <- list(
     weights = cal_w,
@@ -531,15 +532,15 @@ test_that(".build_calibration_provenance() accepts explicit lambda argument", {
   lambda_explicit <- c(0.1, 0.2, 0.3)
 
   result <- .build_calibration_provenance(
-    engine_result     = engine_result,
-    x_matrix          = x_mat,
-    base_weights      = w,
-    q_weights         = rep(1, n),
+    engine_result = engine_result,
+    x_matrix = x_mat,
+    base_weights = w,
+    q_weights = rep(1, n),
     population_totals = pop_totals,
-    method            = "linear",
-    lambda            = lambda_explicit,
-    cell_factors      = NULL,
-    bounds_scale      = "multiplicative"
+    method = "linear",
+    lambda = lambda_explicit,
+    cell_factors = NULL,
+    bounds_scale = "multiplicative"
   )
 
   expect_identical(result$lambda, lambda_explicit)
@@ -562,15 +563,15 @@ test_that(".build_calibration_provenance() stores bounds_scale = NULL for logit 
   pop_totals <- c("(Intercept)" = n, "v1" = 2.0)
 
   result <- .build_calibration_provenance(
-    engine_result     = engine_result,
-    x_matrix          = x_mat,
-    base_weights      = w,
-    q_weights         = rep(1, n),
+    engine_result = engine_result,
+    x_matrix = x_mat,
+    base_weights = w,
+    q_weights = rep(1, n),
     population_totals = pop_totals,
-    method            = "logit",
-    lambda            = c(0.05, 0.02),
-    cell_factors      = NULL,
-    bounds_scale      = NULL
+    method = "logit",
+    lambda = c(0.05, 0.02),
+    cell_factors = NULL,
+    bounds_scale = NULL
   )
 
   expect_null(result$bounds_scale)
@@ -579,10 +580,14 @@ test_that(".build_calibration_provenance() stores bounds_scale = NULL for logit 
 
 test_that(".build_calibration_provenance() computes g_weights correctly", {
   n <- 5L
-  x_mat <- matrix(c(1, 1, 1, 1, 1), nrow = n, ncol = 1L,
-                  dimnames = list(NULL, "(Intercept)"))
+  x_mat <- matrix(
+    c(1, 1, 1, 1, 1),
+    nrow = n,
+    ncol = 1L,
+    dimnames = list(NULL, "(Intercept)")
+  )
   w <- c(1, 2, 3, 2, 1)
-  cal_w <- w * 1.2  # g = 1.2 for all
+  cal_w <- w * 1.2 # g = 1.2 for all
 
   engine_result <- list(
     weights = cal_w,
@@ -591,15 +596,15 @@ test_that(".build_calibration_provenance() computes g_weights correctly", {
   pop_totals <- c("(Intercept)" = sum(w) * 1.2)
 
   result <- .build_calibration_provenance(
-    engine_result     = engine_result,
-    x_matrix          = x_mat,
-    base_weights      = w,
-    q_weights         = rep(1, n),
+    engine_result = engine_result,
+    x_matrix = x_mat,
+    base_weights = w,
+    q_weights = rep(1, n),
     population_totals = pop_totals,
-    method            = "linear",
-    lambda            = 0.2,
-    cell_factors      = NULL,
-    bounds_scale      = NULL
+    method = "linear",
+    lambda = 0.2,
+    cell_factors = NULL,
+    bounds_scale = NULL
   )
 
   expect_equal(result$g_weights, rep(1.2, n), tolerance = 1e-12)
@@ -613,12 +618,12 @@ test_that(".build_calibration_provenance() computes g_weights correctly", {
 test_that("NR raking engine aborts with cli error for data.frame input", {
   targets <- list(
     age_group = c("18-34" = 0.33, "35-54" = 0.34, "55+" = 0.33),
-    sex       = c("M" = 0.50, "F" = 0.50)
+    sex = c("M" = 0.50, "F" = 0.50)
   )
   expect_error(
     calibrate_rake(
       make_surveywts_data(n = 100L, seed = 99L),
-      targets   = targets,
+      targets = targets,
       algorithm = "nr"
     ),
     class = "surveywts_error_not_survey_base"
@@ -648,7 +653,7 @@ test_that(".parse_margins() rejects named list with data.frame element missing r
 test_that(".parse_margins() accepts named list with well-formed data.frame element", {
   good <- list(
     age_group = data.frame(
-      level  = c("18-34", "35-54", "55+"),
+      level = c("18-34", "35-54", "55+"),
       target = c(0.30, 0.40, 0.30),
       stringsAsFactors = FALSE
     )

@@ -95,7 +95,8 @@ Simplified workflow.
 Request: {path to request.md}
 Write surface: {files from request.md}
 Acceptance criteria: {from request.md}
-Read: .claude/agents/builder.md, r-package-profile.md (§Builder compliance rules) (rules auto-load — do not read .claude/rules/ again)
+Read: .claude/agents/builder.md, r-package-profile.md (§Builder compliance rules)
+(builder.md Step 0 lists the standards files to read — do not re-list them here)
 Exception: you MAY read test code in tests/testthat/ to update tests alongside code.
 ```
 
@@ -103,13 +104,22 @@ Builder implements, updates docs if needed, writes `implementation.md`.
 
 ## Step 3 — Tester
 
-Dispatch `tester`:
+Dispatch `tester`. First read `.claude/standards/r-package-conventions.md`,
+`.claude/standards/testing-standards.md`, and
+`.claude/standards/testing-surveywts.md`, and paste their FULL contents into
+the dispatch prompt under the heading shown — the reachability test showed
+the tester does not perform its own Step 0 reads, so the dispatcher performs
+them. No summary, no pointer.
 
 ```
 Simplified workflow.
 Request: {path to request.md with acceptance criteria}
 Baseline results: {summary from the background baseline capture}
-Read: .claude/agents/tester.md, r-package-profile.md
+Read: r-package-profile.md
+
+## Your standards (full text — these are in your context; no Step 0 Reads needed)
+
+{full contents of the three standards files}
 Validate:
   1. Each acceptance criterion from request.md holds
   2. All profile gates pass (devtools::test, run_examples, R CMD check --as-cran, pkgdown if in scope, covr)

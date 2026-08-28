@@ -94,16 +94,18 @@ each step.
 
 ## Rules in Context
 
-Every stage works alongside — never instead of — these rule files:
+These standards files live in `.claude/standards/` and do **not** auto-load.
+Read the one you need before a stage relies on it — do not assume it is
+already in context:
 
-| Rule file | What it governs |
+| Standards file | What it governs |
 |---|---|
-| `code-style.md` | Indentation, pipe, air formatter, S7 patterns, cli error structure, argument order, helper placement |
-| `r-package-conventions.md` | `::` usage, NAMESPACE, roxygen2, `@return`, `@examples`, export policy |
-| `surveywts-conventions.md` | Naming patterns (`get_*`, `extract_*`, `set_*`), `@family`, return visibility, haven handling |
-| `testing-standards.md` | `test_that()` scope, 98% coverage, assertion patterns, data generators |
-| `testing-surveywts.md` | `test_invariants()`, layer 1 vs layer 3 error testing, `make_survey_data()`, numerical tolerances |
-| `github-strategy.md` | Branch naming, PR granularity, commit format, merge strategy |
+| `.claude/standards/code-style.md` | Indentation, pipe, air formatter, S7 patterns, cli error structure, argument order, helper placement |
+| `.claude/standards/r-package-conventions.md` | `::` usage, NAMESPACE, roxygen2, `@return`, `@examples`, export policy |
+| `.claude/standards/surveywts-conventions.md` | Naming patterns (`get_*`, `extract_*`, `set_*`), `@family`, return visibility, haven handling |
+| `.claude/standards/testing-standards.md` | `test_that()` scope, 98% coverage, assertion patterns, data generators |
+| `.claude/standards/testing-surveywts.md` | `test_invariants()`, layer 1 vs layer 3 error testing, `make_survey_data()`, numerical tolerances |
+| `.claude/standards/github-strategy.md` | Branch naming, PR granularity, commit format, merge strategy |
 
 ---
 

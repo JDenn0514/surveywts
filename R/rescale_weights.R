@@ -189,9 +189,15 @@ rescale_weights <- function(
 
   # Construct output
   if (.has_repweights(data)) {
-    result_design <- .update_survey_weights(data, weights_new, history_entry,
-                                            wt_name = wt_name)
-    result_design@data[data@variables$repweights] <- as.data.frame(rep_weights_new)
+    result_design <- .update_survey_weights(
+      data,
+      weights_new,
+      history_entry,
+      wt_name = wt_name
+    )
+    result_design@data[data@variables$repweights] <- as.data.frame(
+      rep_weights_new
+    )
     result_design
   } else {
     .update_survey_weights(data, weights_new, history_entry, wt_name = wt_name)

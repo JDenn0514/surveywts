@@ -1,0 +1,104 @@
+id	source_file	source_line	category	verbatim	literals
+testing-standards-001	.claude/rules/testing-standards.md	1	requirement	Mirrored from ../survey-standards/.claude/rules/testing-standards.md. Keep in sync.	../survey-standards/.claude/rules/testing-standards.md
+testing-standards-002	.claude/rules/testing-standards.md	7	requirement	**Status:** Decided — applies to all surveyverse packages	Decided
+testing-standards-003	.claude/rules/testing-standards.md	9	mapping	For package-specific testing conventions (file mappings, invariant checkers, data generators, numerical tolerances), see the `testing-{package}.md` rule in each package's `.claude/rules/` directory.	testing-{package}.md;.claude/rules/
+testing-standards-004	.claude/rules/testing-standards.md	19	requirement	Test file granularity | At least 1 file per source file; large source files may split	1
+testing-standards-005	.claude/rules/testing-standards.md	20	requirement	`test_that()` scope | One observable behavior per block	test_that()
+testing-standards-006	.claude/rules/testing-standards.md	21	prohibition	Nesting | Flat — no `describe()` blocks	describe()
+testing-standards-007	.claude/rules/testing-standards.md	22	value	Coverage target | 98%+ line coverage; PRs blocked below 95%	98;95
+testing-standards-008	.claude/rules/testing-standards.md	23	requirement	Test categories | Happy path + error paths + edge cases	
+testing-standards-009	.claude/rules/testing-standards.md	24	default	Private function testing | Default indirect; direct only when gap can't be closed via public API	
+testing-standards-010	.claude/rules/testing-standards.md	25	requirement	Constructor error testing | Dual: `expect_error(class=)` + `expect_snapshot(error=TRUE)`	expect_error(class=);expect_snapshot(error=TRUE)
+testing-standards-011	.claude/rules/testing-standards.md	26	requirement	Structural validator errors | `class=` only — no snapshot (messages not CLI-formatted)	class=
+testing-standards-012	.claude/rules/testing-standards.md	27	requirement	Snapshot failures | Block PRs; update via `snapshot_review()` before opening	snapshot_review()
+testing-standards-013	.claude/rules/testing-standards.md	28	requirement	Warning capture | `expect_warning()` wrapping call; result from return value	expect_warning()
+testing-standards-014	.claude/rules/testing-standards.md	29	requirement	Structural assertions | `expect_identical()`	expect_identical()
+testing-standards-015	.claude/rules/testing-standards.md	30	requirement	Numeric assertions | `expect_equal()`	expect_equal()
+testing-standards-016	.claude/rules/testing-standards.md	31	requirement	Synthetic test data | Package-specific generator with `seed =`; defined in `helper-*.R`	seed =;helper-*.R
+testing-standards-017	.claude/rules/testing-standards.md	32	requirement	Edge case data | Inline in tests; never add edge case parameters to a data generator	
+testing-standards-018	.claude/rules/testing-standards.md	33	requirement	`skip_if_not_installed` | Block-level, inside affected `test_that()` blocks	skip_if_not_installed;test_that()
+testing-standards-019	.claude/rules/testing-standards.md	40	requirement	Every source file in `R/` has a corresponding test file in `tests/testthat/`.	R/;tests/testthat/
+testing-standards-020	.claude/rules/testing-standards.md	41	requirement	One-to-one is the floor	
+testing-standards-021	.claude/rules/testing-standards.md	41	tiebreaker	large source files may split into multiple test files if it improves clarity.	
+testing-standards-022	.claude/rules/testing-standards.md	44	mapping	Naming convention: `R/my-thing.R` → `tests/testthat/test-my-thing.R`	R/my-thing.R;tests/testthat/test-my-thing.R
+testing-standards-023	.claude/rules/testing-standards.md	46	requirement	### One behavior per `test_that()` block	test_that()
+testing-standards-024	.claude/rules/testing-standards.md	47	requirement	Each `test_that()` description names one observable behavior.	test_that()
+testing-standards-025	.claude/rules/testing-standards.md	47	requirement	The description is a present-tense assertion, not a vague category.	
+testing-standards-026	.claude/rules/testing-standards.md	51	requirement	# Correct — specific, present-tense assertion test_that("my_fn() rejects data frames with 0 rows", { ... }) test_that("my_fn() assigns a default weight when none is given", { ... })	test_that();my_fn()
+testing-standards-027	.claude/rules/testing-standards.md	55	prohibition	# Wrong — vague category test_that("my_fn() validates input", { ... }) test_that("weights work", { ... })	test_that();my_fn()
+testing-standards-028	.claude/rules/testing-standards.md	60	prohibition	### No `describe()` blocks	describe()
+testing-standards-029	.claude/rules/testing-standards.md	61	requirement	Use flat `test_that()` throughout.	test_that()
+testing-standards-030	.claude/rules/testing-standards.md	61	prohibition	Do not nest `test_that()` inside `describe()`.	test_that();describe()
+testing-standards-031	.claude/rules/testing-standards.md	65	requirement	# Correct test_that("my_class stores the x property", { ... }) test_that("my_class stores the y property", { ... })	test_that()
+testing-standards-032	.claude/rules/testing-standards.md	69	prohibition	# Wrong describe("my_class properties", { test_that("stores x", { ... }) })	describe();test_that()
+testing-standards-033	.claude/rules/testing-standards.md	80	value	**98%+ line coverage** is the project target.	98
+testing-standards-034	.claude/rules/testing-standards.md	80	value	PRs that drop coverage below **95%** are blocked by CI.	95
+testing-standards-035	.claude/rules/testing-standards.md	83	requirement	Lines excluded from coverage are marked with `# nocov`	# nocov
+testing-standards-036	.claude/rules/testing-standards.md	83	requirement	and require an explanatory comment on the preceding line	
+testing-standards-037	.claude/rules/testing-standards.md	87	procedure	# nocov start ... # nocov end	# nocov start;# nocov end
+testing-standards-038	.claude/rules/testing-standards.md	88	requirement	# Defensive: this branch is unreachable via any public function. # Tested implicitly by all constructor tests.	
+testing-standards-039	.claude/rules/testing-standards.md	91	value	cli::cli_abort("Internal error: @data is NULL", class = "mypkg_error_internal")	cli::cli_abort;mypkg_error_internal
+testing-standards-040	.claude/rules/testing-standards.md	97	requirement	Acceptable `# nocov` categories: - Defensive branches for conditions impossible via public API	# nocov
+testing-standards-041	.claude/rules/testing-standards.md	98	requirement	Acceptable `# nocov` categories: - Platform-specific paths (e.g., Windows-only file encoding)	# nocov;Windows
+testing-standards-042	.claude/rules/testing-standards.md	99	requirement	Acceptable `# nocov` categories: - Explicit non-goals documented in the package specification	# nocov
+testing-standards-043	.claude/rules/testing-standards.md	102	prohibition	Unacceptable `# nocov` use: - Covering for missing tests — add the test instead	# nocov
+testing-standards-044	.claude/rules/testing-standards.md	103	prohibition	Unacceptable `# nocov` use: - Error messages that "feel hard to trigger" — find the trigger and test it	# nocov
+testing-standards-045	.claude/rules/testing-standards.md	105	requirement	### Three mandatory test categories	
+testing-standards-046	.claude/rules/testing-standards.md	106	requirement	Every exported function must have tests in all three categories:	
+testing-standards-047	.claude/rules/testing-standards.md	108	requirement	**1. Happy path** — normal inputs, expected behavior:	
+testing-standards-048	.claude/rules/testing-standards.md	110	requirement	test_that("my_fn() creates the right class for standard input", { result <- my_fn(data, weights = w) expect_true(inherits(result, "my_class")) })	test_that();expect_true();inherits()
+testing-standards-049	.claude/rules/testing-standards.md	116	requirement	**2. Error paths** — every typed error class from the package's error table:	
+testing-standards-050	.claude/rules/testing-standards.md	118	requirement	test_that("my_fn() rejects non-data-frame input", { expect_snapshot(error = TRUE, my_fn(list(x = 1))) expect_error(my_fn(list(x = 1)), class = "mypkg_error_not_data_frame") })	expect_snapshot(error = TRUE;expect_error;class = ;mypkg_error_not_data_frame
+testing-standards-051	.claude/rules/testing-standards.md	124	requirement	**3. Edge cases** — boundary conditions, NAs, empty inputs, single-row inputs:	NAs
+testing-standards-052	.claude/rules/testing-standards.md	126	requirement	test_that("my_fn() warns for single-row data", { single_row <- data.frame(x = 1, w = 1) expect_warning( my_fn(single_row, weights = w), class = "mypkg_warning_single_row" ) })	expect_warning;class = ;mypkg_warning_single_row
+testing-standards-053	.claude/rules/testing-standards.md	136	default	Default to **indirect testing** — exercise private helpers via the public functions that call them.	
+testing-standards-054	.claude/rules/testing-standards.md	137	requirement	Only write direct tests for a private function when coverage cannot be achieved indirectly AND the behavior is material.	AND
+testing-standards-055	.claude/rules/testing-standards.md	141	requirement	# Indirect (preferred) — .validate_weights() tested via the public API test_that("my_fn() rejects non-positive weights", { df <- data.frame(x = 1:5, w = c(1, 0, 1, 1, 1)) expect_error(my_fn(df, weights = w), class = "mypkg_error_weights_nonpositive") })	.validate_weights();expect_error;mypkg_error_weights_nonpositive
+testing-standards-056	.claude/rules/testing-standards.md	147	requirement	# Direct (only when necessary) test_that(".validate_fpc() rejects NA in fpc column [direct]", { df <- data.frame(y = 1, fpc = NA_real_) expect_error(.validate_fpc(df, "fpc"), class = "mypkg_error_fpc_na") })	.validate_fpc();expect_error;mypkg_error_fpc_na
+testing-standards-057	.claude/rules/testing-standards.md	148	value	[direct]	[direct]
+testing-standards-058	.claude/rules/testing-standards.md	158	requirement	### Constructor error testing: dual pattern	
+testing-standards-059	.claude/rules/testing-standards.md	159	requirement	User-facing input validation errors require two assertions:	
+testing-standards-060	.claude/rules/testing-standards.md	165	requirement	# 1. Typed class check — verifies the right error class is thrown expect_error( my_fn(df, weights = w), class = "mypkg_error_weights_nonpositive" )	expect_error;class = ;mypkg_error_weights_nonpositive
+testing-standards-061	.claude/rules/testing-standards.md	171	requirement	# 2. Snapshot — verifies the CLI message text has not changed expect_snapshot(error = TRUE, my_fn(df, weights = w))	expect_snapshot(error = TRUE
+testing-standards-062	.claude/rules/testing-standards.md	176	requirement	Structural/invariant errors (e.g., S7 class validators) use `class=` only — no snapshot — because those messages are not CLI-formatted.	class=;S7
+testing-standards-063	.claude/rules/testing-standards.md	177	mapping	See each package's testing rule for which validation layers use which pattern.	
+testing-standards-064	.claude/rules/testing-standards.md	181	requirement	Snapshot failures block PRs.	
+testing-standards-065	.claude/rules/testing-standards.md	181	prohibition	They are not auto-updated — they represent deliberate decisions about error message text.	
+testing-standards-066	.claude/rules/testing-standards.md	184	procedure	To update snapshots after an intentional message change: testthat::snapshot_review()	testthat::snapshot_review()
+testing-standards-067	.claude/rules/testing-standards.md	186	requirement	# review and approve each diff individually	
+testing-standards-068	.claude/rules/testing-standards.md	189	prohibition	Never run `testthat::snapshot_accept()` blindly.	testthat::snapshot_accept()
+testing-standards-069	.claude/rules/testing-standards.md	189	requirement	Each snapshot change must be reviewed.	
+testing-standards-070	.claude/rules/testing-standards.md	192	value	Snapshots live in `tests/testthat/_snaps/`.	tests/testthat/_snaps/
+testing-standards-071	.claude/rules/testing-standards.md	192	requirement	They are committed to version control.	
+testing-standards-072	.claude/rules/testing-standards.md	196	requirement	Use `expect_warning()` wrapping the call.	expect_warning()
+testing-standards-073	.claude/rules/testing-standards.md	196	requirement	Capture the return value separately if you need to assert on it:	
+testing-standards-074	.claude/rules/testing-standards.md	200	procedure	test_that("my_fn() warns and still returns an object for single-row data", { d1 <- data.frame(x = 1, w = 1) expect_warning( result <- my_fn(d1, weights = w), class = "mypkg_warning_single_row" ) expect_true(inherits(result, "my_class")) })	expect_warning;mypkg_warning_single_row;expect_true
+testing-standards-075	.claude/rules/testing-standards.md	212	prohibition	Do **not** use `withCallingHandlers()` or `tryCatch()` in tests.	withCallingHandlers();tryCatch()
+testing-standards-076	.claude/rules/testing-standards.md	216	mapping	Use `expect_identical()` for... | Use `expect_equal()` for...	expect_identical();expect_equal()
+testing-standards-077	.claude/rules/testing-standards.md	218	mapping	Character vectors, names | Floating-point output	
+testing-standards-078	.claude/rules/testing-standards.md	219	mapping	`NULL` and `NA` values | Numeric computations with tolerance	NULL;NA
+testing-standards-079	.claude/rules/testing-standards.md	220	mapping	Exact string/integer property values | Any calculated numeric result	
+testing-standards-080	.claude/rules/testing-standards.md	221	mapping	List structure (keys present/absent) | Weights, proportions, estimates	
+testing-standards-081	.claude/rules/testing-standards.md	228	requirement	Each package defines a synthetic data generator in `tests/testthat/helper-*.R` for creating realistic test inputs.	tests/testthat/helper-*.R
+testing-standards-082	.claude/rules/testing-standards.md	229	requirement	Use it for all unit tests that need a domain object.	
+testing-standards-083	.claude/rules/testing-standards.md	230	prohibition	Do not use real datasets in tests that don't need their specific properties.	
+testing-standards-084	.claude/rules/testing-standards.md	234	requirement	The generator must: - Accept a `seed =` argument for reproducibility	seed =
+testing-standards-085	.claude/rules/testing-standards.md	235	requirement	The generator must: - Return a plain data structure (not yet wrapped in a domain object)	
+testing-standards-086	.claude/rules/testing-standards.md	236	requirement	The generator must: - Produce realistic variation (unequal sizes, varying values, imbalanced groups)	
+testing-standards-087	.claude/rules/testing-standards.md	239	procedure	# Usage pattern — create data, then construct the domain object df <- make_pkg_data(n = 200, seed = 123) obj <- my_constructor(df, ...)	make_pkg_data;n = 200;seed = 123;my_constructor
+testing-standards-088	.claude/rules/testing-standards.md	245	requirement	Use real datasets only for numerical validation tests — comparing package outputs against a reference implementation.	
+testing-standards-089	.claude/rules/testing-standards.md	246	requirement	These belong in a dedicated test file.	
+testing-standards-090	.claude/rules/testing-standards.md	247	prohibition	Never use a real dataset just for convenience when synthetic data works.	
+testing-standards-091	.claude/rules/testing-standards.md	249	requirement	### Edge case data: inline	
+testing-standards-092	.claude/rules/testing-standards.md	250	requirement	Edge cases requiring specific, atypical values are constructed inline in the test.	
+testing-standards-093	.claude/rules/testing-standards.md	251	prohibition	Do not add special-case parameters to the data generator.	
+testing-standards-094	.claude/rules/testing-standards.md	254	requirement	# Correct — inline, self-documenting test_that("my_fn() rejects data with 0 rows", { empty_df <- data.frame(x = numeric(0), w = numeric(0)) expect_error(my_fn(empty_df, weights = w), class = "mypkg_error_empty_data") })	expect_error;mypkg_error_empty_data
+testing-standards-095	.claude/rules/testing-standards.md	260	prohibition	# Wrong df <- make_pkg_data(edge = "empty", seed = 1)  # don't do this	make_pkg_data;edge = "empty"
+testing-standards-096	.claude/rules/testing-standards.md	264	tiebreaker	The rule: if the edge case needs exact specific values to trigger, write those values directly.	
+testing-standards-097	.claude/rules/testing-standards.md	265	tiebreaker	Data generators produce typical inputs; edge cases are by definition atypical.	
+testing-standards-098	.claude/rules/testing-standards.md	268	requirement	### `skip_if_not_installed()` — block-level, not file-level	skip_if_not_installed()
+testing-standards-099	.claude/rules/testing-standards.md	269	requirement	Place `skip_if_not_installed()` inside the `test_that()` block that actually requires the external package.	skip_if_not_installed();test_that()
+testing-standards-100	.claude/rules/testing-standards.md	270	prohibition	Do not put a file-level skip at the top of a test file — other blocks in the same file may not need it.	
+testing-standards-101	.claude/rules/testing-standards.md	274	requirement	# Correct — block-level test_that("estimates match reference package [numerical]", { skip_if_not_installed("ref_pkg") # ... })	skip_if_not_installed("ref_pkg");[numerical]
+testing-standards-102	.claude/rules/testing-standards.md	281	requirement	# runs even without ref_pkg installed	ref_pkg
+testing-standards-103	.claude/rules/testing-standards.md	286	prohibition	# Wrong — skips the entire file skip_if_not_installed("ref_pkg")  # at top of file	skip_if_not_installed("ref_pkg")

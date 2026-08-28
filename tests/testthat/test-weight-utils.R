@@ -28,8 +28,11 @@
   surveycore::survey_nonprob(
     data = df,
     variables = list(
-      ids = NULL, strata = NULL, fpc = NULL,
-      weights = weight_col, nest = FALSE
+      ids = NULL,
+      strata = NULL,
+      fpc = NULL,
+      weights = weight_col,
+      nest = FALSE
     ),
     metadata = surveycore::survey_metadata(),
     groups = character(0),
@@ -94,9 +97,11 @@ test_that("trim_weights() default upper_abs = median(w) + 5 * IQR(w), lower_abs 
   taylor <- .make_test_taylor_wt(df)
   result <- trim_weights(taylor)
   hist_entry <- result@metadata@weighting_history[[1]]
-  expect_equal(hist_entry$parameters$upper_abs,
-               stats::median(w) + 5 * stats::IQR(w),
-               tolerance = 1e-10)
+  expect_equal(
+    hist_entry$parameters$upper_abs,
+    stats::median(w) + 5 * stats::IQR(w),
+    tolerance = 1e-10
+  )
   expect_equal(hist_entry$parameters$lower_abs, -Inf)
 })
 
@@ -106,9 +111,11 @@ test_that("trim_weights() k = 6 produces upper_abs = median(w) + 6 * IQR(w)", {
   taylor <- .make_test_taylor_wt(df)
   result <- trim_weights(taylor, k = 6)
   hist_entry <- result@metadata@weighting_history[[1]]
-  expect_equal(hist_entry$parameters$upper_abs,
-               stats::median(w) + 6 * stats::IQR(w),
-               tolerance = 1e-10)
+  expect_equal(
+    hist_entry$parameters$upper_abs,
+    stats::median(w) + 6 * stats::IQR(w),
+    tolerance = 1e-10
+  )
 })
 
 test_that("trim_weights() type='absolute' with both tails explicit", {
@@ -157,9 +164,11 @@ test_that("trim_weights() type='percentile' upper=0.99 sets upper_abs to 99th pe
   taylor <- .make_test_taylor_wt(df)
   result <- trim_weights(taylor, upper = 0.99, type = "percentile")
   hist_entry <- result@metadata@weighting_history[[1]]
-  expect_equal(hist_entry$parameters$upper_abs,
-               stats::quantile(w, 0.99, type = 7, names = FALSE),
-               tolerance = 1e-10)
+  expect_equal(
+    hist_entry$parameters$upper_abs,
+    stats::quantile(w, 0.99, type = 7, names = FALSE),
+    tolerance = 1e-10
+  )
   expect_equal(hist_entry$parameters$lower_abs, -Inf)
 })
 
@@ -188,7 +197,12 @@ test_that("trim_weights() strict=FALSE: weight sum preserved after single pass",
   df <- make_surveywts_data(seed = 14)
   w <- df$base_weight
   taylor <- .make_test_taylor_wt(df)
-  result <- trim_weights(taylor, upper = 0.9, type = "percentile", strict = FALSE)
+  result <- trim_weights(
+    taylor,
+    upper = 0.9,
+    type = "percentile",
+    strict = FALSE
+  )
   result_w <- result@data[[result@variables$weights]]
   expect_equal(sum(result_w), sum(w), tolerance = 1e-10)
 })
@@ -198,7 +212,12 @@ test_that("trim_weights() strict=TRUE: all main weights within [lower_abs, upper
   w <- df$base_weight
   upper_pct <- 0.85
   taylor <- .make_test_taylor_wt(df)
-  result <- trim_weights(taylor, upper = upper_pct, type = "percentile", strict = TRUE)
+  result <- trim_weights(
+    taylor,
+    upper = upper_pct,
+    type = "percentile",
+    strict = TRUE
+  )
   upper_abs <- stats::quantile(w, upper_pct, type = 7, names = FALSE)
   result_w <- result@data[[result@variables$weights]]
   expect_true(all(result_w <= upper_abs + .Machine$double.eps))
@@ -212,7 +231,11 @@ test_that("trim_weights() weight sum preserved when trimming succeeds (strict=FA
   w <- df$base_weight
   taylor <- .make_test_taylor_wt(df)
   result <- trim_weights(taylor, upper = 0.9, type = "percentile")
-  expect_equal(sum(result@data[[result@variables$weights]]), sum(w), tolerance = 1e-10)
+  expect_equal(
+    sum(result@data[[result@variables$weights]]),
+    sum(w),
+    tolerance = 1e-10
+  )
 })
 
 test_that("trim_weights() strict=TRUE: all weights in [lower_abs, upper_abs] + epsilon", {
@@ -221,8 +244,13 @@ test_that("trim_weights() strict=TRUE: all weights in [lower_abs, upper_abs] + e
   lo_pct <- 0.05
   hi_pct <- 0.90
   taylor <- .make_test_taylor_wt(df)
-  result <- trim_weights(taylor, lower = lo_pct, upper = hi_pct,
-    type = "percentile", strict = TRUE)
+  result <- trim_weights(
+    taylor,
+    lower = lo_pct,
+    upper = hi_pct,
+    type = "percentile",
+    strict = TRUE
+  )
   lower_abs <- stats::quantile(w, lo_pct, type = 7, names = FALSE)
   upper_abs <- stats::quantile(w, hi_pct, type = 7, names = FALSE)
   result_w <- result@data[[result@variables$weights]]
@@ -236,8 +264,13 @@ test_that("trim_weights() strict=FALSE: sum preserved but not all weights in bou
   lo_pct <- 0.45
   hi_pct <- 0.55
   taylor <- .make_test_taylor_wt(df)
-  result <- trim_weights(taylor, lower = lo_pct, upper = hi_pct,
-    type = "percentile", strict = FALSE)
+  result <- trim_weights(
+    taylor,
+    lower = lo_pct,
+    upper = hi_pct,
+    type = "percentile",
+    strict = FALSE
+  )
   result_w <- result@data[[result@variables$weights]]
   expect_equal(sum(result_w), sum(w), tolerance = 1e-10)
   expect_true(is.numeric(result_w))
@@ -260,7 +293,12 @@ test_that("trim_weights() n_trimmed_lower equals count of original weights below
   lower_pct <- 0.1
   lower_abs <- stats::quantile(w, lower_pct, type = 7, names = FALSE)
   taylor <- .make_test_taylor_wt(df)
-  result <- trim_weights(taylor, lower = lower_pct, upper = 0.9, type = "percentile")
+  result <- trim_weights(
+    taylor,
+    lower = lower_pct,
+    upper = 0.9,
+    type = "percentile"
+  )
   hist_entry <- result@metadata@weighting_history[[1]]
   expect_equal(hist_entry$parameters$n_trimmed_lower, sum(w < lower_abs))
 })
@@ -271,9 +309,11 @@ test_that("trim_weights() type='percentile' upper=0.99: history upper_abs == qua
   taylor <- .make_test_taylor_wt(df)
   result <- trim_weights(taylor, upper = 0.99, type = "percentile")
   hist_entry <- result@metadata@weighting_history[[1]]
-  expect_equal(hist_entry$parameters$upper_abs,
+  expect_equal(
+    hist_entry$parameters$upper_abs,
     stats::quantile(w, 0.99, type = 7, names = FALSE),
-    tolerance = 1e-10)
+    tolerance = 1e-10
+  )
 })
 
 test_that("trim_weights() survey_replicate: colSums preserved per column", {
@@ -654,10 +694,17 @@ test_that("trim_weights() history entry has all required fields", {
 test_that("trim_weights() type='percentile': lower_input != lower_abs", {
   df <- make_surveywts_data(seed = 41)
   taylor <- .make_test_taylor_wt(df)
-  result <- trim_weights(taylor, lower = 0.05, upper = 0.95, type = "percentile")
+  result <- trim_weights(
+    taylor,
+    lower = 0.05,
+    upper = 0.95,
+    type = "percentile"
+  )
   hist_entry <- result@metadata@weighting_history[[1]]
   # Percentile input (0.05) != resolved absolute value (quantile)
-  expect_false(isTRUE(hist_entry$parameters$lower_input == hist_entry$parameters$lower_abs))
+  expect_false(isTRUE(
+    hist_entry$parameters$lower_input == hist_entry$parameters$lower_abs
+  ))
 })
 
 test_that("trim_weights() step number is correct when chained after calibrate_linear()", {
@@ -693,7 +740,11 @@ test_that("trim_weights() warns and is a no-op when all weights are equal", {
     result <- trim_weights(design),
     class = "surveywts_warning_no_weights_trimmed"
   )
-  expect_equal(result@data[[result@variables$weights]], rep(1, 10), tolerance = 1e-10)
+  expect_equal(
+    result@data[[result@variables$weights]],
+    rep(1, 10),
+    tolerance = 1e-10
+  )
 })
 
 test_that("trim_weights() counts exactly 1 trimmed at each bound", {
@@ -718,7 +769,11 @@ test_that("trim_weights() survey_replicate + percentile: cutoffs from main weigh
   result <- trim_weights(rep_design, upper = upper_pct, type = "percentile")
   hist <- result@metadata@weighting_history
   hist_entry <- hist[[length(hist)]]
-  expect_equal(hist_entry$parameters$upper_abs, expected_upper, tolerance = 1e-10)
+  expect_equal(
+    hist_entry$parameters$upper_abs,
+    expected_upper,
+    tolerance = 1e-10
+  )
 })
 
 # rescale_weights() --------------------------------------------------
@@ -840,7 +895,11 @@ test_that("rescale_weights() scale factor n/sum(w) matches history", {
   result <- rescale_weights(taylor)
   hist_entry <- result@metadata@weighting_history[[1]]
   expected_sf <- n / sum(w)
-  expect_equal(hist_entry$parameters$scale_factor, expected_sf, tolerance = 1e-10)
+  expect_equal(
+    hist_entry$parameters$scale_factor,
+    expected_sf,
+    tolerance = 1e-10
+  )
 })
 
 test_that("rescale_weights() survey_replicate global: each rep column scaled by same factor", {
@@ -1099,8 +1158,11 @@ test_that("rescale_weights() by with group of size 1: weight for that observatio
   surveycore::survey_nonprob(
     data = df,
     variables = list(
-      ids = NULL, strata = NULL, fpc = NULL,
-      weights = "base_weight", nest = FALSE
+      ids = NULL,
+      strata = NULL,
+      fpc = NULL,
+      weights = "base_weight",
+      nest = FALSE
     ),
     metadata = surveycore::survey_metadata(),
     groups = character(0),
@@ -1233,7 +1295,12 @@ test_that("trim_weights() nonprob + repweights: strict=FALSE (default) not appli
   upper_pct <- 0.85
   upper_abs <- stats::quantile(w_main, upper_pct, type = 7, names = FALSE)
 
-  result <- trim_weights(nonprob_rep, upper = upper_pct, type = "percentile", strict = TRUE)
+  result <- trim_weights(
+    nonprob_rep,
+    upper = upper_pct,
+    type = "percentile",
+    strict = TRUE
+  )
   result_rep <- as.matrix(result@data[result@variables$repweights])
   # Replicate values should be clipped at upper_abs (one pass only)
   expect_true(all(result_rep <= upper_abs + .Machine$double.eps))
@@ -1335,9 +1402,17 @@ test_that("rescale_weights() nonprob + repweights: scale_factor == 1.0 when weig
     id = seq_len(n),
     age_group = sample(c("18-34", "35-54", "55+"), n, replace = TRUE),
     sex = sample(c("M", "F"), n, replace = TRUE),
-    education = sample(c("<HS", "HS", "College", "Graduate"), n, replace = TRUE),
-    region = sample(c("Northeast", "South", "Midwest", "West"), n, replace = TRUE),
-    base_weight = rep(1.0, n)  # weights already sum to n
+    education = sample(
+      c("<HS", "HS", "College", "Graduate"),
+      n,
+      replace = TRUE
+    ),
+    region = sample(
+      c("Northeast", "South", "Midwest", "West"),
+      n,
+      replace = TRUE
+    ),
+    base_weight = rep(1.0, n) # weights already sum to n
   )
   for (i in seq_len(n_rep)) {
     df[[paste0("rep_", i)]] <- abs(stats::rnorm(n, 1, 0.2))
@@ -1387,7 +1462,7 @@ test_that("rescale_weights() nonprob + repweights: two rep columns scale correct
 test_that("rescale_weights() aborts when explicit weights column does not exist", {
   df <- make_surveywts_data(n = 50, seed = 1)
   svy <- surveycore::survey_taylor(
-    data      = df,
+    data = df,
     variables = list(weights = "base_weight")
   )
   expect_error(
@@ -1403,7 +1478,7 @@ test_that("rescale_weights() aborts when explicit weights column does not exist"
 test_that("rescale_weights() aborts when explicit weights column is not numeric", {
   df <- make_surveywts_data(n = 50, seed = 1)
   svy <- surveycore::survey_taylor(
-    data      = df,
+    data = df,
     variables = list(weights = "base_weight")
   )
   # Add a character column without touching @variables$weights
@@ -1421,7 +1496,7 @@ test_that("rescale_weights() aborts when explicit weights column is not numeric"
 test_that("rescale_weights() aborts when explicit weights column contains NAs", {
   df <- make_surveywts_data(n = 50, seed = 1)
   svy <- surveycore::survey_taylor(
-    data      = df,
+    data = df,
     variables = list(weights = "base_weight")
   )
   # Add a column with NAs without touching @variables$weights

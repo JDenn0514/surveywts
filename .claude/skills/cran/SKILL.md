@@ -8,6 +8,7 @@ description: >
   (5) Responding to CRAN reviewer feedback point-by-point, (6) Triaging
   ERRORs, WARNINGs, and NOTEs from R CMD check, (7) Verifying DESCRIPTION
   metadata, documentation, and URL compliance before submission.
+disable-model-invocation: true
 ---
 
 # CRAN Submission

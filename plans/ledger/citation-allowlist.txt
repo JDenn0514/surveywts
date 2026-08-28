@@ -1,0 +1,23 @@
+# Paths exempt from the citation-resolution check in check-literals.sh.
+#
+# Every path below is pinned history, not a live citation. They are the
+# BEFORE_FILES list in .claude/scripts/literals.py, read only through
+# `git show 45e8751:<path>` to rebuild the Phase A literal inventory from the
+# untouched tree. `45e8751` is the baseline commit named in
+# plans/spec-rules-redesign.md, taken before any rules file moved or changed.
+# These paths describe where those 8 files lived AT THAT REF, not where they
+# live today, so the 2026 move of `.claude/rules/*.md` to `.claude/standards/`
+# must never repoint them. Repointing would make `extract` read the wrong
+# (post-move) blob, or nothing at all, and silently corrupt the literal
+# baseline that the rest of the ledger depends on.
+#
+# Lines starting with # are ignored by check-literals.sh.
+
+.claude/rules/code-style.md
+.claude/rules/engineering-preferences.md
+.claude/rules/function-documentation.md
+.claude/rules/github-strategy.md
+.claude/rules/r-package-conventions.md
+.claude/rules/surveywts-conventions.md
+.claude/rules/testing-standards.md
+.claude/rules/testing-surveywts.md

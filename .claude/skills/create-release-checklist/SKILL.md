@@ -3,6 +3,7 @@ name: create-release-checklist
 description: >
   Create a release checklist and GitHub issue for an R package. Use when the
   user asks to "create a release checklist" or "start a release" for an R package.
+disable-model-invocation: true
 allowed-tools: Read, Bash, AskUserQuestion
 source: "https://github.com/posit-dev/skills (MIT License, © Posit, PBC)"
 ---

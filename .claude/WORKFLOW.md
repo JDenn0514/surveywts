@@ -11,10 +11,10 @@ How the skills fit together in practice.
 New session
     │
     ▼
-┌──────────────┐
-│/spec-reviewer│  Input:  spec file path (you provide)
-│              │  Output: plans/spec-review-{name}.md
-└──────┬───────┘
+┌──────────────────────┐
+│/spec-workflow stage 3│  Input:  spec file path (you provide)
+│                      │  Output: plans/spec-review-{name}.md
+└──────┬───────────────┘
        │ "Start a new session with /spec-workflow"
        ▼
 New session
@@ -133,7 +133,7 @@ plans/impl-{name}.md
 
 | File | Written by | Read by |
 |------|------------|---------|
-| `plans/spec-review-{name}.md` | `/spec-reviewer` | `/spec-workflow` Stage 2 |
+| `plans/spec-review-{name}.md` | `/spec-workflow` Stage 3 | `/spec-workflow` Stage 2 |
 | `plans/impl-{name}.md` | `/spec-workflow` Stage 3 | `/r-implement`, `/commit-and-pr` |
 | `plans/claude-decisions-{name}.md` | `/spec-workflow` Stage 4 | future sessions |
 | `plans/error-messages.md` | `/r-implement` | all sessions |

@@ -97,8 +97,9 @@ Spec: plans/spec-{id}.md
 Write surface: {exact files from impl-{id}.md}
 Tasks: {tasks from impl-{id}.md for this PR}
 Acceptance criteria: {from impl-{id}.md}
-Read: .claude/agents/builder.md, pipeline-shared/references/r-package-profile.md (rules auto-load — do not read .claude/rules/ again)
-Key documentation rule: `.claude/rules/function-documentation.md` — tier system, `@returns` (not `@return`), named `@section` requirements, `@examples` package-data rule for all exported functions
+Read: .claude/agents/builder.md, pipeline-shared/references/r-package-profile.md
+(builder.md Step 0 lists the standards files to read — do not re-list them here)
+Key documentation rule: `.claude/standards/function-documentation.md` — tier system, `@returns` (not `@return`), named `@section` requirements, `@examples` package-data rule for all exported functions
 Comprehension (if exists): plans/comprehension-{id}.md
 
 DO NOT read test-spec-{id}.md. DO NOT read any other PR's implementation.md.
@@ -123,15 +124,28 @@ After all builders in the batch return:
    git worktree prune           # clean up stale refs
    ```
 
-Then dispatch `tester` for each PR (NOT in a worktree — tester reads merged checkout):
+Then dispatch `tester` for each PR (NOT in a worktree — tester reads merged checkout).
+
+**Inject the tester's standards into the dispatch prompt.** The reachability
+test showed the tester does not perform its Step 0 reads, so YOU perform them
+at dispatch: read `.claude/standards/r-package-conventions.md`,
+`.claude/standards/testing-standards.md`, and
+`.claude/standards/testing-surveywts.md`, and paste their FULL contents into
+the dispatch prompt under the heading shown below. Do not summarize them and
+do not substitute a pointer — the paste is what puts the rules in the
+tester's context.
 
 ```
 PR: {number} — {slug}
 Test-spec: plans/test-spec-{id}.md
 Baseline results: {from step 0}
-Read: .claude/agents/tester.md, pipeline-shared/references/r-package-profile.md
+Read: pipeline-shared/references/r-package-profile.md
 
 DO NOT read spec-{id}.md. DO NOT read implementation.md.
+
+## Your standards (full text — these are in your context; no Step 0 Reads needed)
+
+{full contents of the three standards files}
 ```
 
 Each tester returns `audit.md` with verdict PASS or BLOCK.

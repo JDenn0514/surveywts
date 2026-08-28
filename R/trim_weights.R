@@ -265,18 +265,25 @@ trim_weights <- function(
 
   if (!any(outside_initial)) {
     cli::cli_warn(
-      c("!" = "No weights were trimmed: all main weights already fall within [{lower_abs}, {upper_abs}]."),
+      c(
+        "!" = "No weights were trimmed: all main weights already fall within [{lower_abs}, {upper_abs}]."
+      ),
       class = "surveywts_warning_no_weights_trimmed"
     )
   } else {
     has_trimmed <- rep(FALSE, length(weights_vec))
     repeat {
       result_inner <- .trim_weights_internal(
-        weights_vec, lower_abs, upper_abs, has_trimmed
+        weights_vec,
+        lower_abs,
+        upper_abs,
+        has_trimmed
       )
       weights_vec <- result_inner$weights
       has_trimmed <- result_inner$has_trimmed
-      if (!strict || !any(weights_vec < lower_abs | weights_vec > upper_abs)) break
+      if (!strict || !any(weights_vec < lower_abs | weights_vec > upper_abs)) {
+        break
+      }
     }
   }
 
@@ -332,8 +339,12 @@ trim_weights <- function(
 
   # Construct output
   if (.has_repweights(data)) {
-    result_design <- .update_survey_weights(data, weights_vec, history_entry,
-                                            wt_name = wt_name)
+    result_design <- .update_survey_weights(
+      data,
+      weights_vec,
+      history_entry,
+      wt_name = wt_name
+    )
     result_design@data[data@variables$repweights] <- as.data.frame(rwnew)
     result_design
   } else {

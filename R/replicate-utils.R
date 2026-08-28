@@ -59,8 +59,12 @@
 # integer. Returns NULL if replicates is NULL (caller handles the NULL case).
 # min_val defaults to 2; SDR passes min_val = 4.
 .validate_replicates_arg <- function(replicates, min_val = 2L) {
-  if (is.null(replicates)) return(NULL)
-  if (!is.numeric(replicates) || length(replicates) != 1L || is.na(replicates)) {
+  if (is.null(replicates)) {
+    return(NULL)
+  }
+  if (
+    !is.numeric(replicates) || length(replicates) != 1L || is.na(replicates)
+  ) {
     cli::cli_abort(
       c("x" = "{.arg replicates} must be a single number."),
       class = "surveywts_error_replicates_invalid"
@@ -118,65 +122,81 @@
 #   seed          : integer(1) or NULL -- if non-NULL, withr::local_seed() is used
 #   type_override : character(1) or NULL -- overrides svyrep_obj$type when set;
 #                   used for gen-boot/gen-rep which return type = "other" from svrep
-.convert_and_call <- function(data, backend_fn, method, params, seed = NULL,
-                               type_override = NULL) {
-  if (!is.null(seed)) withr::local_seed(seed)
+.convert_and_call <- function(
+  data,
+  backend_fn,
+  method,
+  params,
+  seed = NULL,
+  type_override = NULL
+) {
+  if (!is.null(seed)) {
+    withr::local_seed(seed)
+  }
 
   # survey_nonprob doesn't support as_svydesign(); build a simple SRS-weighted
   # design from the raw data and base weights so svrep can consume it.
   if (S7::S7_inherits(data, surveycore::survey_nonprob)) {
-    wt_col        <- data@variables$weights
-    wt_formula    <- stats::as.formula(paste0("~", wt_col))
-    svydesign_obj <- survey::svydesign(ids = ~1, weights = wt_formula, data = data@data)
+    wt_col <- data@variables$weights
+    wt_formula <- stats::as.formula(paste0("~", wt_col))
+    svydesign_obj <- survey::svydesign(
+      ids = ~1,
+      weights = wt_formula,
+      data = data@data
+    )
   } else {
     svydesign_obj <- surveycore::as_svydesign(data)
   }
 
-  svyrep_obj    <- backend_fn(svydesign_obj)
+  svyrep_obj <- backend_fn(svydesign_obj)
 
   # Extract replicate weight matrix. Both `matrix` (svrep bootstrap, gen-boot,
   # gen-rep) and `repweights_compressed` (survey JKn/BRR, svrep random-group JK)
   # support as.matrix().
-  rep_matrix  <- as.matrix(svyrep_obj$repweights)
-  n_rep       <- ncol(rep_matrix)
-  rep_names   <- paste0("rep_", seq_len(n_rep))
+  rep_matrix <- as.matrix(svyrep_obj$repweights)
+  n_rep <- ncol(rep_matrix)
+  rep_names <- paste0("rep_", seq_len(n_rep))
 
-  base_data   <- as.data.frame(svyrep_obj$variables)
-  rep_df      <- as.data.frame(rep_matrix)
+  base_data <- as.data.frame(svyrep_obj$variables)
+  rep_df <- as.data.frame(rep_matrix)
   names(rep_df) <- rep_names
-  combined    <- cbind(base_data, rep_df)
+  combined <- cbind(base_data, rep_df)
 
-  variables   <- list(
-    weights    = data@variables$weights,
+  variables <- list(
+    weights = data@variables$weights,
     repweights = rep_names,
-    type       = if (!is.null(type_override)) type_override else svyrep_obj$type,
-    scale      = svyrep_obj$scale,
-    rscales    = svyrep_obj$rscales,
-    fpc        = data@variables$fpc,
-    fpctype    = if (!is.null(svyrep_obj$fpctype)) svyrep_obj$fpctype else "fraction",
-    mse        = isTRUE(svyrep_obj$mse)
+    type = if (!is.null(type_override)) type_override else svyrep_obj$type,
+    scale = svyrep_obj$scale,
+    rscales = svyrep_obj$rscales,
+    fpc = data@variables$fpc,
+    fpctype = if (!is.null(svyrep_obj$fpctype)) {
+      svyrep_obj$fpctype
+    } else {
+      "fraction"
+    },
+    mse = isTRUE(svyrep_obj$mse)
   )
 
-  result    <- surveycore::survey_replicate(
-    data      = combined,
+  result <- surveycore::survey_replicate(
+    data = combined,
     variables = variables,
-    metadata  = data@metadata
+    metadata = data@metadata
   )
 
   # Append replicate_creation history entry. Snapshot the full @variables so
   # as_taylor_design() can reconstruct the original Taylor design.
-  snapshot  <- .snapshot_variables_for_history(data)
+  snapshot <- .snapshot_variables_for_history(data)
   new_entry <- list(
-    step          = length(data@metadata@weighting_history) + 1L,
-    operation     = "replicate_creation",
-    timestamp     = Sys.time(),
-    method        = method,
-    parameters    = params,
+    step = length(data@metadata@weighting_history) + 1L,
+    operation = "replicate_creation",
+    timestamp = Sys.time(),
+    method = method,
+    parameters = params,
     source_design = snapshot
   )
-  meta                      <- result@metadata
-  meta@weighting_history    <- c(meta@weighting_history, list(new_entry))
-  result@metadata           <- meta
+  meta <- result@metadata
+  meta@weighting_history <- c(meta@weighting_history, list(new_entry))
+  result@metadata <- meta
 
   result
 }
@@ -193,7 +213,7 @@
   if (!S7::S7_inherits(reference_sample, surveycore::survey_taylor)) {
     cls <- class(reference_sample)[[1L]]
     is_rep <- S7::S7_inherits(reference_sample, surveycore::survey_replicate)
-    is_df  <- inherits(reference_sample, "data.frame")
+    is_df <- inherits(reference_sample, "data.frame")
     cli::cli_abort(
       c(
         "x" = paste0(
@@ -246,8 +266,10 @@
 #   returns `data` with old replicate columns removed from @data and
 #   @variables$repweights cleared to NULL.
 .handle_repweights_overwrite <- function(data, fn_name, warning_class) {
-  if (is.null(data@variables$repweights) ||
-        length(data@variables$repweights) == 0L) {
+  if (
+    is.null(data@variables$repweights) ||
+      length(data@variables$repweights) == 0L
+  ) {
     return(data)
   }
   n_old <- length(data@variables$repweights)
@@ -290,7 +312,11 @@
 # Returns: survey_nonprob with repwt_* columns + updated @variables$repweights
 #   and a "bootstrap_weights" history entry.
 .quasi_randomization_bootstrap <- function(
-  data, replicates, reference_sample, mse, seed
+  data,
+  replicates,
+  reference_sample,
+  mse,
+  seed
 ) {
   history <- data@metadata@weighting_history
 
@@ -305,8 +331,11 @@
 
   # Calibration operations that qualify as a "calibration entry"
   .calib_ops <- c(
-    "calibrate_rake", "calibrate_linear", "calibrate_logit",
-    "poststratify", "raking"
+    "calibrate_rake",
+    "calibrate_linear",
+    "calibrate_logit",
+    "poststratify",
+    "raking"
   )
 
   # Find the last calibration entry
@@ -351,7 +380,7 @@
   # ---- Second-call overwrite check ----------------------------------------
   data <- .handle_repweights_overwrite(
     data,
-    fn_name       = "create_bootstrap_weights",
+    fn_name = "create_bootstrap_weights",
     warning_class = "surveywts_warning_repweights_overwritten"
   )
 
@@ -382,81 +411,86 @@
       )
     }
 
-    if (!is.null(seed)) set.seed(seed)
+    if (!is.null(seed)) {
+      set.seed(seed)
+    }
     n_ref <- if (use_level_b) nrow(ref_design@data) else 0L
-    n_A   <- nrow(data@data)
+    n_A <- nrow(data@data)
     failed_draws <- 0L
-    repwt_list  <- list()
+    repwt_list <- list()
 
     for (b in seq_len(B)) {
-      draw_ok <- tryCatch({
-        # Step 1: SRSWR resample of NPS rows
-        idx   <- sample(n_A, size = n_A, replace = TRUE)
-        S_A_b <- data@data[idx, , drop = FALSE]
+      draw_ok <- tryCatch(
+        {
+          # Step 1: SRSWR resample of NPS rows
+          idx <- sample(n_A, size = n_A, replace = TRUE)
+          S_A_b <- data@data[idx, , drop = FALSE]
 
-        # Drop weight column so ipw() doesn't find it
-        S_A_b <- S_A_b[
-          , setdiff(names(S_A_b), data@variables$weights),
-          drop = FALSE
-        ]
+          # Drop weight column so ipw() doesn't find it
+          S_A_b <- S_A_b[,
+            setdiff(names(S_A_b), data@variables$weights),
+            drop = FALSE
+          ]
 
-        # Revert "(Missing)" if missing_method = "separate"
-        if (identical(ipw_entry$missing_method, "separate")) {
-          sel_vars <- all.vars(ipw_entry$formula)
-          for (var in sel_vars) {
-            col <- S_A_b[[var]]
-            if (is.factor(col) && "(Missing)" %in% levels(col)) {
-              char_col <- as.character(col)
-              char_col[char_col == "(Missing)"] <- NA_character_
-              existing_levels <- sort(unique(char_col[!is.na(char_col)]))
-              S_A_b[[var]] <- factor(char_col, levels = existing_levels)
+          # Revert "(Missing)" if missing_method = "separate"
+          if (identical(ipw_entry$missing_method, "separate")) {
+            sel_vars <- all.vars(ipw_entry$formula)
+            for (var in sel_vars) {
+              col <- S_A_b[[var]]
+              if (is.factor(col) && "(Missing)" %in% levels(col)) {
+                char_col <- as.character(col)
+                char_col[char_col == "(Missing)"] <- NA_character_
+                existing_levels <- sort(unique(char_col[!is.na(char_col)]))
+                S_A_b[[var]] <- factor(char_col, levels = existing_levels)
+              }
             }
           }
-        }
 
-        # Step 2 (Level B): SRSWR resample of reference rows.
-        if (use_level_b) {
-          idx_ref    <- sample(n_ref, size = n_ref, replace = TRUE)
-          ref_data_b <- ref_design@data[idx_ref, , drop = FALSE]
-          ref_b      <- surveycore::survey_taylor(
-            data      = ref_data_b,
-            variables = ref_design@variables
+          # Step 2 (Level B): SRSWR resample of reference rows.
+          if (use_level_b) {
+            idx_ref <- sample(n_ref, size = n_ref, replace = TRUE)
+            ref_data_b <- ref_design@data[idx_ref, , drop = FALSE]
+            ref_b <- surveycore::survey_taylor(
+              data = ref_data_b,
+              variables = ref_design@variables
+            )
+          } else {
+            ref_b <- ref_design
+            ref_data_b <- NULL
+          }
+
+          # Step 3: re-run ipw()
+          ipw_result_b <- surveywts::ipw(
+            data = S_A_b,
+            reference = ref_b,
+            selection = ipw_entry$formula,
+            method = ipw_entry$method,
+            estimating_eq = ipw_entry$estimating_eq,
+            missing_method = ipw_entry$missing_method,
+            adjust_reference = ipw_entry$adjust_reference,
+            trim = ipw_entry$trim,
+            wt_name = data@variables$weights
           )
-        } else {
-          ref_b      <- ref_design
-          ref_data_b <- NULL
-        }
 
-        # Step 3: re-run ipw()
-        ipw_result_b <- surveywts::ipw(
-          data             = S_A_b,
-          reference        = ref_b,
-          selection        = ipw_entry$formula,
-          method           = ipw_entry$method,
-          estimating_eq    = ipw_entry$estimating_eq,
-          missing_method   = ipw_entry$missing_method,
-          adjust_reference = ipw_entry$adjust_reference,
-          trim             = ipw_entry$trim,
-          wt_name          = data@variables$weights
-        )
+          # Step 4: re-run calibration (if calibration entry present)
+          if (!is.null(calib_entry)) {
+            calib_result_b <- .dispatch_calibration_replay(
+              data = ipw_result_b,
+              calib_entry = calib_entry,
+              ref_design = ref_design,
+              ref_data_b = ref_data_b,
+              use_level_b = use_level_b
+            )
+            w_b <- .extract_weight_vec(calib_result_b, data@variables$weights)
+          } else {
+            w_b <- ipw_result_b@data[[data@variables$weights]]
+          }
 
-        # Step 4: re-run calibration (if calibration entry present)
-        if (!is.null(calib_entry)) {
-          calib_result_b <- .dispatch_calibration_replay(
-            data         = ipw_result_b,
-            calib_entry  = calib_entry,
-            ref_design   = ref_design,
-            ref_data_b   = ref_data_b,
-            use_level_b  = use_level_b
-          )
-          w_b <- .extract_weight_vec(calib_result_b, data@variables$weights)
-        } else {
-          w_b <- ipw_result_b@data[[data@variables$weights]]
-        }
-
-        repwt_list[[length(repwt_list) + 1L]] <- w_b
-        TRUE
-      }, error = function(e) FALSE)
+          repwt_list[[length(repwt_list) + 1L]] <- w_b
+          TRUE
+        },
+        error = function(e) FALSE
+      )
 
       if (!isTRUE(draw_ok)) failed_draws <- failed_draws + 1L
     }
@@ -490,65 +524,72 @@
       n_ref <- nrow(ref_design@data)
     } else {
       ref_design <- NULL
-      n_ref      <- 0L
+      n_ref <- 0L
     }
 
-    if (!is.null(seed)) set.seed(seed)
-    n_A          <- nrow(data@data)
-    wt_col       <- data@variables$weights
+    if (!is.null(seed)) {
+      set.seed(seed)
+    }
+    n_A <- nrow(data@data)
+    wt_col <- data@variables$weights
     failed_draws <- 0L
-    repwt_list   <- list()
+    repwt_list <- list()
 
     for (b in seq_len(B)) {
-      draw_ok <- tryCatch({
-        # Step 1: SRSWR resample of NPS rows
-        idx   <- sample(n_A, size = n_A, replace = TRUE)
-        S_A_b <- data@data[idx, , drop = FALSE]
+      draw_ok <- tryCatch(
+        {
+          # Step 1: SRSWR resample of NPS rows
+          idx <- sample(n_A, size = n_A, replace = TRUE)
+          S_A_b <- data@data[idx, , drop = FALSE]
 
-        # Step 3 (calibration-only): assign equal initial weight = 1.
-        # SRSWR gives each NPS unit equal selection probability per replicate;
-        # carrying forward the original calibrated weights would double-count.
-        S_A_b[[wt_col]] <- 1
+          # Step 3 (calibration-only): assign equal initial weight = 1.
+          # SRSWR gives each NPS unit equal selection probability per replicate;
+          # carrying forward the original calibrated weights would double-count.
+          S_A_b[[wt_col]] <- 1
 
-        # Wrap as survey_nonprob for dispatch
-        nps_b <- surveycore::survey_nonprob(
-          data      = S_A_b,
-          variables = list(weights = wt_col),
-          metadata  = surveycore::survey_metadata()
-        )
+          # Wrap as survey_nonprob for dispatch
+          nps_b <- surveycore::survey_nonprob(
+            data = S_A_b,
+            variables = list(weights = wt_col),
+            metadata = surveycore::survey_metadata()
+          )
 
-        # Level B: SRSWR resample of reference rows
-        ref_data_b <- if (use_level_b) {
-          idx_ref <- sample(n_ref, size = n_ref, replace = TRUE)
-          ref_design@data[idx_ref, , drop = FALSE]
-        } else {
-          NULL
-        }
+          # Level B: SRSWR resample of reference rows
+          ref_data_b <- if (use_level_b) {
+            idx_ref <- sample(n_ref, size = n_ref, replace = TRUE)
+            ref_design@data[idx_ref, , drop = FALSE]
+          } else {
+            NULL
+          }
 
-        # Step 4: calibration replay
-        calib_result_b <- .dispatch_calibration_replay(
-          data        = nps_b,
-          calib_entry = calib_entry,
-          ref_design  = ref_design,
-          ref_data_b  = ref_data_b,
-          use_level_b = use_level_b
-        )
+          # Step 4: calibration replay
+          calib_result_b <- .dispatch_calibration_replay(
+            data = nps_b,
+            calib_entry = calib_entry,
+            ref_design = ref_design,
+            ref_data_b = ref_data_b,
+            use_level_b = use_level_b
+          )
 
-        w_b <- .extract_weight_vec(calib_result_b, wt_col)
+          w_b <- .extract_weight_vec(calib_result_b, wt_col)
 
-        # A draw fails if any calibrated weight is <= 0 (e.g., calibrate_linear
-        # with bounds = NULL can produce negative weights that pass the engine
-        # but violate the survey_nonprob validator)
-        # nocov start
-        # Requires calibrate_linear() to produce a negative weight on a bootstrap
-        # subsample — reliably engineering such extreme conditions without
-        # also causing convergence failure is not feasible in unit tests.
-        if (any(w_b <= 0, na.rm = TRUE)) stop("non-positive calibrated weight")
-        # nocov end
+          # A draw fails if any calibrated weight is <= 0 (e.g., calibrate_linear
+          # with bounds = NULL can produce negative weights that pass the engine
+          # but violate the survey_nonprob validator)
+          # nocov start
+          # Requires calibrate_linear() to produce a negative weight on a bootstrap
+          # subsample — reliably engineering such extreme conditions without
+          # also causing convergence failure is not feasible in unit tests.
+          if (any(w_b <= 0, na.rm = TRUE)) {
+            stop("non-positive calibrated weight")
+          }
+          # nocov end
 
-        repwt_list[[length(repwt_list) + 1L]] <- w_b
-        TRUE
-      }, error = function(e) FALSE)
+          repwt_list[[length(repwt_list) + 1L]] <- w_b
+          TRUE
+        },
+        error = function(e) FALSE
+      )
 
       if (!isTRUE(draw_ok)) failed_draws <- failed_draws + 1L
     }
@@ -600,25 +641,25 @@
     data@data[[repwt_names[i]]] <- repwt_list[[i]]
   }
   data@variables$repweights <- repwt_names
-  data@variables$scale      <- 1 / draws_used
-  data@variables$rscales    <- rep(1, draws_used)
-  data@variables$type       <- "bootstrap"
-  data@variables$mse        <- (mse == "mse")
+  data@variables$scale <- 1 / draws_used
+  data@variables$rscales <- rep(1, draws_used)
+  data@variables$type <- "bootstrap"
+  data@variables$mse <- (mse == "mse")
 
   # Append bootstrap_weights history entry
   meta <- data@metadata
   meta@weighting_history <- c(
     meta@weighting_history,
     list(list(
-      step       = length(meta@weighting_history) + 1L,
-      operation  = "bootstrap_weights",
-      timestamp  = Sys.time(),
-      type       = "quasi-randomization",
+      step = length(meta@weighting_history) + 1L,
+      operation = "bootstrap_weights",
+      timestamp = Sys.time(),
+      type = "quasi-randomization",
       replicates = B,
       draws_used = draws_used,
-      level      = if (use_level_b) "B" else "A",
-      mse        = mse,
-      seed       = seed
+      level = if (use_level_b) "B" else "A",
+      mse = mse,
+      seed = seed
     ))
   )
   data@metadata <- meta
@@ -644,36 +685,40 @@
 #
 # Returns: a survey_nonprob with calibrated weights
 .dispatch_calibration_replay <- function(
-  data, calib_entry, ref_design, ref_data_b, use_level_b
+  data,
+  calib_entry,
+  ref_design,
+  ref_data_b,
+  use_level_b
 ) {
   op <- calib_entry$operation
-  p  <- calib_entry$parameters
+  p <- calib_entry$parameters
 
   if (op %in% c("calibrate_rake", "raking")) {
     if (use_level_b) {
       targets_b <- .reestimate_margins_from_reference(
         calib_entry = calib_entry,
-        ref_design  = ref_design,
-        ref_data_b  = ref_data_b
+        ref_design = ref_design,
+        ref_data_b = ref_data_b
       )
     } else {
       # "raking" legacy entries stored targets as `margins`; new as `targets`
       targets_b <- p$targets %||% p$margins
     }
     surveywts::calibrate_rake(
-      data      = data,
-      targets   = targets_b,
-      type      = p$type,
+      data = data,
+      targets = targets_b,
+      type = p$type,
       algorithm = p$algorithm %||% p$method,
-      cap       = p$cap,
-      control   = p$control
+      cap = p$cap,
+      control = p$control
     )
   } else if (op == "calibrate_linear") {
     if (use_level_b) {
       targets_b <- .reestimate_margins_from_reference(
         calib_entry = calib_entry,
-        ref_design  = ref_design,
-        ref_data_b  = ref_data_b
+        ref_design = ref_design,
+        ref_data_b = ref_data_b
       )
     } else {
       targets_b <- p$targets
@@ -681,12 +726,12 @@
     # bounds_scale stored as NULL when bounds = NULL (function default applies).
     # Do not pass NULL to arg_match — omit the arg and let the default be used.
     args_linear <- list(
-      data       = data,
-      targets    = targets_b,
-      type       = p$type,
-      bounds     = p$bounds,
+      data = data,
+      targets = targets_b,
+      type = p$type,
+      bounds = p$bounds,
       unit_scale = p$unit_scale,
-      control    = p$control
+      control = p$control
     )
     if (!is.null(p$bounds_scale)) {
       args_linear$bounds_scale <- p$bounds_scale
@@ -696,20 +741,20 @@
     if (use_level_b) {
       targets_b <- .reestimate_margins_from_reference(
         calib_entry = calib_entry,
-        ref_design  = ref_design,
-        ref_data_b  = ref_data_b
+        ref_design = ref_design,
+        ref_data_b = ref_data_b
       )
     } else {
       targets_b <- p$targets
     }
     # bounds_scale stored as NULL when bounds defaults applied — same pattern.
     args_logit <- list(
-      data       = data,
-      targets    = targets_b,
-      type       = p$type,
-      bounds     = p$bounds,
+      data = data,
+      targets = targets_b,
+      type = p$type,
+      bounds = p$bounds,
       unit_scale = p$unit_scale,
-      control    = p$control
+      control = p$control
     )
     if (!is.null(p$bounds_scale)) {
       args_logit$bounds_scale <- p$bounds_scale
@@ -718,9 +763,9 @@
   } else if (op == "poststratify") {
     # poststratify does not accept algorithm, cap, control, or bounds
     surveywts::poststratify(
-      data    = data,
+      data = data,
       targets = p$targets,
-      type    = p$type
+      type = p$type
     )
   } else {
     cli::cli_abort(
@@ -774,29 +819,42 @@
 #   ref_design  : the original reference survey_taylor (for variable structure)
 #   ref_data_b  : data.frame — SRSWR-resampled reference rows (includes the
 #                 weight column from ref_design@variables$weights)
-.reestimate_margins_from_reference <- function(calib_entry, ref_design, ref_data_b) {
+.reestimate_margins_from_reference <- function(
+  calib_entry,
+  ref_design,
+  ref_data_b
+) {
   # Old "raking" entries stored targets as `margins`; new ones as `targets`.
   margins_orig <- calib_entry$parameters$targets %||%
     calib_entry$parameters$margins
-  type         <- calib_entry$parameters$type
-  wt_col       <- ref_design@variables$weights
-  ref_wts_b    <- ref_data_b[[wt_col]]
+  type <- calib_entry$parameters$type
+  wt_col <- ref_design@variables$weights
+  ref_wts_b <- ref_data_b[[wt_col]]
 
   lapply(names(margins_orig), function(var) {
-    col  <- as.character(ref_data_b[[var]])
+    col <- as.character(ref_data_b[[var]])
     lvls <- names(margins_orig[[var]])
     if (type == "prop") {
-      totals <- vapply(lvls, function(lv) {
-        sum(ref_wts_b[col == lv], na.rm = TRUE)
-      }, numeric(1L))
+      totals <- vapply(
+        lvls,
+        function(lv) {
+          sum(ref_wts_b[col == lv], na.rm = TRUE)
+        },
+        numeric(1L)
+      )
       total_sum <- sum(ref_wts_b, na.rm = TRUE)
       stats::setNames(totals / total_sum, lvls)
     } else {
       # type == "count"
-      totals <- vapply(lvls, function(lv) {
-        sum(ref_wts_b[col == lv], na.rm = TRUE)
-      }, numeric(1L))
+      totals <- vapply(
+        lvls,
+        function(lv) {
+          sum(ref_wts_b[col == lv], na.rm = TRUE)
+        },
+        numeric(1L)
+      )
       stats::setNames(totals, lvls)
     }
-  }) |> stats::setNames(names(margins_orig))
+  }) |>
+    stats::setNames(names(margins_orig))
 }

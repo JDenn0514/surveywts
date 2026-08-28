@@ -119,9 +119,13 @@ create_bootstrap_weights <- function(
   replicates = NULL,
   ...,
   type = c(
-    "Rao-Wu-Yue-Beaumont", "Rao-Wu", "Antal-Tille",
-    "Preston", "Canty-Davison",
-    "quasi-randomization", "hybrid"
+    "Rao-Wu-Yue-Beaumont",
+    "Rao-Wu",
+    "Antal-Tille",
+    "Preston",
+    "Canty-Davison",
+    "quasi-randomization",
+    "hybrid"
   ),
   reference_sample = NULL,
   mse = c("mse", "chrostowski", "uncentered"),
@@ -147,11 +151,15 @@ create_bootstrap_weights <- function(
   }
 
   type <- rlang::arg_match(type)
-  mse  <- rlang::arg_match(mse)
+  mse <- rlang::arg_match(mse)
 
   # Resolve NULL replicates
   if (is.null(replicates)) {
-    replicates <- if (type %in% c("quasi-randomization", "hybrid")) 200L else 500L
+    replicates <- if (type %in% c("quasi-randomization", "hybrid")) {
+      200L
+    } else {
+      500L
+    }
   }
   replicates <- .validate_replicates_arg(replicates)
 
@@ -205,11 +213,11 @@ create_bootstrap_weights <- function(
 
     if (type == "quasi-randomization") {
       .quasi_randomization_bootstrap(
-        data             = data,
-        replicates       = replicates,
+        data = data,
+        replicates = replicates,
         reference_sample = reference_sample,
-        mse              = mse,
-        seed             = seed
+        mse = mse,
+        seed = seed
       )
     } else {
       # type == "hybrid": error stub until mass_imputation() is implemented
@@ -274,15 +282,18 @@ create_bootstrap_weights <- function(
 
     mse_logical <- (mse == "mse")
     .convert_and_call(
-      data       = data,
+      data = data,
       backend_fn = function(d) {
         svrep::as_bootstrap_design(
-          d, type = type, replicates = replicates, mse = mse_logical
+          d,
+          type = type,
+          replicates = replicates,
+          mse = mse_logical
         )
       },
-      method     = "bootstrap",
-      params     = list(type = type, replicates = replicates, mse = mse_logical),
-      seed       = seed
+      method = "bootstrap",
+      params = list(type = type, replicates = replicates, mse = mse_logical),
+      seed = seed
     )
   }
 }

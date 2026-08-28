@@ -85,16 +85,30 @@ create_gen_rep_weights <- function(
     )
   }
 
-  variance_estimator <- rlang::arg_match(variance_estimator, c(
-    "SD1", "SD2", "Horvitz-Thompson", "Yates-Grundy",
-    "Poisson Horvitz-Thompson", "Stratified Multistage SRS",
-    "Ultimate Cluster", "Deville-1", "Deville-2", "Deville-Tille",
-    "BOSB", "Beaumont-Emond"
-  ))
+  variance_estimator <- rlang::arg_match(
+    variance_estimator,
+    c(
+      "SD1",
+      "SD2",
+      "Horvitz-Thompson",
+      "Yates-Grundy",
+      "Poisson Horvitz-Thompson",
+      "Stratified Multistage SRS",
+      "Ultimate Cluster",
+      "Deville-1",
+      "Deville-2",
+      "Deville-Tille",
+      "BOSB",
+      "Beaumont-Emond"
+    )
+  )
 
   aux_quo <- rlang::enquo(aux_var_names)
 
-  if (identical(variance_estimator, "Deville-Tille") && rlang::quo_is_null(aux_quo)) {
+  if (
+    identical(variance_estimator, "Deville-Tille") &&
+      rlang::quo_is_null(aux_quo)
+  ) {
     cli::cli_abort(
       c(
         "x" = "{.code variance_estimator = \"Deville-Tille\"} requires {.arg aux_var_names}.",
@@ -111,24 +125,24 @@ create_gen_rep_weights <- function(
   }
 
   .convert_and_call(
-    data       = data,
+    data = data,
     backend_fn = function(d) {
       svrep::as_fays_gen_rep_design(
         d,
         variance_estimator = variance_estimator,
-        max_replicates     = max_replicates,
-        balanced           = balanced,
-        aux_var_names      = resolved_aux,
-        mse                = mse
+        max_replicates = max_replicates,
+        balanced = balanced,
+        aux_var_names = resolved_aux,
+        mse = mse
       )
     },
-    method     = "generalized-replicate",
-    params     = list(
+    method = "generalized-replicate",
+    params = list(
       variance_estimator = variance_estimator,
-      max_replicates     = max_replicates,
-      balanced           = balanced,
-      mse                = mse
+      max_replicates = max_replicates,
+      balanced = balanced,
+      mse = mse
     ),
-    seed       = seed
+    seed = seed
   )
 }

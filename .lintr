@@ -1,7 +1,0 @@
-linters: linters_with_defaults(
-  line_length_linter(80),
-  pipe_consistency_linter("native"),
-  object_name_linter("snake_case"),
-  assignment_linter()
-)
-exclusions: list("data-raw")

@@ -1,0 +1,52 @@
+id	source_file	source_line	category	verbatim	literals
+engineering-preferences-001	.claude/rules/engineering-preferences.md	5	requirement	"**Status:** Decided — applies to all surveyverse packages"	surveyverse
+engineering-preferences-002	.claude/rules/engineering-preferences.md	7	requirement	"**Scope:** These preferences are owned by this repo but intended as guidance for the full surveyverse ecosystem."	surveyverse
+engineering-preferences-003	.claude/rules/engineering-preferences.md	8	requirement	"If another package adopts them, they should copy this file to their own `.claude/rules/`."	.claude/rules/
+engineering-preferences-004	.claude/rules/engineering-preferences.md	11	requirement	"These are meta-principles that govern every implementation decision across all phases."	
+engineering-preferences-005	.claude/rules/engineering-preferences.md	12	tiebreaker	"When in doubt about an approach, use this list as the tiebreaker."	
+engineering-preferences-006	.claude/rules/engineering-preferences.md	13	tiebreaker	"They are listed in priority order."	
+engineering-preferences-007	.claude/rules/engineering-preferences.md	17	requirement	"## 1. DRY — flag repetition aggressively"	DRY
+engineering-preferences-008	.claude/rules/engineering-preferences.md	19	requirement	"Duplicated logic is a bug waiting to happen."	
+engineering-preferences-009	.claude/rules/engineering-preferences.md	19	requirement	"If two functions do the same thing, they should share a helper."	
+engineering-preferences-010	.claude/rules/engineering-preferences.md	20	requirement	"If two spec sections describe the same behavior, one should reference the other."	
+engineering-preferences-011	.claude/rules/engineering-preferences.md	23	mapping	"Repeated patterns in 2+ functions → extract a shared internal helper"	2+
+engineering-preferences-012	.claude/rules/engineering-preferences.md	24	mapping	"Repeated validation logic → consolidate into a single validator"	
+engineering-preferences-013	.claude/rules/engineering-preferences.md	25	mapping	"Repeated test setup → move to `helper-*.R`"	helper-*.R
+engineering-preferences-014	.claude/rules/engineering-preferences.md	27	prohibition	"Do not defer DRY violations as "we can clean this up later.""	DRY
+engineering-preferences-015	.claude/rules/engineering-preferences.md	27	requirement	"Surface them during spec review, not after the code is written."	
+engineering-preferences-016	.claude/rules/engineering-preferences.md	30	tiebreaker	"## 2. Well-tested — more tests is better"	
+engineering-preferences-017	.claude/rules/engineering-preferences.md	32	requirement	"Missing test coverage is always a problem."	
+engineering-preferences-018	.claude/rules/engineering-preferences.md	32	tiebreaker	"Over-tested code is not."	
+engineering-preferences-019	.claude/rules/engineering-preferences.md	34	tiebreaker	"When unsure whether an edge case needs a test, write the test"	
+engineering-preferences-020	.claude/rules/engineering-preferences.md	35	prohibition	"Never suggest removing coverage to hit a deadline"	
+engineering-preferences-021	.claude/rules/engineering-preferences.md	36	value	"98%+ line coverage is the floor, not the target"	98%+;98%
+engineering-preferences-022	.claude/rules/engineering-preferences.md	37	requirement	"Every error class gets a test"	
+engineering-preferences-023	.claude/rules/engineering-preferences.md	37	requirement	"every edge case in the spec gets a test"	
+engineering-preferences-024	.claude/rules/engineering-preferences.md	39	tiebreaker	"## 3. Engineered enough — not under, not over"	
+engineering-preferences-025	.claude/rules/engineering-preferences.md	41	requirement	"Flag both failure modes:"	
+engineering-preferences-026	.claude/rules/engineering-preferences.md	43	mapping	"**Under-engineered** (fragile, hacky):"	Under-engineered
+engineering-preferences-027	.claude/rules/engineering-preferences.md	44	requirement	"Missing edge case handling"	
+engineering-preferences-028	.claude/rules/engineering-preferences.md	45	requirement	"Contracts that don't specify behavior at the boundaries"	
+engineering-preferences-029	.claude/rules/engineering-preferences.md	46	requirement	"Validation that only checks the happy path"	
+engineering-preferences-030	.claude/rules/engineering-preferences.md	48	mapping	"**Over-engineered** (premature abstraction, unnecessary complexity):"	Over-engineered
+engineering-preferences-031	.claude/rules/engineering-preferences.md	49	requirement	"Abstraction layers that don't yet have two real call sites"	
+engineering-preferences-032	.claude/rules/engineering-preferences.md	50	requirement	"Generalization for hypothetical future requirements not in the roadmap"	
+engineering-preferences-033	.claude/rules/engineering-preferences.md	51	requirement	"Clever solutions when a straightforward one works fine"	
+engineering-preferences-034	.claude/rules/engineering-preferences.md	53	tiebreaker	"The right amount of engineering is determined by what's in the current spec, not by what might be needed in a later phase."	
+engineering-preferences-035	.claude/rules/engineering-preferences.md	56	tiebreaker	"## 4. Handle more edge cases, not fewer"	
+engineering-preferences-036	.claude/rules/engineering-preferences.md	58	tiebreaker	"When deciding whether to handle an edge case, err on the side of handling it."	
+engineering-preferences-037	.claude/rules/engineering-preferences.md	60	requirement	"All-NA inputs, zero-weight rows, single-level groups, empty domains — these are not hypothetical; they appear in real survey data"	All-NA;zero-weight rows;single-level groups;empty domains
+engineering-preferences-038	.claude/rules/engineering-preferences.md	62	prohibition	""That probably won't happen" is not a reason to skip an edge case"	
+engineering-preferences-039	.claude/rules/engineering-preferences.md	63	tiebreaker	"Thoughtfulness > speed: a slower implementation that handles edge cases correctly is always preferred"	
+engineering-preferences-040	.claude/rules/engineering-preferences.md	66	tiebreaker	"## 5. Explicit over clever"	
+engineering-preferences-041	.claude/rules/engineering-preferences.md	68	tiebreaker	"When there are two ways to do something — a clever short way and a longer explicit way — choose explicit."	
+engineering-preferences-042	.claude/rules/engineering-preferences.md	71	mapping	"`S7::S7_inherits(x, surveycore::survey_taylor)` not `inherits(x, "survey_taylor")`"	S7::S7_inherits(x, surveycore::survey_taylor);inherits(x, "survey_taylor")
+engineering-preferences-043	.claude/rules/engineering-preferences.md	72	requirement	"Named error classes on every `cli_abort()`, not bare messages"	cli_abort()
+engineering-preferences-044	.claude/rules/engineering-preferences.md	73	requirement	"Spell out behavior in the spec rather than relying on "the reader will infer""	
+engineering-preferences-045	.claude/rules/engineering-preferences.md	74	requirement	"Document assumptions rather than leaving them implicit"	
+engineering-preferences-046	.claude/rules/engineering-preferences.md	80	procedure	"When evaluating a spec, implementation, or PR:"	PR
+engineering-preferences-047	.claude/rules/engineering-preferences.md	82	procedure	"Read through with DRY as the first lens — find repetition before anything else"	DRY
+engineering-preferences-048	.claude/rules/engineering-preferences.md	83	procedure	"Check every error condition and edge case in the spec against the test plan"	
+engineering-preferences-049	.claude/rules/engineering-preferences.md	84	procedure	"For each design decision, ask: is this the right level of abstraction for what's actually needed now?"	
+engineering-preferences-050	.claude/rules/engineering-preferences.md	86	procedure	"For each boundary condition mentioned in the spec, ask: is the behavior fully specified, or is it left implicit?"	
+engineering-preferences-051	.claude/rules/engineering-preferences.md	88	procedure	"For any "shortcut" in the implementation plan, ask: does this skip something that will need to be added back later anyway?"	

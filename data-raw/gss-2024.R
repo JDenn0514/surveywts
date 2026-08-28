@@ -7,11 +7,11 @@
 
 library(surveycore)
 
-age_f3_bins    <- c(18, 35, 55, Inf)
-age_f3_labs    <- c("18-34", "35-54", "55+")
+age_f3_bins <- c(18, 35, 55, Inf)
+age_f3_labs <- c("18-34", "35-54", "55+")
 race_f4_levels <- c("White", "Black", "Hispanic", "Other")
-edu_f3_levels  <- c("Less than HS", "HS/Some college", "College+")
-pid_f3_levels  <- c("Republican", "Independent", "Democrat")
+edu_f3_levels <- c("Less than HS", "HS/Some college", "College+")
+pid_f3_levels <- c("Republican", "Independent", "Democrat")
 
 ## ---- gss_2024 ---------------------------------------------------------------
 ## Full surveycore::gss_2024 dataset (all 27 original columns retained).
@@ -50,13 +50,13 @@ gss_2024$age_f3 <- cut(
 # hispanic: 1=Not Hispanic, 2-5=Hispanic origins
 # race: 1=White, 2=Black, 3=Other (no Asian category in GSS)
 hispanic <- gss_2024$hispanic
-race     <- gss_2024$race
+race <- gss_2024$race
 gss_2024$race_f4 <- factor(
   dplyr::case_when(
-    hispanic > 1L  ~ "Hispanic",
-    race == 1L     ~ "White",
-    race == 2L     ~ "Black",
-    !is.na(race)   ~ "Other",
+    hispanic > 1L ~ "Hispanic",
+    race == 1L ~ "White",
+    race == 2L ~ "Black",
+    !is.na(race) ~ "Other",
     .default = NA_character_
   ),
   levels = race_f4_levels
@@ -67,7 +67,7 @@ partyid <- gss_2024$partyid
 gss_2024$pid_f3 <- factor(
   dplyr::case_when(
     partyid %in% 0L:2L ~ "Democrat",
-    partyid == 3L      ~ "Independent",
+    partyid == 3L ~ "Independent",
     partyid %in% 4L:6L ~ "Republican",
     .default = NA_character_
   ),
@@ -79,9 +79,9 @@ degree <- gss_2024$degree
 gss_2024$edu_f3 <- factor(
   dplyr::recode_values(
     degree,
-    0         ~ "Less than HS",
-    c(1, 2)   ~ "HS/Some college",
-    c(3, 4)   ~ "College+",
+    0 ~ "Less than HS",
+    c(1, 2) ~ "HS/Some college",
+    c(3, 4) ~ "College+",
     default = NA_character_
   ),
   levels = edu_f3_levels
@@ -102,14 +102,32 @@ stopifnot(is.factor(gss_2024$edu_f3))
 stopifnot(is.numeric(gss_2024$wt_pop))
 
 # Add "label" attributes to derived columns (surveycore sets labels on originals)
-attr(gss_2024$sex, "label")    <- "Sex of respondent (factor, derived from raw integer sex)"
+attr(
+  gss_2024$sex,
+  "label"
+) <- "Sex of respondent (factor, derived from raw integer sex)"
 attr(gss_2024$age_f3, "label") <- "Age group (3 levels: 18-34, 35-54, 55+)"
-attr(gss_2024$race_f4, "label") <- "Race/ethnicity (4 levels: White, Black, Hispanic, Other)"
-attr(gss_2024$pid_f3, "label") <- "Party identification (3 levels: Republican, Independent, Democrat)"
+attr(
+  gss_2024$race_f4,
+  "label"
+) <- "Race/ethnicity (4 levels: White, Black, Hispanic, Other)"
+attr(
+  gss_2024$pid_f3,
+  "label"
+) <- "Party identification (3 levels: Republican, Independent, Democrat)"
 attr(gss_2024$edu_f3, "label") <- "Educational attainment (3 levels)"
-attr(gss_2024$wt_pop, "label") <- "Population-scaled weight: wtssps * (260000000 / nrow(gss_2024))"
+attr(
+  gss_2024$wt_pop,
+  "label"
+) <- "Population-scaled weight: wtssps * (260000000 / nrow(gss_2024))"
 
 gss_2024 <- tibble::as_tibble(gss_2024)
 
 usethis::use_data(gss_2024, overwrite = TRUE)
-message("Saved gss_2024 (", nrow(gss_2024), " rows x ", ncol(gss_2024), " cols)")
+message(
+  "Saved gss_2024 (",
+  nrow(gss_2024),
+  " rows x ",
+  ncol(gss_2024),
+  " cols)"
+)

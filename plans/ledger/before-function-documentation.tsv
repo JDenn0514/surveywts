@@ -1,0 +1,210 @@
+id	source_file	source_line	category	verbatim	literals
+function-documentation-001	.claude/rules/function-documentation.md	5	requirement	"**Status:** Decided — applies to all exported functions in surveywts"	surveywts
+function-documentation-002	.claude/rules/function-documentation.md	7	requirement	"This document defines how every exported function in surveywts must be documented."	surveywts
+function-documentation-003	.claude/rules/function-documentation.md	8	requirement	"It is the authoritative reference for documentation audits and new function implementations."	
+function-documentation-004	.claude/rules/function-documentation.md	12	mapping	"`r-package-conventions.md` — codoc requirements for datasets, NAMESPACE, export policy"	r-package-conventions.md;codoc;NAMESPACE
+function-documentation-005	.claude/rules/function-documentation.md	13	mapping	"`code-style.md` — `cli_abort()` / `cli_warn()` structure, S7 patterns"	code-style.md;cli_abort();cli_warn();S7
+function-documentation-006	.claude/rules/function-documentation.md	14	mapping	"`surveywts-conventions.md` — `@family` tags, file organization, argument order"	surveywts-conventions.md;@family
+function-documentation-007	.claude/rules/function-documentation.md	20	requirement	"These rules apply to every exported function, regardless of tier."	
+function-documentation-008	.claude/rules/function-documentation.md	24	requirement	"Write as an active verb phrase in the present tense: "Clip weights to a range", not "Clipping of weights" or "Weight clipping""	Clip weights to a range;Clipping of weights;Weight clipping
+function-documentation-009	.claude/rules/function-documentation.md	26	prohibition	"Do not repeat the function name's verb"	
+function-documentation-010	.claude/rules/function-documentation.md	26	requirement	"use a synonym to give a second angle on intent (`ipw()` → "Estimate inverse probability weights", not "Compute IPW weights")"	ipw();Estimate inverse probability weights;Compute IPW weights
+function-documentation-011	.claude/rules/function-documentation.md	29	prohibition	"Drop "survey weights" from the title — it is implicit from package context and wastes space"	survey weights
+function-documentation-012	.claude/rules/function-documentation.md	31	requirement	"Describe what is unique about this function versus its siblings in the same family"	
+function-documentation-013	.claude/rules/function-documentation.md	32	prohibition	"if two functions share a title, one of them is wrong"	
+function-documentation-014	.claude/rules/function-documentation.md	33	requirement	"Must be informative when skimming the pkgdown reference index in isolation"	pkgdown
+function-documentation-015	.claude/rules/function-documentation.md	37	requirement	"Must add information the title does not contain"	
+function-documentation-016	.claude/rules/function-documentation.md	37	prohibition	"do not restate the title in prose"	
+function-documentation-017	.claude/rules/function-documentation.md	39	mapping	"Title = high-level summary; description = mechanism, key nuance, or an important behavioral constraint"	
+function-documentation-018	.claude/rules/function-documentation.md	41	prohibition	"No formulas in `@description`"	@description
+function-documentation-019	.claude/rules/function-documentation.md	41	mapping	"formulas belong in the Algorithm section"	Algorithm
+function-documentation-020	.claude/rules/function-documentation.md	42	value	"Keep to 1–3 sentences"	1–3
+function-documentation-021	.claude/rules/function-documentation.md	42	mapping	"longer explanatory content belongs in `@details` or named `@section` blocks"	@details;@section
+function-documentation-022	.claude/rules/function-documentation.md	47	requirement	"**Type annotation.** Lead every `@param` with a type annotation"	@param
+function-documentation-023	.claude/rules/function-documentation.md	50	value	"#' @param data A `survey_taylor`, `survey_nonprob`, or `survey_replicate`."	@param;survey_taylor;survey_nonprob;survey_replicate
+function-documentation-024	.claude/rules/function-documentation.md	53	requirement	"**Defaults.** State the default first"	
+function-documentation-025	.claude/rules/function-documentation.md	53	requirement	"explicitly call it the default"	
+function-documentation-026	.claude/rules/function-documentation.md	56	value	"#' @param method `"logit"` (the default), `"probit"`, or `"cloglog"`."	@param;method;logit;probit;cloglog
+function-documentation-027	.claude/rules/function-documentation.md	61	requirement	"Inline if each option fits a single-phrase description (as in the `method` example above)"	method
+function-documentation-028	.claude/rules/function-documentation.md	63	requirement	"Bullet list or fenced code block if any option requires its own sentence or sub-structure"	
+function-documentation-029	.claude/rules/function-documentation.md	66	requirement	"**Content rule.** `@param` describes the effect of the argument on behavior or output"	@param
+function-documentation-030	.claude/rules/function-documentation.md	66	prohibition	"`@param` describes the effect of the argument on behavior or output — not the internal mechanism"	@param
+function-documentation-031	.claude/rules/function-documentation.md	67	mapping	"Mechanism content belongs in `@details` or named `@section` blocks."	@details;@section
+function-documentation-032	.claude/rules/function-documentation.md	70	requirement	"**`@param data` specifically.** Lead with the accepted classes."	@param data
+function-documentation-033	.claude/rules/function-documentation.md	70	requirement	"When class-specific behavior routes to another section, include a forward reference rather than an inline description"	
+function-documentation-034	.claude/rules/function-documentation.md	75	value	"#' @param data A `survey_taylor`, `survey_nonprob`, or `survey_replicate`. For inputs containing replicate weight columns, see the **Replicate Weights** section."	@param;survey_taylor;survey_nonprob;survey_replicate;Replicate Weights
+function-documentation-035	.claude/rules/function-documentation.md	80	requirement	"Name the classes the function actually accepts"	
+function-documentation-036	.claude/rules/function-documentation.md	80	requirement	"say what happens to the rest"	
+function-documentation-037	.claude/rules/function-documentation.md	81	prohibition	"Every weighting function rejects a plain `data.frame`, so the accepted list never includes one"	data.frame
+function-documentation-038	.claude/rules/function-documentation.md	85	value	"#' @param data A `survey_taylor` or `survey_nonprob`. Must include BOTH respondents and nonrespondents. `survey_replicate` -> error. Any other class -> error."	@param;survey_taylor;survey_nonprob;survey_replicate
+function-documentation-039	.claude/rules/function-documentation.md	90	requirement	"**`@inheritParams`.** Use only when the argument is genuinely identical in behavior across the inheriting and source functions."	@inheritParams
+function-documentation-040	.claude/rules/function-documentation.md	91	prohibition	"genuinely identical in behavior — not just in name"	@inheritParams
+function-documentation-041	.claude/rules/function-documentation.md	91	requirement	"Always place a code comment above the tag identifying the source"	@inheritParams
+function-documentation-042	.claude/rules/function-documentation.md	95	value	"# x and weights are identical in behavior to effective_sample_size() #' @inheritParams effective_sample_size"	@inheritParams;effective_sample_size
+function-documentation-043	.claude/rules/function-documentation.md	101	requirement	"Use `@returns` on every exported function."	@returns
+function-documentation-044	.claude/rules/function-documentation.md	101	prohibition	"Use `@returns` (not `@return`)"	@returns;@return
+function-documentation-045	.claude/rules/function-documentation.md	103	requirement	"Describe the output's **shape** (class, class-preservation rule) and **behavioral guarantees** (properties that hold on the output)"	
+function-documentation-046	.claude/rules/function-documentation.md	105	requirement	"Enumerate by input class only when behavior meaningfully differs across classes"	
+function-documentation-047	.claude/rules/function-documentation.md	106	requirement	"if every class produces the same output class with the same properties, a single-sentence description is correct"	
+function-documentation-048	.claude/rules/function-documentation.md	107	prohibition	"do not enumerate for its own sake"	
+function-documentation-049	.claude/rules/function-documentation.md	109	mapping	"**Class-specific routing:** output differences (what the returned object contains or how it differs from the input) belong here [in `@returns`]"	@returns
+function-documentation-050	.claude/rules/function-documentation.md	110	mapping	"algorithm differences belong in the Algorithm section"	Algorithm
+function-documentation-051	.claude/rules/function-documentation.md	111	mapping	"replicate-weight-scope differences belong in the Replicate Weights section"	Replicate Weights
+function-documentation-052	.claude/rules/function-documentation.md	113	requirement	"When the input may contain replicate weight columns, document that all replicate weight columns are updated by the same method"	
+function-documentation-053	.claude/rules/function-documentation.md	117	value	"#' @returns A `survey_nonprob` with updated weights. If the input contains replicate weight columns, all replicate weight columns are updated by the same method."	@returns;survey_nonprob
+function-documentation-054	.claude/rules/function-documentation.md	122	prohibition	"Do not define package-level concepts (e.g., weighting history) inside `@returns` — reference them with standard phrasing"	@returns
+function-documentation-055	.claude/rules/function-documentation.md	123	requirement	"reference them [package-level concepts] with standard phrasing"	@returns
+function-documentation-056	.claude/rules/function-documentation.md	124	value	"**Standard phrasing for weighting history entries:** "A new entry with `operation = "fn_name"` is appended to the weighting history.""	operation = "fn_name";A new entry with;is appended to the weighting history
+function-documentation-057	.claude/rules/function-documentation.md	125	requirement	"Quote the string the function actually writes, which is usually the function name but not always"	
+function-documentation-058	.claude/rules/function-documentation.md	127	mapping	"`adjust_nonresponse()` writes `"nonresponse_weighting_class"`, `"nonresponse_propensity"`, or `"nonresponse_propensity_cell"` depending on `method`"	adjust_nonresponse();nonresponse_weighting_class;nonresponse_propensity;nonresponse_propensity_cell;method
+function-documentation-059	.claude/rules/function-documentation.md	129	mapping	"the `create_*_weights()` functions write `"bootstrap_weights"`, `"jackknife_weights"`, or `"replicate_creation"`"	create_*_weights();bootstrap_weights;jackknife_weights;replicate_creation
+function-documentation-060	.claude/rules/function-documentation.md	135	requirement	"Use [`@details`] for content that cannot be captured in `@description`"	@details;@description
+function-documentation-061	.claude/rules/function-documentation.md	136	mapping	"Formulas go in `@details` (specifically in the Algorithm section)"	@details;Algorithm
+function-documentation-062	.claude/rules/function-documentation.md	136	prohibition	"[Formulas go] never in `@description`"	@description
+function-documentation-063	.claude/rules/function-documentation.md	138	mapping	"Mechanism and algorithm logic go in `@details`"	@details
+function-documentation-064	.claude/rules/function-documentation.md	138	prohibition	"Mechanism and algorithm logic go in `@details`, not in `@param`"	@details;@param
+function-documentation-065	.claude/rules/function-documentation.md	139	requirement	"Whether `@details` is required depends on tier (see tier-specific rules below)"	@details
+function-documentation-066	.claude/rules/function-documentation.md	143	requirement	"Use the six canonical sections below when applicable"	six
+function-documentation-067	.claude/rules/function-documentation.md	143	requirement	"[Use the six canonical sections] in this canonical order"	
+function-documentation-068	.claude/rules/function-documentation.md	143	requirement	"Custom sections are permitted when content is genuinely distinct from all six canonical sections — this list is not exhaustive."	six
+function-documentation-069	.claude/rules/function-documentation.md	145	value	"Example: a function that exposes weighting history structure might warrant a "Weighting History" section."	Weighting History
+function-documentation-070	.claude/rules/function-documentation.md	148	value	"**Format:** `@section Section Name:` for top-level sections"	@section Section Name:
+function-documentation-071	.claude/rules/function-documentation.md	148	value	"`**Bold text**` for sub-sections within a section"	**Bold text**
+function-documentation-072	.claude/rules/function-documentation.md	149	prohibition	"roxygen2 does not support nested `@section`"	roxygen2;@section
+function-documentation-073	.claude/rules/function-documentation.md	151	mapping	"1. **Algorithm** — statistical algorithm(s), formulas, mathematical details."	Algorithm
+function-documentation-074	.claude/rules/function-documentation.md	152	requirement	"For multi-algorithm functions, use `**Bold sub-headers**` per algorithm within the same section."	**Bold sub-headers**
+function-documentation-075	.claude/rules/function-documentation.md	155	mapping	"2. **Convergence** — convergence criterion, tolerance parameters, and what happens when the algorithm fails to converge (error vs. warning, what is returned or not returned)."	Convergence
+function-documentation-076	.claude/rules/function-documentation.md	159	mapping	"3. **Missing Data** — how NAs in predictors, weights, or strata are handled."	Missing Data
+function-documentation-077	.claude/rules/function-documentation.md	160	requirement	"Include if the behavior is non-obvious or if the function exposes a `missing_method` argument."	Missing Data;missing_method
+function-documentation-078	.claude/rules/function-documentation.md	163	mapping	"4. **Replicate Weights** — behavior when the input contains replicate weight columns."	Replicate Weights
+function-documentation-079	.claude/rules/function-documentation.md	164	requirement	"Documents scope differences (the method is applied to all replicate weight columns in addition to the main weight), not algorithm differences."	Replicate Weights
+function-documentation-080	.claude/rules/function-documentation.md	166	requirement	"Include whenever the function accepts objects that may carry replicate weights and the handling differs from the scalar-weight path."	Replicate Weights
+function-documentation-081	.claude/rules/function-documentation.md	169	mapping	"5. **Limitations** — known failure modes, cases where results are unreliable without an error being thrown, when to prefer an alternative function."	Limitations
+function-documentation-082	.claude/rules/function-documentation.md	172	mapping	"6. **Warnings** — when warnings may occur and how to resolve them."	Warnings
+function-documentation-083	.claude/rules/function-documentation.md	172	prohibition	"Plain language only — no warning class names."	Warnings
+function-documentation-084	.claude/rules/function-documentation.md	177	requirement	"Required for any function implementing a published method"	@references
+function-documentation-085	.claude/rules/function-documentation.md	178	requirement	"Use standard academic citation format"	@references
+function-documentation-086	.claude/rules/function-documentation.md	181	value	"Kish, L. (1965). _Survey Sampling_. John Wiley & Sons."	Kish, L. (1965);Survey Sampling;John Wiley & Sons
+function-documentation-087	.claude/rules/function-documentation.md	184	requirement	"**In-line citations** (e.g., "Kish (1965)" within description or section text): optional, and only if verified against the `comprehension.md` for the relevant spec."	comprehension.md;Kish (1965)
+function-documentation-088	.claude/rules/function-documentation.md	186	requirement	"If no `comprehension.md` exists for the spec, omit in-line citations entirely."	comprehension.md
+function-documentation-089	.claude/rules/function-documentation.md	187	tiebreaker	"Incorrect in-line citations are worse than none."	
+function-documentation-090	.claude/rules/function-documentation.md	191	requirement	"Required (not optional) in three cases"	@seealso;three
+function-documentation-091	.claude/rules/function-documentation.md	193	requirement	"**Dispatchers** — must link to every function the dispatcher routes to"	@seealso
+function-documentation-092	.claude/rules/function-documentation.md	194	requirement	"**Sibling functions** — must link to all other functions in the same `@family`"	@seealso;@family
+function-documentation-093	.claude/rules/function-documentation.md	196	requirement	"**Canonical companions** — closely related functions a user would naturally reach for next (e.g., `ipw()` → `summarize_weights()`)"	@seealso;ipw();summarize_weights()
+function-documentation-094	.claude/rules/function-documentation.md	201	requirement	"**Package data required.** All examples must use package data."	@examples
+function-documentation-095	.claude/rules/function-documentation.md	201	procedure	"If a function's examples cannot use existing package data as-is, flag the relevant dataset for remediation in planning docs"	
+function-documentation-096	.claude/rules/function-documentation.md	203	prohibition	"do not substitute inline data as a workaround"	
+function-documentation-097	.claude/rules/function-documentation.md	205	prohibition	"**`\dontrun{}`** Do not use `\dontrun{}` except for examples that genuinely require external resources (e.g., a live database connection or network call)."	\dontrun{}
+function-documentation-098	.claude/rules/function-documentation.md	207	requirement	"Every other example must run successfully during `R CMD check`."	R CMD check
+function-documentation-099	.claude/rules/function-documentation.md	211	requirement	"Always: the simplest working call, over a survey object built from package data."	@examples
+function-documentation-100	.claude/rules/function-documentation.md	212	prohibition	"A plain `data.frame` cannot be the input — every weighting function rejects one"	data.frame
+function-documentation-101	.claude/rules/function-documentation.md	214	requirement	"Always: one example per input class the function accepts, demonstrating the unique behavior of that class, not just that it compiles"	@examples
+function-documentation-102	.claude/rules/function-documentation.md	216	requirement	"When an argument accepts multiple formats (e.g., two `targets` formats in calibration functions): show each format"	targets
+function-documentation-103	.claude/rules/function-documentation.md	218	requirement	"When a function has a `method` or `algorithm` argument: demonstrate each method"	method;algorithm
+function-documentation-104	.claude/rules/function-documentation.md	220	requirement	"When a `by` argument is present: show its effect on output structure"	by
+function-documentation-105	.claude/rules/function-documentation.md	224	requirement	"Comments explain **why**, not what — "what" comments are noise; the code itself shows what"	
+function-documentation-106	.claude/rules/function-documentation.md	226	requirement	"Section headers are the exception: use them to label the scenario being demonstrated"	
+function-documentation-107	.claude/rules/function-documentation.md	228	value	"Section header format: `# Brief scenario label ---------------------------`"	# Brief scenario label
+function-documentation-108	.claude/rules/function-documentation.md	229	value	"(dashes fill to ~76 characters, consistent with air formatter style)"	76;air
+function-documentation-109	.claude/rules/function-documentation.md	231	value	"**Length.** If the example block exceeds ~25 lines, consider whether the longer cases belong in a vignette rather than `@examples`."	25;@examples
+function-documentation-110	.claude/rules/function-documentation.md	236	prohibition	"**Input validation errors:** do not document in help pages — this is redundant with `@param`"	@param
+function-documentation-111	.claude/rules/function-documentation.md	238	requirement	"**Algorithmic errors** (e.g., convergence failure, rank-deficient system): document in the Convergence section or the relevant named section"	Convergence
+function-documentation-112	.claude/rules/function-documentation.md	240	requirement	"**Warnings:** document in the Warnings section — plain language description of when the warning occurs and how to resolve it"	Warnings
+function-documentation-113	.claude/rules/function-documentation.md	241	prohibition	"no warning class names"	Warnings
+function-documentation-114	.claude/rules/function-documentation.md	245	requirement	"**Inline code** (backticks) for simple arithmetic and ratios with no subscripts, superscripts, Greek letters, or summation notation"	
+function-documentation-115	.claude/rules/function-documentation.md	247	value	"`sd(w) / mean(w)` — acceptable as inline code"	sd(w) / mean(w)
+function-documentation-116	.claude/rules/function-documentation.md	248	value	"`w / mean(w)` — acceptable as inline code"	w / mean(w)
+function-documentation-117	.claude/rules/function-documentation.md	249	value	"`[lower, upper]` — acceptable as inline code"	[lower, upper]
+function-documentation-118	.claude/rules/function-documentation.md	250	requirement	"**`\eqn{}`** for inline mathematical expressions containing subscripts, superscripts, Greek letters, or summation notation"	\eqn{}
+function-documentation-119	.claude/rules/function-documentation.md	252	requirement	"**`\deqn{}`** for display (standalone) mathematical equations containing any of the above"	\deqn{}
+function-documentation-120	.claude/rules/function-documentation.md	254	tiebreaker	"When uncertain: if the formula renders ambiguously as monospace code, use `\eqn{}` or `\deqn{}`"	\eqn{};\deqn{}
+function-documentation-121	.claude/rules/function-documentation.md	261	mapping	"Obvious one-liner | No roxygen at all"	
+function-documentation-122	.claude/rules/function-documentation.md	262	mapping	"Complex enough to need explanation | `@keywords internal` + `@noRd`"	@keywords internal;@noRd
+function-documentation-123	.claude/rules/function-documentation.md	265	value	"# One-liner — no roxygen needed .get_col <- function(x, col) x[[col]]"	.get_col
+function-documentation-124	.claude/rules/function-documentation.md	268	value	"# Complex helper — document but suppress .Rd"	.Rd
+function-documentation-125	.claude/rules/function-documentation.md	269	value	"#' Validate survey design structure #' #' @param x A survey design object. #' @returns Invisibly, `TRUE` on success (errors otherwise). #' @keywords internal #' @noRd .validate_design <- function(x) { ... }"	@param;@returns;@keywords internal;@noRd;.validate_design
+function-documentation-126	.claude/rules/function-documentation.md	282	requirement	"> All Universal Rules (see preamble) apply. [Tier 1 — Utility]"	Tier 1;Universal Rules
+function-documentation-127	.claude/rules/function-documentation.md	286	requirement	"Tier 1 functions are single-purpose transformations or extractions."	Tier 1
+function-documentation-128	.claude/rules/function-documentation.md	286	requirement	"They apply a defined operation — possibly a published formula — but involve no iterative algorithm, no optimization, and no statistical model fitting."	Tier 1
+function-documentation-129	.claude/rules/function-documentation.md	290	requirement	"**`@details` / Algorithm section.** Required only if the function has a formula. [Tier 1]"	Tier 1;@details;Algorithm
+function-documentation-130	.claude/rules/function-documentation.md	291	tiebreaker	"If the operation can be described in `@description` without a formula, `@details` is likely not needed."	Tier 1;@description;@details
+function-documentation-131	.claude/rules/function-documentation.md	294	requirement	"**`@section Convergence`.** Not applicable. [Tier 1]"	Tier 1;@section Convergence
+function-documentation-132	.claude/rules/function-documentation.md	296	requirement	"**`@section Missing Data`.** Include if NAs in the input produce non-obvious behavior. [Tier 1]"	Tier 1;@section Missing Data
+function-documentation-133	.claude/rules/function-documentation.md	299	requirement	"**`@section Replicate Weights`.** Include if the function accepts objects that may contain replicate weight columns and the behavior on those columns differs from the scalar-weight path. [Tier 1]"	Tier 1;@section Replicate Weights
+function-documentation-134	.claude/rules/function-documentation.md	303	requirement	"**`@references`.** Required if the function implements a published formula. [Tier 1]"	Tier 1;@references
+function-documentation-135	.claude/rules/function-documentation.md	304	requirement	"Simple rescaling or structural conversion does not require a reference."	Tier 1;@references
+function-documentation-136	.claude/rules/function-documentation.md	308	mapping	"`effective_sample_size()` — has a formula (Kish 1965); requires an Algorithm section with `\deqn{}` and a `@references` entry"	Tier 1;effective_sample_size();Kish 1965;\deqn{};@references
+function-documentation-137	.claude/rules/function-documentation.md	310	mapping	"`rescale_weights()` — rescales weights; simple enough that `@description` alone covers the mechanism; no Algorithm section needed"	Tier 1;rescale_weights();@description;Algorithm
+function-documentation-138	.claude/rules/function-documentation.md	312	mapping	"`as_taylor_design()` — structural conversion of a `survey_replicate` to a `survey_taylor`; no formula; minimal `@details`; no `@references`"	Tier 1;as_taylor_design();survey_replicate;survey_taylor;@details;@references
+function-documentation-139	.claude/rules/function-documentation.md	319	requirement	"> All Universal Rules (see preamble) apply. [Tier 2 — Standard]"	Tier 2;Universal Rules
+function-documentation-140	.claude/rules/function-documentation.md	323	requirement	"Tier 2 functions involve multiple steps or decision paths but implement no iterative statistical algorithm or optimization."	Tier 2
+function-documentation-141	.claude/rules/function-documentation.md	324	requirement	"The mechanism matters enough to require explanation beyond `@description`, but a full Algorithm section is not always warranted."	Tier 2;@description;Algorithm
+function-documentation-142	.claude/rules/function-documentation.md	328	requirement	"**`@details` / Algorithm section.** Required when the mechanism cannot be captured in 2–3 sentences in `@description`. [Tier 2]"	Tier 2;@details;Algorithm;2–3;@description
+function-documentation-143	.claude/rules/function-documentation.md	329	requirement	"When multiple method paths exist, describe each briefly"	Tier 2
+function-documentation-144	.claude/rules/function-documentation.md	330	requirement	"include formulas only if the method has a named published formula"	Tier 2
+function-documentation-145	.claude/rules/function-documentation.md	333	requirement	"**`@section Convergence`.** Not applicable (Tier 2 functions are not iterative)."	Tier 2;@section Convergence
+function-documentation-146	.claude/rules/function-documentation.md	335	requirement	"**`@section Missing Data`.** Include when missing data handling is non-obvious or when the function accepts a `missing_method` or equivalent argument. [Tier 2]"	Tier 2;@section Missing Data;missing_method
+function-documentation-147	.claude/rules/function-documentation.md	338	requirement	"**`@section Replicate Weights`.** Include if the function accepts objects that may contain replicate weight columns and the behavior on those columns differs from the scalar-weight path. [Tier 2]"	Tier 2;@section Replicate Weights
+function-documentation-148	.claude/rules/function-documentation.md	342	requirement	"**`@references`.** Required if based on a published method. [Tier 2]"	Tier 2;@references
+function-documentation-149	.claude/rules/function-documentation.md	346	mapping	"`adjust_nonresponse()` — multiple adjustment methods (`method` argument); Algorithm section describing each method; no Convergence section"	Tier 2;adjust_nonresponse();method;Algorithm;Convergence
+function-documentation-150	.claude/rules/function-documentation.md	348	mapping	"`summarize_weights()` — descriptive output; `@description` likely sufficient without a full Algorithm section"	Tier 2;summarize_weights();@description;Algorithm
+function-documentation-151	.claude/rules/function-documentation.md	350	mapping	"`redistribute_weights()` — procedural; brief Algorithm section if the redistribution rule requires more than 2–3 sentences to explain"	Tier 2;redistribute_weights();Algorithm;2–3
+function-documentation-152	.claude/rules/function-documentation.md	357	requirement	"> All Universal Rules (see preamble) apply. [Tier 3 — Algorithmic]"	Tier 3;Universal Rules
+function-documentation-153	.claude/rules/function-documentation.md	361	requirement	"Tier 3 functions implement a statistical algorithm with a defined formula, optimization procedure, or resampling scheme."	Tier 3
+function-documentation-154	.claude/rules/function-documentation.md	362	requirement	"They may be iterative with convergence criteria."	Tier 3
+function-documentation-155	.claude/rules/function-documentation.md	365	requirement	"**`@section Algorithm`.** Required. [Tier 3]"	Tier 3;@section Algorithm
+function-documentation-156	.claude/rules/function-documentation.md	365	requirement	"Include formulas using `\eqn{}` / `\deqn{}` wherever notation requires subscripts, superscripts, Greek letters, or summation."	Tier 3;\eqn{};\deqn{}
+function-documentation-157	.claude/rules/function-documentation.md	367	requirement	"For functions that implement multiple algorithms (distinguished by a `method` argument), use `**Bold sub-headers**` per algorithm within the same section."	Tier 3;method;**Bold sub-headers**
+function-documentation-158	.claude/rules/function-documentation.md	370	requirement	"**`@section Convergence`.** Required for any iterative method. [Tier 3]"	Tier 3;@section Convergence
+function-documentation-159	.claude/rules/function-documentation.md	370	requirement	"Document: the convergence criterion, the relevant tolerance parameter(s), and what happens when the algorithm fails to converge (error vs. warning, and what if anything is returned)."	Tier 3;@section Convergence
+function-documentation-160	.claude/rules/function-documentation.md	375	requirement	"**`@section Missing Data`.** Required for any function with a `missing_method` argument or where NAs in predictors or weights produce non-obvious behavior. [Tier 3]"	Tier 3;@section Missing Data;missing_method
+function-documentation-161	.claude/rules/function-documentation.md	378	requirement	"**`@section Replicate Weights`.** Include if the function accepts objects that may contain replicate weight columns and the behavior on those columns differs from the scalar-weight path. [Tier 3]"	Tier 3;@section Replicate Weights
+function-documentation-162	.claude/rules/function-documentation.md	382	requirement	"**`@details`.** Required. [Tier 3]"	Tier 3;@details
+function-documentation-163	.claude/rules/function-documentation.md	382	requirement	"Statistical details that cannot be captured in `@description` must appear here, organized into named sections."	Tier 3;@description;@details
+function-documentation-164	.claude/rules/function-documentation.md	385	requirement	"**`@references`.** Required. Every Tier 3 function implements a published method and must cite its source(s)."	Tier 3;@references
+function-documentation-165	.claude/rules/function-documentation.md	390	mapping	"`ipw()` — Algorithm section with the propensity model and weight formula; Convergence section for the IWLS fitting procedure; Missing Data section for `missing_method`; `@references`"	Tier 3;ipw();Algorithm;Convergence;IWLS;Missing Data;missing_method;@references
+function-documentation-166	.claude/rules/function-documentation.md	393	mapping	"`calibrate_rake()` — Algorithm section with iterative proportional fitting; Convergence section; `@references`"	Tier 3;calibrate_rake();Algorithm;Convergence;@references
+function-documentation-167	.claude/rules/function-documentation.md	395	mapping	"`calibrate_linear()` — Algorithm section with the GREG estimator equations; Convergence section (Newton-Raphson or equivalent); `@references`"	Tier 3;calibrate_linear();GREG;Algorithm;Convergence;Newton-Raphson;@references
+function-documentation-168	.claude/rules/function-documentation.md	397	mapping	"`calibrate_logit()` — Algorithm section with logit-bounded calibration; Convergence section; `@references`"	Tier 3;calibrate_logit();Algorithm;Convergence;@references
+function-documentation-169	.claude/rules/function-documentation.md	399	mapping	"`poststratify()` — Algorithm section with the cell-factor formula; no Convergence section (direct calculation, not iterative); `@references`"	Tier 3;poststratify();Algorithm;Convergence;@references
+function-documentation-170	.claude/rules/function-documentation.md	401	mapping	"`create_bootstrap_weights()` — Algorithm section with the bootstrap resampling scheme using `\deqn{}` for the variance estimator; no Convergence section (not iterative); `@references`"	Tier 3;create_bootstrap_weights();Algorithm;\deqn{};Convergence;@references
+function-documentation-171	.claude/rules/function-documentation.md	404	mapping	"`trim_weights()` — Algorithm section describing the trimming and redistribution procedure; no Convergence section; `@references`"	Tier 3;trim_weights();Algorithm;Convergence;@references
+function-documentation-172	.claude/rules/function-documentation.md	411	requirement	"> All Universal Rules (see preamble) apply. [Tier 4 — Dispatcher]"	Tier 4;Universal Rules
+function-documentation-173	.claude/rules/function-documentation.md	415	requirement	"Tier 4 functions route to other functions based on an argument value."	Tier 4
+function-documentation-174	.claude/rules/function-documentation.md	416	requirement	"They implement no algorithm of their own."	Tier 4
+function-documentation-175	.claude/rules/function-documentation.md	418	requirement	"**`@description`.** Follow the Universal Rules: describe the mechanism, key nuance, or an important behavioral constraint — not just "routes to X, Y, Z"."	Tier 4;@description;Universal Rules
+function-documentation-176	.claude/rules/function-documentation.md	420	requirement	"End with a sentence naming the dispatched functions and the argument that controls dispatch."	Tier 4;@description
+function-documentation-177	.claude/rules/function-documentation.md	421	value	"For example: "Routes to `calibrate_rake()`, `calibrate_linear()`, or `calibrate_logit()` based on `method`.""	Tier 4;calibrate_rake();calibrate_linear();calibrate_logit();method
+function-documentation-178	.claude/rules/function-documentation.md	424	requirement	"**`@param`.** Write full, substantive documentation using the same language as the dispatched functions."	Tier 4;@param
+function-documentation-179	.claude/rules/function-documentation.md	425	requirement	"When an argument behaves consistently across all dispatched functions, document it fully — including class-specific behavior, replicate weight handling, and behavioral guarantees."	Tier 4;@param
+function-documentation-180	.claude/rules/function-documentation.md	427	requirement	"When an argument's behavior genuinely differs across methods, write a summary description that applies across all methods and direct to the specific functions for the differences."	Tier 4;@param
+function-documentation-181	.claude/rules/function-documentation.md	432	requirement	"The dispatch argument (`method`, `type`, etc.) lists all accepted values with a brief characterization of each — enough for a user to choose without reading the dispatched functions."	Tier 4;method;type
+function-documentation-182	.claude/rules/function-documentation.md	436	requirement	"**`@details`.** Required. [Tier 4]"	Tier 4;@details
+function-documentation-183	.claude/rules/function-documentation.md	436	requirement	"Provide a high-level overview of each method: enough to understand the differences and choose between them, including math notation where it helps distinguish methods."	Tier 4;@details
+function-documentation-184	.claude/rules/function-documentation.md	438	requirement	"Each method description uses an inline citation to tie references to the relevant method (e.g., "Linear calibration (Deville & Särndal, 1992) minimizes...")."	Tier 4;@details;Deville & Särndal, 1992
+function-documentation-185	.claude/rules/function-documentation.md	440	requirement	"End by directing to the specific dispatched functions for full algorithm documentation."	Tier 4;@details
+function-documentation-186	.claude/rules/function-documentation.md	443	prohibition	"Do not replicate the full Algorithm sections of the dispatched functions."	Tier 4;Algorithm
+function-documentation-187	.claude/rules/function-documentation.md	445	prohibition	"**`@section Algorithm`.** Do not use — the high-level method overview lives in `@details`; full algorithm documentation lives in the dispatched functions."	Tier 4;@section Algorithm;@details
+function-documentation-188	.claude/rules/function-documentation.md	448	prohibition	"**`@section Convergence`.** Do not use. [Tier 4]"	Tier 4;@section Convergence
+function-documentation-189	.claude/rules/function-documentation.md	450	requirement	"**`@references`.** Required. [Tier 4]"	Tier 4;@references
+function-documentation-190	.claude/rules/function-documentation.md	450	mapping	"The `@details` inline citations provide the contextual signal for which reference belongs to which method; the `@references` block is the complete list that backs them up."	Tier 4;@details;@references
+function-documentation-191	.claude/rules/function-documentation.md	452	requirement	"Because inline citations in `@details` are load-bearing for dispatchers, if citations cannot be verified (no `comprehension.md` exists for the relevant spec), the `@details` method overview and `@references` block must both wait until verification is possible rather than being written without citations."	Tier 4;@details;@references;comprehension.md
+function-documentation-192	.claude/rules/function-documentation.md	458	requirement	"**`@seealso`.** Required. [Tier 4]"	Tier 4;@seealso
+function-documentation-193	.claude/rules/function-documentation.md	458	requirement	"Must link to every function the dispatcher routes to."	Tier 4;@seealso
+function-documentation-194	.claude/rules/function-documentation.md	462	mapping	"`calibrate()` — full `@param` docs matching the dispatched functions; `@details` with a high-level overview of `"rake"`, `"linear"`, and `"logit"` using inline citations to tie each method to its reference; `@references` block; `@seealso` listing all three dispatched functions"	Tier 4;calibrate();@param;@details;rake;linear;logit;@references;@seealso
+function-documentation-195	.claude/rules/function-documentation.md	465	mapping	"note that `poststratify()` is a separate function not routed through `calibrate()`"	Tier 4;poststratify();calibrate()
+function-documentation-196	.claude/rules/function-documentation.md	467	mapping	"`create_replicate_weights()` — same pattern; `@details` overviews each resampling scheme (bootstrap, BRR, jackknife, etc.) with inline citations"	Tier 4;create_replicate_weights();@details;BRR
+function-documentation-197	.claude/rules/function-documentation.md	474	requirement	"Dataset documentation is governed by the codoc rule in `r-package-conventions.md`"	codoc;r-package-conventions.md
+function-documentation-198	.claude/rules/function-documentation.md	475	requirement	"a single `\describe{}` block in `@format`"	\describe{};@format
+function-documentation-199	.claude/rules/function-documentation.md	475	requirement	"every column documented with a `\item{}` entry"	\item{}
+function-documentation-200	.claude/rules/function-documentation.md	476	prohibition	"no splitting into multiple `\describe{}` blocks"	\describe{}
+function-documentation-201	.claude/rules/function-documentation.md	477	procedure	"Read that document [`r-package-conventions.md`] for the full codoc rule."	codoc;r-package-conventions.md
+function-documentation-202	.claude/rules/function-documentation.md	479	requirement	"The following rules supplement it for surveywts datasets"	surveywts
+function-documentation-203	.claude/rules/function-documentation.md	481	requirement	"**`@source`.** Required."	@source
+function-documentation-204	.claude/rules/function-documentation.md	481	requirement	"Cite the data source with enough detail to locate the original data: survey name, sponsoring organization, year, and a stable URL if one exists."	@source
+function-documentation-205	.claude/rules/function-documentation.md	485	requirement	"**`@description`.** Describe: (1) the population the dataset represents"	@description
+function-documentation-206	.claude/rules/function-documentation.md	486	requirement	"(2) the sampling design if known"	@description
+function-documentation-207	.claude/rules/function-documentation.md	486	requirement	"(3) the purpose of the dataset within the package — which exported functions it is intended to support as example data"	@description
+function-documentation-208	.claude/rules/function-documentation.md	489	requirement	"**`@examples`.** Not required for datasets."	@examples
+function-documentation-209	.claude/rules/function-documentation.md	489	requirement	"If included, demonstrate the primary use case (typically: calling the function the dataset was created to support)."	@examples

@@ -217,26 +217,29 @@ calibrate_to_survey <- function(
   primary_design,
   control_design,
   variables,
-  targets   = NULL,
-  type      = c("prop", "count"),
-  method    = c("rake", "linear", "logit"),
+  targets = NULL,
+  type = c("prop", "count"),
+  method = c("rake", "linear", "logit"),
   algorithm = c("classic_ipf", "nr"),
-  bounds    = c(-Inf, Inf),
+  bounds = c(-Inf, Inf),
   unit_scale = NULL,
   reference_design = NULL,
   control = list()
 ) {
-  call_str  <- paste0(deparse(match.call()), collapse = " ")
-  type      <- rlang::arg_match(type)
-  method    <- rlang::arg_match(method)
+  call_str <- paste0(deparse(match.call()), collapse = " ")
+  type <- rlang::arg_match(type)
+  method <- rlang::arg_match(method)
   algorithm <- rlang::arg_match(algorithm)
 
   # ---- 1. primary_design class check ----------------------------------------
   is_nonprob_primary <- S7::S7_inherits(
-    primary_design, surveycore::survey_nonprob
+    primary_design,
+    surveycore::survey_nonprob
   )
-  if (!S7::S7_inherits(primary_design, surveycore::survey_replicate) &&
-      !is_nonprob_primary) {
+  if (
+    !S7::S7_inherits(primary_design, surveycore::survey_replicate) &&
+      !is_nonprob_primary
+  ) {
     cls <- class(primary_design)[[1L]]
     cli::cli_abort(
       c(
@@ -283,10 +286,13 @@ calibrate_to_survey <- function(
 
   # ---- 2. control_design class check ----------------------------------------
   is_nonprob_control <- S7::S7_inherits(
-    control_design, surveycore::survey_nonprob
+    control_design,
+    surveycore::survey_nonprob
   )
-  if (!S7::S7_inherits(control_design, surveycore::survey_replicate) &&
-      !is_nonprob_control) {
+  if (
+    !S7::S7_inherits(control_design, surveycore::survey_replicate) &&
+      !is_nonprob_control
+  ) {
     cls <- class(control_design)[[1L]]
     cli::cli_abort(
       c(
@@ -353,7 +359,7 @@ calibrate_to_survey <- function(
 
   # ---- 5. control unknown-key warning + extraction + merge with defaults -----
   known_keys <- c("maxit", "epsilon", "control_col_matches")
-  unknown    <- setdiff(names(control), known_keys)
+  unknown <- setdiff(names(control), known_keys)
   for (key in unknown) {
     cli::cli_warn(
       c(
@@ -374,12 +380,12 @@ calibrate_to_survey <- function(
 
   # Build effective control (without control_col_matches)
   ctrl_defaults <- list(maxit = 50L, epsilon = 1e-10)
-  ctrl_clean    <- control[intersect(names(control), c("maxit", "epsilon"))]
-  ctrl          <- utils::modifyList(ctrl_defaults, ctrl_clean)
+  ctrl_clean <- control[intersect(names(control), c("maxit", "epsilon"))]
+  ctrl <- utils::modifyList(ctrl_defaults, ctrl_clean)
 
   # ---- 6. variables tidy-select resolution -----------------------------------
   vars_quo <- rlang::enquo(variables)
-  var_pos  <- tryCatch(
+  var_pos <- tryCatch(
     tidyselect::eval_select(vars_quo, data = primary_design@data),
     error = function(e) {
       cli::cli_abort(
@@ -406,8 +412,11 @@ calibrate_to_survey <- function(
   # ---- 7. Replicate-scheme type mismatch warning ----------------------------
   primary_type <- primary_design@variables$type
   control_type <- control_design@variables$type
-  if (!is.null(primary_type) && !is.null(control_type) &&
-      primary_type != control_type) {
+  if (
+    !is.null(primary_type) &&
+      !is.null(control_type) &&
+      primary_type != control_type
+  ) {
     cli::cli_warn(
       c(
         "!" = paste0(
@@ -423,12 +432,16 @@ calibrate_to_survey <- function(
   }
 
   # ---- 8. Scale constant check ----------------------------------------------
-  A   <- primary_design@variables$scale
+  A <- primary_design@variables$scale
   A_C <- control_design@variables$scale
   if (is.null(A) || is.null(A_C)) {
     which_missing <- character(0)
-    if (is.null(A))   which_missing <- c(which_missing, "primary_design")
-    if (is.null(A_C)) which_missing <- c(which_missing, "control_design")
+    if (is.null(A)) {
+      which_missing <- c(which_missing, "primary_design")
+    }
+    if (is.null(A_C)) {
+      which_missing <- c(which_missing, "control_design")
+    }
     cli::cli_abort(
       c(
         "x" = paste0(
@@ -459,18 +472,18 @@ calibrate_to_survey <- function(
   # ---- 11. Opsomer algorithm ------------------------------------------------
 
   # Extract key dimensions
-  wt_col_name  <- primary_design@variables$weights
+  wt_col_name <- primary_design@variables$weights
   rep_col_names <- primary_design@variables$repweights
-  R    <- length(rep_col_names)
-  R_C  <- length(control_design@variables$repweights)
+  R <- length(rep_col_names)
+  R_C <- length(control_design@variables$repweights)
 
   # Step 2: compute expansion factor K and effective parameters
   if (R_C > R) {
-    K     <- as.integer(ceiling(R_C / R))
+    K <- as.integer(ceiling(R_C / R))
     R_eff <- K * R
     A_eff <- A / K
   } else {
-    K     <- 1L
+    K <- 1L
     R_eff <- R
     A_eff <- A
   }
@@ -485,7 +498,9 @@ calibrate_to_survey <- function(
 
   # Step 4: compute control totals (full-sample and per-replicate)
   ctrl_totals <- .compute_control_totals(
-    control_design, var_names, primary_design
+    control_design,
+    var_names,
+    primary_design
   )
 
   # Step 4b: if type="prop" and targets non-NULL, convert proportions to counts
@@ -539,7 +554,11 @@ calibrate_to_survey <- function(
   # Step 6: calibrate full-sample weights to combined target set
   # Build combined targets: random-margin totals from control + fixed totals
   # When a variable appears in both var_names and targets, fixed takes priority
-  fixed_var_names <- if (!is.null(targets_counts)) names(targets_counts) else character(0)
+  fixed_var_names <- if (!is.null(targets_counts)) {
+    names(targets_counts)
+  } else {
+    character(0)
+  }
   random_var_names <- setdiff(var_names, fixed_var_names)
 
   # Combined targets for full-sample calibration (Format A named list)
@@ -556,7 +575,7 @@ calibrate_to_survey <- function(
   all_cal_vars <- names(fs_combined_targets)
   primary_data <- primary_design@data
   before_weights <- primary_data[[wt_col_name]]
-  before_stats   <- .compute_weight_stats(before_weights)
+  before_stats <- .compute_weight_stats(before_weights)
 
   # When fixed margins (targets_counts) are present, force (Intercept) to the
   # sum of the fixed margin totals.  This ensures that treatment-contrast coding
@@ -571,15 +590,15 @@ calibrate_to_survey <- function(
   }
 
   new_full_weights <- .calibrate_opsomer_single(
-    data_df        = as.data.frame(primary_data),
-    weights_vec    = before_weights,
-    combined_tgts  = fs_combined_targets,
-    method         = method,
-    algorithm      = algorithm,
-    ctrl           = ctrl,
-    bounds         = bounds,
-    unit_scale     = unit_scale,
-    intercept_n    = fs_intercept_n
+    data_df = as.data.frame(primary_data),
+    weights_vec = before_weights,
+    combined_tgts = fs_combined_targets,
+    method = method,
+    algorithm = algorithm,
+    ctrl = ctrl,
+    bounds = bounds,
+    unit_scale = unit_scale,
+    intercept_n = fs_intercept_n
   )
 
   # Clip negative full-sample weights for linear method
@@ -619,7 +638,7 @@ calibrate_to_survey <- function(
     k_cal_weights <- vector("list", K)
 
     for (k_idx in seq_len(K)) {
-      s_idx <- (r_idx - 1L) * K + k_idx  # virtual replicate index (1-based)
+      s_idx <- (r_idx - 1L) * K + k_idx # virtual replicate index (1-based)
 
       # Build perturbed totals for random-margin variables
       rep_combined_tgts <- list()
@@ -647,15 +666,15 @@ calibrate_to_survey <- function(
 
       # Calibrate starting from original (pre-calibration) replicate weights
       k_cal_weights[[k_idx]] <- .calibrate_opsomer_single(
-        data_df        = as.data.frame(primary_data),
-        weights_vec    = orig_rep_wt,
-        combined_tgts  = rep_combined_tgts,
-        method         = method,
-        algorithm      = algorithm,
-        ctrl           = ctrl,
-        bounds         = bounds,
-        unit_scale     = unit_scale,
-        intercept_n    = fs_intercept_n
+        data_df = as.data.frame(primary_data),
+        weights_vec = orig_rep_wt,
+        combined_tgts = rep_combined_tgts,
+        method = method,
+        algorithm = algorithm,
+        ctrl = ctrl,
+        bounds = bounds,
+        unit_scale = unit_scale,
+        intercept_n = fs_intercept_n
       )
     }
 
@@ -668,53 +687,55 @@ calibrate_to_survey <- function(
 
   # History parameters
   history_params <- list(
-    variables          = var_names,
-    method             = method,
-    bounds             = bounds,
-    unit_scale         = unit_scale,
-    n_replicates       = R,
+    variables = var_names,
+    method = method,
+    bounds = bounds,
+    unit_scale = unit_scale,
+    n_replicates = R,
     control_design_class = class(control_design)[[1L]],
     n_replicates_control = R_C,
-    K                  = K,
-    a_constants        = a_r,
+    K = K,
+    a_constants = a_r,
     targets_from_reference = !is.null(reference_design),
-    reference_design   = if (!is.null(reference_design)) {
-      list(class = class(reference_design)[[1L]],
-           n = nrow(reference_design@data))
+    reference_design = if (!is.null(reference_design)) {
+      list(
+        class = class(reference_design)[[1L]],
+        n = nrow(reference_design@data)
+      )
     } else {
       NULL
     },
-    control            = ctrl
+    control = ctrl
   )
   if (!is.null(targets)) {
-    history_params$targets        <- targets_orig
-    history_params$type           <- type
+    history_params$targets <- targets_orig
+    history_params$type <- type
     history_params$fixed_variables <- fixed_var_names
   } else {
-    history_params$targets        <- NULL
-    history_params$type           <- NULL
+    history_params$targets <- NULL
+    history_params$type <- NULL
     history_params$fixed_variables <- NULL
   }
 
   current_history <- primary_design@metadata@weighting_history
-  history_entry   <- .make_history_entry(
-    step         = length(current_history) + 1L,
-    operation    = "calibrate_to_survey",
-    weight_col   = wt_col_name,
-    call_str     = call_str,
-    parameters   = history_params,
+  history_entry <- .make_history_entry(
+    step = length(current_history) + 1L,
+    operation = "calibrate_to_survey",
+    weight_col = wt_col_name,
+    call_str = call_str,
+    parameters = history_params,
     before_stats = before_stats,
-    after_stats  = after_stats,
-    convergence  = NULL
+    after_stats = after_stats,
+    convergence = NULL
   )
   # Promote K and a_constants to top-level fields for direct access.
   # These are the primary outputs of the Opsomer algorithm and are
   # checked by tests and documented in @returns as first-class entry fields.
-  history_entry$K           <- K
+  history_entry$K <- K
   history_entry$a_constants <- a_r
   if (!is.null(targets)) {
-    history_entry$targets        <- targets_orig
-    history_entry$type           <- type
+    history_entry$targets <- targets_orig
+    history_entry$type <- type
     history_entry$fixed_variables <- fixed_var_names
   }
 
@@ -728,20 +749,20 @@ calibrate_to_survey <- function(
   # Dispatch on primary_design class for output constructor
   if (S7::S7_inherits(primary_design, surveycore::survey_nonprob)) {
     result <- surveycore::survey_nonprob(
-      data      = new_data,
+      data = new_data,
       variables = primary_design@variables,
-      metadata  = primary_design@metadata
+      metadata = primary_design@metadata
     )
   } else {
     result <- surveycore::survey_replicate(
-      data      = new_data,
+      data = new_data,
       variables = primary_design@variables,
-      metadata  = primary_design@metadata
+      metadata = primary_design@metadata
     )
   }
-  meta                   <- result@metadata
+  meta <- result@metadata
   meta@weighting_history <- c(meta@weighting_history, list(history_entry))
-  result@metadata        <- meta
+  result@metadata <- meta
 
   result
 }
@@ -766,7 +787,7 @@ calibrate_to_survey <- function(
 # @keywords internal
 # @noRd
 .compute_control_totals <- function(control_design, var_names, primary_design) {
-  R_C    <- length(control_design@variables$repweights)
+  R_C <- length(control_design@variables$repweights)
   wt_col <- control_design@variables$weights
   ctrl_data <- control_design@data
   ctrl_full_wt <- ctrl_data[[wt_col]]
@@ -801,9 +822,13 @@ calibrate_to_survey <- function(
     c_char <- as.character(ctrl_data[[v]])
 
     # Full-sample totals
-    full_totals <- vapply(lvls, function(lv) {
-      sum(ctrl_full_wt[c_char == lv])
-    }, numeric(1L))
+    full_totals <- vapply(
+      lvls,
+      function(lv) {
+        sum(ctrl_full_wt[c_char == lv])
+      },
+      numeric(1L)
+    )
     names(full_totals) <- lvls
 
     # Per-replicate totals (matrix: n_levels x R_C)
@@ -829,7 +854,7 @@ calibrate_to_survey <- function(
   for (v in var_names) {
     p_levels <- unique(as.character(primary@data[[v]]))
     c_levels <- unique(as.character(control@data[[v]]))
-    missing  <- setdiff(p_levels, c_levels)
+    missing <- setdiff(p_levels, c_levels)
     if (length(missing) > 0L) {
       cli::cli_abort(
         c(
@@ -1009,7 +1034,7 @@ calibrate_to_survey <- function(
 # @noRd
 .normalize_targets <- function(targets) {
   lapply(seq_along(targets), function(i) {
-    nm   <- names(targets)[[i]]
+    nm <- names(targets)[[i]]
     elem <- targets[[i]]
     if (is.data.frame(elem)) {
       val_col <- if ("n" %in% names(elem)) "n" else "prop"
@@ -1017,7 +1042,8 @@ calibrate_to_survey <- function(
     } else {
       stats::setNames(as.double(unname(elem)), names(elem))
     }
-  }) |> stats::setNames(names(targets))
+  }) |>
+    stats::setNames(names(targets))
 }
 
 # Calibrate a single set of weights to combined targets using the
@@ -1074,19 +1100,23 @@ calibrate_to_survey <- function(
   }
 
   # Build formula and population totals vector (treatment contrasts)
-  multi_level_vars <- cal_vars[vapply(combined_tgts, function(tgt) {
-    length(tgt) >= 2L
-  }, logical(1L))]
+  multi_level_vars <- cal_vars[vapply(
+    combined_tgts,
+    function(tgt) {
+      length(tgt) >= 2L
+    },
+    logical(1L)
+  )]
 
   if (length(multi_level_vars) == 0L) {
     # All single-level: trivially calibrated — return weights unchanged
     return(weights_vec)
   }
 
-  fml    <- stats::as.formula(
+  fml <- stats::as.formula(
     paste("~", paste(multi_level_vars, collapse = " + "))
   )
-  mm     <- stats::model.matrix(fml, data = data_df)
+  mm <- stats::model.matrix(fml, data = data_df)
   n_cols <- ncol(mm)
 
   # Population totals in treatment-contrast parameterization.
@@ -1101,7 +1131,9 @@ calibrate_to_survey <- function(
   pop_totals["(Intercept)"] <- intercept_n
 
   for (v in cal_vars) {
-    if (length(combined_tgts[[v]]) < 2L) next
+    if (length(combined_tgts[[v]]) < 2L) {
+      next
+    }
     lvls <- names(combined_tgts[[v]])
     for (lev in lvls[-1L]) {
       col_nm <- paste0(v, lev)
@@ -1112,20 +1144,20 @@ calibrate_to_survey <- function(
   }
 
   svy_tmp <- survey::svydesign(
-    ids     = ~1,
+    ids = ~1,
     weights = ~.opsomer_wt_tmp,
-    data    = data_df
+    data = data_df
   )
 
   calfun <- .method_to_calfun(method)
 
   cal_args <- list(
-    design     = svy_tmp,
-    formula    = fml,
+    design = svy_tmp,
+    formula = fml,
     population = pop_totals,
-    calfun     = calfun,
-    maxit      = as.integer(ctrl$maxit),
-    epsilon    = ctrl$epsilon
+    calfun = calfun,
+    maxit = as.integer(ctrl$maxit),
+    epsilon = ctrl$epsilon
   )
   if (!is.null(unit_scale)) {
     cal_args$variance <- unit_scale
@@ -1135,8 +1167,10 @@ calibrate_to_survey <- function(
     lower <- if (is.finite(bounds[[1L]])) bounds[[1L]] else 1e-6
     upper <- if (is.finite(bounds[[2L]])) bounds[[2L]] else 1e6
     cal_args$bounds <- c(lower, upper)
-  } else if (method == "linear" &&
-             (is.finite(bounds[[1L]]) || is.finite(bounds[[2L]]))) {
+  } else if (
+    method == "linear" &&
+      (is.finite(bounds[[1L]]) || is.finite(bounds[[2L]]))
+  ) {
     cal_args$bounds <- bounds
   }
 

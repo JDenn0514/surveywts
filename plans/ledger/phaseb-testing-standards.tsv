@@ -1,0 +1,104 @@
+id	verdict	location	evidence
+testing-standards-001	MOVED	.claude/standards/testing-standards.md:1	"<!-- Mirrored from ../survey-standards/.claude/rules/testing-standards.md. Keep in sync. -->" — same text, now wrapped as an HTML comment.
+testing-standards-002	DELETED		Approved deletion C2 (Version/Created/Status headers) — plans/spec-rules-redesign.md §5/§13, C2.
+testing-standards-003	ALTERED	.claude/standards/testing-standards.md:5-7	was: "...see the `testing-{package}.md` rule in each package's `.claude/rules/` directory." / now: "...see the `testing-{package}.md` rule in each package's `.claude/standards/` directory." Path literal changed.
+testing-standards-004	MOVED	.claude/standards/testing-standards.md:15	"Test file granularity | At least 1 file per source file; large source files may split"
+testing-standards-005	MOVED	.claude/standards/testing-standards.md:16	"`test_that()` scope | One observable behavior per block"
+testing-standards-006	MOVED	.claude/standards/testing-standards.md:17	"Nesting | Flat — no `describe()` blocks"
+testing-standards-007	MOVED	.claude/standards/testing-standards.md:18	"Coverage target | 98%+ line coverage; PRs blocked below 95%"
+testing-standards-008	MOVED	.claude/standards/testing-standards.md:19	"Test categories | Happy path + error paths + edge cases"
+testing-standards-009	MOVED	.claude/standards/testing-standards.md:20	"Private function testing | Default indirect; direct only when gap can't be closed via public API"
+testing-standards-010	MOVED	.claude/standards/testing-standards.md:21	"Constructor error testing | Dual: `expect_error(class=)` + `expect_snapshot(error=TRUE)`"
+testing-standards-011	MOVED	.claude/standards/testing-standards.md:22	"Structural validator errors | `class=` only — no snapshot (messages not CLI-formatted)"
+testing-standards-012	MOVED	.claude/standards/testing-standards.md:23	"Snapshot failures | Block PRs; update via `snapshot_review()` before opening"
+testing-standards-013	MOVED	.claude/standards/testing-standards.md:24	"Warning capture | `expect_warning()` wrapping call; result from return value"
+testing-standards-014	MOVED	.claude/standards/testing-standards.md:25	"Structural assertions | `expect_identical()`"
+testing-standards-015	MOVED	.claude/standards/testing-standards.md:26	"Numeric assertions | `expect_equal()`"
+testing-standards-016	MOVED	.claude/standards/testing-standards.md:27	"Synthetic test data | Package-specific generator with `seed =`; defined in `helper-*.R`"
+testing-standards-017	MOVED	.claude/standards/testing-standards.md:28	"Edge case data | Inline in tests; never add edge case parameters to a data generator"
+testing-standards-018	MOVED	.claude/standards/testing-standards.md:29	"`skip_if_not_installed` | Block-level, inside affected `test_that()` blocks"
+testing-standards-019	MOVED	.claude/standards/testing-standards.md:36	"Every source file in `R/` has a corresponding test file in `tests/testthat/`."
+testing-standards-020	MOVED	.claude/standards/testing-standards.md:37	"One-to-one is the floor"
+testing-standards-021	MOVED	.claude/standards/testing-standards.md:37-38	"large source files may split into multiple test files if it improves clarity."
+testing-standards-022	MOVED	.claude/standards/testing-standards.md:40	"Naming convention: `R/my-thing.R` → `tests/testthat/test-my-thing.R`"
+testing-standards-023	MOVED	.claude/standards/testing-standards.md:42	"### One behavior per `test_that()` block"
+testing-standards-024	MOVED	.claude/standards/testing-standards.md:43	"Each `test_that()` description names one observable behavior."
+testing-standards-025	MOVED	.claude/standards/testing-standards.md:43-44	"The description is a present-tense assertion, not a vague category."
+testing-standards-026	MOVED	.claude/standards/testing-standards.md:47-49	'# Correct — specific, present-tense assertion / test_that("my_fn() rejects data frames with 0 rows", { ... }) / test_that("my_fn() assigns a default weight when none is given", { ... })'
+testing-standards-027	MOVED	.claude/standards/testing-standards.md:51-53	'# Wrong — vague category / test_that("my_fn() validates input", { ... }) / test_that("weights work", { ... })'
+testing-standards-028	MOVED	.claude/standards/testing-standards.md:56	"### No `describe()` blocks"
+testing-standards-029	MOVED	.claude/standards/testing-standards.md:57	"Use flat `test_that()` throughout."
+testing-standards-030	MOVED	.claude/standards/testing-standards.md:57-58	"Do not nest `test_that()` inside `describe()`."
+testing-standards-031	MOVED	.claude/standards/testing-standards.md:61-63	'# Correct / test_that("my_class stores the x property", { ... }) / test_that("my_class stores the y property", { ... })'
+testing-standards-032	MOVED	.claude/standards/testing-standards.md:65-68	'# Wrong / describe("my_class properties", { test_that("stores x", { ... }) })'
+testing-standards-033	MOVED	.claude/standards/testing-standards.md:76	"**98%+ line coverage** is the project target."
+testing-standards-034	MOVED	.claude/standards/testing-standards.md:76-77	"PRs that drop coverage below **95%** are blocked by CI."
+testing-standards-035	MOVED	.claude/standards/testing-standards.md:79	"Lines excluded from coverage are marked with `# nocov`"
+testing-standards-036	MOVED	.claude/standards/testing-standards.md:79-80	"and require an explanatory comment on the preceding line"
+testing-standards-037	MOVED	.claude/standards/testing-standards.md:83-89	"# nocov start ... # nocov end" block, unchanged including the cli::cli_abort example line
+testing-standards-038	MOVED	.claude/standards/testing-standards.md:84-85	"# Defensive: this branch is unreachable via any public function. / # Tested implicitly by all constructor tests."
+testing-standards-039	MOVED	.claude/standards/testing-standards.md:87	'cli::cli_abort("Internal error: @data is NULL", class = "mypkg_error_internal")'
+testing-standards-040	MOVED	.claude/standards/testing-standards.md:93	"Defensive branches for conditions impossible via public API"
+testing-standards-041	MOVED	.claude/standards/testing-standards.md:94	"Platform-specific paths (e.g., Windows-only file encoding)"
+testing-standards-042	MOVED	.claude/standards/testing-standards.md:95	"Explicit non-goals documented in the package specification"
+testing-standards-043	MOVED	.claude/standards/testing-standards.md:98	"Covering for missing tests — add the test instead"
+testing-standards-044	MOVED	.claude/standards/testing-standards.md:99	'Error messages that "feel hard to trigger" — find the trigger and test it'
+testing-standards-045	MOVED	.claude/standards/testing-standards.md:101	"### Three mandatory test categories"
+testing-standards-046	MOVED	.claude/standards/testing-standards.md:102	"Every exported function must have tests in all three categories:"
+testing-standards-047	MOVED	.claude/standards/testing-standards.md:104	"**1. Happy path** — normal inputs, expected behavior:"
+testing-standards-048	MOVED	.claude/standards/testing-standards.md:106-109	'test_that("my_fn() creates the right class for standard input", { result <- my_fn(data, weights = w); expect_true(inherits(result, "my_class")) })'
+testing-standards-049	MOVED	.claude/standards/testing-standards.md:112	"**2. Error paths** — every typed error class from the package's error table:"
+testing-standards-050	MOVED	.claude/standards/testing-standards.md:114-117	'test_that("my_fn() rejects non-data-frame input", { expect_snapshot(error = TRUE, my_fn(list(x = 1))); expect_error(my_fn(list(x = 1)), class = "mypkg_error_not_data_frame") })'
+testing-standards-051	MOVED	.claude/standards/testing-standards.md:120	"**3. Edge cases** — boundary conditions, NAs, empty inputs, single-row inputs:"
+testing-standards-052	MOVED	.claude/standards/testing-standards.md:122-128	'test_that("my_fn() warns for single-row data", { single_row <- data.frame(x = 1, w = 1); expect_warning( my_fn(single_row, weights = w), class = "mypkg_warning_single_row" ) })'
+testing-standards-053	MOVED	.claude/standards/testing-standards.md:132-134	"Default to **indirect testing** — exercise private helpers via the public functions that call them."
+testing-standards-054	MOVED	.claude/standards/testing-standards.md:133-134	"Only write direct tests for a private function when coverage cannot be achieved indirectly AND the behavior is material."
+testing-standards-055	MOVED	.claude/standards/testing-standards.md:137-141	'# Indirect (preferred) — .validate_weights() tested via the public API / test_that("my_fn() rejects non-positive weights", { df <- data.frame(x = 1:5, w = c(1, 0, 1, 1, 1)); expect_error(my_fn(df, weights = w), class = "mypkg_error_weights_nonpositive") })'
+testing-standards-056	MOVED	.claude/standards/testing-standards.md:144-147	'# Direct (only when necessary) / test_that(".validate_fpc() rejects NA in fpc column [direct]", { df <- data.frame(y = 1, fpc = NA_real_); expect_error(.validate_fpc(df, "fpc"), class = "mypkg_error_fpc_na") })'
+testing-standards-057	MOVED	.claude/standards/testing-standards.md:144	'[direct]'
+testing-standards-058	MOVED	.claude/standards/testing-standards.md:154	"### Constructor error testing: dual pattern"
+testing-standards-059	MOVED	.claude/standards/testing-standards.md:155	"User-facing input validation errors require two assertions:"
+testing-standards-060	MOVED	.claude/standards/testing-standards.md:161-165	'# 1. Typed class check — verifies the right error class is thrown / expect_error( my_fn(df, weights = w), class = "mypkg_error_weights_nonpositive" )'
+testing-standards-061	MOVED	.claude/standards/testing-standards.md:167-168	'# 2. Snapshot — verifies the CLI message text has not changed / expect_snapshot(error = TRUE, my_fn(df, weights = w))'
+testing-standards-062	MOVED	.claude/standards/testing-standards.md:172-173	"Structural/invariant errors (e.g., S7 class validators) use `class=` only — no snapshot — because those messages are not CLI-formatted."
+testing-standards-063	MOVED	.claude/standards/testing-standards.md:173-174	"See each package's testing rule for which validation layers use which pattern."
+testing-standards-064	MOVED	.claude/standards/testing-standards.md:177	"Snapshot failures block PRs."
+testing-standards-065	MOVED	.claude/standards/testing-standards.md:177-178	"They are not auto-updated — they represent deliberate decisions about error message text."
+testing-standards-066	MOVED	.claude/standards/testing-standards.md:181-182	"testthat::snapshot_review()  # review and approve each diff individually"
+testing-standards-067	MOVED	.claude/standards/testing-standards.md:182	"# review and approve each diff individually"
+testing-standards-068	MOVED	.claude/standards/testing-standards.md:185	"Never run `testthat::snapshot_accept()` blindly."
+testing-standards-069	MOVED	.claude/standards/testing-standards.md:185-186	"Each snapshot change must be reviewed."
+testing-standards-070	MOVED	.claude/standards/testing-standards.md:188	"Snapshots live in `tests/testthat/_snaps/`."
+testing-standards-071	MOVED	.claude/standards/testing-standards.md:188-189	"They are committed to version control."
+testing-standards-072	MOVED	.claude/standards/testing-standards.md:192	"Use `expect_warning()` wrapping the call."
+testing-standards-073	MOVED	.claude/standards/testing-standards.md:192-193	"Capture the return value separately if you need to assert on it:"
+testing-standards-074	MOVED	.claude/standards/testing-standards.md:196-205	'test_that("my_fn() warns and still returns an object for single-row data", { d1 <- data.frame(x = 1, w = 1); expect_warning( result <- my_fn(d1, weights = w), class = "mypkg_warning_single_row" ); expect_true(inherits(result, "my_class")) })'
+testing-standards-075	MOVED	.claude/standards/testing-standards.md:208	"Do **not** use `withCallingHandlers()` or `tryCatch()` in tests."
+testing-standards-076	MOVED	.claude/standards/testing-standards.md:212	"Use `expect_identical()` for... | Use `expect_equal()` for..."
+testing-standards-077	MOVED	.claude/standards/testing-standards.md:214	"Character vectors, names | Floating-point output"
+testing-standards-078	MOVED	.claude/standards/testing-standards.md:215	"`NULL` and `NA` values | Numeric computations with tolerance"
+testing-standards-079	MOVED	.claude/standards/testing-standards.md:216	"Exact string/integer property values | Any calculated numeric result"
+testing-standards-080	MOVED	.claude/standards/testing-standards.md:217	"List structure (keys present/absent) | Weights, proportions, estimates"
+testing-standards-081	MOVED	.claude/standards/testing-standards.md:224-225	"Each package defines a synthetic data generator in `tests/testthat/helper-*.R` for creating realistic test inputs."
+testing-standards-082	MOVED	.claude/standards/testing-standards.md:225	"Use it for all unit tests that need a domain object."
+testing-standards-083	MOVED	.claude/standards/testing-standards.md:226-227	"Do not use real datasets in tests that don't need their specific properties."
+testing-standards-084	MOVED	.claude/standards/testing-standards.md:230	"Accept a `seed =` argument for reproducibility"
+testing-standards-085	MOVED	.claude/standards/testing-standards.md:231	"Return a plain data structure (not yet wrapped in a domain object)"
+testing-standards-086	MOVED	.claude/standards/testing-standards.md:232	"Produce realistic variation (unequal sizes, varying values, imbalanced groups)"
+testing-standards-087	MOVED	.claude/standards/testing-standards.md:236-237	'# Usage pattern — create data, then construct the domain object / df <- make_pkg_data(n = 200, seed = 123) / obj <- my_constructor(df, ...)'
+testing-standards-088	MOVED	.claude/standards/testing-standards.md:241-242	"Use real datasets only for numerical validation tests — comparing package outputs against a reference implementation."
+testing-standards-089	MOVED	.claude/standards/testing-standards.md:242	"These belong in a dedicated test file."
+testing-standards-090	MOVED	.claude/standards/testing-standards.md:243	"Never use a real dataset just for convenience when synthetic data works."
+testing-standards-091	MOVED	.claude/standards/testing-standards.md:245	"### Edge case data: inline"
+testing-standards-092	MOVED	.claude/standards/testing-standards.md:246-247	"Edge cases requiring specific, atypical values are constructed inline in the test."
+testing-standards-093	MOVED	.claude/standards/testing-standards.md:247	"Do not add special-case parameters to the data generator."
+testing-standards-094	MOVED	.claude/standards/testing-standards.md:251-254	'# Correct — inline, self-documenting / test_that("my_fn() rejects data with 0 rows", { empty_df <- data.frame(x = numeric(0), w = numeric(0)); expect_error(my_fn(empty_df, weights = w), class = "mypkg_error_empty_data") })'
+testing-standards-095	MOVED	.claude/standards/testing-standards.md:257	'df <- make_pkg_data(edge = "empty", seed = 1)  # don't do this'
+testing-standards-096	MOVED	.claude/standards/testing-standards.md:260-261	"The rule: if the edge case needs exact specific values to trigger, write those values directly."
+testing-standards-097	MOVED	.claude/standards/testing-standards.md:261-262	"Data generators produce typical inputs; edge cases are by definition atypical."
+testing-standards-098	MOVED	.claude/standards/testing-standards.md:264	"### `skip_if_not_installed()` — block-level, not file-level"
+testing-standards-099	MOVED	.claude/standards/testing-standards.md:265-266	"Place `skip_if_not_installed()` inside the `test_that()` block that actually requires the external package."
+testing-standards-100	MOVED	.claude/standards/testing-standards.md:266-267	"Do not put a file-level skip at the top of a test file — other blocks in the same file may not need it."
+testing-standards-101	MOVED	.claude/standards/testing-standards.md:271-274	'test_that("estimates match reference package [numerical]", { skip_if_not_installed("ref_pkg") # ... })'
+testing-standards-102	MOVED	.claude/standards/testing-standards.md:277	"# runs even without ref_pkg installed"
+testing-standards-103	MOVED	.claude/standards/testing-standards.md:283	'skip_if_not_installed("ref_pkg")  # at top of file'

@@ -57,7 +57,7 @@ Stages 2 and 3 may loop with their resolve counterparts until verdict PASS.
 
 ## Stage 0 — Deep Comprehension
 
-Determine if methods-heavy per `planner.md §Step 0 criteria`. Also check:
+Determine if methods-heavy per `planner.md §Step 1 criteria`. Also check:
 - Did the user attach papers, PDFs, or markdown files of journal articles?
 - If yes, how many?
 
@@ -67,7 +67,7 @@ with status line `(no methods — auto)`.
 ### Single paper (exactly 1 attached) or methods-heavy with no paper
 
 1. Dispatch `planner` agent with prompt:
-   > Run Step 0 (Deep Comprehension Protocol) only. Write `comprehension.md`
+   > Run Step 1 (Deep Comprehension Protocol) only. Write `comprehension.md`
    > per `artifact-schemas.md`. If a paper was attached, read it in full before
    > writing. Do not draft spec-{id}.md or test-spec-{id}.md yet.
    > Paper/attachment: {path or content}
@@ -93,7 +93,7 @@ needed for synthesis. Use parallel extraction first:
    claim. Re-dispatch any extractor that produced a thin or incomplete result.
 
 3. **Dispatch `planner` agent for synthesis**:
-   > Run Step 0 (Deep Comprehension Protocol) — synthesis pass only. All papers
+   > Run Step 1 (Deep Comprehension Protocol) — synthesis pass only. All papers
    > have been pre-read by extraction agents. Their outputs are at:
    > {list all extraction-{slug}.md paths}
    >
@@ -129,7 +129,7 @@ Pass `comprehension.md` path to the planner if it exists.
 Verify both artifacts exist and contain all required sections on return.
 
 When verifying `spec-{id}.md` function contracts, apply 
-`.claude/rules/function-documentation.md`: check that the tier (Utility / 
+`.claude/standards/function-documentation.md`: check that the tier (Utility / 
 Standard / Algorithmic / Dispatcher) is identifiable and that the required 
 `@param`, `@returns`, `@details`, `@section`, and `@examples` rules for 
 that tier are reflected in the contract.
@@ -193,7 +193,7 @@ Respect the Review-loop budget above.
 Invoke `.claude/skills/spec-workflow/references/stage-3-review.md`.
 
 When applying Lens 3 (Contract Completeness), consult 
-`.claude/rules/function-documentation.md` to determine which `@details`, 
+`.claude/standards/function-documentation.md` to determine which `@details`, 
 `@section`, and `@examples` content is required for each function's tier.
 
 Save to `plans/spec-review-{id}.md`. Aggregate verdict (PASS / BLOCK / HOLD).
@@ -235,4 +235,4 @@ On PASS from both Stage 2 (if applicable) and Stage 3:
 - `.claude/skills/spec-workflow/references/stage-4-resolve.md`
 - `.claude/agents/planner.md`
 - `.claude/agents/extractor.md`
-- `.claude/rules/function-documentation.md` — documentation tier system and section rules used during Stage 1 verification and Stage 3 Lens 3
+- `.claude/standards/function-documentation.md` — documentation tier system and section rules used during Stage 1 verification and Stage 3 Lens 3

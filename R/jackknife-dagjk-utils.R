@@ -17,7 +17,9 @@
 #   combined_n : numeric upper bound; Inf skips the ceiling check
 .validate_replicates_dagjk_arg <- function(replicates, combined_n = Inf) {
   # Must be a single non-NA numeric value
-  if (!is.numeric(replicates) || length(replicates) != 1L || is.na(replicates)) {
+  if (
+    !is.numeric(replicates) || length(replicates) != 1L || is.na(replicates)
+  ) {
     cli::cli_abort(
       c(
         "x" = "{.arg replicates} must be a single, non-NA number.",
@@ -98,9 +100,20 @@
 # Returns: numeric vector of length n_nps -- replicate pseudo-weights.
 #   Entries for group-g NPS units are 0 (assigned by the caller after return).
 .dagjk_single_replicate <- function(
-  g, group_assign, nps_data, ref_data, ref_wt_col, ipw_entry,
-  calib_entry, n_nps, n_ref, use_level_b, ref_design, wt_col,
-  strata_var = NULL, G = 0L
+  g,
+  group_assign,
+  nps_data,
+  ref_data,
+  ref_wt_col,
+  ipw_entry,
+  calib_entry,
+  n_nps,
+  n_ref,
+  use_level_b,
+  ref_design,
+  wt_col,
+  strata_var = NULL,
+  G = 0L
 ) {
   # Indices into the combined sequence: 1..n_nps = NPS, (n_nps+1)..(n_nps+n_ref) = ref
   nps_in_g <- which(group_assign[seq_len(n_nps)] == g)
@@ -123,15 +136,15 @@
     )
   }
 
-  nps_g   <- nps_data[nps_keep_idx, , drop = FALSE]
-  ref_g   <- ref_data[ref_keep_idx, , drop = FALSE]
+  nps_g <- nps_data[nps_keep_idx, , drop = FALSE]
+  ref_g <- ref_data[ref_keep_idx, , drop = FALSE]
   w_ref_g <- ref_g[[ref_wt_col]]
 
   # Reference weight adjustment (Valliant 2020, Eq. 1):
   #   N_hat_g = sum(w_ref) over reference units NOT in g
   #   n_nps_g = count of NPS units NOT in g
-  N_hat_g   <- sum(w_ref_g)
-  n_nps_g   <- length(nps_keep_idx)
+  N_hat_g <- sum(w_ref_g)
+  n_nps_g <- length(nps_keep_idx)
 
   if (N_hat_g - n_nps_g < 0) {
     cli::cli_abort(
@@ -146,7 +159,7 @@
   }
 
   adjust_factor_g <- (N_hat_g - n_nps_g) / N_hat_g
-  w_ref_adj_g     <- w_ref_g * adjust_factor_g
+  w_ref_adj_g <- w_ref_g * adjust_factor_g
 
   # Drop the original weight column from nps_g before passing to ipw()
   nps_g_no_wt <- nps_g[, setdiff(names(nps_g), wt_col), drop = FALSE]
@@ -167,27 +180,27 @@
 
   # Build within-replicate reference survey_taylor
   ref_g_design <- surveycore::survey_taylor(
-    data      = ref_g,
+    data = ref_g,
     variables = ref_design@variables
   )
 
   # Refit ipw() on reduced combined dataset
-  maxit_g   <- ipw_entry$maxit %||% 25L
+  maxit_g <- ipw_entry$maxit %||% 25L
   epsilon_g <- ipw_entry$epsilon %||% 1e-8
 
   ipw_result_g <- tryCatch(
     suppressWarnings(surveywts::ipw(
-      data             = nps_g_no_wt,
-      reference        = ref_g_design,
-      selection        = ipw_entry$formula,
-      method           = ipw_entry$method,
-      estimating_eq    = ipw_entry$estimating_eq,
-      missing_method   = ipw_entry$missing_method,
-      adjust_reference = FALSE,   # already applied manually above
-      trim             = FALSE,   # trimming handled separately below
-      maxit            = as.integer(maxit_g),
-      epsilon          = epsilon_g,
-      wt_name          = wt_col
+      data = nps_g_no_wt,
+      reference = ref_g_design,
+      selection = ipw_entry$formula,
+      method = ipw_entry$method,
+      estimating_eq = ipw_entry$estimating_eq,
+      missing_method = ipw_entry$missing_method,
+      adjust_reference = FALSE, # already applied manually above
+      trim = FALSE, # trimming handled separately below
+      maxit = as.integer(maxit_g),
+      epsilon = epsilon_g,
+      wt_name = wt_col
     )),
     error = function(e) {
       cli::cli_abort(
@@ -207,7 +220,9 @@
   # not reachable through the public API in practice.
   if (any(is.na(w_g)) || any(!is.finite(w_g)) || any(w_g <= 0)) {
     cli::cli_abort(
-      c("x" = "Replicate {g}: degenerate pseudo-weights (NA, non-finite, or <= 0)."),
+      c(
+        "x" = "Replicate {g}: degenerate pseudo-weights (NA, non-finite, or <= 0)."
+      ),
       class = "surveywts_error_jackknife_degenerate_replicate"
     )
   }
@@ -225,14 +240,14 @@
     # nps_data has ALL rows; nps_keep_idx are the retained (non-group-g) rows
     nps_strata_all <- nps_data[[strata_var]]
     nps_strata_kept <- nps_strata_all[nps_keep_idx]
-    nps_strata_g    <- nps_strata_all[nps_in_g]
-    strata_levels   <- unique(nps_strata_all)
-    scale_vec       <- rep(1, length(w_g))  # default: no scaling
+    nps_strata_g <- nps_strata_all[nps_in_g]
+    strata_levels <- unique(nps_strata_all)
+    scale_vec <- rep(1, length(w_g)) # default: no scaling
 
     for (h in strata_levels) {
-      h_total     <- sum(nps_strata_all == h)    # n_h total NPS rows in stratum h
-      h_in_g      <- sum(nps_strata_g == h)      # n_hg: group-g NPS rows in stratum h
-      h_kept_idx  <- which(nps_strata_kept == h) # positions in kept-rows vector
+      h_total <- sum(nps_strata_all == h) # n_h total NPS rows in stratum h
+      h_in_g <- sum(nps_strata_g == h) # n_hg: group-g NPS rows in stratum h
+      h_kept_idx <- which(nps_strata_kept == h) # positions in kept-rows vector
 
       if (h_in_g == 0L) {
         # No group-g units from this stratum: weights unchanged
@@ -246,7 +261,7 @@
         # be reached for n_h = 1 because replicates_exceeds_n guards against
         # G > combined_n, but if a stratum has exactly 1 row and G > 1, Inf
         # propagates and is caught by the degenerate check below.
-        Z                     <- sqrt(G / ((G - 1L) * h_total * (h_total - 1L)))
+        Z <- sqrt(G / ((G - 1L) * h_total * (h_total - 1L)))
         # Deleted units (in group g): these rows are NOT in nps_keep_idx,
         # so they are not in w_g. The caller assigns 0 for deleted units.
         # Retained units in stratum h: apply (1 + Z) factor
@@ -267,67 +282,73 @@
 
   # Reapply calibration if in history
   if (!is.null(calib_entry)) {
-    calib_result_g <- tryCatch({
-      if (calib_entry$operation %in% c("raking", "calibrate_rake")) {
-        if (use_level_b) {
-          targets_g <- .reestimate_margins_from_reference(
-            calib_entry = calib_entry,
-            ref_design  = ref_design,
-            ref_data_b  = ref_g
-          )
-        } else {
-          # Old "raking" entries stored targets as `margins`; new ones as `targets`.
-          targets_g <- calib_entry$parameters$targets %||%
-            calib_entry$parameters$margins
-        }
-        rake_result <- surveywts::calibrate_rake(
-          data      = ipw_result_g,
-          targets   = targets_g,
-          type      = calib_entry$parameters$type,
-          algorithm = calib_entry$parameters$algorithm %||%
-            calib_entry$parameters$method,
-          cap       = calib_entry$parameters$cap,
-          control   = calib_entry$parameters$control
-        )
-        rake_result@data[[wt_col]]
-      } else {
-        # operation "calibration" (old), "calibrate_greg" (legacy), or
-        # "calibrate_linear" / "calibrate_logit" (current)
-        # Old entries stored population + variables; new entries store targets.
-        greg_targets <- calib_entry$parameters$targets %||%
-          calib_entry$parameters$population
-        greg_model <- calib_entry$parameters$model %||%
-          calib_entry$parameters$method
-        calib_fn <- if (identical(calib_entry$operation, "calibrate_logit") ||
-          identical(greg_model, "logit")) {
-          surveywts::calibrate_logit
-        } else {
-          surveywts::calibrate_linear
-        }
-        if (use_level_b) {
-          calib_result <- calib_fn(
-            data             = ipw_result_g,
-            targets          = greg_targets,
-            type             = calib_entry$parameters$type,
-            control          = calib_entry$parameters$control,
-            reference_design = ref_g_design
-          )
-        } else {
-          calib_result <- calib_fn(
-            data    = ipw_result_g,
-            targets = greg_targets,
-            type    = calib_entry$parameters$type,
+    calib_result_g <- tryCatch(
+      {
+        if (calib_entry$operation %in% c("raking", "calibrate_rake")) {
+          if (use_level_b) {
+            targets_g <- .reestimate_margins_from_reference(
+              calib_entry = calib_entry,
+              ref_design = ref_design,
+              ref_data_b = ref_g
+            )
+          } else {
+            # Old "raking" entries stored targets as `margins`; new ones as `targets`.
+            targets_g <- calib_entry$parameters$targets %||%
+              calib_entry$parameters$margins
+          }
+          rake_result <- surveywts::calibrate_rake(
+            data = ipw_result_g,
+            targets = targets_g,
+            type = calib_entry$parameters$type,
+            algorithm = calib_entry$parameters$algorithm %||%
+              calib_entry$parameters$method,
+            cap = calib_entry$parameters$cap,
             control = calib_entry$parameters$control
           )
+          rake_result@data[[wt_col]]
+        } else {
+          # operation "calibration" (old), "calibrate_greg" (legacy), or
+          # "calibrate_linear" / "calibrate_logit" (current)
+          # Old entries stored population + variables; new entries store targets.
+          greg_targets <- calib_entry$parameters$targets %||%
+            calib_entry$parameters$population
+          greg_model <- calib_entry$parameters$model %||%
+            calib_entry$parameters$method
+          calib_fn <- if (
+            identical(calib_entry$operation, "calibrate_logit") ||
+              identical(greg_model, "logit")
+          ) {
+            surveywts::calibrate_logit
+          } else {
+            surveywts::calibrate_linear
+          }
+          if (use_level_b) {
+            calib_result <- calib_fn(
+              data = ipw_result_g,
+              targets = greg_targets,
+              type = calib_entry$parameters$type,
+              control = calib_entry$parameters$control,
+              reference_design = ref_g_design
+            )
+          } else {
+            calib_result <- calib_fn(
+              data = ipw_result_g,
+              targets = greg_targets,
+              type = calib_entry$parameters$type,
+              control = calib_entry$parameters$control
+            )
+          }
+          calib_result@data[[wt_col]]
         }
-        calib_result@data[[wt_col]]
+      },
+      # nocov start
+      error = function(e) {
+        cli::cli_abort(
+          c("x" = "Replicate {g}: calibration failed -- {conditionMessage(e)}"),
+          class = "surveywts_error_jackknife_degenerate_replicate"
+        )
       }
-    }, error = function(e) { # nocov start
-      cli::cli_abort(
-        c("x" = "Replicate {g}: calibration failed -- {conditionMessage(e)}"),
-        class = "surveywts_error_jackknife_degenerate_replicate"
-      )
-    }) # nocov end
+    ) # nocov end
     w_g <- calib_result_g
   }
 
@@ -371,14 +392,23 @@
 # Returns: numeric vector of length n_nps -- replicate pseudo-weights.
 #   Entries for group-g NPS units are 0 (inserted by this function).
 .dagjk_single_replicate_calib <- function(
-  g, group_assign, nps_data, ref_data, ref_wt_col,
-  calib_entry, n_nps, n_ref, use_level_b, ref_design, wt_col
+  g,
+  group_assign,
+  nps_data,
+  ref_data,
+  ref_wt_col,
+  calib_entry,
+  n_nps,
+  n_ref,
+  use_level_b,
+  ref_design,
+  wt_col
 ) {
   # Indices into the group assignment vector (length combined_n = n_nps [+ n_ref])
   nps_in_g <- which(group_assign[seq_len(n_nps)] == g)
 
   nps_keep_idx <- setdiff(seq_len(n_nps), nps_in_g)
-  n_Ag         <- length(nps_in_g)
+  n_Ag <- length(nps_in_g)
 
   # nocov start
   # Defensive: replicates_ceiling_guard upstream ensures G <= n_nps,
@@ -395,20 +425,20 @@
   a_g <- n_nps / (n_nps - n_Ag)
 
   # Reduced NPS data with scaled current weights
-  nps_g      <- nps_data[nps_keep_idx, , drop = FALSE]
+  nps_g <- nps_data[nps_keep_idx, , drop = FALSE]
   nps_g[[wt_col]] <- nps_g[[wt_col]] * a_g
 
   # Build survey_nonprob from reduced NPS for dispatch function
   nps_g_obj <- surveycore::survey_nonprob(
-    data      = nps_g,
+    data = nps_g,
     variables = list(weights = wt_col),
-    metadata  = surveycore::survey_metadata()
+    metadata = surveycore::survey_metadata()
   )
 
   # Level B: form reduced reference data
   ref_data_b <- NULL
   if (use_level_b && !is.null(ref_data)) {
-    ref_in_g     <- which(
+    ref_in_g <- which(
       group_assign[(n_nps + 1L):(n_nps + n_ref)] == g
     )
     ref_keep_idx <- setdiff(seq_len(n_ref), ref_in_g)
@@ -417,7 +447,9 @@
     # at least one reference unit always survives group deletion.
     if (length(ref_keep_idx) == 0L) {
       cli::cli_abort(
-        c("x" = "Replicate {g}: no reference units remain after group deletion."),
+        c(
+          "x" = "Replicate {g}: no reference units remain after group deletion."
+        ),
         class = "surveywts_error_jackknife_degenerate_replicate"
       )
     }
@@ -428,13 +460,14 @@
   # Dispatch calibration replay
   calib_result_g <- tryCatch(
     .dispatch_calibration_replay(
-      data        = nps_g_obj,
+      data = nps_g_obj,
       calib_entry = calib_entry,
-      ref_design  = ref_design,
-      ref_data_b  = ref_data_b,
+      ref_design = ref_design,
+      ref_data_b = ref_data_b,
       use_level_b = use_level_b
     ),
-    error = function(e) { # nocov start
+    # nocov start
+    error = function(e) {
       cli::cli_abort(
         c("x" = "Replicate {g}: calibration failed -- {conditionMessage(e)}"),
         class = "surveywts_error_jackknife_degenerate_replicate"
@@ -451,7 +484,9 @@
   # This fires only if they return NA/non-finite/non-positive despite internal checks.
   if (any(is.na(w_g)) || any(!is.finite(w_g)) || any(w_g <= 0)) {
     cli::cli_abort(
-      c("x" = "Replicate {g}: degenerate calibration weights (NA, non-finite, or <= 0)."),
+      c(
+        "x" = "Replicate {g}: degenerate calibration weights (NA, non-finite, or <= 0)."
+      ),
       class = "surveywts_error_jackknife_degenerate_replicate"
     )
   }

@@ -127,16 +127,17 @@ adjust_nonresponse <- function(
   control = list(min_cell = 20, max_adjust = 2.0, n_cells = 5)
 ) {
   # ---- Capture call and match arguments -------------------------------------
-  call_str    <- paste0(deparse(match.call()), collapse = " ")
-  method      <- rlang::arg_match(method)
+  call_str <- paste0(deparse(match.call()), collapse = " ")
+  method <- rlang::arg_match(method)
   weights_quo <- rlang::enquo(weights)
-  rs_quo      <- rlang::enquo(response_status)
-  by_quo      <- rlang::enquo(by)
+  rs_quo <- rlang::enquo(response_status)
+  by_quo <- rlang::enquo(by)
   .validate_wt_name(wt_name)
 
   # Merge control with defaults (n_cells added for propensity-cell)
   control <- utils::modifyList(
-    list(min_cell = 20, max_adjust = 2.0, n_cells = 5), control
+    list(min_cell = 20, max_adjust = 2.0, n_cells = 5),
+    control
   )
 
   # ---- 1. Input class check -------------------------------------------------
@@ -344,28 +345,34 @@ adjust_nonresponse <- function(
 
     # Extract weights and compute before-stats
     weights_vec_pc <- plain_df[[weight_col]]
-    before_stats   <- .compute_weight_stats(weights_vec_pc)
+    before_stats <- .compute_weight_stats(weights_vec_pc)
 
     # Fit propensity model: build two-sided formula from response_status col
     prop_formula <- stats::as.formula(
       paste(status_var, "~", deparse(formula[[2]]))
     )
-    model  <- stats::glm(prop_formula, family = stats::binomial,
-                         data = plain_df, weights = weights_vec_pc)
+    model <- stats::glm(
+      prop_formula,
+      family = stats::binomial,
+      data = plain_df,
+      weights = weights_vec_pc
+    )
     scores <- stats::predict(model, type = "response")
 
     # Assign propensity cells via quantile-based cutpoints
-    cuts  <- stats::quantile(scores, probs = seq(0, 1, 1 / n_cells_pc))
+    cuts <- stats::quantile(scores, probs = seq(0, 1, 1 / n_cells_pc))
     cells <- findInterval(scores, cuts, rightmost.closed = TRUE)
 
     # Per-cell: validate, compute adjustment factor, warn if sparse/extreme
     new_weights_pc <- weights_vec_pc
     for (k in seq_len(n_cells_pc)) {
       cell_idx <- which(cells == k)
-      if (length(cell_idx) == 0L) next
+      if (length(cell_idx) == 0L) {
+        next
+      }
 
       resp_in_cell <- is_respondent[cell_idx]
-      n_resp_pc    <- sum(resp_in_cell)
+      n_resp_pc <- sum(resp_in_cell)
 
       if (n_resp_pc == 0L) {
         score_range <- range(scores[cells == k])
@@ -385,10 +392,10 @@ adjust_nonresponse <- function(
         )
       }
 
-      resp_idx_pc    <- cell_idx[resp_in_cell]
-      sum_all_pc     <- sum(weights_vec_pc[cell_idx])
-      sum_resp_pc    <- sum(weights_vec_pc[resp_idx_pc])
-      adj_factor_pc  <- sum_all_pc / sum_resp_pc
+      resp_idx_pc <- cell_idx[resp_in_cell]
+      sum_all_pc <- sum(weights_vec_pc[cell_idx])
+      sum_resp_pc <- sum(weights_vec_pc[resp_idx_pc])
+      adj_factor_pc <- sum_all_pc / sum_resp_pc
 
       if (n_resp_pc < control$min_cell || adj_factor_pc > control$max_adjust) {
         adj_factor_fmt <- sprintf("%.2f", adj_factor_pc)
@@ -416,39 +423,47 @@ adjust_nonresponse <- function(
     new_weights_pc[!is_respondent] <- 0
 
     # Build history entry
-    after_stats_pc  <- .compute_weight_stats(new_weights_pc[is_respondent])
+    after_stats_pc <- .compute_weight_stats(new_weights_pc[is_respondent])
     current_hist_pc <- .get_history(data)
 
     history_entry_pc <- .make_history_entry(
-      step        = length(current_hist_pc) + 1L,
-      operation   = "nonresponse_propensity_cell",
-      weight_col  = if (is.null(wt_name)) data@variables$weights else wt_name,
-      call_str    = call_str,
-      parameters  = list(
-        formula      = deparse(formula),
-        n_cells      = n_cells_pc,
+      step = length(current_hist_pc) + 1L,
+      operation = "nonresponse_propensity_cell",
+      weight_col = if (is.null(wt_name)) data@variables$weights else wt_name,
+      call_str = call_str,
+      parameters = list(
+        formula = deparse(formula),
+        n_cells = n_cells_pc,
         by_variables = NULL,
-        method       = method
+        method = method
       ),
       before_stats = before_stats,
-      after_stats  = after_stats_pc,
-      convergence  = NULL
+      after_stats = after_stats_pc,
+      convergence = NULL
     )
 
     # Return same class as input
     if (S7::S7_inherits(data, surveycore::survey_nonprob)) {
-      return(.update_survey_weights(data, new_weights_pc, history_entry_pc,
-                                    wt_name = wt_name))
+      return(.update_survey_weights(
+        data,
+        new_weights_pc,
+        history_entry_pc,
+        wt_name = wt_name
+      ))
     } else {
       resp_rows_pc <- which(is_respondent)
       filtered_design <- data
       filtered_design@data <- plain_df[resp_rows_pc, , drop = FALSE]
       return(
-        .update_survey_weights(filtered_design, new_weights_pc[resp_rows_pc],
-                               history_entry_pc, wt_name = wt_name)
+        .update_survey_weights(
+          filtered_design,
+          new_weights_pc[resp_rows_pc],
+          history_entry_pc,
+          wt_name = wt_name
+        )
       )
     }
-  }  # end propensity-cell branch
+  } # end propensity-cell branch
 
   # ---- 9. Propensity branch (continuous individual-level IPW) ---------------
   if (method == "propensity") {
@@ -514,7 +529,7 @@ adjust_nonresponse <- function(
     }
 
     # Fit response propensity model with GLM
-    weights_vec_p  <- plain_df[[weight_col]]
+    weights_vec_p <- plain_df[[weight_col]]
     prop_formula_p <- stats::as.formula(
       paste(status_var, "~", deparse(formula[[2]]))
     )
@@ -524,9 +539,9 @@ adjust_nonresponse <- function(
     fit_p <- withCallingHandlers(
       stats::glm(
         prop_formula_p,
-        data    = plain_df,
+        data = plain_df,
         weights = weights_vec_p,
-        family  = stats::binomial(link = "logit"),
+        family = stats::binomial(link = "logit"),
         control = stats::glm.control(maxit = 25L, epsilon = 1e-8)
       ),
       warning = function(w) {
@@ -604,14 +619,12 @@ adjust_nonresponse <- function(
     }
 
     # Compute adjusted weights: w_i / score_i for respondents; 0 for nonrespondents
-    new_weights_p <- ifelse(is_respondent,
-                            weights_vec_p / scores_p,
-                            0)
+    new_weights_p <- ifelse(is_respondent, weights_vec_p / scores_p, 0)
 
     # Extreme-adjustment check
     if (!is.null(control$max_adjust)) {
       resp_wts_p <- weights_vec_p[is_respondent]
-      adj_ratios  <- weights_vec_p[is_respondent] / scores_p[is_respondent]
+      adj_ratios <- weights_vec_p[is_respondent] / scores_p[is_respondent]
       if (length(resp_wts_p) > 0L && mean(resp_wts_p) > 0) {
         max_adj_ratio <- max(adj_ratios) / mean(resp_wts_p)
         if (max_adj_ratio > control$max_adjust) {
@@ -640,37 +653,45 @@ adjust_nonresponse <- function(
     }
 
     # Build history entry
-    after_stats_p  <- .compute_weight_stats(new_weights_p[is_respondent])
+    after_stats_p <- .compute_weight_stats(new_weights_p[is_respondent])
     current_hist_p <- .get_history(data)
 
     history_entry_p <- .make_history_entry(
-      step        = length(current_hist_p) + 1L,
-      operation   = "nonresponse_propensity",
-      weight_col  = if (is.null(wt_name)) data@variables$weights else wt_name,
-      call_str    = call_str,
-      parameters  = list(
+      step = length(current_hist_p) + 1L,
+      operation = "nonresponse_propensity",
+      weight_col = if (is.null(wt_name)) data@variables$weights else wt_name,
+      call_str = call_str,
+      parameters = list(
         formula = deparse(formula),
-        method  = "propensity"
+        method = "propensity"
       ),
       before_stats = before_stats_p,
-      after_stats  = after_stats_p,
-      convergence  = NULL
+      after_stats = after_stats_p,
+      convergence = NULL
     )
 
     # Return same class as input
     if (S7::S7_inherits(data, surveycore::survey_nonprob)) {
-      return(.update_survey_weights(data, new_weights_p, history_entry_p,
-                                    wt_name = wt_name))
+      return(.update_survey_weights(
+        data,
+        new_weights_p,
+        history_entry_p,
+        wt_name = wt_name
+      ))
     } else {
       resp_rows_p <- which(is_respondent)
-      filtered_p  <- data
+      filtered_p <- data
       filtered_p@data <- plain_df[resp_rows_p, , drop = FALSE]
       return(
-        .update_survey_weights(filtered_p, new_weights_p[resp_rows_p],
-                               history_entry_p, wt_name = wt_name)
+        .update_survey_weights(
+          filtered_p,
+          new_weights_p[resp_rows_p],
+          history_entry_p,
+          wt_name = wt_name
+        )
       )
     }
-  }  # end propensity branch
+  } # end propensity branch
 
   # ---- 10. Resolve by variable names via tidy-select (weighting-class) ------
   by_names <- if (rlang::quo_is_null(by_quo)) {
@@ -701,7 +722,7 @@ adjust_nonresponse <- function(
   }
 
   # ---- 10. Extract weights and compute before-stats ------------------------
-  weights_vec  <- plain_df[[weight_col]]
+  weights_vec <- plain_df[[weight_col]]
   before_stats <- .compute_weight_stats(weights_vec)
 
   # ---- 11. Build cell keys for redistribution ------------------------------
@@ -711,15 +732,14 @@ adjust_nonresponse <- function(
   } else {
     cell_keys <- do.call(
       paste,
-      c(lapply(by_names, function(v) as.character(plain_df[[v]])),
-        sep = "//")
+      c(lapply(by_names, function(v) as.character(plain_df[[v]])), sep = "//")
     )
   }
 
   # ---- 12. Check for empty respondent cells --------------------------------
   unique_cells <- unique(cell_keys)
   for (cell in unique_cells) {
-    cell_idx  <- which(cell_keys == cell)
+    cell_idx <- which(cell_keys == cell)
     n_resp_cell <- sum(is_respondent[cell_idx])
 
     if (n_resp_cell == 0L) {
@@ -745,12 +765,12 @@ adjust_nonresponse <- function(
   new_weights <- weights_vec
 
   for (cell in unique_cells) {
-    cell_idx       <- which(cell_keys == cell)
-    resp_idx       <- cell_idx[is_respondent[cell_idx]]
-    sum_all        <- sum(weights_vec[cell_idx])
-    sum_resp       <- sum(weights_vec[resp_idx])
-    adj_factor     <- sum_all / sum_resp
-    n_resp_cell    <- length(resp_idx)
+    cell_idx <- which(cell_keys == cell)
+    resp_idx <- cell_idx[is_respondent[cell_idx]]
+    sum_all <- sum(weights_vec[cell_idx])
+    sum_resp <- sum(weights_vec[resp_idx])
+    adj_factor <- sum_all / sum_resp
+    n_resp_cell <- length(resp_idx)
 
     # Warn if cell is sparse or adjustment is extreme
     cell_label <- if (cell == "__global__") "(global)" else cell
@@ -780,21 +800,21 @@ adjust_nonresponse <- function(
   new_weights[!is_respondent] <- 0
 
   # ---- 15. Build history entry ---------------------------------------------
-  after_stats     <- .compute_weight_stats(new_weights[is_respondent])
+  after_stats <- .compute_weight_stats(new_weights[is_respondent])
   current_history <- .get_history(data)
 
   history_entry <- .make_history_entry(
-    step        = length(current_history) + 1L,
-    operation   = "nonresponse_weighting_class",
-    weight_col  = if (is.null(wt_name)) data@variables$weights else wt_name,
-    call_str    = call_str,
-    parameters  = list(
+    step = length(current_history) + 1L,
+    operation = "nonresponse_weighting_class",
+    weight_col = if (is.null(wt_name)) data@variables$weights else wt_name,
+    call_str = call_str,
+    parameters = list(
       by_variables = by_names,
-      method       = method
+      method = method
     ),
     before_stats = before_stats,
-    after_stats  = after_stats,
-    convergence  = NULL  # non-iterative
+    after_stats = after_stats,
+    convergence = NULL # non-iterative
   )
 
   # ---- 16. Build output -----------------------------------------------------
@@ -808,7 +828,11 @@ adjust_nonresponse <- function(
     resp_rows <- which(is_respondent)
     filtered_design <- data
     filtered_design@data <- plain_df[resp_rows, , drop = FALSE]
-    .update_survey_weights(filtered_design, new_weights[resp_rows],
-                           history_entry, wt_name = wt_name)
+    .update_survey_weights(
+      filtered_design,
+      new_weights[resp_rows],
+      history_entry,
+      wt_name = wt_name
+    )
   }
 }

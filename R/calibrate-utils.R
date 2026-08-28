@@ -215,19 +215,19 @@
   n_iterations <- as.integer(engine_result$convergence$iterations)
 
   list(
-    x_matrix          = x_matrix,
-    base_weights      = base_weights,
-    g_weights         = g_weights,
-    crossproduct_inv  = crossproduct_inv,
+    x_matrix = x_matrix,
+    base_weights = base_weights,
+    g_weights = g_weights,
+    crossproduct_inv = crossproduct_inv,
     population_totals = population_totals,
-    discrepancy       = discrepancy,
-    lambda            = lambda,
-    method            = method,
-    cell_factors      = cell_factors,
-    q_weights         = q_weights,
-    converged         = converged,
-    n_iterations      = n_iterations,
-    bounds_scale      = bounds_scale
+    discrepancy = discrepancy,
+    lambda = lambda,
+    method = method,
+    cell_factors = cell_factors,
+    q_weights = q_weights,
+    converged = converged,
+    n_iterations = n_iterations,
+    bounds_scale = bounds_scale
   )
 }
 
@@ -558,7 +558,7 @@
     if (any(large_pos)) {
       L_sub <- if (length(L) > 1L) L[large_pos] else L
       U_sub <- if (length(U) > 1L) U[large_pos] else U
-      ena <- exp(-au[large_pos])  # exp(-au) underflows to 0 safely
+      ena <- exp(-au[large_pos]) # exp(-au) underflows to 0 safely
       f[large_pos] <- (L_sub * (U_sub - 1) * ena + U_sub * (1 - L_sub)) /
         ((U_sub - 1) * ena + (1 - L_sub))
     }
@@ -568,7 +568,7 @@
     if (any(normal)) {
       L_sub <- if (length(L) > 1L) L[normal] else L
       U_sub <- if (length(U) > 1L) U[normal] else U
-      ea <- exp(au[normal])   # exp of negative / small number: finite
+      ea <- exp(au[normal]) # exp of negative / small number: finite
       f[normal] <- (L_sub * (U_sub - 1) + U_sub * (1 - L_sub) * ea) /
         (U_sub - 1 + (1 - L_sub) * ea)
     }
@@ -726,9 +726,10 @@
     while (any(!is.finite(g_candidate)) && n_halvings < 20L) {
       step_size <- step_size / 2
       lambda_new <- lambda + step_size * delta_lambda
-      g_candidate <- 1 + calfun$Fm1(
-        q_weights * drop(x_matrix %*% lambda_new)
-      )
+      g_candidate <- 1 +
+        calfun$Fm1(
+          q_weights * drop(x_matrix %*% lambda_new)
+        )
       n_halvings <- n_halvings + 1L
     }
 
@@ -788,7 +789,9 @@
 #   targets_a      : Format A named list (named vectors, already in count form)
 #   variable_names : character vector of variable names
 .validate_count_marginal_consistency <- function(targets_a, variable_names) {
-  if (length(variable_names) < 2L) return(invisible(TRUE))
+  if (length(variable_names) < 2L) {
+    return(invisible(TRUE))
+  }
 
   sums <- vapply(variable_names, function(v) sum(targets_a[[v]]), numeric(1L))
   names(sums) <- variable_names
@@ -831,24 +834,24 @@
 # @keywords internal
 # @noRd
 .to_svyrep <- function(design) {
-  wt_col   <- design@variables$weights
+  wt_col <- design@variables$weights
   rep_cols <- design@variables$repweights
-  data_df  <- as.data.frame(design@data)
+  data_df <- as.data.frame(design@data)
 
   pweights <- data_df[[wt_col]]
-  repwts   <- as.matrix(data_df[, rep_cols, drop = FALSE])
+  repwts <- as.matrix(data_df[, rep_cols, drop = FALSE])
 
   # Build a svyrep.design object. Suppress the "combined weights" warning
   # that fires when mean(repweights) << mean(sampling weights).
   suppressWarnings(
     survey::svrepdesign(
-      data       = data_df,
+      data = data_df,
       repweights = repwts,
-      weights    = pweights,
-      type       = design@variables$type %||% "bootstrap",
-      scale      = design@variables$scale,
-      rscales    = design@variables$rscales,
-      mse        = isTRUE(design@variables$mse)
+      weights = pweights,
+      type = design@variables$type %||% "bootstrap",
+      scale = design@variables$scale,
+      rscales = design@variables$rscales,
+      mse = isTRUE(design@variables$mse)
     )
   )
 }
@@ -865,10 +868,10 @@
 .method_to_calfun <- function(method) {
   switch(
     method,
-    "rake"   = survey::cal.raking,
+    "rake" = survey::cal.raking,
     "linear" = survey::cal.linear,
-    "logit"  = survey::cal.logit,
-    survey::cal.raking  # default
+    "logit" = survey::cal.logit,
+    survey::cal.raking # default
   )
 }
 
@@ -929,7 +932,7 @@
     # Build named list of target vectors (proportions for anesrake)
     targets_list <- lapply(vars_spec, function(v) {
       tgt <- v$targets
-      tgt / sum(tgt)  # anesrake expects proportions
+      tgt / sum(tgt) # anesrake expects proportions
     })
     names(targets_list) <- var_names
 
@@ -952,45 +955,48 @@
     result <- tryCatch(
       suppressWarnings(
         .rake_anesrake(
-          inputter     = targets_list,
-          dataframe    = data_df,
-          caseid       = data_df$.anesrake_id,
-          weightvec    = weights_vec,
+          inputter = targets_list,
+          dataframe = data_df,
+          caseid = data_df$.anesrake_id,
+          weightvec = weights_vec,
           choosemethod = control$variable_select,
-          cap          = anesrake_cap,
-          pctlim       = control$improvement,
-          iterate      = TRUE,
-          maxit        = as.integer(control$maxit)
+          cap = anesrake_cap,
+          pctlim = control$improvement,
+          iterate = TRUE,
+          maxit = as.integer(control$maxit)
         )
       ),
-        error = function(e) {
-          if (grepl("No variables are off", conditionMessage(e),
-                    ignore.case = TRUE)) {
-            anesrake_error <<- "already_calibrated"
-            NULL
-          } else {
-            stop(e) # nocov
-          }
+      error = function(e) {
+        if (
+          grepl("No variables are off", conditionMessage(e), ignore.case = TRUE)
+        ) {
+          anesrake_error <<- "already_calibrated"
+          NULL
+        } else {
+          stop(e) # nocov
         }
-      )
+      }
+    )
 
     # Already-calibrated: engine threw an error because no variables
     # exceeded the improvement threshold
     if (identical(anesrake_error, "already_calibrated")) {
       cli::cli_inform(
-        c("i" = paste0(
-          "Raking converged in 1 sweep: all variables already met their ",
-          "margins. Weights were not adjusted."
-        )),
+        c(
+          "i" = paste0(
+            "Raking converged in 1 sweep: all variables already met their ",
+            "margins. Weights were not adjusted."
+          )
+        ),
         class = "surveywts_message_already_calibrated"
       )
       return(list(
         weights = weights_vec,
         convergence = list(
-          converged  = TRUE,
+          converged = TRUE,
           iterations = 1L,
-          max_error  = 0,
-          tolerance  = control$improvement
+          max_error = 0,
+          tolerance = control$improvement
         ),
         capping = NULL
       ))
@@ -1003,7 +1009,8 @@
     #   Other strings (e.g. containing "Did Not Converge") — failure
     converged <- grepl(
       "Complete convergence|Results are stable",
-      result$converge, ignore.case = TRUE
+      result$converge,
+      ignore.case = TRUE
     )
 
     if (!converged) {
@@ -1031,10 +1038,12 @@
     # cannot be reached via the public API.
     if (result$iterations == 0L) {
       cli::cli_inform(
-        c("i" = paste0(
-          "Raking converged in 1 sweep: all variables already met their ",
-          "margins. Weights were not adjusted."
-        )),
+        c(
+          "i" = paste0(
+            "Raking converged in 1 sweep: all variables already met their ",
+            "margins. Weights were not adjusted."
+          )
+        ),
         class = "surveywts_message_already_calibrated"
       )
     }
@@ -1048,11 +1057,11 @@
       NULL
     } else {
       list(
-        applied        = any(precap > internal_cap),
-        cap_threshold  = internal_cap,
-        n_capped       = sum(precap > internal_cap),
-        max_precap     = max(precap),
-        mean_excess    = if (any(precap > internal_cap)) {
+        applied = any(precap > internal_cap),
+        cap_threshold = internal_cap,
+        n_capped = sum(precap > internal_cap),
+        max_precap = max(precap),
+        mean_excess = if (any(precap > internal_cap)) {
           mean(precap[precap > internal_cap] - internal_cap)
         } else {
           NA_real_
@@ -1064,10 +1073,10 @@
     return(list(
       weights = new_weights,
       convergence = list(
-        converged  = converged,
+        converged = converged,
         iterations = as.integer(result$iterations),
-        max_error  = 0,
-        tolerance  = control$improvement
+        max_error = 0,
+        tolerance = control$improvement
       ),
       capping = capping_result
     ))

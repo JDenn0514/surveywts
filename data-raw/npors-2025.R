@@ -108,12 +108,24 @@ stopifnot(is.factor(npors_2025$pid_f3))
 stopifnot(is.numeric(npors_2025$wt_pop))
 
 # Add "label" attributes to derived columns
-attr(npors_2025$sex, "label")    <- "Sex (factor, derived from gender: 1=Male, 2=Female)"
+attr(
+  npors_2025$sex,
+  "label"
+) <- "Sex (factor, derived from gender: 1=Male, 2=Female)"
 attr(npors_2025$age_f3, "label") <- "Age group (3 levels: 18-34, 35-54, 55+)"
-attr(npors_2025$race_f4, "label") <- "Race/ethnicity (4 levels: White, Black, Hispanic, Other)"
+attr(
+  npors_2025$race_f4,
+  "label"
+) <- "Race/ethnicity (4 levels: White, Black, Hispanic, Other)"
 attr(npors_2025$edu_f3, "label") <- "Educational attainment (3 levels)"
-attr(npors_2025$pid_f3, "label") <- "Party identification (3 levels: Republican, Independent, Democrat)"
-attr(npors_2025$wt_pop, "label") <- "Population-scaled weight: weight * (260000000 / nrow(npors_2025))"
+attr(
+  npors_2025$pid_f3,
+  "label"
+) <- "Party identification (3 levels: Republican, Independent, Democrat)"
+attr(
+  npors_2025$wt_pop,
+  "label"
+) <- "Population-scaled weight: weight * (260000000 / nrow(npors_2025))"
 
 npors_2025 <- tibble::as_tibble(npors_2025)
 

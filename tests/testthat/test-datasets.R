@@ -85,13 +85,19 @@ test_that("gss_2024 age_f3 is factor with correct levels", {
 test_that("gss_2024 race_f4 is factor with correct levels", {
   data(gss_2024)
   expect_true(is.factor(gss_2024$race_f4))
-  expect_identical(levels(gss_2024$race_f4), c("White", "Black", "Hispanic", "Other"))
+  expect_identical(
+    levels(gss_2024$race_f4),
+    c("White", "Black", "Hispanic", "Other")
+  )
 })
 
 test_that("gss_2024 pid_f3 is factor with correct levels", {
   data(gss_2024)
   expect_true(is.factor(gss_2024$pid_f3))
-  expect_identical(levels(gss_2024$pid_f3), c("Republican", "Independent", "Democrat"))
+  expect_identical(
+    levels(gss_2024$pid_f3),
+    c("Republican", "Independent", "Democrat")
+  )
 })
 
 test_that("gss_2024 edu_f3 is factor with correct levels", {
@@ -230,14 +236,14 @@ test_that("cps_2023 can be used as survey_replicate reference in ipw()", {
   data(cps_2023)
   cps_ref <- surveycore::as_survey_replicate(
     cps_2023,
-    weights    = "wtfinl",
+    weights = "wtfinl",
     repweights = paste0("repwtp", 1:160),
-    type       = "successive-difference",
-    scale      = 4 / 160,
-    rscales    = rep(1, 160)
+    type = "successive-difference",
+    scale = 4 / 160,
+    rscales = rep(1, 160)
   )
   result <- suppressWarnings(
-    ipw(ns_wave1, cps_ref, selection = ~sex + age_f3 + race_f4)
+    ipw(ns_wave1, cps_ref, selection = ~ sex + age_f3 + race_f4)
   )
   test_invariants(result)
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
@@ -376,7 +382,7 @@ test_that("ipw() works with ns_wave1 and gss_2024 (wt_pop) reference", {
     nest = TRUE
   )
   result <- suppressWarnings(
-    ipw(ns_wave1, gss_ref, selection = ~sex + age_f3)
+    ipw(ns_wave1, gss_ref, selection = ~ sex + age_f3)
   )
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
   expect_true("ipw_weight" %in% names(result@data))
@@ -390,7 +396,7 @@ test_that("ipw() works with ns_wave1 and npors_2025_clean (wt_pop) reference", {
     ipw(
       ns_wave1,
       npors_ref,
-      selection = ~sex + age_f3 + race_f4 + edu_f3,
+      selection = ~ sex + age_f3 + race_f4 + edu_f3,
       missing_method = "omit"
     )
   )
@@ -406,7 +412,7 @@ test_that("ipw() works with ns_wave1 and cps_2023 (Taylor design) reference", {
     ipw(
       ns_wave1,
       cps_ref,
-      selection = ~sex + age_f3 + race_f4 + edu_f3,
+      selection = ~ sex + age_f3 + race_f4 + edu_f3,
       missing_method = "omit"
     )
   )

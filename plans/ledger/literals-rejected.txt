@@ -1,0 +1,6 @@
+# Recorded by an inventory agent, absent from the untouched
+# tree even after whitespace normalisation. Almost always a
+# normalised call - .get_history() for .get_history(data) - or
+# a paraphrase. Review; correct and promote any that is real.
+
+{.code}	before-code-style.tsv

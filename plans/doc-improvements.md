@@ -31,8 +31,8 @@ audit's recommendations conflict with:
 1. No `set.seed()` in `adjust_nonresponse()` / `redistribute_weights()`
    examples — "following svrep convention."
 2. `create_replicate_weights()` `@details` and `@references` deliberately
-   deferred, pending a `comprehension-replicate-methods.md` plan that was
-   never written.
+   deferred, pending a `comprehension-replicate-methods.md` plan. That plan
+   is now written (2026-08-28), so this deferral is cleared — see Section H.
 
 Where this revision below marks something as still open, it distinguishes
 **oversights** (nobody decided this — just do it) from these **deliberate
@@ -469,12 +469,21 @@ changing), or removed if resolved.
       confirmed still just a bare type annotation ("`logical(1)`, default
       `TRUE`") with no behavioral description, unlike `create_jackknife_weights()`
       and `create_bootstrap_weights()` which explain it fully
-- [ ] **[decided 2026-08-28]** `create_replicate_weights()`: still no
-      `@details` section (Tier 4 dispatcher requirement). Decision: write
-      `plans/comprehension-replicate-methods.md` first, from the 14 sources
-      mapped in `.claude/reference-map.yaml` (13 of 14 papers are in the
-      knowledge base). That doc also feeds Section C's replicate-family
-      table. This item stays open until the comprehension plan lands.
+- [ ] **[unblocked 2026-08-28]** `create_replicate_weights()`: still no
+      `@details` section (Tier 4 dispatcher requirement). The prerequisite
+      comprehension plan is **complete** —
+      `plans/comprehension-replicate-methods.md` verifies all 14 sources and
+      carries a draft `@details` block ready to adapt. This item stays open
+      only for the roxygen edit itself. Three findings from that doc change
+      what to write:
+      - The dispatcher accepts **six** `method` strings, not seven.
+        `create_group_jackknife_weights()` does not exist; delete-a-group
+        jackknife is `create_jackknife_weights(type = "grouped")`.
+      - **Four citations need correction before `@references` is written.**
+        Read that doc's "Citation verification" section first. The
+        Chrostowski entry names two co-authors who did not write the paper.
+      - `tau` belongs to `create_gen_boot_weights()` only. BRR uses `rho`,
+        a different quantity, and its default `rho = 0` deserves a warning.
 - [x] ~~`ipw()` `estimating_eq` param: never states default~~ — **resolved**,
       already documents "`"gee"` (the default) or `"mle"`"
 - [ ] **[open]** `adjust_nonresponse()` / `redistribute_weights()` `@returns`:
@@ -596,4 +605,4 @@ complements to that release, not replacements for it:
 | `plans/doc-examples-overhaul.md` | Section A: per-function examples checklist | Not started |
 | `plans/doc-getting-started.md` | Section B + D: conceptual article + glossary | Not started |
 | `plans/doc-method-choice-guidance.md` | Section C: when-to-use content per family | Not started |
-| `plans/comprehension-replicate-methods.md` | Prerequisite for `create_replicate_weights()` `@details`/`@references` (Section C/H) | Approved 2026-08-28 — write next; sources mapped in `.claude/reference-map.yaml` |
+| `plans/comprehension-replicate-methods.md` | Prerequisite for `create_replicate_weights()` `@details`/`@references` (Section C/H) | **Complete 2026-08-28.** All 14 sources verified; 4 citations need correction; carries a draft `@details` block and the Section C method-choice table |

@@ -107,15 +107,18 @@ Concrete manifestations:
   emits a warning, which will surprise every user
 - `ipw()`: six examples, none showing a subsequent estimation call
 - `adjust_nonresponse()` and `redistribute_weights()`: `sample()` without
-  `set.seed()` — results differ on every run (**deliberate decision from Phase
-  2** — see History section; decide policy before "fixing")
+  `set.seed()` — results differ on every run (**decided 2026-08-28: keep the
+  no-seed svrep convention**; these two functions are exempt from standard
+  item 3 below)
 
 ### Standard to apply
 
 Every function's examples should:
 1. Assign the result: `result <- fn(...)`
 2. Include at least one downstream step showing what to do with the output
-3. Use `set.seed()` before any random call
+3. Use `set.seed()` before any random call. Exception (decided 2026-08-28):
+   `adjust_nonresponse()` and `redistribute_weights()` keep the no-seed svrep
+   convention.
 4. For diagnostic functions: include a commented expected value, e.g.,
    `#> n_eff: 1456`
 5. For functions with notable warnings: show the warning in a comment so users
@@ -271,7 +274,8 @@ explain when to choose one over another.
   required `@details` section comparing methods. `calibrate()` already has a
   method-overview `@details` block (Phase 1); `create_replicate_weights()`
   still has none — this was deliberately deferred pending a comprehension
-  plan for the replicate methods (see History), not an oversight
+  plan for the replicate methods (see History), not an oversight. Decided
+  2026-08-28: write that plan (see Plans to Write)
 - **Individual functions**: two-sentence "When to use this" note in `@description`
 - **Getting Started article** (Section B): comparative table for each family
 
@@ -433,10 +437,10 @@ changing), or removed if resolved.
 
 ### Reproducibility
 
-- [ ] **[decide]** `adjust_nonresponse()` / `redistribute_weights()` examples
-      still use `sample()` with no `set.seed()`. This was a deliberate Phase 2
-      choice ("following svrep convention"). Decide whether to keep that
-      convention or add `set.seed()` per the newer standard in Section A.
+- [x] **[decided 2026-08-28]** Keep the no-seed svrep convention in the
+      `adjust_nonresponse()` / `redistribute_weights()` examples. Make no
+      change to those examples. Section A's `set.seed()` standard now carries
+      an exception for these two functions.
 
 ### Factual errors
 
@@ -465,11 +469,12 @@ changing), or removed if resolved.
       confirmed still just a bare type annotation ("`logical(1)`, default
       `TRUE`") with no behavioral description, unlike `create_jackknife_weights()`
       and `create_bootstrap_weights()` which explain it fully
-- [ ] **[deferred, not forgotten]** `create_replicate_weights()`: still no
-      `@details` section (Tier 4 dispatcher requirement). This was
-      deliberately deferred in Phase 1 pending a replicate-methods
-      comprehension plan that was never written — write that plan first, or
-      decide to proceed without full citation verification
+- [ ] **[decided 2026-08-28]** `create_replicate_weights()`: still no
+      `@details` section (Tier 4 dispatcher requirement). Decision: write
+      `plans/comprehension-replicate-methods.md` first, from the 14 sources
+      mapped in `.claude/reference-map.yaml` (13 of 14 papers are in the
+      knowledge base). That doc also feeds Section C's replicate-family
+      table. This item stays open until the comprehension plan lands.
 - [x] ~~`ipw()` `estimating_eq` param: never states default~~ — **resolved**,
       already documents "`"gee"` (the default) or `"mle"`"
 - [ ] **[open]** `adjust_nonresponse()` / `redistribute_weights()` `@returns`:
@@ -572,8 +577,8 @@ complements to that release, not replacements for it:
 
 **Suggested sequencing:**
 1. Section H (quick wins) — no design needed; knock these out opportunistically.
-   Resolve the **[decide]** items first (set.seed convention,
-   `create_replicate_weights()` comprehension plan) so they don't block the rest.
+   The two **[decide]** items were resolved on 2026-08-28: keep the no-seed
+   convention; write the comprehension plan. They no longer block the rest.
 2. Section F (row-retention re-verification, `n_positive`/`n_zero`) — bounded,
    standalone
 3. Section G (package-level docs) — standalone, fast
@@ -591,4 +596,4 @@ complements to that release, not replacements for it:
 | `plans/doc-examples-overhaul.md` | Section A: per-function examples checklist | Not started |
 | `plans/doc-getting-started.md` | Section B + D: conceptual article + glossary | Not started |
 | `plans/doc-method-choice-guidance.md` | Section C: when-to-use content per family | Not started |
-| `plans/comprehension-replicate-methods.md` | Prerequisite for `create_replicate_weights()` `@details`/`@references` (Section C/H) | Not started — blocking a Phase 1 deferral |
+| `plans/comprehension-replicate-methods.md` | Prerequisite for `create_replicate_weights()` `@details`/`@references` (Section C/H) | Approved 2026-08-28 — write next; sources mapped in `.claude/reference-map.yaml` |

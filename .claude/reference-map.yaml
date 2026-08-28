@@ -91,7 +91,7 @@ ipw:
     file: ../analysis-sops/knowledge/raw/gray-literature/lenau_2021_sampling_inference_nonprobability.md
   - citation: "Valliant, R. and Dever, J.A. (2011). Estimating propensity adjustments for volunteer web surveys. Sociological Methods & Research 40(1), 105-137."
     file: ../analysis-sops/knowledge/raw/papers/valliant_dever_2011_propensity_web_surveys.md
-  - citation: "Valliant, R. (2020). Comparing alternatives for estimation from nonprobability samples. Survey Methods: Insights from the Field 16(1)."
+  - citation: "Valliant, R. (2020). Comparing alternatives for estimation from nonprobability samples. Journal of Survey Statistics and Methodology 8, 231-263."
     file: ../analysis-sops/knowledge/raw/papers/valliant_2020_comparing_alternatives_nonprobability.md
   - citation: "Yang, S., Kim, J.K. and Song, R. (2020). Doubly robust inference when combining probability and non-probability samples with high dimensional data. Journal of the Royal Statistical Society: Series B 82(2), 445-465."
     file: ../analysis-sops/knowledge/raw/papers/yang_2020_doubly_robust_inference.md
@@ -103,15 +103,15 @@ create_replicate_weights:
     file: ../analysis-sops/knowledge/raw/papers/elliott_valliant_2017_inference_nonprobability.md
   - citation: "Wu, C. (2022). Statistical inference with non-probability survey samples. Survey Methodology 48(2), 283-311."
     file: ../analysis-sops/knowledge/raw/papers/wu_2022_inference_nonprobability_samples.md
-  - citation: "Chrostowski, M.J., Guzman, C.A. and Malm, L. (2025). Variance estimation for non-probability surveys. Journal of Survey Statistics and Methodology (forthcoming)."
+  - citation: "Chrostowski, L., Chlebicki, P. and Beresewicz, M. nonprobsvy - An R package for modern methods for non-probability surveys."  # year and venue not stated in the knowledge-base copy; confirm before publishing
     file: ../analysis-sops/knowledge/raw/papers/chrostowski_2025_nonprobsvy.md
-  - citation: "Kolenikov, S. (2014). Calibrating variance estimation with proxy variables. Survey Methodology 40(1), 21-38."
+  - citation: "Kolenikov, S. (2014). Calibrating survey data using iterative proportional fitting (raking). The Stata Journal, 14(1), 22-59."
     file: ../analysis-sops/knowledge/raw/papers/kolenikov_2014_raking.md
-  - citation: "Fay, R.E. (1984). Some properties of estimates of variance based on replication methods. Proceedings of the American Statistical Association, 495-500."
+  - citation: "Fay, R.E. (1984). Some properties of estimates of variance based on replication methods. Proceedings of the Section on Survey Research Methods, American Statistical Association, 495-500."
     file: ../analysis-sops/knowledge/raw/papers/fay_1984_replication_variance_properties.md
-  - citation: "Fay, R.E. (1989). Theory and application of replicate weighting for variance calculations. Proceedings of the American Statistical Association, 495-500."
+  - citation: "Fay, R.E. (1989). Theory and application of replicate weighting for variance calculations. Proceedings of the Section on Survey Research Methods, American Statistical Association."  # page range unconfirmed; the previous 495-500 belongs to Fay (1984), not this paper
     file: ../analysis-sops/knowledge/raw/papers/fay_1989_replicate_weighting.md
-  - citation: "Dippo, C., Fay, R.E. and Morganstein, D. (1984). Computing variances from complex samples with replicate weights. Proceedings of the American Statistical Association, 489-494."
+  - citation: "Dippo, C., Fay, R.E. and Morganstein, D. (1984). Computing variances from complex samples with replicate weights. Proceedings of the Section on Survey Research Methods, American Statistical Association, 489-494."
     file: ../analysis-sops/knowledge/raw/papers/dippo_fay_morganstein_1984_replicate_weights.md
   - citation: "Ash, S. (2014). Using successive difference replication for estimating variances. Survey Methodology, Statistics Canada, 40(1), 47-59."
     file: ../analysis-sops/knowledge/raw/gray-literature/ash_2014_successive_difference_replication.md
@@ -119,7 +119,7 @@ create_replicate_weights:
     file: ../analysis-sops/knowledge/raw/gray-literature/fay_train_1995_postcensal_income_poverty.md
   - citation: "Beaumont, J.-F. and Patak, Z. (2012). On the generalized bootstrap for sample surveys with special attention to Poisson sampling. International Statistical Review, 80(1), 127-148."
     file: ../analysis-sops/knowledge/raw/papers/beaumont_patak_2012_generalized_bootstrap.md
-  - citation: "Bellhouse, D.R. (1985). Computing methods for variance estimation in complex surveys. Journal of Official Statistics, 1(3)."
+  - citation: "Bellhouse, D.R. (1985). Computing methods for variance estimation in complex surveys. Journal of Official Statistics, 1(3), 323-329."
     file: ../analysis-sops/knowledge/raw/papers/bellhouse_1985_variance_estimation_computing.md
   - citation: "Valliant, R., Dever, J., Kreuter, F. (2018). Practical Tools for Designing and Weighting Survey Samples, 2nd edition. New York: Springer. Section 15.5."
     file: ../analysis-sops/knowledge/raw/books/valliant_dever_kreuter_2018/valliant_dever_kreuter_2018_ch15_variance_estimation.md
@@ -133,9 +133,9 @@ create_bootstrap_weights:
     file: ../analysis-sops/knowledge/raw/papers/elliott_valliant_2017_inference_nonprobability.md
   - citation: "Wu, C. (2022). Statistical inference with non-probability survey samples. Survey Methodology 48(2), 283-311."
     file: ../analysis-sops/knowledge/raw/papers/wu_2022_inference_nonprobability_samples.md
-  - citation: "Chrostowski, M.J., Guzman, C.A. and Malm, L. (2025). Variance estimation for non-probability surveys. Journal of Survey Statistics and Methodology (forthcoming)."
+  - citation: "Chrostowski, L., Chlebicki, P. and Beresewicz, M. nonprobsvy - An R package for modern methods for non-probability surveys."  # year and venue not stated in the knowledge-base copy; confirm before publishing
     file: ../analysis-sops/knowledge/raw/papers/chrostowski_2025_nonprobsvy.md
-  - citation: "Kolenikov, S. (2014). Calibrating variance estimation with proxy variables. Survey Methodology 40(1), 21-38."
+  - citation: "Kolenikov, S. (2014). Calibrating survey data using iterative proportional fitting (raking). The Stata Journal, 14(1), 22-59."
     file: ../analysis-sops/knowledge/raw/papers/kolenikov_2014_raking.md
 
 create_jackknife_weights:
@@ -145,13 +145,22 @@ create_jackknife_weights:
     file: ../analysis-sops/knowledge/raw/papers/valliant_brick_dever_2008_grouped_jackknife.md
   - citation: "Wolter, K. (2007). Introduction to Variance Estimation. New York: Springer."
     file: ~
+  # The three below back type = "grouped" (delete-a-group jackknife) on a
+  # survey_nonprob input. They were filed under a create_group_jackknife_weights
+  # key until 2026-08-28; that function no longer exists.
+  - citation: "Elliott, M.R. and Valliant, R. (2017). Inference for nonprobability samples. Statistical Science 32(2), 249-264."
+    file: ../analysis-sops/knowledge/raw/papers/elliott_valliant_2017_inference_nonprobability.md
+  - citation: "Valliant, R. (2020). Comparing alternatives for estimation from nonprobability samples. Journal of Survey Statistics and Methodology 8, 231-263."
+    file: ../analysis-sops/knowledge/raw/papers/valliant_2020_comparing_alternatives_nonprobability.md
+  - citation: "Valliant, R. (2009). Model-based prediction of finite population totals. In Pfeffermann, D. and Rao, C.R. (Eds.), Handbook of Statistics, Sample Surveys: Inference and Analysis (Vol. 29B). Elsevier."
+    file: ../analysis-sops/knowledge/raw/papers/valliant_2009_model_based_prediction_totals.md  # editors not named in the knowledge-base copy
 
 create_brr_weights:
-  - citation: "Fay, R.E. (1984). Some properties of estimates of variance based on replication methods. Proceedings of the American Statistical Association, 495-500."
+  - citation: "Fay, R.E. (1984). Some properties of estimates of variance based on replication methods. Proceedings of the Section on Survey Research Methods, American Statistical Association, 495-500."
     file: ../analysis-sops/knowledge/raw/papers/fay_1984_replication_variance_properties.md
-  - citation: "Fay, R.E. (1989). Theory and application of replicate weighting for variance calculations. Proceedings of the American Statistical Association, 495-500."
+  - citation: "Fay, R.E. (1989). Theory and application of replicate weighting for variance calculations. Proceedings of the Section on Survey Research Methods, American Statistical Association."  # page range unconfirmed; the previous 495-500 belongs to Fay (1984), not this paper
     file: ../analysis-sops/knowledge/raw/papers/fay_1989_replicate_weighting.md
-  - citation: "Dippo, C., Fay, R.E. and Morganstein, D. (1984). Computing variances from complex samples with replicate weights. Proceedings of the American Statistical Association, 489-494."
+  - citation: "Dippo, C., Fay, R.E. and Morganstein, D. (1984). Computing variances from complex samples with replicate weights. Proceedings of the Section on Survey Research Methods, American Statistical Association, 489-494."
     file: ../analysis-sops/knowledge/raw/papers/dippo_fay_morganstein_1984_replicate_weights.md
 
 create_sdr_weights:
@@ -163,25 +172,17 @@ create_sdr_weights:
 create_gen_boot_weights:
   - citation: "Beaumont, J.-F. and Patak, Z. (2012). On the generalized bootstrap for sample surveys with special attention to Poisson sampling. International Statistical Review, 80(1), 127-148."
     file: ../analysis-sops/knowledge/raw/papers/beaumont_patak_2012_generalized_bootstrap.md
-  - citation: "Fay, R.E. (1984). Some properties of estimates of variance based on replication methods. Proceedings of the American Statistical Association, 495-500."
+  - citation: "Fay, R.E. (1984). Some properties of estimates of variance based on replication methods. Proceedings of the Section on Survey Research Methods, American Statistical Association, 495-500."
     file: ../analysis-sops/knowledge/raw/papers/fay_1984_replication_variance_properties.md
-  - citation: "Dippo, C., Fay, R.E. and Morganstein, D. (1984). Computing variances from complex samples with replicate weights. Proceedings of the American Statistical Association, 489-494."
+  - citation: "Dippo, C., Fay, R.E. and Morganstein, D. (1984). Computing variances from complex samples with replicate weights. Proceedings of the Section on Survey Research Methods, American Statistical Association, 489-494."
     file: ../analysis-sops/knowledge/raw/papers/dippo_fay_morganstein_1984_replicate_weights.md
-  - citation: "Bellhouse, D.R. (1985). Computing methods for variance estimation in complex surveys. Journal of Official Statistics, 1(3)."
+  - citation: "Bellhouse, D.R. (1985). Computing methods for variance estimation in complex surveys. Journal of Official Statistics, 1(3), 323-329."
     file: ../analysis-sops/knowledge/raw/papers/bellhouse_1985_variance_estimation_computing.md
 
 create_gen_rep_weights:
-  - citation: "Fay, R.E. (1984). Some properties of estimates of variance based on replication methods. Proceedings of the American Statistical Association, 495-500."
+  - citation: "Fay, R.E. (1984). Some properties of estimates of variance based on replication methods. Proceedings of the Section on Survey Research Methods, American Statistical Association, 495-500."
     file: ../analysis-sops/knowledge/raw/papers/fay_1984_replication_variance_properties.md
-  - citation: "Fay, R.E. (1989). Theory and application of replicate weighting for variance calculations. Proceedings of the American Statistical Association, 495-500."
+  - citation: "Fay, R.E. (1989). Theory and application of replicate weighting for variance calculations. Proceedings of the Section on Survey Research Methods, American Statistical Association."  # page range unconfirmed; the previous 495-500 belongs to Fay (1984), not this paper
     file: ../analysis-sops/knowledge/raw/papers/fay_1989_replicate_weighting.md
-  - citation: "Dippo, C., Fay, R.E. and Morganstein, D. (1984). Computing variances from complex samples with replicate weights. Proceedings of the American Statistical Association, 489-494."
+  - citation: "Dippo, C., Fay, R.E. and Morganstein, D. (1984). Computing variances from complex samples with replicate weights. Proceedings of the Section on Survey Research Methods, American Statistical Association, 489-494."
     file: ../analysis-sops/knowledge/raw/papers/dippo_fay_morganstein_1984_replicate_weights.md
-
-create_group_jackknife_weights:
-  - citation: "Elliott, M.R. and Valliant, R. (2017). Inference for nonprobability samples. Statistical Science 32(2), 249-264."
-    file: ../analysis-sops/knowledge/raw/papers/elliott_valliant_2017_inference_nonprobability.md
-  - citation: "Valliant, R. (2020). Comparing alternatives for estimation from nonprobability samples. Journal of Survey Statistics and Methodology 8, 231-263."
-    file: ../analysis-sops/knowledge/raw/papers/valliant_2020_comparing_alternatives_nonprobability.md
-  - citation: "Valliant, R. (2009). Model-based prediction of finite population totals. In Pfeffermann, D. and Rao, C.R. (Eds.), Handbook of Statistics, Sample Surveys: Inference and Analysis (Vol. 29B). Elsevier."
-    file: ../analysis-sops/knowledge/raw/papers/valliant_2009_model_based_prediction_totals.md

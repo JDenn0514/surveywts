@@ -23,8 +23,14 @@ Sources come from `.claude/reference-map.yaml`. That file maps 14 citations to
 Wolter (2007) is not. See "Unverified sources".
 
 **Read "Citation verification" before you copy any citation into
-`@references`.** Two of the 14 citations are wrong enough to mislead a reader,
-and one names co-authors who did not write the paper.
+`@references`.** Two of the 14 citations were wrong enough to mislead a reader,
+and one named co-authors who did not write the paper.
+
+**Applied 2026-08-28.** The corrections below are now in
+`.claude/reference-map.yaml`, so that file is the corrected source. This
+section stays as the record of what was checked, and of what remains
+unconfirmed — Fay (1989)'s page range and the Chrostowski year and venue still
+need a printed copy to settle.
 
 ---
 
@@ -1057,16 +1063,16 @@ Things the papers cannot tell a doc author, and the code can.
 
 1. **`create_group_jackknife_weights()` does not exist.** Use
    `create_jackknife_weights(type = "grouped")`.
-2. **`plans/error-messages.md` is stale on this family.** Nine classes are
-   attributed to the non-existent function: lines 141, 162-168, and 194-197.
-   Every class is real; the thrower is `create_jackknife_weights()`, directly or
-   through `jackknife-dagjk-utils.R`.
-3. **Two error classes in that plan do not exist in `R/` at all** —
-   `surveywts_error_replicates_required_for_jkn` and
-   `surveywts_error_jackknife_type_unsupported_for_nonprob`
-   (`plans/error-messages.md:130-131`). Both refer to a
-   `type = "random-groups"` value that is not a current accepted value; the
-   current values are `"jkn"`, `"jk1"`, and `"grouped"`.
+2. **`plans/error-messages.md` was stale on this family — fixed 2026-08-28.**
+   12 live rows named the non-existent function (8 errors, 4 warnings). Every
+   class is real; the thrower is `create_jackknife_weights()`, directly or
+   through `jackknife-dagjk-utils.R`. The struck-through RETIRED rows keep the
+   old name on purpose, as a record of what was true when they were retired.
+3. **Two error classes in that plan existed nowhere in `R/` — removed
+   2026-08-28.** They were `surveywts_error_replicates_required_for_jkn` and
+   `surveywts_error_jackknife_type_unsupported_for_nonprob`, both keyed to a
+   `type = "random-groups"` value that is not an accepted value. The accepted
+   values are `"jkn"`, `"jk1"`, and `"grouped"`.
 4. **`tau = "auto"` is documented but unimplemented in surveywts.**
 5. **Six of the 12 `variance_estimator` options have no support in the mapped
    papers** — `"Ultimate Cluster"`, `"Deville-1"`, `"Deville-2"`,
@@ -1077,7 +1083,10 @@ Things the papers cannot tell a doc author, and the code can.
 8. **No function in this family has an `@details` tag.** The dispatcher also has
    no `@references`; it defers to the siblings through `@seealso`.
 
-None of these are fixed on this branch. This branch writes only this plan file.
+Items 2 and 3 are fixed, and so are the citation corrections in
+`.claude/reference-map.yaml`. Items 1, 4, 5, 6, 7, and 8 all live in `R/` and
+stay open — they need a branch that may touch package source, followed by
+`devtools::document()` and `devtools::check()`.
 
 ---
 
@@ -1164,8 +1173,9 @@ None of these are fixed on this branch. This branch writes only this plan file.
 ## Citation verification
 
 Every citation below was checked against the paper's own title page or masthead.
-**Four need correction before they enter `@references`, and one cannot be
-checked at all.**
+**Four needed correction, and one cannot be checked at all.** All four
+corrections were applied to `.claude/reference-map.yaml` on 2026-08-28; the
+verdicts below describe what was found there before the fix.
 
 | Source | Verdict |
 |---|---|

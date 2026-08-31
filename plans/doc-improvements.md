@@ -14,38 +14,8 @@ and added two quick wins: the nonresponse `@details` contradiction and the
 `_pkgdown.yml`, and `surveywts-package.R`, evaluated from the perspective of an
 R/tidyverse-fluent analyst who is not a survey methodology expert.
 
----
-
-## History
-
-A structural documentation rewrite (`plans/archive/doc-rewrite/`) landed in
-PRs #79 and #80 (merged 2026-06-23), three days before this audit was written:
-
-- **Phase 1 (#79):** `@return` → `@returns`, titles rewritten per a pre-approved
-  title map, `@seealso` cross-links added per family, `@references` populated
-  where verified, `@section Algorithm`/`Convergence` added for Tier 3
-  functions, `@details` added for `calibrate()`.
-- **Phase 2 (#80):** inline `data.frame()` calls in examples replaced with
-  package datasets across all families.
-
-That rewrite was explicitly structural — tags and sections, not narrative. It
-did not touch the conceptual/narrative gaps this audit identifies (Sections
-A–D below), and it made two **deliberate, documented decisions** that this
-audit's recommendations conflict with:
-
-1. No `set.seed()` in `adjust_nonresponse()` / `redistribute_weights()`
-   examples — "following svrep convention."
-2. `create_replicate_weights()` `@details` and `@references` deliberately
-   deferred, pending a `comprehension-replicate-methods.md` plan. That plan
-   is now written (2026-08-28), so this deferral is cleared — see Section H.
-
-Where this revision below marks something as still open, it distinguishes
-**oversights** (nobody decided this — just do it) from these **deliberate
-calls** (decide whether you still agree before touching them).
-
-The class-system-refactor (PRs #85–#89, merged through 2026-06-29) also
-removed `weighted_df` and all `data.frame` input entirely, which retired a
-handful of the original findings below outright (noted where relevant).
+Background on the prior rewrites is in **History**, and closed items are in
+the **Resolved log** — both at the bottom of this file.
 
 ---
 
@@ -79,7 +49,7 @@ what the class system returns.
 | B | Conceptual overview / Getting Started | Package-level + pkgdown | Open | Yes |
 | C | Method-choice guidance | Calibration, replicate, nonresponse families | Open | Yes |
 | D | Jargon: define or link recurring terms | All functions | Open | Yes |
-| E | Constructor inconsistency | — | **Resolved** | — |
+| E | Constructor inconsistency | — | **Resolved** — see Resolved log | — |
 | F | Class system: accurate `@returns` + orientation | `adjust_nonresponse`, `redistribute_weights`, `summarize_weights` | Partially open | No — fix inline |
 | G | Package-level docs stale | `surveywts-package.R`, `_pkgdown.yml`, README | Partially resolved — README re-render blocked | No — fix inline |
 | H | Quick-win fixes (errors, omissions, reproducibility) | Scattered | Mostly open (confirmed item-by-item) | No — checklist below |
@@ -366,34 +336,10 @@ vs. one-line anchors are non-trivial. Fold into `plans/doc-getting-started.md`.
 
 ---
 
-## E. Constructor Inconsistency — RESOLVED
-
-Originally flagged: examples used `surveycore::as_survey_nonprob(ns_wave1,
-weights = weight)` while the `ns_wave1` dataset doc used
-`surveycore::survey_nonprob(ns_wave1, variables = list(weights = "weight"))` —
-apparently contradictory constructors.
-
-**Re-verified 2026-08-26:** `R/data.R` now constructs `ns_wave1` examples via
-`surveycore::as_survey_nonprob()` consistently (fixed in or before PR #85,
-2026-06-25). `survey_nonprob()` is the low-level S7 constructor;
-`as_survey_nonprob()` is the intended friendly wrapper — these were never
-actually contradictory, and current usage is consistent throughout. No action
-needed.
-
----
-
 ## F. Class System: Accurate `@returns` and Orientation
 
-**Priority: medium.** **Status: partially resolved.**
-
-### Resolved by the class-system-refactor
-
-The original finding — `trim_weights()` and `rescale_weights()` `@returns`
-saying "same class as `data`," which was false for plain `data.frame` input
-(returned `weighted_df`) — is now moot. `data.frame`/`weighted_df` input is
-rejected outright (`surveywts_error_not_survey_base`), so "same class as
-`data`" is now accurate. **Re-verified 2026-08-26** against current
-`R/trim_weights.R` and `R/rescale_weights.R` — no fix needed.
+**Priority: medium.** **Status: partially resolved** — the closed half is in
+the Resolved log.
 
 ### Still open
 
@@ -449,20 +395,8 @@ each; the summaries here are historical.
 
 ### Outcome (2026-08-28, branch `docs/package-level-docs`)
 
-Item 1 shipped. Items 2 and 3 did not survive verification against current
-source.
-
-**Item 1 — `surveywts-package.R`: DONE.** `rake()` is gone. `@section Key
-Functions:` now names all 23 exports across 7 families, and `@description`
-covers the current function set.
-
-**Item 2 — `_pkgdown.yml`: DROPPED, not needed.**
-`create_group_jackknife_weights()` no longer exists. Commit `986b8bc` merged
-it into `create_jackknife_weights(type = "grouped")`. It is absent from
-`NAMESPACE`, `R/`, and `man/`. A `contents:` entry with no matching `.Rd`
-breaks the pkgdown reference build, so the entry must not be added.
-`_pkgdown.yml` was audited against `NAMESPACE` instead: all 23 exports
-appear exactly once. The file is already correct.
+Item 1 shipped and item 2 was dropped — details in the Resolved log. Item 3
+is the only live piece of this section:
 
 **Item 3 — README: DEFERRED, blocked.** The fix as written is wrong, and the
 correct fix is blocked by an unrelated defect.
@@ -488,21 +422,12 @@ Item 3 stays open until those land.
 ## H. Quick-Win Fixes
 
 Re-verified item-by-item against current source on 2026-08-26. Each item is
-tagged **[open]** (confirmed still present, no known reason not to fix),
+tagged **[open]** (confirmed still present, no known reason not to fix) or
 **[decide]** (a past deliberate call — confirm you still want it before
-changing), or removed if resolved.
-
-### Reproducibility
-
-- [x] **[decided 2026-08-28]** Keep the no-seed svrep convention in the
-      `adjust_nonresponse()` / `redistribute_weights()` examples. Make no
-      change to those examples. Section A's `set.seed()` standard now carries
-      an exception for these two functions.
+changing). Closed items are in the Resolved log at the bottom of this file.
 
 ### Factual errors
 
-- [x] ~~`trim_weights()`/`rescale_weights()` `@returns`: "same class as
-      `data`"~~ — **resolved**, moot after class-system-refactor (Section F)
 - [ ] **[open]** `trim_weights()` `@description` says excess is redistributed
       "equally" (line 13); `@section Algorithm` says "proportionally" (line
       71) — reconcile these
@@ -510,9 +435,6 @@ changing), or removed if resolved.
       (`n`, `n_positive`, `n_zero`, `mean`, `cv`, `min`, `p25`, `p50`, `p75`,
       `max`, `ess`) — confirm `@description` covers the same set or references
       `@returns` instead of restating a shorter list
-- [x] ~~`rescale_weights()` first example: comment placement~~ — **resolved
-      2026-08-31**: the comment is a section header over a before/after pair;
-      the placement is fine
 
 ### Missing documentation
 
@@ -541,8 +463,6 @@ changing), or removed if resolved.
         Chrostowski entry names two co-authors who did not write the paper.
       - `tau` belongs to `create_gen_boot_weights()` only. BRR uses `rho`,
         a different quantity, and its default `rho = 0` deserves a warning.
-- [x] ~~`ipw()` `estimating_eq` param: never states default~~ — **resolved**,
-      already documents "`"gee"` (the default) or `"mle"`"
 - [ ] **[open, behavior verified 2026-08-31]** `adjust_nonresponse()` /
       `redistribute_weights()`: promote the class-specific row-retention
       difference to `@description` or a named `@section`. The behavior is
@@ -587,15 +507,9 @@ changing), or removed if resolved.
 
 ### Package-level
 
-- [x] **[done 2026-08-28]** `surveywts-package.R`: replaced `rake()` with
-      `calibrate_rake()`; Key Functions now covers all 23 exports across 7
-      families. See Section G "Outcome".
-- [x] ~~`_pkgdown.yml`: add `create_group_jackknife_weights` to the
-      Replicate Weights section~~ — **dropped 2026-08-28**, the function no
-      longer exists (merged into `create_jackknife_weights(type =
-      "grouped")` in `986b8bc`). Adding the entry would break the pkgdown
-      reference build. `_pkgdown.yml` audited against `NAMESPACE`: all 23
-      exports already present, no change needed.
+The `surveywts-package.R` and `_pkgdown.yml` items are closed — see the
+Resolved log.
+
 - [ ] **[open, blocked]** README: the stale `help('calibrate_to_sample')`
       line is generated chunk output of an upstream
       `svrep::calibrate_to_sample()` message, not a typo — do NOT rename it.
@@ -650,11 +564,6 @@ blocks were produced by an older render, against an older data schema.
 - [ ] **[open, confirmed 2026-08-31]** `ipw()` GEE example: still uses inline
       synthetic data (`nps_gee`, `ref_gee_df`) — replace with a package
       dataset per the documentation standards
-
-### Constructor pattern (see Section E)
-
-- [x] ~~Grep for `as_survey_nonprob` usage and reconcile~~ — **resolved**,
-      usage is consistent throughout (Section E)
 
 ---
 
@@ -728,3 +637,72 @@ complements to that release, not replacements for it:
 | `plans/doc-getting-started.md` | Section B + D: conceptual article + glossary | Not started |
 | `plans/doc-method-choice-guidance.md` | Section C: when-to-use content per family | Not started |
 | `plans/comprehension-replicate-methods.md` | Prerequisite for `create_replicate_weights()` `@details`/`@references` (Section C/H) | **Complete 2026-08-28.** All 14 sources verified; 4 citations need correction; carries a draft `@details` block and the Section C method-choice table |
+
+---
+
+## History
+
+A structural documentation rewrite (`plans/archive/doc-rewrite/`) landed in
+PRs #79 and #80 (merged 2026-06-23), three days before this audit was written:
+
+- **Phase 1 (#79):** `@return` → `@returns`, titles rewritten per a pre-approved
+  title map, `@seealso` cross-links added per family, `@references` populated
+  where verified, `@section Algorithm`/`Convergence` added for Tier 3
+  functions, `@details` added for `calibrate()`.
+- **Phase 2 (#80):** inline `data.frame()` calls in examples replaced with
+  package datasets across all families.
+
+That rewrite was explicitly structural — tags and sections, not narrative. It
+did not touch the conceptual/narrative gaps this audit identifies (Sections
+A–D), and it made two **deliberate, documented decisions** that this
+audit's recommendations conflict with:
+
+1. No `set.seed()` in `adjust_nonresponse()` / `redistribute_weights()`
+   examples — "following svrep convention." (Kept, decided 2026-08-28.)
+2. `create_replicate_weights()` `@details` and `@references` deliberately
+   deferred, pending a `comprehension-replicate-methods.md` plan. That plan
+   is now written (2026-08-28), so this deferral is cleared — see Section H.
+
+Where a section marks something as still open, it distinguishes
+**oversights** (nobody decided this — just do it) from these **deliberate
+calls** (decide whether you still agree before touching them).
+
+The class-system-refactor (PRs #85–#89, merged through 2026-06-29) also
+removed `weighted_df` and all `data.frame` input entirely, which retired a
+handful of the original findings outright (noted where relevant).
+
+---
+
+## Resolved log
+
+Closed, dropped, and superseded items, moved here so the body carries only
+open work.
+
+- **E. Constructor inconsistency (resolved 2026-08-26).** `R/data.R`
+  constructs `ns_wave1` examples via `surveycore::as_survey_nonprob()`
+  consistently (fixed in or before PR #85). `survey_nonprob()` is the
+  low-level S7 constructor; `as_survey_nonprob()` is the friendly wrapper —
+  the two were never actually contradictory. The related grep task closed
+  with it.
+- **F (closed half) — `trim_weights()`/`rescale_weights()` `@returns` "same
+  class as `data`" (moot, 2026-08-26).** `data.frame`/`weighted_df` input is
+  now rejected outright (`surveywts_error_not_survey_base`), so the
+  statement is accurate as written.
+- **G item 1 — `surveywts-package.R` (done 2026-08-28, PR #93).** `rake()`
+  is gone. `@section Key Functions:` names all 23 exports across the 7
+  families used by `_pkgdown.yml`.
+- **G item 2 — `_pkgdown.yml` (dropped 2026-08-28).**
+  `create_group_jackknife_weights()` no longer exists (merged into
+  `create_jackknife_weights(type = "grouped")` in `986b8bc`). A `contents:`
+  entry with no matching `.Rd` breaks the pkgdown reference build, so the
+  entry must not be added. Audited against `NAMESPACE`: all 23 exports
+  appear exactly once.
+- **H reproducibility (decided 2026-08-28).** Keep the no-seed svrep
+  convention in the `adjust_nonresponse()` / `redistribute_weights()`
+  examples. Standing decision — Section A's standard item 3 carries the
+  exception.
+- **H `rescale_weights()` first-example comment (resolved 2026-08-31).**
+  The comment is a section header over a before/after pair; the placement
+  is fine.
+- **H `ipw()` `estimating_eq` default (resolved).** Already documents
+  `"gee"` (the default) or `"mle"`.

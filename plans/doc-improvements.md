@@ -13,6 +13,11 @@ and added two quick wins: the nonresponse `@details` contradiction and the
 whole file. Corrected the Section F premise (`redistribute_weights()` has no
 class branch), fixed wrong citations, reopened part of resolved item E, and
 added newly found defects to Section H.
+**Revised:** 2026-08-31 — Section C planning pass. The Section C plan is
+drafted (`plans/doc-method-choice-guidance.md`); its adversarial review
+found defects in this file's Section C draft tables (fixed in place),
+confirmed a calibration comprehension doc exists in the archive, and added
+one new Section H quick win (`max_adjust` default contradiction).
 **Status:** Open — pre-implementation review
 **Source:** Multi-agent documentation audit of all 23 exported functions, the README,
 `_pkgdown.yml`, and `surveywts-package.R`, evaluated from the perspective of an
@@ -51,12 +56,12 @@ what the class system returns.
 |---|-----------|-------|--------|-----------------|
 | A | Examples: show what comes next | All 23 functions | Open | Yes |
 | B | Conceptual overview / Getting Started | Package-level + pkgdown | Open | Yes |
-| C | Method-choice guidance | Calibration, replicate, nonresponse families | Open | Yes |
+| C | Method-choice guidance | Calibration, replicate, nonresponse families | Plan drafted 2026-08-31; dispatcher `@details` done (Phase 1, PR #97) | Yes — written |
 | D | Jargon: define or link recurring terms | All functions | Open | Yes |
 | E | Constructor inconsistency | — | **Resolved** — see Resolved log | — |
 | F | Class system: accurate `@returns` + orientation | `adjust_nonresponse`, `summarize_weights` | Fixed 2026-08-31 on `docs/section-h-quick-wins`, pending merge | No — fix inline |
 | G | Package-level docs stale | `surveywts-package.R`, `_pkgdown.yml`, README | Fixed — README re-rendered 2026-08-31, pending merge | No — fix inline |
-| H | Quick-win fixes (errors, omissions, reproducibility) | Scattered | Done 2026-08-31 except the `ipw()` GEE example (deferred to Section A) | No — checklist below |
+| H | Quick-win fixes (errors, omissions, reproducibility) | Scattered | Done 2026-08-31 except the `ipw()` GEE example (deferred to Section A) and the `max_adjust` default contradiction (added 2026-08-31) | No — checklist below |
 
 ---
 
@@ -233,7 +238,13 @@ to define. File: `plans/doc-getting-started.md` (to be written).
 
 ## C. Method-Choice Guidance
 
-**Priority: high.** **Status: fully open.**
+**Priority: high.** **Status: plan drafted 2026-08-31**
+(`plans/doc-method-choice-guidance.md`, adversarially reviewed, ready for
+implementation). The dispatcher halves are done: `calibrate()` got its
+method `@details` in Phase 1, and `create_replicate_weights()` got its
+`@details` and `@references` in PR #97 (merged 2026-08-31). What remains
+open is the sibling-level guidance, which the plan carries as drafted
+roxygen text.
 
 ### Problem
 
@@ -241,55 +252,72 @@ Every function family presents multiple methods with no documented basis for
 choosing. A non-methodologist has no way to know:
 - rake vs. linear vs. logit calibration
 - 6 replicate weight methods
-- 12 `variance_estimator` options in `create_gen_boot_weights()`
+- 12 `variance_estimator` options in `create_gen_boot_weights()` — of
+  which 7 (not 6; verified 2026-08-31) have no support in the mapped
+  papers and can only be pointed at the svrep back end
 - 3 `method` options in `adjust_nonresponse()`
 
-The `@seealso` links to siblings (added in Phase 1) but none of the functions
-explain when to choose one over another.
+The two dispatchers now explain the choice in `@details`; the individual
+functions still do not.
 
-### Guidance needed per family
+### Guidance per family — superseded by the plan
 
-**Calibration:**
-| Method | Use when |
-|--------|----------|
-| `calibrate_rake()` | Default choice. Weights stay positive; matches demographic marginals; slowest for many margins |
-| `calibrate_linear()` | Speed matters; small discrepancies from targets; negative weights acceptable |
-| `calibrate_logit()` | Need bounded weight ratios; starting weights are far from targets |
-| `poststratify()` | Cross-classified cell targets available; exact match required |
+The draft tables that stood here until 2026-08-31 are superseded. The
+plan's adversarial review found three defects in them, so do not copy the
+old cells from git history:
 
-**Replicate weights:**
-| Method | Use when |
-|--------|----------|
-| Bootstrap | Default for probability samples; flexible design requirements |
-| Jackknife | Standard complex designs; JK1 for SRS, JKn for stratified multi-stage |
-| BRR | Exactly 2 PSUs per stratum (NHANES-style designs) |
-| Gen-boot | Generalized complex designs; `svrep` back-end |
-| Gen-rep | Deterministic alternative to gen-boot |
-| SDR | Systematic random samples; row order matters |
+- **Rake, "slowest for many margins":** no source ranks raking's speed.
+  The only sourced speed claim is linear's one-step exact solution
+  (Deville et al. 1993 §11, per the calibration comprehension doc).
+- **Logit, "starting weights are far from targets":** inverted. When the
+  gap between sample and targets is large relative to the bounds, no
+  solution exists inside `(L, U)` and the iteration diverges. Logit is
+  for bounding the adjustment, not for rescuing a distant start.
+- **Gen-rep, "deterministic alternative to gen-boot":** the lineage runs
+  the other way — gen-boot is the randomized cousin of gen-rep
+  (Beaumont & Patak 2012 §1; `plans/comprehension-replicate-methods.md`,
+  "the real lineage").
 
-**`adjust_nonresponse()` methods:**
-| Method | Use when |
-|--------|----------|
-| `"weighting-class"` | Default; response rates differ across known groups |
-| `"propensity-cell"` | No pre-defined groups; want data-driven cells |
-| `"propensity"` | Continuous propensity adjustment; richer auxiliary variables |
+The `adjust_nonresponse()` rows were plausible but unsourced — no
+comprehension doc covers the nonresponse family, so the plan reframes
+that guidance mechanically (from code behavior) with no citations.
 
-### Where this guidance should live
+Corrected, sourced content now lives in:
+- **Replicate family:** the method-choice table in
+  `plans/comprehension-replicate-methods.md` (which replaces the draft
+  table that stood here).
+- **All families:** the drafted per-function roxygen text and 24-row
+  claim ledger in `plans/doc-method-choice-guidance.md`.
 
-- **Dispatcher functions** (`calibrate()`, `create_replicate_weights()`): in a
-  required `@details` section comparing methods. `calibrate()` already has a
-  method-overview `@details` block (Phase 1); `create_replicate_weights()`
-  still has none — this was deliberately deferred pending a comprehension
-  plan for the replicate methods (see History), not an oversight. Decided
-  2026-08-28: write that plan (see Plans to Write)
-- **Individual functions**: two-sentence "When to use this" note in `@description`
-- **Getting Started article** (Section B): comparative table for each family
+**Sourcing note (found 2026-08-31):** the calibration mechanism claims
+are verified —
+`plans/archive/calibration-framework/comprehension-calibration-framework.md`
+carries a claim ledger citing Deville & Sarndal (1992) and Deville et al.
+(1993) section-by-section. Calibration guidance may carry inline
+citations. Still unsourced, and flagged in the plan as must-not-assert:
+any rake/logit speed ranking, choice guidance among the five probability
+bootstrap schemes in `create_bootstrap_weights()`, cited nonresponse
+heuristics, and replicate-count economy for BRR.
+
+### Where this guidance lives
+
+- **Dispatcher functions** (`calibrate()`, `create_replicate_weights()`):
+  `@details` comparing methods — **done** (Phase 1 and PR #97). The plan
+  adds one paragraph to `calibrate()` naming [poststratify()] as the
+  separate function for cell targets.
+- **Individual functions**: a "When to use" paragraph at the top of
+  `@details`. The plan overrides this section's earlier
+  two-sentences-in-`@description` placement: the documentation standard
+  caps `@description` at 1–3 sentences, and most touched functions
+  already use them.
+- **Getting Started article** (Section B): comparative table for each
+  family. The plan's Handoffs section lists the three ready inputs.
 
 ### Needs own plan?
 
-**Yes.** The method-choice content requires methodological decisions about how to
-frame each comparison for a non-expert audience. File:
-`plans/doc-method-choice-guidance.md` (to be written).
+**Yes — written.** `plans/doc-method-choice-guidance.md`
+(drafted 2026-08-31): five tasks, per-function checklist items with the
+roxygen text drafted verbatim, a claim ledger, and grep gates.
 
 ---
 
@@ -461,6 +489,12 @@ changing). Closed items are in the Resolved log at the bottom of this file.
 
 ### Factual errors
 
+- [ ] **[open, found 2026-08-31 during the Section C planning pass]**
+      `adjust_nonresponse()` `@param control` contradicts itself on the
+      `max_adjust` default. The defaults list says `max_adjust = 2.0`
+      (`R/adjust_nonresponse.R:45`, matching the signature at line 144),
+      but the bullet below says "(default 5.0)" (line 49). The bullet is
+      wrong; fix it to 2.0.
 - [x] **[done 2026-08-31, branch `docs/section-h-quick-wins`]**
       `trim_weights()` `@description` says excess is redistributed
       "equally" (line 13); `@section Algorithm` says "proportionally" (line
@@ -717,7 +751,7 @@ authoritative. Refresh this table at the next audit pass.
 | `poststratify()` | `260000000` in `type = "count"` example unexplained; `setdiff()` prose in params; cell-size edge case absent |
 | `calibrate_to_survey()` | Migration note and `control_col_matches` leaked into user docs (Section H); Algorithm section is methodology-specialist writing |
 | `calibrate_to_estimate()` | No simple example (only the complex vcov path); `unit_scale` → svrep internal arg name leaked; no comparison with `calibrate_to_survey()` |
-| `adjust_nonresponse()` | propensity methods (`"propensity-cell"`, `"propensity"`) have no examples; `sample()` without `set.seed()` (deliberate — see H); row-retention trap verified 2026-08-31 — the class difference appears in `@returns` only, and both `@description` and `@details` state unconditional retention, which is wrong for `survey_taylor` (see F/H) |
+| `adjust_nonresponse()` | propensity methods (`"propensity-cell"`, `"propensity"`) have no examples; `sample()` without `set.seed()` (deliberate — see H); row-retention trap verified 2026-08-31 — the class difference appears in `@returns` only, and both `@description` and `@details` state unconditional retention, which is wrong for `survey_taylor` (see F/H); `@param control` states two different `max_adjust` defaults — 2.0 (correct) and 5.0 (see H) |
 | `redistribute_weights()` | Developer note in user docs (Section H); `sample()` without `set.seed()` (deliberate — see H); `@description` says the `reduce_if` rows are set to zero, but the function removes them (see H) |
 | `effective_sample_size()` | "Kish's" in title; no interpretation guidance ("is n_eff = 1456 good?") |
 | `weight_variability()` | "Design effect" undefined; no interpretation guidance; missing `@references` |
@@ -731,7 +765,7 @@ authoritative. Refresh this table at the next audit pass.
 | `create_gen_boot_weights()` | 12 `variance_estimator` options with no selection guidance; `mse` undocumented; `tau` guidance absent |
 | `create_gen_rep_weights()` | "Deterministic" claim contradicted by `seed` param (unexplained) — verified 2026-08-31: the `seed` is never passed to `svrep::as_fays_gen_rep_design()` (`:130-137`); it goes only to the surveywts backend wrapper (`:146`); the docs never say so; `@returns` `@variables$type` inconsistency confirmed 2026-08-31 |
 | `create_sdr_weights()` | Ordering sensitivity not in description; `sort_var` version note in `@param` |
-| `create_replicate_weights()` | `@details` absent — deliberately deferred pending comprehension plan (Section H); DAGJK undefined |
+| `create_replicate_weights()` | `@details` and `@references` landed in PR #97 (2026-08-31); remaining gap is Section A's example standard (no downstream step) |
 | `as_taylor_design()` | "Taylor design" / "replicate design" undefined in title; no use-case motivation; warning always fires but no Warnings section (confirmed) — the roxygen prose (`:17-18`) mentions only the already-Taylor warning, while the variance-loss warning fires on every successful conversion (`:118-123`, unguarded after the early exits) |
 
 ---
@@ -769,7 +803,7 @@ complements to that release, not replacements for it:
 |-----------|-----------|--------|
 | `plans/doc-examples-overhaul.md` | Section A: per-function examples checklist | Not started |
 | `plans/doc-getting-started.md` | Section B + D: conceptual article + glossary | Not started |
-| `plans/doc-method-choice-guidance.md` | Section C: when-to-use content per family | Not started |
+| `plans/doc-method-choice-guidance.md` | Section C: when-to-use content per family | **Drafted 2026-08-31**, adversarially reviewed; ready for implementation |
 | `plans/comprehension-replicate-methods.md` | Prerequisite for `create_replicate_weights()` `@details`/`@references` (Section C/H) | **Complete 2026-08-28.** All 14 sources audited (4 citations corrected; two residual open items); carries a draft `@details` block and the Section C method-choice table |
 
 ---

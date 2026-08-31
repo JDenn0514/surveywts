@@ -132,10 +132,10 @@ resampling methods for complex surveys. \emph{Survey Methodology},
 \code{\link[=calibrate]{calibrate()}}, \code{\link[=calibrate_rake]{calibrate_rake()}}, \code{\link[=calibrate_linear]{calibrate_linear()}},
 \code{\link[=calibrate_logit]{calibrate_logit()}}
 
-Other calibration: 
-\code{\link{calibrate}()},
-\code{\link{calibrate_linear}()},
-\code{\link{calibrate_logit}()},
-\code{\link{calibrate_rake}()}
+Other calibration:
+\code{\link[=calibrate]{calibrate()}},
+\code{\link[=calibrate_linear]{calibrate_linear()}},
+\code{\link[=calibrate_logit]{calibrate_logit()}},
+\code{\link[=calibrate_rake]{calibrate_rake()}}
 }
 \concept{calibration}

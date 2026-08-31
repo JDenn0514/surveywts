@@ -57,11 +57,7 @@
 #' @param control Named list of calibration control parameters. Known keys:
 #'   - `maxit`: maximum iterations (default `50L`)
 #'   - `epsilon`: convergence tolerance (default `1e-10`)
-#'   - `control_col_matches`: integer vector of length at most
-#'     `min(R_eff, R_C)` specifying which control replicate maps to each
-#'     virtual primary replicate. When omitted (the default), a random
-#'     permutation is drawn once per call; use `set.seed()` before calling
-#'     to make results reproducible. This key is **not** stored in history.
+#'
 #'   Unknown keys trigger a `surveywts_warning_control_param_ignored`
 #'   warning.
 #'
@@ -122,8 +118,9 @@
 #'   per-replicate control totals \eqn{\hat{t}_{Cx}^{(r)}} for each variable
 #'   in `variables`.
 #'
-#'   **Step 5.** Draw random control column mapping (or use
-#'   `control$control_col_matches`).
+#'   **Step 5.** Draw a random mapping of control replicate columns to
+#'   virtual primary replicates. One permutation is drawn per call; use
+#'   `set.seed()` before calling to make results reproducible.
 #'
 #'   **Step 6.** Calibrate the full-sample weights of `primary_design` to
 #'   the combined target set \eqn{\{ \hat{t}_{Cx} \}} (random margins) union
@@ -147,10 +144,7 @@
 #'   (iterative proportional fitting, Deming & Stephan 1940 — the algorithm
 #'   used by Opsomer & Erciulescu 2022) and `"nr"` (Newton-Raphson raking,
 #'   Deville, Sarndal & Sautory 1993). For `method = "linear"` or `"logit"`,
-#'   `algorithm` is matched but silently ignored. Note that the default
-#'   `method = "rake"` differs from the prior svrep-based behavior (which
-#'   used linear GREG by default); callers who need the prior behavior
-#'   should supply `method = "linear"` explicitly.
+#'   `algorithm` is matched but silently ignored.
 #'
 #' @section Convergence:
 #'   Convergence failure in any `.calibrate_opsomer_single()` or `survey::calibrate()`
@@ -161,9 +155,9 @@
 #'   `targets` margins are achievable given the data structure.
 #'
 #' @section Warnings:
-#'   **Unknown control parameters.** Keys in `control` other than `maxit`,
-#'   `epsilon`, and `control_col_matches` are silently ignored with a
-#'   warning. Check spelling before assuming a key has an effect.
+#'   **Unknown control parameters.** Unrecognized keys in `control` are
+#'   ignored with a warning. Check spelling before assuming a key has an
+#'   effect.
 #'
 #'   **Replicate scheme mismatch.** When `primary_design` and
 #'   `control_design` have different replicate types (e.g., bootstrap vs.
@@ -375,7 +369,9 @@ calibrate_to_survey <- function(
     )
   }
 
-  # Extract control_col_matches (not stored in history)
+  # Extract control_col_matches (not stored in history). Internal key for
+  # deterministic replicate mapping in tests; deliberately absent from the
+  # user-facing @param control docs.
   control_col_matches <- control[["control_col_matches"]]
 
   # Build effective control (without control_col_matches)

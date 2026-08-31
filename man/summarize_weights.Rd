@@ -19,14 +19,19 @@ observations is returned. When specified, one row is returned per
 unique group combination.}
 }
 \value{
-A tibble with columns \code{n}, \code{n_positive}, \code{n_zero}, \code{mean}, \code{cv},
-\code{min}, \code{p25}, \code{p50}, \code{p75}, \code{max}, \code{ess}. When \code{by} is non-\code{NULL},
-the group columns precede the summary columns.
+A tibble with columns \code{n} (rows summarized), \code{n_positive} (rows
+with a weight above zero), \code{n_zero} (rows with a weight of exactly
+zero), \code{mean}, \code{cv}, \code{min}, \code{p25}, \code{p50}, \code{p75}, \code{max}, and \code{ess}
+(Kish effective sample size). Because zero-weight rows are excluded
+before the summary, \code{n_zero} is \code{0} and \code{n_positive} equals \code{n}. When
+\code{by} is non-\code{NULL}, the group columns precede the summary columns.
 }
 \description{
-Returns a tibble with n, mean, CV, percentiles (p25, p50, p75), and ESS
-for the weight column. Pass \code{by} to compute statistics separately within
-each subgroup defined by one or more grouping variables.
+Returns a tibble of distribution statistics for the weight column; the
+full column set is listed under \strong{Value}. Rows with a zero weight
+(typically produced by \code{\link[=adjust_nonresponse]{adjust_nonresponse()}}) are excluded before the
+statistics are computed. Pass \code{by} to compute statistics separately
+within each subgroup defined by one or more grouping variables.
 }
 \examples{
 ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
@@ -40,8 +45,8 @@ summarize_weights(ns_wave1_svy, by = sex)
 \seealso{
 \code{\link[=effective_sample_size]{effective_sample_size()}}, \code{\link[=weight_variability]{weight_variability()}}
 
-Other diagnostics: 
-\code{\link{effective_sample_size}()},
-\code{\link{weight_variability}()}
+Other diagnostics:
+\code{\link[=effective_sample_size]{effective_sample_size()}},
+\code{\link[=weight_variability]{weight_variability()}}
 }
 \concept{diagnostics}

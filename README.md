@@ -90,10 +90,10 @@ rounds out the ecosystem with tidy data manipulation for survey objects.
 
 ### Utilities
 
-| Function              | Purpose                                       |
-|-----------------------|-----------------------------------------------|
-| `trim_weights()`      | Clip extreme weights with mass redistribution |
-| `rescale_weights()` | Rescale weights to unit mean                    |
+| Function            | Purpose                                       |
+|---------------------|-----------------------------------------------|
+| `trim_weights()`    | Clip extreme weights with mass redistribution |
+| `rescale_weights()` | Rescale weights to unit mean                  |
 
 ## Usage
 
@@ -103,8 +103,9 @@ rounds out the ecosystem with tidy data manipulation for survey objects.
 participation propensity model against a probability reference survey.
 surveywts ships with a harmonized online panel (`ns_wave1`) and
 probability reference surveys (`gss_2024`, `npors_2025_clean`,
-`acs_wy_2022`) to illustrate the workflow. Each tibble is paired with a
-survey design companion (e.g., `gss_2024_svy`).
+`cps_2023`) to illustrate the workflow. Survey designs are constructed
+from the tibbles with `surveycore::as_survey()` or
+`surveycore::as_survey_nonprob()`.
 
 ``` r
 library(surveywts)
@@ -112,13 +113,18 @@ library(surveywts)
 # Construct a reference design from the npors_2025_clean tibble
 npors_ref <- surveycore::as_survey(npors_2025_clean, weights = wt_pop)
 
+# Drop the 7 rows with NA partisanship (pid_f3) — the benchmark variable
+# in the calibrate-to-survey step below.
+ns_complete <- ns_wave1[!is.na(ns_wave1$pid_f3), ]
+
 nps_wts <- ipw(
-  ns_wave1,
+  ns_complete,
   npors_ref,
-  predictors = c("gender", "age_group", "race_ethn", "educ"),
-  missing_method = "omit"
+  predictors = c("sex", "age_f3", "race_f4", "edu_f3"),
+  missing_method = "omit",
+  estimating_eq = "mle" # keeps the per-replicate refits below stable
 )
-#> Warning: ! 120 row(s) in `data` dropped: NA in race_ethn.
+#> Warning: ! 120 row(s) in `data` dropped: NA in race_f4.
 #> ℹ Rows with any NA in a `selection` variable are excluded when `missing_method
 #>   = "omit"`.
 #> ✔ Use `missing_method = "separate"` or `missing_method = "impute"` to retain
@@ -128,10 +134,10 @@ summarize_weights(nps_wts)
 #> # A tibble: 1 × 11
 #>       n n_positive n_zero   mean    cv    min    p25    p50    p75     max   ess
 #>   <int>      <int>  <int>  <dbl> <dbl>  <dbl>  <dbl>  <dbl>  <dbl>   <dbl> <dbl>
-#> 1  6302       6302      0 39682. 0.951 13082. 17522. 26166. 45433. 596465. 3310.
+#> 1  6295       6295      0 39944. 0.936 13052. 17535. 26423. 42933. 370516. 3355.
 effective_sample_size(nps_wts)
 #>    n_eff 
-#> 3309.588
+#> 3355.106
 ```
 
 ### Calibrating to population benchmarks
@@ -142,8 +148,8 @@ estimate.
 
 ``` r
 targets <- list(
-  gender = c("Male" = 0.49, "Female" = 0.51),
-  age_group = c("18-34" = 0.28, "35-54" = 0.37, "55+" = 0.35)
+  sex = c("Male" = 0.49, "Female" = 0.51),
+  age_f3 = c("18-34" = 0.28, "35-54" = 0.37, "55+" = 0.35)
 )
 
 calibrated <- calibrate(
@@ -156,7 +162,7 @@ summarize_weights(calibrated)
 #> # A tibble: 1 × 11
 #>       n n_positive n_zero  mean    cv   min   p25   p50   p75   max   ess
 #>   <int>      <int>  <int> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl>
-#> 1  6302       6302      0  1.00 0.917 0.339 0.502 0.615  1.18  14.3 3425.
+#> 1  6295       6295      0     1 0.893 0.339 0.507 0.610  1.11  8.56 3503.
 ```
 
 ### Calibrating to a reference survey
@@ -164,30 +170,27 @@ summarize_weights(calibrated)
 `calibrate_to_survey()` calibrates a primary design to match estimates
 from a control survey, propagating the control’s own sampling
 uncertainty into the final variance estimates. Both designs must carry
-replicate weights.
+replicate weights. Here the IPW-weighted panel is benchmarked to the
+NPORS estimate of partisanship (`pid_f3`).
 
 ``` r
-npors_rep <- create_bootstrap_weights(npors_2025_clean_svy, seed = 1)
-
-# gss_2024_svy retains all rows including those with NA sex (19 rows).
-# Subset to complete cases for the calibration variables before bootstrapping.
-gss_complete <- gss_2024[!is.na(gss_2024$gender) & !is.na(gss_2024$age_group), ]
-gss_ref <- surveycore::as_survey(
-  gss_complete,
-  weights = wtssps,
-  strata  = vstrat,
-  ids     = vpsu,
-  nest    = TRUE
+# Primary: the IPW-weighted panel with quasi-randomization bootstrap
+# replicates. Each replicate resamples the panel and refits the IPW model.
+nps_rep <- create_bootstrap_weights(
+  nps_wts,
+  type = "quasi-randomization",
+  replicates = 100L,
+  seed = 1
 )
-gss_rep <- create_bootstrap_weights(gss_ref, seed = 1)
+
+# Control: the NPORS reference survey with bootstrap replicate weights.
+npors_rep <- create_bootstrap_weights(npors_ref, seed = 1)
 
 calibrated_to_ref <- calibrate_to_survey(
+  nps_rep,
   npors_rep,
-  gss_rep,
-  variables = c(gender, age_group)
+  variables = c(pid_f3)
 )
-#> Matching between primary and control replicates will be done at random.
-#> For tips on reproducible matching, see `help('calibrate_to_sample')`
 ```
 
 ### Generating replicate weights
@@ -197,7 +200,12 @@ estimation. For non-probability samples it applies a quasi-randomization
 bootstrap.
 
 ``` r
-rep_design <- create_bootstrap_weights(calibrated, seed = 1)
+rep_design <- create_bootstrap_weights(
+  calibrated,
+  type       = "quasi-randomization",
+  replicates = 100L,
+  seed       = 1
+)
 ```
 
 ## Learn more

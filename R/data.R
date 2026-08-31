@@ -1,10 +1,9 @@
 # R/data.R
 #
 # Roxygen2 documentation for all bundled datasets.
-# Each paired tibble + survey object shares one man page via @rdname.
 
 # ============================================================================
-# gss_2024 + gss_2024_svy
+# gss_2024
 # ============================================================================
 
 #' GSS 2024 sample data with harmonized demographic columns
@@ -237,7 +236,7 @@
 "npors_2025"
 
 # ============================================================================
-# npors_2025_clean + npors_2025_clean_svy
+# npors_2025_clean
 # ============================================================================
 
 #' Pew NPORS 2025 complete cases only
@@ -393,10 +392,10 @@
 #'   column directly from the tibble:
 #'   ```r
 #'   data(pew_2016_optin)
-#'   pew_design <- surveycore::survey_nonprob(
+#'   pew_design <- surveycore::as_survey_nonprob(
 #'     pew_2016_optin,
 #'     weights = "weight",
-#'     repwts = contains("repwt_")
+#'     repweights = paste0("repwt_", 1:200)
 #'   )
 #'   ```
 #'

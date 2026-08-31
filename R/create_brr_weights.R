@@ -17,7 +17,9 @@
 #' @param rho `numeric(1)`, default `0`. Fay damping coefficient. `rho = 0`
 #'   gives standard BRR; `rho > 0` gives Fay's BRR variant with factors `rho`
 #'   and `2 - rho`. Must satisfy `0 <= rho < 1`.
-#' @param mse `logical(1)`, default `TRUE`.
+#' @param mse `logical(1)`, default `TRUE`. Centers each replicate deviation
+#'   on the full-sample estimate (`TRUE`; conservative) or on the mean of
+#'   the replicate estimates (`FALSE`).
 #'
 #' @returns A `survey_replicate` with `@variables$type` of `"BRR"` or `"Fay"`.
 #'
@@ -36,16 +38,17 @@
 #'
 #' @references
 #'   Fay, R.E. (1984). Some properties of estimates of variance based on
-#'   replication methods. *Proceedings of the American Statistical
-#'   Association*, 495--500.
+#'   replication methods. *Proceedings of the Section on Survey Research
+#'   Methods, American Statistical Association*, 495--500.
 #'
 #'   Fay, R.E. (1989). Theory and application of replicate weighting for
-#'   variance calculations. *Proceedings of the American Statistical
-#'   Association*, 495--500.
+#'   variance calculations. *Proceedings of the Section on Survey Research
+#'   Methods, American Statistical Association*.
 #'
 #'   Dippo, C., Fay, R.E. and Morganstein, D. (1984). Computing variances
 #'   from complex samples with replicate weights. *Proceedings of the
-#'   American Statistical Association*, 489--494.
+#'   Section on Survey Research Methods, American Statistical Association*,
+#'   489--494.
 #'
 #' @examples
 #' # standard BRR on a stratified 2-PSU-per-stratum design ----------------

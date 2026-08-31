@@ -2,14 +2,16 @@
 #
 # adjust_nonresponse() — weighting-class, propensity-cell, and propensity
 # nonresponse adjustment. Redistributes nonrespondent weights to respondents
-# within cells. Returns all rows; nonrespondent weights = 0.
+# within cells. survey_nonprob keeps all rows (nonrespondent weights = 0);
+# survey_taylor keeps respondent rows only (its validator rejects zero weights).
 
 #' Correct weights for unit nonresponse
 #'
 #' Redistributes the weights of nonrespondents to respondents within weighting
-#' classes defined by `by`. All rows are returned; nonrespondent weights are
-#' set to zero and respondent weights increase proportionally to preserve the
-#' total weight within each class.
+#' classes defined by `by`. Respondent weights increase proportionally to
+#' preserve the total weight within each class. What happens to the
+#' nonrespondent rows depends on the input class — see the
+#' **Input class behavior** section.
 #'
 #' @param data A `survey_taylor` or `survey_nonprob`. Must include BOTH
 #'   respondents and nonrespondents. `survey_replicate` -> error. Any other
@@ -51,6 +53,18 @@
 #'     number >= 2. Used only when `method = "propensity-cell"`.
 #'   Either `min_cell` or `max_adjust` condition alone triggers the warning.
 #'
+#' @section Input class behavior:
+#' The rows in the returned object depend on the class of `data`:
+#'
+#' - `survey_nonprob`: all rows are returned. Nonrespondent rows are kept
+#'   with a weight of zero.
+#' - `survey_taylor`: respondent rows only are returned. The
+#'   `survey_taylor` validator requires strictly positive weights, so the
+#'   zero-weight nonrespondent rows are dropped.
+#'
+#' In both cases respondent weights are adjusted upward to conserve the
+#' total weight within each cell.
+#'
 #' @section Algorithm:
 #' Within each cell \eqn{h} defined by `by`, the adjustment factor is
 #' \deqn{f_h = \frac{\sum_{i \in h} w_i}{\sum_{i \in h, \text{resp}} w_i}}
@@ -59,13 +73,14 @@
 #' \eqn{w_{i,new} = w_i \times f_h}. Nonrespondent weights are set to 0.
 #'
 #' @returns
-#'   All rows (respondents and nonrespondents) are returned. Nonrespondent
-#'   weights are set to 0; respondent weights are adjusted upward to conserve
-#'   the total weight within each cell.
+#'   An object of the same class as `data` with adjusted weights. The rows
+#'   it contains depend on the input class (see the **Input class
+#'   behavior** section):
 #'
-#'   - `survey_nonprob` input -> `survey_nonprob` (same class)
-#'   - `survey_taylor` input -> `survey_taylor` (same class; respondent
-#'     rows only, because `survey_taylor` does not support zero weights)
+#'   - `survey_nonprob` input -> `survey_nonprob` with all rows;
+#'     nonrespondent weights are set to 0
+#'   - `survey_taylor` input -> `survey_taylor` with respondent rows only,
+#'     because `survey_taylor` does not support zero weights
 #'
 #'   A history entry with `operation = "nonresponse_weighting_class"` (for
 #'   `method = "weighting-class"`), `operation = "nonresponse_propensity_cell"`
@@ -73,11 +88,13 @@
 #'   (for `method = "propensity"`) is appended to `weighting_history`.
 #'
 #' @details
-#'   Zero-weight observations are retained for design-based variance estimation.
-#'   Survey estimation functions (e.g., [survey::svymean()]) handle zero
-#'   weights correctly -- zero-weight units are excluded from point estimates
-#'   but included in the design structure for variance estimation. For manual
-#'   calculations, use `w[w > 0]` to exclude nonrespondents.
+#'   For `survey_nonprob` input, zero-weight observations are retained for
+#'   design-based variance estimation. Survey estimation functions (e.g.,
+#'   [survey::svymean()]) handle zero weights correctly -- zero-weight units
+#'   are excluded from point estimates but included in the design structure
+#'   for variance estimation. For manual calculations, use `w[w > 0]` to
+#'   exclude nonrespondents. For `survey_taylor` input, the returned object
+#'   carries no zero-weight rows -- the nonrespondent rows are dropped.
 #'
 #'   Diagnostic functions ([effective_sample_size()], [weight_variability()],
 #'   [summarize_weights()]) automatically filter to positive weights before

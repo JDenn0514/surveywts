@@ -90,7 +90,7 @@ Bounds are computed from the main weights:
 
 Within each clip-and-redistribute pass, weights above \code{upper_abs} are
 clipped to \code{upper_abs}; weights below \code{lower_abs} are clipped to
-\code{lower_abs}. The clipped mass is redistributed proportionally to
+\code{lower_abs}. The clipped mass is redistributed equally across
 untrimmed observations so that the total weight sum is preserved. When
 \code{strict = TRUE}, the pass repeats until all weights satisfy
 \verb{[lower_abs, upper_abs]}.
@@ -128,7 +128,7 @@ Meetings, Section on Survey Research Methods}, 2707--2719.
 \seealso{
 \code{\link[=rescale_weights]{rescale_weights()}}
 
-Other utilities: 
-\code{\link{rescale_weights}()}
+Other utilities:
+\code{\link[=rescale_weights]{rescale_weights()}}
 }
 \concept{utilities}

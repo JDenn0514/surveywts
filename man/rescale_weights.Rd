@@ -64,7 +64,7 @@ summarize_weights(result_by, by = ns_region)
 \seealso{
 \code{\link[=trim_weights]{trim_weights()}}
 
-Other utilities: 
-\code{\link{trim_weights}()}
+Other utilities:
+\code{\link[=trim_weights]{trim_weights()}}
 }
 \concept{utilities}

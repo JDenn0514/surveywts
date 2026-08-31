@@ -15,7 +15,9 @@
 #' resample-reweight algorithm.
 #'
 #' @param data A `survey_taylor` or `survey_nonprob` design object.
-#'   `survey_replicate` and `data.frame` → error.
+#'   `survey_replicate` and `data.frame` → error. A `survey_nonprob` is
+#'   accepted with a probability-sample `type` as well; it is then wrapped
+#'   as a simple random sample — see `@details`.
 #' @param replicates `integer(1)` or `NULL`. Number of bootstrap replicates.
 #'   Default `NULL` resolves to `200L` for `type = "quasi-randomization"` and
 #'   `type = "hybrid"`, and `500L` for all probability-sample types. Must be
@@ -51,9 +53,21 @@
 #' @returns
 #'   - Probability-sample types → `survey_replicate` with `replicates` new
 #'     `rep_1...rep_N` columns and a `"replicate_creation"` history entry.
+#'     This holds for `survey_nonprob` input too: a `survey_nonprob` with a
+#'     probability-sample `type` returns a `survey_replicate`.
 #'   - `type = "quasi-randomization"` → `survey_nonprob` with `replicates`
 #'     new `repwt_1...repwt_B` columns in `@data`, `@variables$repweights`
 #'     populated, and a `"bootstrap_weights"` history entry.
+#'
+#' @details
+#' A `survey_nonprob` passed with a probability-sample `type` (the default
+#' included) is silently wrapped as a simple random sample: the replicates
+#' resample rows with the base weights and ignore the propensity-estimation
+#' step. To capture that step in the variance, use
+#' `type = "quasi-randomization"` instead. The `survey_replicate` returned
+#' by the wrapped path cannot be converted back with [as_taylor_design()] —
+#' that function refuses an object whose source design was a
+#' non-probability sample.
 #'
 #' @section Algorithm:
 #' For probability-sample designs (`survey_taylor`), delegates to
@@ -82,12 +96,8 @@
 #'   Wu, C. (2022). Statistical inference with non-probability survey samples.
 #'   *Survey Methodology* **48**(2), 283--311.
 #'
-#'   Chrostowski, M.J., Guzman, C.A. and Malm, L. (2025). Variance estimation
-#'   for non-probability surveys. *Journal of Survey Statistics and
-#'   Methodology* (forthcoming).
-#'
-#'   Kolenikov, S. (2014). Calibrating variance estimation with proxy
-#'   variables. *Survey Methodology* **40**(1), 21--38.
+#'   Chrostowski, L., Chlebicki, P. and Beresewicz, M. nonprobsvy — An R
+#'   package for modern methods for non-probability surveys.
 #'
 #' @examples
 #' # default SRSWR bootstrap on a probability survey -----------------------

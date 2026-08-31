@@ -244,7 +244,7 @@ make_nps_level_b <- function(seed = 2, n = 500) {
   )
 }
 
-# DAGJK datasets for create_group_jackknife_weights() tests.
+# DAGJK datasets for create_jackknife_weights(type = "grouped") tests.
 make_dagjk_datasets <- function() {
   set.seed(101L)
 

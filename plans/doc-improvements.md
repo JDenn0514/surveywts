@@ -54,9 +54,9 @@ what the class system returns.
 | C | Method-choice guidance | Calibration, replicate, nonresponse families | Open | Yes |
 | D | Jargon: define or link recurring terms | All functions | Open | Yes |
 | E | Constructor inconsistency | — | **Resolved** — see Resolved log | — |
-| F | Class system: accurate `@returns` + orientation | `adjust_nonresponse`, `summarize_weights` | Partially open | No — fix inline |
-| G | Package-level docs stale | `surveywts-package.R`, `_pkgdown.yml`, README | Partially resolved — README re-render blocked | No — fix inline |
-| H | Quick-win fixes (errors, omissions, reproducibility) | Scattered | Mostly open (confirmed item-by-item) | No — checklist below |
+| F | Class system: accurate `@returns` + orientation | `adjust_nonresponse`, `summarize_weights` | Fixed 2026-08-31 on `docs/section-h-quick-wins`, pending merge | No — fix inline |
+| G | Package-level docs stale | `surveywts-package.R`, `_pkgdown.yml`, README | Fixed — README re-rendered 2026-08-31, pending merge | No — fix inline |
+| H | Quick-win fixes (errors, omissions, reproducibility) | Scattered | Done 2026-08-31 except the `ipw()` GEE example (deferred to Section A) | No — checklist below |
 
 ---
 
@@ -348,10 +348,12 @@ vs. one-line anchors are non-trivial. Fold into `plans/doc-getting-started.md`.
 
 ## F. Class System: Accurate `@returns` and Orientation
 
-**Priority: medium.** **Status: partially resolved** — the closed half is in
-the Resolved log.
+**Priority: medium.** **Status: fixed 2026-08-31** on
+`docs/section-h-quick-wins` (pending merge) — the earlier closed half is in
+the Resolved log. The `n_zero` design question (document the always-0
+behavior vs. stop dropping zero rows) is documented, not decided.
 
-### Still open
+### Fixed 2026-08-31 (kept for reference)
 
 **Undisclosed behavioral trap in `adjust_nonresponse()` — behavior
 re-verified 2026-08-31:**
@@ -405,8 +407,9 @@ No separate plan needed. Add to quick-wins checklist in Section H.
 
 ## G. Package-Level Docs: Stale and Incomplete
 
-**Priority: medium.** **Status: partially resolved — README item blocked**
-(see Outcome below).
+**Priority: medium.** **Status: resolved 2026-08-31** — the README chunks
+were fixed and `README.md` re-rendered on `docs/section-h-quick-wins`
+(pending merge; see Section H).
 
 ### Problems (original audit, since resolved or superseded)
 
@@ -458,14 +461,15 @@ changing). Closed items are in the Resolved log at the bottom of this file.
 
 ### Factual errors
 
-- [ ] **[open]** `trim_weights()` `@description` says excess is redistributed
+- [x] **[done 2026-08-31, branch `docs/section-h-quick-wins`]**
+      `trim_weights()` `@description` says excess is redistributed
       "equally" (line 13); `@section Algorithm` says "proportionally" (line
       71). The code settles it: the redistribution adds a constant amount
       per eligible unit (`R/utils.R:804-805`; replicate path
       `R/trim_weights.R:303-304`), so "equally" is correct and
       "proportionally" is the defective word (verified 2026-08-31). Fix
       line 71
-- [ ] **[open, confirmed 2026-08-31]** `summarize_weights()` `@returns`
+- [x] **[done 2026-08-31]** `summarize_weights()` `@returns`
       lists 11 columns (`n`, `n_positive`, `n_zero`, `mean`, `cv`, `min`,
       `p25`, `p50`, `p75`, `max`, `ess`). `@description`
       (`R/summarize_weights.R:11-13`) restates a shorter 7-column list —
@@ -475,20 +479,20 @@ changing). Closed items are in the Resolved log at the bottom of this file.
 
 ### Missing documentation
 
-- [ ] **[open]** `weight_variability()`: still no `@references` — confirmed
-      absent in current source; sibling `effective_sample_size()` has one
-- [ ] **[open]** `as_taylor_design()`: still no `@section Warnings` —
+- [x] **[done 2026-08-31]** `weight_variability()`: Kish (1965) `@references`
+      added; `weight_variability` entry added to `.claude/reference-map.yaml`
+- [x] **[done 2026-08-31]** `as_taylor_design()`: still no `@section Warnings` —
       confirmed absent; the function always emits
       `surveywts_warning_taylor_loses_variance` but the help page doesn't
       say so. The roxygen prose (`:17-18`) mentions only the already-Taylor
       warning; the variance-loss warning fires on every successful
       conversion (`:118-123`, unguarded after the early exits)
-- [ ] **[open]** `mse` parameter in `create_gen_boot_weights()`,
+- [x] **[done 2026-08-31]** `mse` parameter in `create_gen_boot_weights()`,
       `create_gen_rep_weights()`, `create_sdr_weights()`, `create_brr_weights()`:
       confirmed still just a bare type annotation ("`logical(1)`, default
       `TRUE`") with no behavioral description, unlike `create_jackknife_weights()`
       and `create_bootstrap_weights()` which explain it fully
-- [ ] **[unblocked 2026-08-28]** `create_replicate_weights()`: still no
+- [x] **[done 2026-08-31]** `create_replicate_weights()`: still no
       `@details` section (Tier 4 dispatcher requirement). The prerequisite
       comprehension plan is **complete** —
       `plans/comprehension-replicate-methods.md` audits all 14 sources
@@ -507,21 +511,21 @@ changing). Closed items are in the Resolved log at the bottom of this file.
         Chrostowski entry names two co-authors who did not write the paper.
       - `tau` belongs to `create_gen_boot_weights()` only. BRR uses `rho`,
         a different quantity, and its default `rho = 0` deserves a warning.
-- [ ] **[open, behavior verified 2026-08-31]** `adjust_nonresponse()`:
+- [x] **[done 2026-08-31]** `adjust_nonresponse()`:
       promote the class-specific row-retention difference to `@description`
       or a named `@section`. The behavior is confirmed in all three method
       paths: `survey_taylor` keeps respondent rows only; `survey_nonprob`
       keeps all rows with zero weights. The difference currently appears in
       the `@returns` bullets only (`R/adjust_nonresponse.R:66-68`); the
       `@details` block never mentions it.
-- [ ] **[open, found 2026-08-31]** `adjust_nonresponse()`: two sentences
+- [x] **[done 2026-08-31]** `adjust_nonresponse()`: two sentences
       state unconditional row retention, which contradicts the
       `survey_taylor` path. The `@details` sentence "Zero-weight
       observations are retained for design-based variance estimation." is at
       `R/adjust_nonresponse.R:76`. The `@description` sentence "All rows are
       returned; nonrespondent weights are set to zero" is at line 10. Make
       both conditional on input class.
-- [ ] **[open, decided 2026-08-31]** `create_bootstrap_weights()`: the
+- [x] **[done 2026-08-31]** `create_bootstrap_weights()`: the
       probability-style types (the default included) silently accept a
       `survey_nonprob`. The data is wrapped as an SRS design
       (`R/replicate-utils.R:139–149`), so the replicates ignore the
@@ -540,33 +544,36 @@ changing). Closed items are in the Resolved log at the bottom of this file.
 
 ### Inadvertent content
 
-- [ ] **[open]** `redistribute_weights.R` line 57 still contains an internal
-      developer note ("...because it is currently the only call site; refactor
-      if a second emerges") — remove from user docs
-- [ ] **[open, found 2026-08-31]** Stale comments name the removed
+- [x] **[done 2026-08-31]** `redistribute_weights.R` internal developer note
+      ("...because it is currently the only call site; refactor if a second
+      emerges") moved from the roxygen `@details` to a source comment
+- [x] **[done 2026-08-31]** Stale comments name the removed
       `create_group_jackknife_weights()`: `R/jackknife-dagjk-utils.R:3-4`,
       `R/replicate-utils.R:5`, `tests/testthat/helper-test-data.R:247` —
       update to `create_jackknife_weights(type = "grouped")`
 
 ### Incorrect or misleading content
 
-- [ ] **[open]** `calibrate_to_survey()`: a migration note ("differs from
+- [x] **[done 2026-08-31 — moved to NEWS.md]** `calibrate_to_survey()`: a
+      migration note ("differs from
       the prior svrep-based behavior") sits at
       `R/calibrate_to_survey.R:149-153`, inside `@section Algorithm:` under
       the "Calibration method and algorithm" sub-heading (verified
       2026-08-31). The note concerns `method`, not `algorithm` —
       `@param algorithm` (`:43-48`) is clean. The note belongs in NEWS.md,
       not user-facing docs
-- [ ] **[open]** `calibrate_to_survey()` still documents
+- [x] **[done 2026-08-31 — internalized]** `calibrate_to_survey()` documented
       `control_col_matches` as a user-facing sub-key at three sites:
       `@param control` (`:60-64`), `@section Algorithm` Step 5 (`:125-126`),
       and `@section Warnings` (`:164-166`) — implementation detail; move to
       an internal comment or remove at all three sites
-- [ ] **[open, found 2026-08-31]** `redistribute_weights()` `@description`
+- [x] **[done 2026-08-31]** `redistribute_weights()` `@description`
       (lines 12-13) says "Sets the weights of rows satisfying `reduce_if` to
       zero". The rows are then removed (`R/redistribute_weights.R:379-389`),
       not kept at zero weight. Reword to say the rows are removed.
-- [ ] **[open, found 2026-08-31]** `R/data.R:396-400` demonstrates the
+- [x] **[done 2026-08-31 — switched to `as_survey_nonprob()` with
+      `repweights = paste0("repwt_", 1:200)`, run-verified]**
+      `R/data.R:396-400` demonstrated the
       low-level `surveycore::survey_nonprob()` constructor in a user-facing
       block for `pew_2016_optin`, and that block uses `repwts =` while
       lines 591 and 1211 of the same file use `repweights =`. Switch to
@@ -574,20 +581,24 @@ changing). Closed items are in the Resolved log at the bottom of this file.
 
 ### `@returns` consistency
 
-- [ ] **[open, confirmed 2026-08-31]** `create_gen_rep_weights()` `@returns`:
-      still inconsistent with `create_gen_boot_weights()` on the
-      `@variables$type` naming — make them consistent
+- [x] **[done 2026-08-31]** `create_gen_rep_weights()` `@returns`: now states
+      `@variables$type = "other"` (run-verified — gen-rep passes no
+      `type_override`, so the svrep default is stored); gen-boot's entry
+      gained a clarifier that `"bootstrap"` is the stored type, not the
+      method name
 
 ### Package-level
 
 The `surveywts-package.R` and `_pkgdown.yml` items are closed — see the
 Resolved log.
 
-- [ ] **[open, found 2026-08-31]** Stale references to the deleted `*_svy`
-      datasets: section comments at `R/data.R:7` and `:240`; `NEWS.md:76-79`
+- [x] **[done 2026-08-31 — comments fixed, NEWS.md Datasets section rewritten
+      against verified shapes, orphaned `data-raw/acs-wy-2022.R` deleted]**
+      Stale references to the deleted `*_svy` datasets: section comments at `R/data.R:7` and `:240`; `NEWS.md:76-79`
       still documents the `*_svy` objects as shipped;
       `data-raw/acs-wy-2022.R` is an orphaned builder for a deleted dataset
-- [ ] **[open, blocked]** README: the stale `help('calibrate_to_sample')`
+- [x] **[done 2026-08-31 — README.md re-rendered after the chunk fixes
+      below]** README: the stale `help('calibrate_to_sample')`
       line is generated chunk output of an upstream
       `svrep::calibrate_to_sample()` message, not a typo — do NOT rename it.
       surveywts no longer calls that path, so the fix is to re-render
@@ -597,20 +608,19 @@ Resolved log.
 ### Broken README.Rmd chunks
 
 Found 2026-08-28, extended 2026-08-31, while working Section G item 3.
-`devtools::build_readme()` fails, so `README.md` cannot be re-rendered at
-all. Two chunks are broken. Every item below is verified against the
-bundled data. All must land before the Section G README item can close.
-
-`README.md` is therefore stale by an unknown margin. Its current output
-blocks were produced by an older render, against an older data schema.
+All items closed 2026-08-31: the chunks were fixed on
+`docs/section-h-quick-wins` and `devtools::build_readme()` now renders
+`README.md` cleanly.
 
 **The `ipw` chunk (line 120 onward):**
 
 - [ ] **[open]** `README.Rmd:126` — the chunk passes
       `predictors = c("gender", "age_group", "race_ethn", "educ")`, but only
       `gender` is a column of `ns_wave1`. `age_group`, `race_ethn`, and
-      `educ` do not exist in that dataset, so the chunk errors.
-- [ ] **[open]** `README.Rmd:113` — the paragraph above the chunk names
+      `educ` do not exist in that dataset, so the chunk errors. Fixed with
+      `predictors = c("sex", "age_f3", "race_f4", "edu_f3")` (all verified
+      present in both `ns_wave1` and `npors_2025_clean`, harmonized levels).
+- [x] **[done 2026-08-31]** `README.Rmd:113` — the paragraph above the chunk names
       `acs_wy_2022` as a bundled reference survey. No such dataset is in
       `data/`. The bundled sets are `cps_2023`, `gss_2024`, `npors_2025`,
       `npors_2025_clean`, `ns_wave1`, `pew_2016_optin`, and
@@ -625,29 +635,65 @@ blocks were produced by an older render, against an older data schema.
 
 **The `calibrate-to-survey` chunk (line 160 onward):**
 
-- [ ] **[open]** `README.Rmd:161` — passes `npors_2025_clean_svy` to
+All four items below closed together on 2026-08-31: the chunk was redesigned
+(decision with the user) rather than patched. The old chunk calibrated two
+probability samples (NPORS primary, GSS control). The new chunk continues the
+README's non-probability pipeline: the IPW-weighted `ns_wave1` panel (with
+quasi-randomization bootstrap replicates, `estimating_eq = "mle"` for stable
+per-replicate refits) is benchmarked to the NPORS estimate of partisanship
+(`variables = c(pid_f3)`). The full pipeline was run-verified end-to-end
+(~65 s) before the re-render. The GSS objects left the chunk entirely.
+
+- [x] **[done 2026-08-31]** `README.Rmd:161` — passes `npors_2025_clean_svy` to
       `create_bootstrap_weights()`. No such object exists. `data/` holds the
       `npors_2025_clean` tibble only.
-- [ ] **[open]** `README.Rmd:165` — filters on `gss_2024$gender` and
+- [x] **[done 2026-08-31]** `README.Rmd:165` — filters on `gss_2024$gender` and
       `gss_2024$age_group`. Neither column is in `gss_2024`. That dataset
       carries `sex`, `age`, and `age_f3`. Because `gss_2024$gender` is
       `NULL`, `!is.na(NULL)` yields `logical(0)` and the subset silently
       returns a zero-row frame — the chunk fails quietly, not with an
       error.
-- [ ] **[open]** `README.Rmd:178` — passes `variables = c(gender,
+- [x] **[done 2026-08-31]** `README.Rmd:178` — passes `variables = c(gender,
       age_group)` to `calibrate_to_survey()`. Same two missing columns as
       line 165.
-- [ ] **[open]** `README.Rmd:163` — the comment states that `gss_2024_svy`
+- [x] **[done 2026-08-31]** `README.Rmd:163` — the comment states that `gss_2024_svy`
       "retains all rows including those with NA sex (19 rows)". The figure
       is accurate — `sum(is.na(gss_2024$sex))` is 19 of 3309 rows (verified
       2026-08-31) — but the comment names a nonexistent object, and the
       code below it filters on the wrong columns.
 
+### Also fixed while in the files (2026-08-31, not on the checklist)
+
+- `create_bootstrap_weights()` `@references` carried the fabricated
+  Chrostowski citation and the wrong Kolenikov citation (the comprehension
+  doc's Corrections 1-2 were applied to `reference-map.yaml` but never to
+  the roxygen). Chrostowski is now the corrected form (real authors and
+  title; no year/venue — unverifiable); Kolenikov is dropped (weak support,
+  per the comprehension doc).
+- `create_brr_weights()`, `create_gen_boot_weights()`,
+  `create_gen_rep_weights()` `@references`: venue completed to
+  "Proceedings of the Section on Survey Research Methods, American
+  Statistical Association" for Fay (1984), Fay (1989), and Dippo et al.
+  (1984); the duplicated 495-500 page range removed from Fay (1989);
+  Bellhouse (1985) pages 323-329 added.
+- `create_gen_rep_weights()` `@param seed` now explains the
+  deterministic-method-with-a-seed puzzle (run-verified: svrep retains a
+  random sample of replicates when `max_replicates` truncates).
+- `README.Rmd` `{r replicate}` chunk called `create_bootstrap_weights()` on
+  a `survey_nonprob` without `type = "quasi-randomization"` — the silent
+  SRS-wrap crossover path, contradicting its own prose. Now passes the type.
+- `NEWS.md` `ipw()` snippet used `selection = ~gender + age_group`
+  (nonexistent columns); now `~sex + age_f3`.
+
 ### Dataset docs / examples
 
-- [ ] **[open, confirmed 2026-08-31]** `ipw()` GEE example: still uses inline
-      synthetic data (`nps_gee`, `ref_gee_df`) — replace with a package
-      dataset per the documentation standards
+- [ ] **[open, deferred 2026-08-31]** `ipw()` GEE example: still uses inline
+      synthetic data (`nps_gee`, `ref_gee_df`). Deliberately left open during
+      the quick-wins pass: the documentation standards say to flag a dataset
+      gap rather than force a substitution, and a replacement must be chosen
+      for GEE convergence (population-scale reference weights) and run-tested
+      for `R CMD check` example time. Belongs with the Section A examples
+      overhaul (`plans/doc-examples-overhaul.md`).
 
 ---
 
@@ -657,6 +703,10 @@ Quick lookup for which functions have known gaps, re-verified 2026-08-26.
 Constructor-inconsistency and `weighted_df`-return mentions from the original
 audit are removed as resolved/moot. This is not exhaustive — see the full
 subagent reports for detailed findings.
+
+Rows that point at Section H items closed on 2026-08-31 (branch
+`docs/section-h-quick-wins`) are stale for those items — the H checklist is
+authoritative. Refresh this table at the next audit pass.
 
 | Function | Key gaps |
 |----------|----------|

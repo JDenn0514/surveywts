@@ -72,14 +72,10 @@ history entry for provenance only; not used in computation.}
 \itemize{
 \item \code{maxit}: maximum iterations (default \code{50L})
 \item \code{epsilon}: convergence tolerance (default \code{1e-10})
-\item \code{control_col_matches}: integer vector of length at most
-\code{min(R_eff, R_C)} specifying which control replicate maps to each
-virtual primary replicate. When omitted (the default), a random
-permutation is drawn once per call; use \code{set.seed()} before calling
-to make results reproducible. This key is \strong{not} stored in history.
+}
+
 Unknown keys trigger a \code{surveywts_warning_control_param_ignored}
-warning.
-}}
+warning.}
 }
 \value{
 A calibrated design object whose class matches \code{primary_design}:
@@ -151,8 +147,9 @@ When \eqn{K = 1} this reduces to \eqn{\sqrt{A_C / A}}.
 per-replicate control totals \eqn{\hat{t}_{Cx}^{(r)}} for each variable
 in \code{variables}.
 
-\strong{Step 5.} Draw random control column mapping (or use
-\code{control$control_col_matches}).
+\strong{Step 5.} Draw a random mapping of control replicate columns to
+virtual primary replicates. One permutation is drawn per call; use
+\code{set.seed()} before calling to make results reproducible.
 
 \strong{Step 6.} Calibrate the full-sample weights of \code{primary_design} to
 the combined target set \eqn{\{ \hat{t}_{Cx} \}} (random margins) union
@@ -176,10 +173,7 @@ When \code{method = "rake"}, \code{algorithm} selects between \code{"classic_ipf
 (iterative proportional fitting, Deming & Stephan 1940 — the algorithm
 used by Opsomer & Erciulescu 2022) and \code{"nr"} (Newton-Raphson raking,
 Deville, Sarndal & Sautory 1993). For \code{method = "linear"} or \code{"logit"},
-\code{algorithm} is matched but silently ignored. Note that the default
-\code{method = "rake"} differs from the prior svrep-based behavior (which
-used linear GREG by default); callers who need the prior behavior
-should supply \code{method = "linear"} explicitly.
+\code{algorithm} is matched but silently ignored.
 }
 
 \section{Convergence}{
@@ -194,9 +188,9 @@ that are inconsistent with fixed margins may not converge; verify that
 
 \section{Warnings}{
 
-\strong{Unknown control parameters.} Keys in \code{control} other than \code{maxit},
-\code{epsilon}, and \code{control_col_matches} are silently ignored with a
-warning. Check spelling before assuming a key has an effect.
+\strong{Unknown control parameters.} Unrecognized keys in \code{control} are
+ignored with a warning. Check spelling before assuming a key has an
+effect.
 
 \strong{Replicate scheme mismatch.} When \code{primary_design} and
 \code{control_design} have different replicate types (e.g., bootstrap vs.
@@ -250,7 +244,7 @@ samples. \emph{Statistica Sinica}, 8, 1153--1164.
 \seealso{
 \code{\link[=calibrate_to_estimate]{calibrate_to_estimate()}}
 
-Other sample-calibration: 
-\code{\link{calibrate_to_estimate}()}
+Other sample-calibration:
+\code{\link[=calibrate_to_estimate]{calibrate_to_estimate()}}
 }
 \concept{sample-calibration}

@@ -19,7 +19,9 @@ selection order, or use \code{sort_var}.}
 giving the systematic selection order. Required for stratified designs
 (svrep >= 0.9.1); for non-stratified designs row order is used as fallback.}
 
-\item{mse}{\code{logical(1)}, default \code{TRUE}.}
+\item{mse}{\code{logical(1)}, default \code{TRUE}. Centers each replicate deviation
+on the full-sample estimate (\code{TRUE}; conservative) or on the mean of
+the replicate estimates (\code{FALSE}).}
 }
 \value{
 A \code{survey_replicate} with \verb{@variables$type = "successive-difference"}.
@@ -61,13 +63,13 @@ the Section on Government Statistics}, 154--159.
 \code{\link[=create_brr_weights]{create_brr_weights()}}, \code{\link[=create_gen_boot_weights]{create_gen_boot_weights()}},
 \code{\link[=create_gen_rep_weights]{create_gen_rep_weights()}}, \code{\link[=create_replicate_weights]{create_replicate_weights()}}, \code{\link[=as_taylor_design]{as_taylor_design()}}
 
-Other replicate-weights: 
-\code{\link{as_taylor_design}()},
-\code{\link{create_bootstrap_weights}()},
-\code{\link{create_brr_weights}()},
-\code{\link{create_gen_boot_weights}()},
-\code{\link{create_gen_rep_weights}()},
-\code{\link{create_jackknife_weights}()},
-\code{\link{create_replicate_weights}()}
+Other replicate-weights:
+\code{\link[=as_taylor_design]{as_taylor_design()}},
+\code{\link[=create_bootstrap_weights]{create_bootstrap_weights()}},
+\code{\link[=create_brr_weights]{create_brr_weights()}},
+\code{\link[=create_gen_boot_weights]{create_gen_boot_weights()}},
+\code{\link[=create_gen_rep_weights]{create_gen_rep_weights()}},
+\code{\link[=create_jackknife_weights]{create_jackknife_weights()}},
+\code{\link[=create_replicate_weights]{create_replicate_weights()}}
 }
 \concept{replicate-weights}

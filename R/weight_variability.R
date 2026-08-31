@@ -22,6 +22,9 @@
 #' @section Algorithm:
 #' `cv(w) = sd(w) / mean(w)`
 #'
+#' @references
+#'   Kish, L. (1965). *Survey Sampling*. New York: John Wiley & Sons.
+#'
 #' @seealso [effective_sample_size()], [summarize_weights()]
 #' @family diagnostics
 #' @export

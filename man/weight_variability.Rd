@@ -33,11 +33,14 @@ are excluded before computing CV.
 ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
 weight_variability(ns_wave1_svy)
 }
+\references{
+Kish, L. (1965). \emph{Survey Sampling}. New York: John Wiley & Sons.
+}
 \seealso{
 \code{\link[=effective_sample_size]{effective_sample_size()}}, \code{\link[=summarize_weights]{summarize_weights()}}
 
-Other diagnostics: 
-\code{\link{effective_sample_size}()},
-\code{\link{summarize_weights}()}
+Other diagnostics:
+\code{\link[=effective_sample_size]{effective_sample_size()}},
+\code{\link[=summarize_weights]{summarize_weights()}}
 }
 \concept{diagnostics}

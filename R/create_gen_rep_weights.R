@@ -22,10 +22,18 @@
 #'   replicates to variance estimates.
 #' @param aux_var_names `<tidy-select>` or `NULL`. Required for
 #'   `"Deville-Tille"`.
-#' @param mse `logical(1)`, default `TRUE`.
-#' @param seed `integer(1)` or `NULL`. RNG seed for reproducibility.
+#' @param mse `logical(1)`, default `TRUE`. Centers each replicate deviation
+#'   on the full-sample estimate (`TRUE`; conservative) or on the mean of
+#'   the replicate estimates (`FALSE`).
+#' @param seed `integer(1)` or `NULL`. RNG seed for reproducibility. The
+#'   construction is deterministic unless `max_replicates` is below the
+#'   fully efficient replicate count; in that case the svrep back-end
+#'   retains a random sample of replicates, and the seed makes that draw
+#'   reproducible.
 #'
-#' @returns A `survey_replicate` with generalized replication weights.
+#' @returns A `survey_replicate` with generalized replication weights and
+#'   `@variables$type = "other"` (the svrep back-end does not assign a
+#'   method-specific type for generalized replication).
 #'
 #' @section Algorithm:
 #' Generalized replication (GR) is a BRR extension that removes the
@@ -39,16 +47,17 @@
 #'
 #' @references
 #'   Fay, R.E. (1984). Some properties of estimates of variance based on
-#'   replication methods. *Proceedings of the American Statistical
-#'   Association*, 495--500.
+#'   replication methods. *Proceedings of the Section on Survey Research
+#'   Methods, American Statistical Association*, 495--500.
 #'
 #'   Fay, R.E. (1989). Theory and application of replicate weighting for
-#'   variance calculations. *Proceedings of the American Statistical
-#'   Association*, 495--500.
+#'   variance calculations. *Proceedings of the Section on Survey Research
+#'   Methods, American Statistical Association*.
 #'
 #'   Dippo, C., Fay, R.E. and Morganstein, D. (1984). Computing variances
 #'   from complex samples with replicate weights. *Proceedings of the
-#'   American Statistical Association*, 489--494.
+#'   Section on Survey Research Methods, American Statistical Association*,
+#'   489--494.
 #'
 #' @examples
 #' # generalized replication with reproducible seed -----------------------

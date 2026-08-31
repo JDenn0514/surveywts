@@ -49,6 +49,15 @@ stored replicate type, not the method name).
 Generates generalized bootstrap replicate weights via
 \code{\link[svrep:as_gen_boot_design]{svrep::as_gen_boot_design()}}. Requires a \code{survey_taylor} design.
 }
+\details{
+\strong{When to use.} Choose the generalized bootstrap when the design
+fits none of the named methods — Poisson sampling, or an unusual
+multi-stage structure — or when you must name the target variance
+estimator yourself (Beaumont & Patak 2012). The choice of
+\code{variance_estimator} is the central decision; see the \strong{Choosing a
+target} section. Beaumont & Patak recommend at least 750
+replicates; the default is 500.
+}
 \section{Algorithm}{
 
 The generalized bootstrap (Beaumont & Patak, 2012) generates replicate
@@ -59,6 +68,32 @@ design's first-order inclusion probabilities. Unlike SRSWR bootstrap,
 the multipliers are chosen to satisfy \eqn{E[u_k] = 1} and
 \eqn{Var(u_k) = (1 - \pi_k) / \pi_k}. Delegates to
 \code{\link[svrep:as_gen_boot_design]{svrep::as_gen_boot_design()}}.
+}
+
+\section{Choosing a target}{
+
+\code{variance_estimator} names the variance formula the replicate
+weights are built to reproduce. The mapped sources cover five of
+the options:
+\itemize{
+\item \code{"SD1"} (the default) and \code{"SD2"}: the successive-difference
+estimators, which read the row order of the data (Ash 2014).
+They suit systematic samples.
+\item \code{"Horvitz-Thompson"}: valid for any design with computable
+inclusion probabilities, but for some designs its form implies a
+negative variance and the construction fails (Beaumont & Patak
+2012).
+\item \code{"Yates-Grundy"}: requires a fixed sample size; not appropriate
+for Poisson sampling (Beaumont & Patak 2012).
+\item \code{"Poisson Horvitz-Thompson"}: the valid choice under Poisson
+sampling (Beaumont & Patak 2012).
+}
+
+The remaining options (\code{"Stratified Multistage SRS"},
+\code{"Ultimate Cluster"}, \code{"Deville-1"}, \code{"Deville-2"},
+\code{"Deville-Tille"}, \code{"BOSB"}, \code{"Beaumont-Emond"}) come from the
+svrep back end; see \code{\link[svrep:as_gen_boot_design]{svrep::as_gen_boot_design()}} for their
+definitions.
 }
 
 \examples{
@@ -85,6 +120,9 @@ Section on Survey Research Methods, American Statistical Association},
 
 Bellhouse, D.R. (1985). Computing methods for variance estimation in
 complex surveys. \emph{Journal of Official Statistics}, 1(3), 323--329.
+
+Ash, S. (2014). Using successive difference replication for estimating
+variances. \emph{Survey Methodology}, 40(1), 47--59.
 }
 \seealso{
 \code{\link[=create_bootstrap_weights]{create_bootstrap_weights()}}, \code{\link[=create_jackknife_weights]{create_jackknife_weights()}},

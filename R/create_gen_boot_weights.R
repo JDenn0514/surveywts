@@ -32,6 +32,15 @@
 #' @returns A `survey_replicate` with `@variables$type = "bootstrap"` (the
 #'   stored replicate type, not the method name).
 #'
+#' @details
+#' **When to use.** Choose the generalized bootstrap when the design
+#' fits none of the named methods — Poisson sampling, or an unusual
+#' multi-stage structure — or when you must name the target variance
+#' estimator yourself (Beaumont & Patak 2012). The choice of
+#' `variance_estimator` is the central decision; see the **Choosing a
+#' target** section. Beaumont & Patak recommend at least 750
+#' replicates; the default is 500.
+#'
 #' @section Algorithm:
 #' The generalized bootstrap (Beaumont & Patak, 2012) generates replicate
 #' weights using unit-level random multipliers:
@@ -41,6 +50,29 @@
 #' the multipliers are chosen to satisfy \eqn{E[u_k] = 1} and
 #' \eqn{Var(u_k) = (1 - \pi_k) / \pi_k}. Delegates to
 #' [svrep::as_gen_boot_design()].
+#'
+#' @section Choosing a target:
+#' `variance_estimator` names the variance formula the replicate
+#' weights are built to reproduce. The mapped sources cover five of
+#' the options:
+#'
+#' - `"SD1"` (the default) and `"SD2"`: the successive-difference
+#'   estimators, which read the row order of the data (Ash 2014).
+#'   They suit systematic samples.
+#' - `"Horvitz-Thompson"`: valid for any design with computable
+#'   inclusion probabilities, but for some designs its form implies a
+#'   negative variance and the construction fails (Beaumont & Patak
+#'   2012).
+#' - `"Yates-Grundy"`: requires a fixed sample size; not appropriate
+#'   for Poisson sampling (Beaumont & Patak 2012).
+#' - `"Poisson Horvitz-Thompson"`: the valid choice under Poisson
+#'   sampling (Beaumont & Patak 2012).
+#'
+#' The remaining options (`"Stratified Multistage SRS"`,
+#' `"Ultimate Cluster"`, `"Deville-1"`, `"Deville-2"`,
+#' `"Deville-Tille"`, `"BOSB"`, `"Beaumont-Emond"`) come from the
+#' svrep back end; see [svrep::as_gen_boot_design()] for their
+#' definitions.
 #'
 #' @references
 #'   Beaumont, J.-F. and Patak, Z. (2012). On the generalized bootstrap for
@@ -58,6 +90,9 @@
 #'
 #'   Bellhouse, D.R. (1985). Computing methods for variance estimation in
 #'   complex surveys. *Journal of Official Statistics*, 1(3), 323--329.
+#'
+#'   Ash, S. (2014). Using successive difference replication for estimating
+#'   variances. *Survey Methodology*, 40(1), 47--59.
 #'
 #' @examples
 #' # generalized bootstrap with reproducible seed -------------------------

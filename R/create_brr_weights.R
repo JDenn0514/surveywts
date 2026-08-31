@@ -23,6 +23,16 @@
 #'
 #' @returns A `survey_replicate` with `@variables$type` of `"BRR"` or `"Fay"`.
 #'
+#' @details
+#' **When to use.** Choose BRR when the design holds exactly two PSUs
+#' in every stratum, and especially when you estimate a quantile or
+#' another nonlinear statistic — BRR is proven for those, and no
+#' jackknife variant is (Valliant, Dever & Kreuter 2018, Section 15.4).
+#' Set `rho > 0` when you estimate a ratio: with the default
+#' `rho = 0`, one PSU per stratum drops to zero weight in each
+#' replicate, which can leave a ratio undefined (Dippo, Fay &
+#' Morganstein 1984).
+#'
 #' @section Algorithm:
 #' BRR creates \eqn{R} half-sample replicates from a paired-PSU design
 #' (exactly 2 PSUs per stratum). A Hadamard matrix of order \eqn{R}
@@ -49,6 +59,10 @@
 #'   from complex samples with replicate weights. *Proceedings of the
 #'   Section on Survey Research Methods, American Statistical Association*,
 #'   489--494.
+#'
+#'   Valliant, R., Dever, J. and Kreuter, F. (2018). *Practical Tools for
+#'   Designing and Weighting Survey Samples*, 2nd edition. New York:
+#'   Springer.
 #'
 #' @examples
 #' # standard BRR on a stratified 2-PSU-per-stratum design ----------------

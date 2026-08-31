@@ -27,6 +27,16 @@ Generates balanced repeated replication (BRR) or Fay's BRR replicate weights
 via \code{\link[survey:as.svrepdesign]{survey::as.svrepdesign()}}. Requires a paired-PSU design (exactly 2 PSUs
 per stratum).
 }
+\details{
+\strong{When to use.} Choose BRR when the design holds exactly two PSUs
+in every stratum, and especially when you estimate a quantile or
+another nonlinear statistic — BRR is proven for those, and no
+jackknife variant is (Valliant, Dever & Kreuter 2018, Section 15.4).
+Set \code{rho > 0} when you estimate a ratio: with the default
+\code{rho = 0}, one PSU per stratum drops to zero weight in each
+replicate, which can leave a ratio undefined (Dippo, Fay &
+Morganstein 1984).
+}
 \section{Algorithm}{
 
 BRR creates \eqn{R} half-sample replicates from a paired-PSU design
@@ -66,6 +76,10 @@ Dippo, C., Fay, R.E. and Morganstein, D. (1984). Computing variances
 from complex samples with replicate weights. \emph{Proceedings of the
 Section on Survey Research Methods, American Statistical Association},
 489--494.
+
+Valliant, R., Dever, J. and Kreuter, F. (2018). \emph{Practical Tools for
+Designing and Weighting Survey Samples}, 2nd edition. New York:
+Springer.
 }
 \seealso{
 \code{\link[=create_bootstrap_weights]{create_bootstrap_weights()}}, \code{\link[=create_jackknife_weights]{create_jackknife_weights()}},

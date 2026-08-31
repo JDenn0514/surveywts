@@ -33,7 +33,9 @@ designs: \code{"Rao-Wu-Yue-Beaumont"} (default), \code{"Rao-Wu"}, \code{"Antal-T
 \code{"Preston"}, or \code{"Canty-Davison"} — passed to
 \code{\link[svrep:as_bootstrap_design]{svrep::as_bootstrap_design()}}. For non-probability samples:
 \code{"quasi-randomization"} (resample-reweight bootstrap) or \code{"hybrid"}
-(error stub; requires \code{mass_imputation()}, not yet implemented).}
+(error stub; requires \code{mass_imputation()}, not yet implemented). See
+\code{\link[svrep:as_bootstrap_design]{svrep::as_bootstrap_design()}} for how the five probability-sample
+variants differ.}
 
 \item{reference_sample}{\code{survey_taylor} or \code{NULL}. Reference probability
 sample for NPS types. When non-\code{NULL}, takes precedence over any
@@ -76,6 +78,14 @@ weights for non-probability samples (\code{survey_nonprob}) via an internal
 resample-reweight algorithm.
 }
 \details{
+\strong{When to use.} Choose the bootstrap when you estimate a median or
+another quantile — the jackknife standard error for a quantile does
+not improve as the sample grows (Elliott & Valliant 2017) — or when
+your estimator has no textbook variance formula (Wu 2022). For a
+non-probability sample with a reference probability sample, use
+\code{type = "quasi-randomization"}, which refits the weighting model
+inside every replicate.
+
 A \code{survey_nonprob} passed with a probability-sample \code{type} (the default
 included) is silently wrapped as a simple random sample: the replicates
 resample rows with the base weights and ignore the propensity-estimation

@@ -4,6 +4,10 @@
 **Revised:** 2026-08-26 — reconciled against `doc-rewrite` (Phase 1/2, PRs #79–#80)
 and re-verified against current source. Resolved items removed; open items
 confirmed live.
+**Revised:** 2026-08-31 — second verification pass against current source.
+Corrected the grouped-jackknife items (Sections G, H), narrowed the Section A
+claim, noted the nonprob limit under the Section B diagram, closed the
+row-retention re-verify items, and added one new quick win.
 **Status:** Open — pre-implementation review
 **Source:** Multi-agent documentation audit of all 23 exported functions, the README,
 `_pkgdown.yml`, and `surveywts-package.R`, evaluated from the perspective of an
@@ -84,17 +88,23 @@ what the class system returns.
 ## A. Examples: Show What Comes Next
 
 **Priority: highest.** Examples are the most-read part of any R help page.
-**Status: fully open** — not touched by Phase 2 (which addressed *what data*
-examples use, not *what comes next*).
+**Status: open — narrowed 2026-08-31.**
 
 ### Problem
 
-Every example in every function ends at the function call with no assignment and no
-downstream step. Not a single example shows what the output looks like or what to
-do with it next. A user copy-pasting any example ends up with a value they cannot
-inspect in a workflow context.
+**Corrected 2026-08-31:** the original claim covered all 23 functions. The
+re-verification narrowed it. The gap still holds for the calibration
+functions and the replicate creators: their examples end at the bare call,
+with no assignment and no downstream step. Other families have moved:
 
-Concrete manifestations:
+- `rescale_weights()` already meets the full standard: it assigns the result
+  and shows `summarize_weights()` before and after.
+- `ipw()` assigns eight results, and one example inspects
+  `weighting_history`. No example shows a subsequent estimation call.
+- `adjust_nonresponse()`, `calibrate_to_survey()`, and
+  `calibrate_to_estimate()` assign their results.
+
+Concrete manifestations (still current):
 - Every calibration function: no `result$wts`, no `summarize_weights(result)`, no
   pipe to a subsequent step
 - Every diagnostic function: no commented expected output showing what `n_eff = X`
@@ -105,7 +115,6 @@ Concrete manifestations:
   is the longest, requiring three setup steps with no payoff explanation
 - `as_taylor_design()`: example shows the call but not that the function always
   emits a warning, which will surprise every user
-- `ipw()`: six examples, none showing a subsequent estimation call
 - `adjust_nonresponse()` and `redistribute_weights()`: `sample()` without
   `set.seed()` — results differ on every run (**decided 2026-08-28: keep the
   no-seed svrep convention**; these two functions are exempt from standard
@@ -180,6 +189,12 @@ survey_taylor        ← Taylor linearization design; SE via delta method
 
 This single diagram answers the question "what will I get back?" for every
 function in the package.
+
+One limit (noted 2026-08-31): `as_taylor_design()` rejects a replicate design
+that comes from a `survey_nonprob` source. It throws
+`surveywts_error_taylor_from_nonprob_replicate` (`R/as_taylor_design.R`
+lines 100–115). The second arrow applies only to designs with a
+`survey_taylor` origin — the article must say so.
 
 **2. The standard workflow**
 
@@ -371,15 +386,18 @@ rejected outright (`surveywts_error_not_survey_base`), so "same class as
 
 ### Still open
 
-**Undisclosed behavioral trap in nonresponse functions:**
-- `adjust_nonresponse()` and `redistribute_weights()` return different numbers of
-  rows depending on input class: `survey_taylor`/`survey_nonprob` inputs drop
-  excluded rows entirely (confirm current row-retention behavior still varies
-  by class post-refactor before writing the fix — the refactor changed input
-  handling broadly enough that this needs a fresh check, not just a doc edit)
-- This behavioral difference, if still present, is documented only as the last
-  bullet in `@returns` — it should appear in `@description` or a named
-  `@section` ("Input class behavior")
+**Undisclosed behavioral trap in nonresponse functions — behavior re-verified
+2026-08-31:**
+- The behavior is still class-dependent. A `survey_taylor` input keeps
+  respondent rows only. A `survey_nonprob` input keeps all rows and sets the
+  excluded rows to zero weights.
+- The difference appears in the `@returns` bullets and in a `@details`
+  paragraph. It should also appear in `@description` or a named `@section`
+  ("Input class behavior").
+- New bug found during re-verification: the `@details` paragraph says
+  "zero-weight observations are retained" with no condition. That statement
+  contradicts the `survey_taylor` path, which drops the rows. See the new
+  quick win in Section H.
 
 **`n_positive` and `n_zero` in `summarize_weights()` are still undefined:**
 - Confirmed in current source (`R/summarize_weights.R` line 21) — both columns
@@ -389,9 +407,9 @@ rejected outright (`surveywts_error_not_survey_base`), so "same class as
 
 ### Fix
 
-1. Confirm the row-retention behavior against current source, then promote it
-   to `@description` or a named section in `adjust_nonresponse()` and
-   `redistribute_weights()`
+1. Promote the row-retention difference to `@description` or a named section
+   in `adjust_nonresponse()` and `redistribute_weights()`, and make the
+   "retained" sentence in `@details` conditional on input class
 2. Define `n_positive` and `n_zero` in `summarize_weights()` docs
 
 No separate plan needed. Add to quick-wins checklist in Section H.
@@ -408,12 +426,14 @@ No separate plan needed. Add to quick-wins checklist in Section H.
 **`surveywts-package.R`** (the `?surveywts` help page) — confirmed current:
 - Still references `rake()` (line 13) — a function that does not exist (it's
   `calibrate_rake()`)
-- Key Functions section covers only 9 of 23 exported functions (Calibration,
+- Key Functions section covers only 7 of 23 exported functions (Calibration,
   Nonresponse, Diagnostics only — no replicate weights, IPW, or utilities)
 
-**`_pkgdown.yml`** — confirmed current:
-- `create_group_jackknife_weights()` is still absent; it will not appear in
-  the pkgdown reference index
+**`_pkgdown.yml`** — corrected 2026-08-31:
+- The earlier finding was wrong. `create_group_jackknife_weights()` does not
+  exist; the grouped jackknife is `create_jackknife_weights(type = "grouped")`.
+  `_pkgdown.yml` already lists `create_jackknife_weights` (line 67). No
+  `_pkgdown.yml` change is needed.
 
 **README** — confirmed current:
 - Line 190: `help('calibrate_to_sample')` — wrong function name; should be
@@ -421,8 +441,8 @@ No separate plan needed. Add to quick-wins checklist in Section H.
 
 ### Fix
 
-Update `surveywts-package.R` to reflect the current function set. Add
-`create_group_jackknife_weights()` to `_pkgdown.yml`. Fix the README typo.
+Update `surveywts-package.R` to reflect the current function set. Fix the
+README typo. `_pkgdown.yml` needs no change (see the correction above).
 
 No separate plan needed. Add to quick-wins checklist.
 
@@ -453,9 +473,9 @@ changing), or removed if resolved.
       (`n`, `n_positive`, `n_zero`, `mean`, `cv`, `min`, `p25`, `p50`, `p75`,
       `max`, `ess`) — confirm `@description` covers the same set or references
       `@returns` instead of restating a shorter list
-- [ ] **[open]** `rescale_weights()` first example: verify the "Rescale
-      weights to unit mean" comment lines up with the `rescale_weights()` call
-      and not a trailing `summarize_weights()` call
+- [x] ~~`rescale_weights()` first example: comment placement~~ — **resolved
+      2026-08-31**: the comment is a section header over a before/after pair;
+      the placement is fine
 
 ### Missing documentation
 
@@ -486,10 +506,15 @@ changing), or removed if resolved.
         a different quantity, and its default `rho = 0` deserves a warning.
 - [x] ~~`ipw()` `estimating_eq` param: never states default~~ — **resolved**,
       already documents "`"gee"` (the default) or `"mle"`"
-- [ ] **[open]** `adjust_nonresponse()` / `redistribute_weights()` `@returns`:
-      promote the class-specific row-retention behavior difference to
-      `@description` or a named `@section` — **re-verify the behavior itself
-      first**, since the class-system-refactor changed input handling broadly
+- [ ] **[open, behavior verified 2026-08-31]** `adjust_nonresponse()` /
+      `redistribute_weights()`: promote the class-specific row-retention
+      difference to `@description` or a named `@section`. The behavior is
+      confirmed: `survey_taylor` keeps respondent rows only; `survey_nonprob`
+      keeps all rows with zero weights.
+- [ ] **[open, found 2026-08-31]** Same files: the `@details` paragraph says
+      "zero-weight observations are retained" with no condition. That
+      contradicts the `survey_taylor` path, which drops the rows. Make the
+      sentence conditional on input class.
 
 ### Inadvertent content
 
@@ -508,9 +533,9 @@ changing), or removed if resolved.
 
 ### `@returns` consistency
 
-- [ ] `create_gen_rep_weights()` `@returns`: verify whether it names
-      `@variables$type`, unlike `create_gen_boot_weights()` which names
-      `"bootstrap"` — make consistent if still inconsistent
+- [ ] **[open, confirmed 2026-08-31]** `create_gen_rep_weights()` `@returns`:
+      still inconsistent with `create_gen_boot_weights()` on the
+      `@variables$type` naming — make them consistent
 
 ### Package-level
 
@@ -518,16 +543,18 @@ changing), or removed if resolved.
       `calibrate_rake()`; expand Key Functions to cover at least one function
       per family (calibration, nonresponse, propensity, replicate, utilities,
       diagnostics)
-- [ ] **[open]** `_pkgdown.yml`: add `create_group_jackknife_weights` to the
-      Replicate Weights section
+- [x] ~~`_pkgdown.yml`: add `create_group_jackknife_weights`~~ — **corrected
+      2026-08-31**: the function does not exist (the replicate item above
+      already says so); `_pkgdown.yml` lists `create_jackknife_weights` (line
+      67). No change needed.
 - [ ] **[open]** README: fix `help('calibrate_to_sample')` →
       `help('calibrate_to_survey')`
 
 ### Dataset docs / examples
 
-- [ ] `ipw()` GEE example: verify whether it still uses inline synthetic data
-      (`nps_gee`, `ref_gee_df`) instead of package data — replace with a
-      package dataset if so, per the documentation standards
+- [ ] **[open, confirmed 2026-08-31]** `ipw()` GEE example: still uses inline
+      synthetic data (`nps_gee`, `ref_gee_df`) — replace with a package
+      dataset per the documentation standards
 
 ### Constructor pattern (see Section E)
 
@@ -552,19 +579,19 @@ subagent reports for detailed findings.
 | `poststratify()` | `260000000` in `type = "count"` example unexplained; `setdiff()` prose in params; cell-size edge case absent |
 | `calibrate_to_survey()` | Migration note and `control_col_matches` leaked into user docs (Section H); Algorithm section is methodology-specialist writing |
 | `calibrate_to_estimate()` | No simple example (only the complex vcov path); `unit_scale` → svrep internal arg name leaked; no comparison with `calibrate_to_survey()` |
-| `adjust_nonresponse()` | propensity methods (`"propensity-cell"`, `"propensity"`) have no examples; `sample()` without `set.seed()` (deliberate — see H); row-retention trap in `@returns` needs re-verification |
+| `adjust_nonresponse()` | propensity methods (`"propensity-cell"`, `"propensity"`) have no examples; `sample()` without `set.seed()` (deliberate — see H); row-retention trap verified 2026-08-31; unconditional "retained" sentence in `@details` (see F/H) |
 | `redistribute_weights()` | Developer note in user docs (Section H); `sample()` without `set.seed()` (deliberate — see H) |
 | `effective_sample_size()` | "Kish's" in title; no interpretation guidance ("is n_eff = 1456 good?") |
 | `weight_variability()` | "Design effect" undefined; no interpretation guidance; missing `@references` |
 | `summarize_weights()` | `n_positive`/`n_zero` undefined |
 | `trim_weights()` | "equally" vs. "proportionally" contradiction (confirmed); `survey_replicate` example is 10-line setup for a one-line call |
-| `rescale_weights()` | `n_h / W_h` notation undefined; example comment placement needs verification |
-| `ipw()` | Mechanism-before-motivation description; GEE example may use inline data (verify); variance details section is long before plain-language summary |
+| `rescale_weights()` | `n_h / W_h` notation undefined; example comment placement resolved 2026-08-31 (fine) |
+| `ipw()` | Mechanism-before-motivation description; GEE example uses inline data (confirmed 2026-08-31); variance details section is long before plain-language summary |
 | `create_bootstrap_weights()` | `type` options (5 methods) with no selection guidance; purpose of output never stated |
 | `create_brr_weights()` | Substantially thinner than siblings; `mse` undocumented; no Warnings section |
 | `create_jackknife_weights()` | Best-documented of the replicate family; verify example `replicates` value meets recommended minimum |
 | `create_gen_boot_weights()` | 12 `variance_estimator` options with no selection guidance; `mse` undocumented; `tau` guidance absent |
-| `create_gen_rep_weights()` | "Deterministic" claim contradicted by `seed` param (unexplained); `@returns` `@variables$type` consistency to verify |
+| `create_gen_rep_weights()` | "Deterministic" claim contradicted by `seed` param (unexplained); `@returns` `@variables$type` inconsistency confirmed 2026-08-31 |
 | `create_sdr_weights()` | Ordering sensitivity not in description; `sort_var` version note in `@param` |
 | `create_replicate_weights()` | `@details` absent — deliberately deferred pending comprehension plan (Section H); DAGJK undefined |
 | `as_taylor_design()` | "Taylor design" / "replicate design" undefined in title; no use-case motivation; warning always fires but no Warnings section (confirmed) |
@@ -588,8 +615,8 @@ complements to that release, not replacements for it:
 1. Section H (quick wins) — no design needed; knock these out opportunistically.
    The two **[decide]** items were resolved on 2026-08-28: keep the no-seed
    convention; write the comprehension plan. They no longer block the rest.
-2. Section F (row-retention re-verification, `n_positive`/`n_zero`) — bounded,
-   standalone
+2. Section F (row-retention doc fix, `n_positive`/`n_zero`) — bounded,
+   standalone; the behavior itself is verified as of 2026-08-31
 3. Section G (package-level docs) — standalone, fast
 4. Section C (method-choice) — feed into Section B design
 5. Section B + D (getting started + glossary) — the flagship deliverable

@@ -9,6 +9,10 @@ Narrowed the Section A claim, redrew the Section B class diagram, closed the
 row-retention re-verify items, reconciled Section G with its Outcome block,
 and added two quick wins: the nonresponse `@details` contradiction and the
 `create_bootstrap_weights()` nonprob pass-through.
+**Revised:** 2026-08-31 — third pass: claim-by-claim verification of the
+whole file. Corrected the Section F premise (`redistribute_weights()` has no
+class branch), fixed wrong citations, reopened part of resolved item E, and
+added newly found defects to Section H.
 **Status:** Open — pre-implementation review
 **Source:** Multi-agent documentation audit of all 23 exported functions, the README,
 `_pkgdown.yml`, and `surveywts-package.R`, evaluated from the perspective of an
@@ -50,7 +54,7 @@ what the class system returns.
 | C | Method-choice guidance | Calibration, replicate, nonresponse families | Open | Yes |
 | D | Jargon: define or link recurring terms | All functions | Open | Yes |
 | E | Constructor inconsistency | — | **Resolved** — see Resolved log | — |
-| F | Class system: accurate `@returns` + orientation | `adjust_nonresponse`, `redistribute_weights`, `summarize_weights` | Partially open | No — fix inline |
+| F | Class system: accurate `@returns` + orientation | `adjust_nonresponse`, `summarize_weights` | Partially open | No — fix inline |
 | G | Package-level docs stale | `surveywts-package.R`, `_pkgdown.yml`, README | Partially resolved — README re-render blocked | No — fix inline |
 | H | Quick-win fixes (errors, omissions, reproducibility) | Scattered | Mostly open (confirmed item-by-item) | No — checklist below |
 
@@ -65,13 +69,19 @@ what the class system returns.
 
 **Corrected 2026-08-31:** the original claim covered all 23 functions. The
 re-verification narrowed it. The gap still holds for the calibration
-functions and the replicate creators: their examples end at the bare call,
-with no assignment and no downstream step. Other families have moved:
+functions and the replicate creators. Six of the seven creators end at the
+bare call with no assignment; `create_jackknife_weights()` assigns all three
+of its results (`R/create_jackknife_weights.R:258`, `:261`, `:275`), but the
+assignments are dead ends — the names are never used again (verified
+2026-08-31). "No downstream step" holds for all seven. Other families have
+moved:
 
 - `rescale_weights()` already meets the full standard: it assigns the result
   and shows `summarize_weights()` before and after.
 - `ipw()` assigns eight results, and one example inspects
-  `weighting_history`. No example shows a subsequent estimation call.
+  `weighting_history`. Two downstream diagnostic calls appear:
+  `effective_sample_size(result1)` and `weight_variability(result1)`
+  (`R/ipw.R:549-550`). No example shows a subsequent estimation call.
 - `adjust_nonresponse()`, `calibrate_to_survey()`, and
   `calibrate_to_estimate()` assign their results.
 
@@ -165,7 +175,7 @@ survey_taylor                       (class unchanged; variance-ready)
 This diagram answers the question "what will I get back?" for every function
 in the package. The nonprob path never changes class: the NPS methods add
 `repwt_*` columns and populate `@variables$repweights` in place
-(`R/replicate-utils.R:312`, `R/jackknife-dagjk-utils.R:432`).
+(`R/replicate-utils.R:639-667`, `R/create_jackknife_weights.R:745-774`).
 
 One crossover exists (verified 2026-08-31): `create_bootstrap_weights()` also
 accepts a `survey_nonprob` on its probability-style types, the default
@@ -343,31 +353,51 @@ the Resolved log.
 
 ### Still open
 
-**Undisclosed behavioral trap in nonresponse functions — behavior re-verified
-2026-08-31:**
-- The behavior is still class-dependent. A `survey_taylor` input keeps
-  respondent rows only. A `survey_nonprob` input keeps all rows and sets the
-  excluded rows to zero weights.
-- The difference appears in the `@returns` bullets and in a `@details`
-  paragraph. It should also appear in `@description` or a named `@section`
-  ("Input class behavior").
-- New bug found during re-verification: the `@details` paragraph says
-  "zero-weight observations are retained" with no condition. That statement
-  contradicts the `survey_taylor` path, which drops the rows. See the new
+**Undisclosed behavioral trap in `adjust_nonresponse()` — behavior
+re-verified 2026-08-31:**
+- The behavior is class-dependent in all three method paths
+  (`R/adjust_nonresponse.R:821-837` weighting-class, `:446-465`
+  propensity-cell, `:674-693` propensity). A `survey_taylor` input keeps
+  respondent rows only — the validator requires strictly positive weights.
+  A `survey_nonprob` input keeps all rows with zero weights.
+- The difference appears in the `@returns` bullets only
+  (`R/adjust_nonresponse.R:66-68`). The `@details` block never mentions it.
+  It should also appear in `@description` or a named `@section` ("Input
+  class behavior").
+- Two sentences state unconditional retention, which is wrong for the
+  `survey_taylor` path: the `@details` sentence "Zero-weight observations
+  are retained for design-based variance estimation."
+  (`R/adjust_nonresponse.R:76`) and the `@description` sentence "All rows
+  are returned; nonrespondent weights are set to zero" (line 10). See the
   quick win in Section H.
+- `redistribute_weights()` has no class branch. Both input classes drop the
+  `reduce_if` rows (`R/redistribute_weights.R:379-389`). Its `@returns`
+  (lines 46-47) documents this correctly ("same class as input, with
+  `reduce_if` rows removed"), and tests lock the behavior in for both
+  classes (`tests/testthat/test-05-nonresponse.R:1084` and `:1108`). No
+  row-retention doc fix is needed there.
 
 **`n_positive` and `n_zero` in `summarize_weights()` are still undefined:**
 - Confirmed in current source (`R/summarize_weights.R` line 21) — both columns
   appear in `@returns` with no explanation
-- A user seeing `n_zero = 3` in the output has no docs explaining what a
-  zero-weight row means or what to do about it
+- The function drops zero-weight rows before it computes the statistics
+  (`R/summarize_weights.R:48` filters `w_all != 0`). In the output, `n_zero`
+  is always 0 and `n_positive` always equals `n`. The columns are
+  vestigial, which makes the missing definitions actively misleading.
+- `@returns` (lines 21-23) lists the full 11 columns. `@description` (lines
+  11-13) restates a shorter 7-column list — it omits `n_positive`,
+  `n_zero`, `min`, and `max` — and does not reference `@returns`.
 
 ### Fix
 
 1. Promote the row-retention difference to `@description` or a named section
-   in `adjust_nonresponse()` and `redistribute_weights()`, and make the
-   "retained" sentence in `@details` conditional on input class
-2. Define `n_positive` and `n_zero` in `summarize_weights()` docs
+   in `adjust_nonresponse()`. Fix both unconditional sentences: the
+   `@details` sentence at `R/adjust_nonresponse.R:76` and the `@description`
+   sentence at line 10
+2. Define `n_positive` and `n_zero` in `summarize_weights()` docs. The
+   columns are currently always 0 and `n`. Either the docs explain that, or
+   the function stops dropping zero-weight rows — a design question to
+   flag, not decide here
 
 No separate plan needed. Add to quick-wins checklist in Section H.
 
@@ -430,11 +460,18 @@ changing). Closed items are in the Resolved log at the bottom of this file.
 
 - [ ] **[open]** `trim_weights()` `@description` says excess is redistributed
       "equally" (line 13); `@section Algorithm` says "proportionally" (line
-      71) — reconcile these
-- [ ] **[open]** `summarize_weights()` `@returns` lists 11 columns
-      (`n`, `n_positive`, `n_zero`, `mean`, `cv`, `min`, `p25`, `p50`, `p75`,
-      `max`, `ess`) — confirm `@description` covers the same set or references
-      `@returns` instead of restating a shorter list
+      71). The code settles it: the redistribution adds a constant amount
+      per eligible unit (`R/utils.R:804-805`; replicate path
+      `R/trim_weights.R:303-304`), so "equally" is correct and
+      "proportionally" is the defective word (verified 2026-08-31). Fix
+      line 71
+- [ ] **[open, confirmed 2026-08-31]** `summarize_weights()` `@returns`
+      lists 11 columns (`n`, `n_positive`, `n_zero`, `mean`, `cv`, `min`,
+      `p25`, `p50`, `p75`, `max`, `ess`). `@description`
+      (`R/summarize_weights.R:11-13`) restates a shorter 7-column list —
+      it omits `n_positive`, `n_zero`, `min`, and `max` — and does not
+      reference `@returns`. Make `@description` cover the full set or
+      reference `@returns`
 
 ### Missing documentation
 
@@ -442,7 +479,10 @@ changing). Closed items are in the Resolved log at the bottom of this file.
       absent in current source; sibling `effective_sample_size()` has one
 - [ ] **[open]** `as_taylor_design()`: still no `@section Warnings` —
       confirmed absent; the function always emits
-      `surveywts_warning_taylor_loses_variance` but the help page doesn't say so
+      `surveywts_warning_taylor_loses_variance` but the help page doesn't
+      say so. The roxygen prose (`:17-18`) mentions only the already-Taylor
+      warning; the variance-loss warning fires on every successful
+      conversion (`:118-123`, unguarded after the early exits)
 - [ ] **[open]** `mse` parameter in `create_gen_boot_weights()`,
       `create_gen_rep_weights()`, `create_sdr_weights()`, `create_brr_weights()`:
       confirmed still just a bare type annotation ("`logical(1)`, default
@@ -451,53 +491,86 @@ changing). Closed items are in the Resolved log at the bottom of this file.
 - [ ] **[unblocked 2026-08-28]** `create_replicate_weights()`: still no
       `@details` section (Tier 4 dispatcher requirement). The prerequisite
       comprehension plan is **complete** —
-      `plans/comprehension-replicate-methods.md` verifies all 14 sources and
-      carries a draft `@details` block ready to adapt. This item stays open
+      `plans/comprehension-replicate-methods.md` audits all 14 sources
+      (4 citations corrected in `.claude/reference-map.yaml`; two residual
+      open items: the Fay 1989 page range and the Chrostowski year/venue
+      need a printed copy) and carries a draft `@details` block ready to
+      adapt. This item stays open
       only for the roxygen edit itself. Three findings from that doc change
       what to write:
       - The dispatcher accepts **six** `method` strings, not seven.
         `create_group_jackknife_weights()` does not exist; delete-a-group
         jackknife is `create_jackknife_weights(type = "grouped")`.
-      - **Four citations need correction before `@references` is written.**
+      - **Four citations were corrected in `.claude/reference-map.yaml` —
+        use the corrected forms when `@references` is written.**
         Read that doc's "Citation verification" section first. The
         Chrostowski entry names two co-authors who did not write the paper.
       - `tau` belongs to `create_gen_boot_weights()` only. BRR uses `rho`,
         a different quantity, and its default `rho = 0` deserves a warning.
-- [ ] **[open, behavior verified 2026-08-31]** `adjust_nonresponse()` /
-      `redistribute_weights()`: promote the class-specific row-retention
-      difference to `@description` or a named `@section`. The behavior is
-      confirmed: `survey_taylor` keeps respondent rows only; `survey_nonprob`
-      keeps all rows with zero weights.
-- [ ] **[open, found 2026-08-31]** Same files: the `@details` paragraph says
-      "zero-weight observations are retained" with no condition. That
-      contradicts the `survey_taylor` path, which drops the rows. Make the
-      sentence conditional on input class.
+- [ ] **[open, behavior verified 2026-08-31]** `adjust_nonresponse()`:
+      promote the class-specific row-retention difference to `@description`
+      or a named `@section`. The behavior is confirmed in all three method
+      paths: `survey_taylor` keeps respondent rows only; `survey_nonprob`
+      keeps all rows with zero weights. The difference currently appears in
+      the `@returns` bullets only (`R/adjust_nonresponse.R:66-68`); the
+      `@details` block never mentions it.
+- [ ] **[open, found 2026-08-31]** `adjust_nonresponse()`: two sentences
+      state unconditional row retention, which contradicts the
+      `survey_taylor` path. The `@details` sentence "Zero-weight
+      observations are retained for design-based variance estimation." is at
+      `R/adjust_nonresponse.R:76`. The `@description` sentence "All rows are
+      returned; nonrespondent weights are set to zero" is at line 10. Make
+      both conditional on input class.
 - [ ] **[open, decided 2026-08-31]** `create_bootstrap_weights()`: the
       probability-style types (the default included) silently accept a
       `survey_nonprob`. The data is wrapped as an SRS design
       (`R/replicate-utils.R:139–149`), so the replicates ignore the
       propensity-estimation step that `type = "quasi-randomization"` exists
-      to capture. The behavior is intended — `@param data` documents it, and
-      `tests/testthat/test-replicate-weights.R:82–93` locks it in — but
-      `@details` never states what the silent path does. Add a `@details`
-      paragraph that names the SRS wrapping, points NPS users to
+      to capture. The behavior is intended —
+      `tests/testthat/test-replicate-weights.R:82–93` locks in acceptance
+      without error — but no doc surface states it. `@param data`
+      (`R/create_bootstrap_weights.R:17-18`) only lists accepted classes and
+      says nothing about SRS wrapping or the returned class, and the test
+      does not pin the returned class (verified 2026-08-31). Add a
+      `@details` paragraph that names the SRS wrapping, points NPS users to
       `type = "quasi-randomization"`, and notes that `as_taylor_design()`
-      refuses the resulting object.
+      refuses the resulting object. Also state in `@param data` and
+      `@returns` that a `survey_nonprob` on a probability type returns a
+      `survey_replicate`.
 
 ### Inadvertent content
 
 - [ ] **[open]** `redistribute_weights.R` line 57 still contains an internal
       developer note ("...because it is currently the only call site; refactor
       if a second emerges") — remove from user docs
+- [ ] **[open, found 2026-08-31]** Stale comments name the removed
+      `create_group_jackknife_weights()`: `R/jackknife-dagjk-utils.R:3-4`,
+      `R/replicate-utils.R:5`, `tests/testthat/helper-test-data.R:247` —
+      update to `create_jackknife_weights(type = "grouped")`
 
 ### Incorrect or misleading content
 
-- [ ] **[open]** `calibrate_to_survey()` `@param algorithm` (line 151) still
-      contains a migration note ("differs from the prior svrep-based
-      behavior") that belongs in NEWS.md, not user-facing parameter docs
-- [ ] **[open]** `calibrate_to_survey()` `@param control` (lines 60, 126) still
-      documents `control_col_matches` as a user-facing sub-key — implementation
-      detail; move to an internal comment or remove
+- [ ] **[open]** `calibrate_to_survey()`: a migration note ("differs from
+      the prior svrep-based behavior") sits at
+      `R/calibrate_to_survey.R:149-153`, inside `@section Algorithm:` under
+      the "Calibration method and algorithm" sub-heading (verified
+      2026-08-31). The note concerns `method`, not `algorithm` —
+      `@param algorithm` (`:43-48`) is clean. The note belongs in NEWS.md,
+      not user-facing docs
+- [ ] **[open]** `calibrate_to_survey()` still documents
+      `control_col_matches` as a user-facing sub-key at three sites:
+      `@param control` (`:60-64`), `@section Algorithm` Step 5 (`:125-126`),
+      and `@section Warnings` (`:164-166`) — implementation detail; move to
+      an internal comment or remove at all three sites
+- [ ] **[open, found 2026-08-31]** `redistribute_weights()` `@description`
+      (lines 12-13) says "Sets the weights of rows satisfying `reduce_if` to
+      zero". The rows are then removed (`R/redistribute_weights.R:379-389`),
+      not kept at zero weight. Reword to say the rows are removed.
+- [ ] **[open, found 2026-08-31]** `R/data.R:396-400` demonstrates the
+      low-level `surveycore::survey_nonprob()` constructor in a user-facing
+      block for `pew_2016_optin`, and that block uses `repwts =` while
+      lines 591 and 1211 of the same file use `repweights =`. Switch to
+      `as_survey_nonprob()` or at least reconcile the argument name.
 
 ### `@returns` consistency
 
@@ -510,6 +583,10 @@ changing). Closed items are in the Resolved log at the bottom of this file.
 The `surveywts-package.R` and `_pkgdown.yml` items are closed — see the
 Resolved log.
 
+- [ ] **[open, found 2026-08-31]** Stale references to the deleted `*_svy`
+      datasets: section comments at `R/data.R:7` and `:240`; `NEWS.md:76-79`
+      still documents the `*_svy` objects as shipped;
+      `data-raw/acs-wy-2022.R` is an orphaned builder for a deleted dataset
 - [ ] **[open, blocked]** README: the stale `help('calibrate_to_sample')`
       line is generated chunk output of an upstream
       `svrep::calibrate_to_sample()` message, not a typo — do NOT rename it.
@@ -539,10 +616,12 @@ blocks were produced by an older render, against an older data schema.
       `npors_2025_clean`, `ns_wave1`, `pew_2016_optin`, and
       `pew_2016_synth_pop`. The same line states that each tibble is "paired
       with a survey design companion (e.g., `gss_2024_svy`)". No
-      `gss_2024_svy` object exists. Nothing named `*_svy` is exported, and
-      `data/` holds none; the only `*_svy` name in the repo is
-      `ns_wave1_svy`, a local variable in `data-raw/ns-wave1.R` that line
-      339 of that script discards.
+      `gss_2024_svy` object exists. No `*_svy` object is bundled, exported,
+      or documented — `tests/testthat/test-datasets.R:25-34` asserts their
+      absence from the data index. `*_svy` names appear widely as locally
+      constructed variables in roxygen examples, which is legitimate. The
+      `ns_wave1_svy` in `data-raw/ns-wave1.R` is discarded
+      (`rm(ns_wave1_svy)` at line 342).
 
 **The `calibrate-to-survey` chunk (line 160 onward):**
 
@@ -551,13 +630,18 @@ blocks were produced by an older render, against an older data schema.
       `npors_2025_clean` tibble only.
 - [ ] **[open]** `README.Rmd:165` — filters on `gss_2024$gender` and
       `gss_2024$age_group`. Neither column is in `gss_2024`. That dataset
-      carries `sex`, `age`, and `age_f3`.
+      carries `sex`, `age`, and `age_f3`. Because `gss_2024$gender` is
+      `NULL`, `!is.na(NULL)` yields `logical(0)` and the subset silently
+      returns a zero-row frame — the chunk fails quietly, not with an
+      error.
 - [ ] **[open]** `README.Rmd:178` — passes `variables = c(gender,
       age_group)` to `calibrate_to_survey()`. Same two missing columns as
       line 165.
 - [ ] **[open]** `README.Rmd:163` — the comment states that `gss_2024_svy`
-      "retains all rows including those with NA sex (19 rows)". The object
-      does not exist, and the claim is unverified.
+      "retains all rows including those with NA sex (19 rows)". The figure
+      is accurate — `sum(is.na(gss_2024$sex))` is 19 of 3309 rows (verified
+      2026-08-31) — but the comment names a nonexistent object, and the
+      code below it filters on the wrong columns.
 
 ### Dataset docs / examples
 
@@ -583,22 +667,22 @@ subagent reports for detailed findings.
 | `poststratify()` | `260000000` in `type = "count"` example unexplained; `setdiff()` prose in params; cell-size edge case absent |
 | `calibrate_to_survey()` | Migration note and `control_col_matches` leaked into user docs (Section H); Algorithm section is methodology-specialist writing |
 | `calibrate_to_estimate()` | No simple example (only the complex vcov path); `unit_scale` → svrep internal arg name leaked; no comparison with `calibrate_to_survey()` |
-| `adjust_nonresponse()` | propensity methods (`"propensity-cell"`, `"propensity"`) have no examples; `sample()` without `set.seed()` (deliberate — see H); row-retention trap verified 2026-08-31; unconditional "retained" sentence in `@details` (see F/H) |
-| `redistribute_weights()` | Developer note in user docs (Section H); `sample()` without `set.seed()` (deliberate — see H) |
+| `adjust_nonresponse()` | propensity methods (`"propensity-cell"`, `"propensity"`) have no examples; `sample()` without `set.seed()` (deliberate — see H); row-retention trap verified 2026-08-31 — the class difference appears in `@returns` only, and both `@description` and `@details` state unconditional retention, which is wrong for `survey_taylor` (see F/H) |
+| `redistribute_weights()` | Developer note in user docs (Section H); `sample()` without `set.seed()` (deliberate — see H); `@description` says the `reduce_if` rows are set to zero, but the function removes them (see H) |
 | `effective_sample_size()` | "Kish's" in title; no interpretation guidance ("is n_eff = 1456 good?") |
 | `weight_variability()` | "Design effect" undefined; no interpretation guidance; missing `@references` |
-| `summarize_weights()` | `n_positive`/`n_zero` undefined |
-| `trim_weights()` | "equally" vs. "proportionally" contradiction (confirmed); `survey_replicate` example is 10-line setup for a one-line call |
+| `summarize_weights()` | `n_positive`/`n_zero` undefined; `n_zero` is always 0 because zero-weight rows are dropped before the stats (`R/summarize_weights.R:48`); the `@description` column list omits 4 of the 11 `@returns` columns |
+| `trim_weights()` | "equally" vs. "proportionally" contradiction — the code adds a constant amount per eligible unit, so "equally" is correct and Algorithm line 71 is the defective word (see H); `survey_replicate` example is 10-line setup for a one-line call |
 | `rescale_weights()` | `n_h / W_h` notation undefined; example comment placement resolved 2026-08-31 (fine) |
 | `ipw()` | Mechanism-before-motivation description; GEE example uses inline data (confirmed 2026-08-31); variance details section is long before plain-language summary |
 | `create_bootstrap_weights()` | `type` options (5 methods) with no selection guidance; purpose of output never stated; silent nonprob pass-through on probability types needs `@details` (see H) |
-| `create_brr_weights()` | Substantially thinner than siblings; `mse` undocumented; no Warnings section |
+| `create_brr_weights()` | BRR, gen-boot, gen-rep, and SDR are uniformly thin — BRR's 56 roxygen lines match `create_gen_rep_weights()` (56) and exceed `create_sdr_weights()` (47), vs. ~273 for jackknife and ~106 for bootstrap; any thickening fix should treat the four together; `mse` undocumented; no Warnings section (shared by all creators except jackknife) |
 | `create_jackknife_weights()` | Best-documented of the replicate family; verify example `replicates` value meets recommended minimum |
 | `create_gen_boot_weights()` | 12 `variance_estimator` options with no selection guidance; `mse` undocumented; `tau` guidance absent |
-| `create_gen_rep_weights()` | "Deterministic" claim contradicted by `seed` param (unexplained); `@returns` `@variables$type` inconsistency confirmed 2026-08-31 |
+| `create_gen_rep_weights()` | "Deterministic" claim contradicted by `seed` param (unexplained) — verified 2026-08-31: the `seed` is never passed to `svrep::as_fays_gen_rep_design()` (`:130-137`); it goes only to the surveywts backend wrapper (`:146`); the docs never say so; `@returns` `@variables$type` inconsistency confirmed 2026-08-31 |
 | `create_sdr_weights()` | Ordering sensitivity not in description; `sort_var` version note in `@param` |
 | `create_replicate_weights()` | `@details` absent — deliberately deferred pending comprehension plan (Section H); DAGJK undefined |
-| `as_taylor_design()` | "Taylor design" / "replicate design" undefined in title; no use-case motivation; warning always fires but no Warnings section (confirmed) |
+| `as_taylor_design()` | "Taylor design" / "replicate design" undefined in title; no use-case motivation; warning always fires but no Warnings section (confirmed) — the roxygen prose (`:17-18`) mentions only the already-Taylor warning, while the variance-loss warning fires on every successful conversion (`:118-123`, unguarded after the early exits) |
 
 ---
 
@@ -636,7 +720,7 @@ complements to that release, not replacements for it:
 | `plans/doc-examples-overhaul.md` | Section A: per-function examples checklist | Not started |
 | `plans/doc-getting-started.md` | Section B + D: conceptual article + glossary | Not started |
 | `plans/doc-method-choice-guidance.md` | Section C: when-to-use content per family | Not started |
-| `plans/comprehension-replicate-methods.md` | Prerequisite for `create_replicate_weights()` `@details`/`@references` (Section C/H) | **Complete 2026-08-28.** All 14 sources verified; 4 citations need correction; carries a draft `@details` block and the Section C method-choice table |
+| `plans/comprehension-replicate-methods.md` | Prerequisite for `create_replicate_weights()` `@details`/`@references` (Section C/H) | **Complete 2026-08-28.** All 14 sources audited (4 citations corrected; two residual open items); carries a draft `@details` block and the Section C method-choice table |
 
 ---
 
@@ -678,12 +762,15 @@ handful of the original findings outright (noted where relevant).
 Closed, dropped, and superseded items, moved here so the body carries only
 open work.
 
-- **E. Constructor inconsistency (resolved 2026-08-26).** `R/data.R`
-  constructs `ns_wave1` examples via `surveycore::as_survey_nonprob()`
-  consistently (fixed in or before PR #85). `survey_nonprob()` is the
-  low-level S7 constructor; `as_survey_nonprob()` is the friendly wrapper —
-  the two were never actually contradictory. The related grep task closed
-  with it.
+- **E. Constructor inconsistency (resolved for `ns_wave1` 2026-08-26;
+  scoped 2026-08-31).** `R/data.R` constructs `ns_wave1` examples via
+  `surveycore::as_survey_nonprob()` consistently (fixed in or before
+  PR #85). `survey_nonprob()` is the low-level S7 constructor;
+  `as_survey_nonprob()` is the friendly wrapper — the two were never
+  actually contradictory. The related grep task closed with it. The
+  `pew_2016_optin` block at `R/data.R:396-400` still uses the low-level
+  constructor; that block was out of the original item's scope and is
+  tracked as a new Section H item.
 - **F (closed half) — `trim_weights()`/`rescale_weights()` `@returns` "same
   class as `data`" (moot, 2026-08-26).** `data.frame`/`weighted_df` input is
   now rejected outright (`surveywts_error_not_survey_base`), so the

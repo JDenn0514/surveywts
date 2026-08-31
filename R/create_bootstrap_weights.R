@@ -28,7 +28,9 @@
 #'   `"Preston"`, or `"Canty-Davison"` — passed to
 #'   [svrep::as_bootstrap_design()]. For non-probability samples:
 #'   `"quasi-randomization"` (resample-reweight bootstrap) or `"hybrid"`
-#'   (error stub; requires `mass_imputation()`, not yet implemented).
+#'   (error stub; requires `mass_imputation()`, not yet implemented). See
+#'   [svrep::as_bootstrap_design()] for how the five probability-sample
+#'   variants differ.
 #' @param reference_sample `survey_taylor` or `NULL`. Reference probability
 #'   sample for NPS types. When non-`NULL`, takes precedence over any
 #'   reference design stored in `@metadata@weighting_history`. Ignored (with
@@ -60,6 +62,14 @@
 #'     populated, and a `"bootstrap_weights"` history entry.
 #'
 #' @details
+#' **When to use.** Choose the bootstrap when you estimate a median or
+#' another quantile — the jackknife standard error for a quantile does
+#' not improve as the sample grows (Elliott & Valliant 2017) — or when
+#' your estimator has no textbook variance formula (Wu 2022). For a
+#' non-probability sample with a reference probability sample, use
+#' `type = "quasi-randomization"`, which refits the weighting model
+#' inside every replicate.
+#'
 #' A `survey_nonprob` passed with a probability-sample `type` (the default
 #' included) is silently wrapped as a simple random sample: the replicates
 #' resample rows with the base weights and ignore the propensity-estimation

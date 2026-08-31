@@ -116,6 +116,16 @@ delete-a-group jackknife (DAGJK) engine. The \code{type} argument selects the
 jackknife variant; \code{survey_nonprob} inputs are restricted to
 \code{type = "grouped"}.
 }
+\details{
+\strong{When to use.} Choose the jackknife for a stratified, possibly
+multi-stage probability sample where every stratum holds two or
+more PSUs and you estimate a total, a mean, or a ratio (Valliant,
+Dever & Kreuter 2018, Section 15.4). Do not use it for a median or
+another quantile — the jackknife standard error for a quantile does
+not improve as the sample grows; use \code{\link[=create_bootstrap_weights]{create_bootstrap_weights()}}
+or, on a paired design, \code{\link[=create_brr_weights]{create_brr_weights()}}. When every stratum
+holds exactly two PSUs, prefer BRR.
+}
 \section{Algorithm}{
 
 

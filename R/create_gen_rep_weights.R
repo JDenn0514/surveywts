@@ -35,6 +35,17 @@
 #'   `@variables$type = "other"` (the svrep back-end does not assign a
 #'   method-specific type for generalized replication).
 #'
+#' @details
+#' **When to use.** Choose generalized replication when you want the
+#' deterministic counterpart of the generalized bootstrap: it is built
+#' from the same target variance estimators, but decomposes the target
+#' matrix into fixed components instead of drawing random multipliers
+#' (Fay 1989). There is no `replicates` argument — the construction
+#' sets the count, and `max_replicates` caps it. For choosing
+#' `variance_estimator`, see the **Choosing a target** section of
+#' [create_gen_boot_weights()]; note the defaults differ (`"SD2"`
+#' here, `"SD1"` there).
+#'
 #' @section Algorithm:
 #' Generalized replication (GR) is a BRR extension that removes the
 #' requirement for exactly 2 PSUs per stratum. It constructs

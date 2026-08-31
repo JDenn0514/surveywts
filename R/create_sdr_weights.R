@@ -25,6 +25,13 @@
 #'
 #' @returns A `survey_replicate` with `@variables$type = "successive-difference"`.
 #'
+#' @details
+#' **When to use.** Choose successive difference replication only when
+#' the sample was drawn systematically from a sorted list and the rows
+#' still carry that order (Ash 2014). The row order is part of the
+#' method: re-sorted rows give a different and incorrect answer, and
+#' no error is raised. Pass `sort_var` to pin the order.
+#'
 #' @section Algorithm:
 #' Successive difference replication (SDR) pairs adjacent PSUs in
 #' systematic selection order. A Hadamard matrix of order \eqn{R} assigns

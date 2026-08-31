@@ -30,6 +30,13 @@ A \code{survey_replicate} with \verb{@variables$type = "successive-difference"}.
 Generates successive difference replication weights via
 \code{\link[svrep:as_sdr_design]{svrep::as_sdr_design()}}. Requires a \code{survey_taylor} design.
 }
+\details{
+\strong{When to use.} Choose successive difference replication only when
+the sample was drawn systematically from a sorted list and the rows
+still carry that order (Ash 2014). The row order is part of the
+method: re-sorted rows give a different and incorrect answer, and
+no error is raised. Pass \code{sort_var} to pin the order.
+}
 \section{Algorithm}{
 
 Successive difference replication (SDR) pairs adjacent PSUs in

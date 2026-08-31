@@ -39,13 +39,20 @@ character string, a new column is added and \verb{@variables$weights} updated.}
 \code{"weighting-class"} (default), \code{"propensity-cell"}, or \code{"propensity"}.
 \itemize{
 \item \code{"weighting-class"}: cells are defined by \code{by} groups; adjustment
-factors are applied cell-by-cell.
+factors are applied cell-by-cell. Choose it when you can name the
+groups whose response rates differ, and those groups are observed
+for respondents and nonrespondents alike.
 \item \code{"propensity-cell"}: fits a logistic response propensity model via
 \code{formula}, bins scores into \code{control$n_cells} quantile cells, then
-applies cell-level adjustments.
+applies cell-level adjustments. Choose it when no natural grouping
+exists: the model builds the cells from the data, and the cell-level
+factor smooths over individual fitted propensities.
 \item \code{"propensity"}: fits a logistic response propensity model via \code{formula}
 and applies individual-level inverse-probability weights
 (\code{weight_i / propensity_i}) to each respondent. Requires \code{formula}.
+Choose it when each unit's own fitted propensity should set its
+adjustment; individual factors can move further than cell-level ones,
+so watch the \code{max_adjust} warning.
 }}
 
 \item{formula}{A one-sided formula (e.g., \code{~ age_group + sex}) used for
@@ -91,6 +98,12 @@ nonrespondent rows depends on the input class — see the
 \strong{Input class behavior} section.
 }
 \details{
+\strong{When to use.} This function corrects for known nonrespondents
+inside your own sample; it needs a column that marks who responded.
+To move weight between rows defined by other conditions, use
+\code{\link[=redistribute_weights]{redistribute_weights()}}. To weight a sample that has no response
+indicator against a reference survey, use \code{\link[=ipw]{ipw()}}.
+
 For \code{survey_nonprob} input, zero-weight observations are retained for
 design-based variance estimation. Survey estimation functions (e.g.,
 \code{\link[survey:svymean]{survey::svymean()}}) handle zero weights correctly -- zero-weight units
@@ -158,7 +171,7 @@ result <- adjust_nonresponse(gss_svy, response_status = responded, by = sex)
 
 }
 \seealso{
-\code{\link[=redistribute_weights]{redistribute_weights()}}
+\code{\link[=redistribute_weights]{redistribute_weights()}}, \code{\link[=ipw]{ipw()}}
 
 Other nonresponse:
 \code{\link[=redistribute_weights]{redistribute_weights()}}

@@ -52,6 +52,17 @@ Generates Fay's generalized replication weights via
 \code{\link[svrep:as_fays_gen_rep_design]{svrep::as_fays_gen_rep_design()}}. Produces deterministic replicate weights
 (no randomness). Requires a \code{survey_taylor} design.
 }
+\details{
+\strong{When to use.} Choose generalized replication when you want the
+deterministic counterpart of the generalized bootstrap: it is built
+from the same target variance estimators, but decomposes the target
+matrix into fixed components instead of drawing random multipliers
+(Fay 1989). There is no \code{replicates} argument — the construction
+sets the count, and \code{max_replicates} caps it. For choosing
+\code{variance_estimator}, see the \strong{Choosing a target} section of
+\code{\link[=create_gen_boot_weights]{create_gen_boot_weights()}}; note the defaults differ (\code{"SD2"}
+here, \code{"SD1"} there).
+}
 \section{Algorithm}{
 
 Generalized replication (GR) is a BRR extension that removes the

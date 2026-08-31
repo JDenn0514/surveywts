@@ -93,6 +93,16 @@
 #' `TRUE`. A new entry with `operation = "jackknife_weights"` is appended to
 #' the weighting history.
 #'
+#' @details
+#' **When to use.** Choose the jackknife for a stratified, possibly
+#' multi-stage probability sample where every stratum holds two or
+#' more PSUs and you estimate a total, a mean, or a ratio (Valliant,
+#' Dever & Kreuter 2018, Section 15.4). Do not use it for a median or
+#' another quantile — the jackknife standard error for a quantile does
+#' not improve as the sample grows; use [create_bootstrap_weights()]
+#' or, on a paired design, [create_brr_weights()]. When every stratum
+#' holds exactly two PSUs, prefer BRR.
+#'
 #' @section Algorithm:
 #'
 #' **JKn (stratified delete-one jackknife)**

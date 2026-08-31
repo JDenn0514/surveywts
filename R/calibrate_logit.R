@@ -118,6 +118,15 @@
 #'   Lagrange multipliers from the final iteration -- not the one-step
 #'   linear approximation.
 #'
+#' @details
+#' **When to use.** Choose logit calibration when you must limit how
+#' far any weight can move: the ratio of calibrated to starting weight
+#' stays inside the open interval `(L, U)`, so every weight stays
+#' positive and none grows without limit (Deville & Sarndal 1992).
+#' Bounds that are too tight for the targets make a solution
+#' impossible, and the iteration fails to converge; widen `bounds` or
+#' switch to [calibrate_rake()].
+#'
 #' @section Algorithm:
 #' Logit calibration constrains the g-weight ratio \eqn{w_k / d_k} to the
 #' open interval \eqn{(L, U)} via the bounded function

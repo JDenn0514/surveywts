@@ -76,6 +76,14 @@ variables. Unlike \code{\link[=calibrate_linear]{calibrate_linear()}} and \code{
 marginal totals, \code{poststratify()} matches exact cross-tabulation cells in
 a single pass.
 }
+\details{
+\strong{When to use.} Choose post-stratification when you have population
+values for every joint cell of the stratification variables and
+every cell contains sample members. A populated cell with no sample
+members makes the adjustment undefined (Deville & Sarndal 1992).
+With several variables the cells thin out quickly; when cells run
+empty, match margins instead via \code{\link[=calibrate]{calibrate()}}.
+}
 \section{Algorithm}{
 
 Within each cell \eqn{h} defined by the joint combination of

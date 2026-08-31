@@ -72,6 +72,14 @@
 #'   `targets` (user-supplied fixed margins), `type`, and `fixed_variables`.
 #'
 #' @details
+#' **When to use.** Use [calibrate()] when your targets are fixed
+#' census values with no sampling error of their own. Use
+#' `calibrate_to_survey()` when the targets come from another survey:
+#' the control survey's sampling error then carries into the replicate
+#' variance. When you have only published estimates and their
+#' variance-covariance matrix — not the control survey's data — use
+#' [calibrate_to_estimate()].
+#'
 #'   Both `primary_design` and `control_design` must carry replicate weights
 #'   and non-NULL `@variables$scale` replication constants. The scale
 #'   constants are required to compute the Opsomer adjustment constants

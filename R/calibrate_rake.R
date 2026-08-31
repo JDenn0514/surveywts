@@ -104,6 +104,14 @@
 #'   Lagrange multiplier vector. For `algorithm = "classic_ipf"`,
 #'   `@calibration$lambda` is `NULL`.
 #'
+#' @details
+#' **When to use.** Raking is the default calibration method. Choose it
+#' when your targets are separate margins (for example sex, age group,
+#' and region) and the weights must stay positive (Deville, Sarndal &
+#' Sautory 1993). The weight ratio has no upper bound, so a margin far
+#' from the sample can produce extreme weights; use `cap`, or
+#' [trim_weights()] afterward, to limit them.
+#'
 #' @section Algorithm:
 #' Both algorithms implement the raking calibration function
 #' \eqn{F(u) = \exp(u)}, which keeps all calibrated weights strictly positive.

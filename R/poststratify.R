@@ -78,6 +78,14 @@
 #'   post-stratified. Failed replicates retain their original weights and are
 #'   recorded in `output@calibration$replicate_converged` as `FALSE`.
 #'
+#' @details
+#' **When to use.** Choose post-stratification when you have population
+#' values for every joint cell of the stratification variables and
+#' every cell contains sample members. A populated cell with no sample
+#' members makes the adjustment undefined (Deville & Sarndal 1992).
+#' With several variables the cells thin out quickly; when cells run
+#' empty, match margins instead via [calibrate()].
+#'
 #' @section Algorithm:
 #' Within each cell \eqn{h} defined by the joint combination of
 #' stratification variables, the calibration factor is

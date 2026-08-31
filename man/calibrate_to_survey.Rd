@@ -98,6 +98,14 @@ When \code{targets} is non-NULL, additional fixed census margins are enforced
 simultaneously alongside the random margins from the control survey.
 }
 \details{
+\strong{When to use.} Use \code{\link[=calibrate]{calibrate()}} when your targets are fixed
+census values with no sampling error of their own. Use
+\code{calibrate_to_survey()} when the targets come from another survey:
+the control survey's sampling error then carries into the replicate
+variance. When you have only published estimates and their
+variance-covariance matrix — not the control survey's data — use
+\code{\link[=calibrate_to_estimate]{calibrate_to_estimate()}}.
+
 Both \code{primary_design} and \code{control_design} must carry replicate weights
 and non-NULL \verb{@variables$scale} replication constants. The scale
 constants are required to compute the Opsomer adjustment constants

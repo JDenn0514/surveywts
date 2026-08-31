@@ -47,6 +47,13 @@
 #'   history.
 #'
 #' @details
+#' **When to use.** Use `calibrate_to_estimate()` when you have only
+#' point estimates and their variance-covariance matrix, for example
+#' published totals from a statistical agency. When you have the
+#' control survey itself with replicate weights, use
+#' [calibrate_to_survey()], which estimates the targets and their
+#' uncertainty directly.
+#'
 #'   `design` must carry replicate weights — either as a `survey_replicate`
 #'   object or as a `survey_nonprob` object to which replicate weights have
 #'   been added. Taylor-linearization designs are not sufficient for this

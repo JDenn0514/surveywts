@@ -123,6 +123,14 @@ improvement-based convergence, ported from the anesrake package) and the
 \code{"nr"} method (Newton-Raphson solver from Deville, Sarndal & Sautory 1993,
 using the multiplicative \code{F(u) = exp(u)} function).
 }
+\details{
+\strong{When to use.} Raking is the default calibration method. Choose it
+when your targets are separate margins (for example sex, age group,
+and region) and the weights must stay positive (Deville, Sarndal &
+Sautory 1993). The weight ratio has no upper bound, so a margin far
+from the sample can produce extreme weights; use \code{cap}, or
+\code{\link[=trim_weights]{trim_weights()}} afterward, to limit them.
+}
 \section{Algorithm}{
 
 Both algorithms implement the raking calibration function

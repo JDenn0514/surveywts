@@ -30,13 +30,20 @@
 #' @param method Character scalar. Adjustment method. One of
 #'   `"weighting-class"` (default), `"propensity-cell"`, or `"propensity"`.
 #'   - `"weighting-class"`: cells are defined by `by` groups; adjustment
-#'     factors are applied cell-by-cell.
+#'     factors are applied cell-by-cell. Choose it when you can name the
+#'     groups whose response rates differ, and those groups are observed
+#'     for respondents and nonrespondents alike.
 #'   - `"propensity-cell"`: fits a logistic response propensity model via
 #'     `formula`, bins scores into `control$n_cells` quantile cells, then
-#'     applies cell-level adjustments.
+#'     applies cell-level adjustments. Choose it when no natural grouping
+#'     exists: the model builds the cells from the data, and the cell-level
+#'     factor smooths over individual fitted propensities.
 #'   - `"propensity"`: fits a logistic response propensity model via `formula`
 #'     and applies individual-level inverse-probability weights
 #'     (`weight_i / propensity_i`) to each respondent. Requires `formula`.
+#'     Choose it when each unit's own fitted propensity should set its
+#'     adjustment; individual factors can move further than cell-level ones,
+#'     so watch the `max_adjust` warning.
 #' @param formula A one-sided formula (e.g., `~ age_group + sex`) used for
 #'   propensity score estimation when `method = "propensity-cell"` or
 #'   `method = "propensity"`. Required for `"propensity"`. All variables must
@@ -88,6 +95,12 @@
 #'   (for `method = "propensity"`) is appended to `weighting_history`.
 #'
 #' @details
+#'   **When to use.** This function corrects for known nonrespondents
+#'   inside your own sample; it needs a column that marks who responded.
+#'   To move weight between rows defined by other conditions, use
+#'   [redistribute_weights()]. To weight a sample that has no response
+#'   indicator against a reference survey, use [ipw()].
+#'
 #'   For `survey_nonprob` input, zero-weight observations are retained for
 #'   design-based variance estimation. Survey estimation functions (e.g.,
 #'   [survey::svymean()]) handle zero weights correctly -- zero-weight units
@@ -118,7 +131,7 @@
 #'   known (estimated from the data), not as true population propensities; this
 #'   understates variance and should be accounted for in downstream analysis.
 #'
-#' @seealso [redistribute_weights()]
+#' @seealso [redistribute_weights()], [ipw()]
 #'
 #' @examples
 #' # survey_taylor: mutate the tibble first, then construct the design -------

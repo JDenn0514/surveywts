@@ -112,6 +112,11 @@
 #' `c(1e-6, 1e6)`). Note that bounds apply to the ratio of calibrated to
 #' design weight, not to calibrated weights directly.
 #'
+#' Post-stratification does not route through `calibrate()`. When you
+#' have population values for every joint cell of the stratification
+#' variables — a full cross-tabulation, not separate margins — use
+#' [poststratify()], which matches those cells exactly in one pass.
+#'
 #' For full algorithm documentation, convergence criteria, and
 #' replicate-weight handling, see [calibrate_rake()],
 #' [calibrate_linear()], and [calibrate_logit()].

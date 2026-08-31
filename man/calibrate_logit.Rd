@@ -125,6 +125,15 @@ logit \code{F}-function that keeps g-weights in the open interval \verb{(L, U)},
 guaranteeing strictly positive calibrated weights. Requires Newton-Raphson
 iteration.
 }
+\details{
+\strong{When to use.} Choose logit calibration when you must limit how
+far any weight can move: the ratio of calibrated to starting weight
+stays inside the open interval \verb{(L, U)}, so every weight stays
+positive and none grows without limit (Deville & Sarndal 1992).
+Bounds that are too tight for the targets make a solution
+impossible, and the iteration fails to converge; widen \code{bounds} or
+switch to \code{\link[=calibrate_rake]{calibrate_rake()}}.
+}
 \section{Algorithm}{
 
 Logit calibration constrains the g-weight ratio \eqn{w_k / d_k} to the

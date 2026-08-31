@@ -120,6 +120,15 @@ When \code{bounds = c(L, U)} is specified, switches to truncated-linear
 calibration where g-weights are constrained to \verb{[L, U]} using
 Newton-Raphson iteration.
 }
+\details{
+\strong{When to use.} Choose linear calibration when speed matters: with
+\code{bounds = NULL} the solution is exact in one step, with no iteration
+(Deville, Sarndal & Sautory 1993). The weight adjustment is
+unbounded in both directions, so a large gap between the sample and
+the targets can produce negative weights. If negative weights are
+unacceptable, set \code{bounds}, or use \code{\link[=calibrate_rake]{calibrate_rake()}} or
+\code{\link[=calibrate_logit]{calibrate_logit()}}.
+}
 \section{Algorithm}{
 
 Linear calibration uses \eqn{F(u) = 1 + u} (the GREG estimator). The

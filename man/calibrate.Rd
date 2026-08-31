@@ -120,6 +120,11 @@ negative calibrated weights.
 \code{c(1e-6, 1e6)}). Note that bounds apply to the ratio of calibrated to
 design weight, not to calibrated weights directly.
 
+Post-stratification does not route through \code{calibrate()}. When you
+have population values for every joint cell of the stratification
+variables — a full cross-tabulation, not separate margins — use
+\code{\link[=poststratify]{poststratify()}}, which matches those cells exactly in one pass.
+
 For full algorithm documentation, convergence criteria, and
 replicate-weight handling, see \code{\link[=calibrate_rake]{calibrate_rake()}},
 \code{\link[=calibrate_linear]{calibrate_linear()}}, and \code{\link[=calibrate_logit]{calibrate_logit()}}.

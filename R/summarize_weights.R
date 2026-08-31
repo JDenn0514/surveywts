@@ -8,9 +8,11 @@
 
 #' Report summary statistics for the weight distribution
 #'
-#' Returns a tibble with n, mean, CV, percentiles (p25, p50, p75), and ESS
-#' for the weight column. Pass `by` to compute statistics separately within
-#' each subgroup defined by one or more grouping variables.
+#' Returns a tibble of distribution statistics for the weight column; the
+#' full column set is listed under **Value**. Rows with a zero weight
+#' (typically produced by [adjust_nonresponse()]) are excluded before the
+#' statistics are computed. Pass `by` to compute statistics separately
+#' within each subgroup defined by one or more grouping variables.
 #'
 #' @inheritParams effective_sample_size
 #' @param by <[`tidy-select`][tidyselect::language]> Optional grouping
@@ -18,9 +20,12 @@
 #'   observations is returned. When specified, one row is returned per
 #'   unique group combination.
 #'
-#' @returns A tibble with columns `n`, `n_positive`, `n_zero`, `mean`, `cv`,
-#'   `min`, `p25`, `p50`, `p75`, `max`, `ess`. When `by` is non-`NULL`,
-#'   the group columns precede the summary columns.
+#' @returns A tibble with columns `n` (rows summarized), `n_positive` (rows
+#'   with a weight above zero), `n_zero` (rows with a weight of exactly
+#'   zero), `mean`, `cv`, `min`, `p25`, `p50`, `p75`, `max`, and `ess`
+#'   (Kish effective sample size). Because zero-weight rows are excluded
+#'   before the summary, `n_zero` is `0` and `n_positive` equals `n`. When
+#'   `by` is non-`NULL`, the group columns precede the summary columns.
 #'
 #' @seealso [effective_sample_size()], [weight_variability()]
 #' @family diagnostics

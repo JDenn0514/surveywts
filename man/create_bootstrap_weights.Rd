@@ -17,7 +17,9 @@ create_bootstrap_weights(
 }
 \arguments{
 \item{data}{A \code{survey_taylor} or \code{survey_nonprob} design object.
-\code{survey_replicate} and \code{data.frame} → error.}
+\code{survey_replicate} and \code{data.frame} → error. A \code{survey_nonprob} is
+accepted with a probability-sample \code{type} as well; it is then wrapped
+as a simple random sample — see \verb{@details}.}
 
 \item{replicates}{\code{integer(1)} or \code{NULL}. Number of bootstrap replicates.
 Default \code{NULL} resolves to \code{200L} for \code{type = "quasi-randomization"} and
@@ -60,6 +62,8 @@ applied via \code{withr::local_seed()} and the caller's state is restored.}
 \itemize{
 \item Probability-sample types → \code{survey_replicate} with \code{replicates} new
 \code{rep_1...rep_N} columns and a \code{"replicate_creation"} history entry.
+This holds for \code{survey_nonprob} input too: a \code{survey_nonprob} with a
+probability-sample \code{type} returns a \code{survey_replicate}.
 \item \code{type = "quasi-randomization"} → \code{survey_nonprob} with \code{replicates}
 new \code{repwt_1...repwt_B} columns in \verb{@data}, \verb{@variables$repweights}
 populated, and a \code{"bootstrap_weights"} history entry.
@@ -70,6 +74,16 @@ Generates bootstrap replicate weights for probability-sample designs via
 \code{\link[svrep:as_bootstrap_design]{svrep::as_bootstrap_design()}}, or quasi-randomization bootstrap replicate
 weights for non-probability samples (\code{survey_nonprob}) via an internal
 resample-reweight algorithm.
+}
+\details{
+A \code{survey_nonprob} passed with a probability-sample \code{type} (the default
+included) is silently wrapped as a simple random sample: the replicates
+resample rows with the base weights and ignore the propensity-estimation
+step. To capture that step in the variance, use
+\code{type = "quasi-randomization"} instead. The \code{survey_replicate} returned
+by the wrapped path cannot be converted back with \code{\link[=as_taylor_design]{as_taylor_design()}} —
+that function refuses an object whose source design was a
+non-probability sample.
 }
 \section{Algorithm}{
 
@@ -123,12 +137,8 @@ samples. \emph{Statistical Science} \strong{32}(2), 249--264.
 Wu, C. (2022). Statistical inference with non-probability survey samples.
 \emph{Survey Methodology} \strong{48}(2), 283--311.
 
-Chrostowski, M.J., Guzman, C.A. and Malm, L. (2025). Variance estimation
-for non-probability surveys. \emph{Journal of Survey Statistics and
-Methodology} (forthcoming).
-
-Kolenikov, S. (2014). Calibrating variance estimation with proxy
-variables. \emph{Survey Methodology} \strong{40}(1), 21--38.
+Chrostowski, L., Chlebicki, P. and Beresewicz, M. nonprobsvy — An R
+package for modern methods for non-probability surveys.
 }
 \seealso{
 \code{\link[=create_jackknife_weights]{create_jackknife_weights()}}, \code{\link[=create_brr_weights]{create_brr_weights()}}, \code{\link[=create_gen_boot_weights]{create_gen_boot_weights()}},

@@ -421,10 +421,10 @@ To construct a \code{survey_nonprob} for analysis, use the promoted \code{weight
 column directly from the tibble:
 
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{data(pew_2016_optin)
-pew_design <- surveycore::survey_nonprob(
+pew_design <- surveycore::as_survey_nonprob(
   pew_2016_optin,
   weights = "weight",
-  repwts = contains("repwt_")
+  repweights = paste0("repwt_", 1:200)
 )
 }\if{html}{\out{</div>}}
 }

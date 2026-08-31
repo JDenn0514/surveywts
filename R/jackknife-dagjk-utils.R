@@ -1,7 +1,8 @@
 # R/jackknife-dagjk-utils.R
 #
-# Internal engine helpers for create_group_jackknife_weights() (DAGJK).
-# Migrated from create_group_jackknife_weights.R in PR 1 of jackknife-merge.
+# Internal engine helpers for create_jackknife_weights(type = "grouped")
+# (DAGJK). Migrated from the retired create_group_jackknife_weights.R in
+# PR 1 of jackknife-merge.
 
 # ============================================================================
 # .validate_replicates_dagjk_arg()

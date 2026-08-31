@@ -32,12 +32,20 @@ replicates to variance estimates.}
 \item{aux_var_names}{\verb{<tidy-select>} or \code{NULL}. Required for
 \code{"Deville-Tille"}.}
 
-\item{mse}{\code{logical(1)}, default \code{TRUE}.}
+\item{mse}{\code{logical(1)}, default \code{TRUE}. Centers each replicate deviation
+on the full-sample estimate (\code{TRUE}; conservative) or on the mean of
+the replicate estimates (\code{FALSE}).}
 
-\item{seed}{\code{integer(1)} or \code{NULL}. RNG seed for reproducibility.}
+\item{seed}{\code{integer(1)} or \code{NULL}. RNG seed for reproducibility. The
+construction is deterministic unless \code{max_replicates} is below the
+fully efficient replicate count; in that case the svrep back-end
+retains a random sample of replicates, and the seed makes that draw
+reproducible.}
 }
 \value{
-A \code{survey_replicate} with generalized replication weights.
+A \code{survey_replicate} with generalized replication weights and
+\verb{@variables$type = "other"} (the svrep back-end does not assign a
+method-specific type for generalized replication).
 }
 \description{
 Generates Fay's generalized replication weights via
@@ -66,16 +74,17 @@ create_gen_rep_weights(gss_svy, seed = 42L)
 }
 \references{
 Fay, R.E. (1984). Some properties of estimates of variance based on
-replication methods. \emph{Proceedings of the American Statistical
-Association}, 495--500.
+replication methods. \emph{Proceedings of the Section on Survey Research
+Methods, American Statistical Association}, 495--500.
 
 Fay, R.E. (1989). Theory and application of replicate weighting for
-variance calculations. \emph{Proceedings of the American Statistical
-Association}, 495--500.
+variance calculations. \emph{Proceedings of the Section on Survey Research
+Methods, American Statistical Association}.
 
 Dippo, C., Fay, R.E. and Morganstein, D. (1984). Computing variances
 from complex samples with replicate weights. \emph{Proceedings of the
-American Statistical Association}, 489--494.
+Section on Survey Research Methods, American Statistical Association},
+489--494.
 }
 \seealso{
 \code{\link[=create_bootstrap_weights]{create_bootstrap_weights()}}, \code{\link[=create_jackknife_weights]{create_jackknife_weights()}},

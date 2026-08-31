@@ -15,7 +15,9 @@ create_brr_weights(data, ..., rho = 0, mse = TRUE)
 gives standard BRR; \code{rho > 0} gives Fay's BRR variant with factors \code{rho}
 and \code{2 - rho}. Must satisfy \verb{0 <= rho < 1}.}
 
-\item{mse}{\code{logical(1)}, default \code{TRUE}.}
+\item{mse}{\code{logical(1)}, default \code{TRUE}. Centers each replicate deviation
+on the full-sample estimate (\code{TRUE}; conservative) or on the mean of
+the replicate estimates (\code{FALSE}).}
 }
 \value{
 A \code{survey_replicate} with \verb{@variables$type} of \code{"BRR"} or \code{"Fay"}.
@@ -53,16 +55,17 @@ create_brr_weights(gss_svy, rho = 0.5)
 }
 \references{
 Fay, R.E. (1984). Some properties of estimates of variance based on
-replication methods. \emph{Proceedings of the American Statistical
-Association}, 495--500.
+replication methods. \emph{Proceedings of the Section on Survey Research
+Methods, American Statistical Association}, 495--500.
 
 Fay, R.E. (1989). Theory and application of replicate weighting for
-variance calculations. \emph{Proceedings of the American Statistical
-Association}, 495--500.
+variance calculations. \emph{Proceedings of the Section on Survey Research
+Methods, American Statistical Association}.
 
 Dippo, C., Fay, R.E. and Morganstein, D. (1984). Computing variances
 from complex samples with replicate weights. \emph{Proceedings of the
-American Statistical Association}, 489--494.
+Section on Survey Research Methods, American Statistical Association},
+489--494.
 }
 \seealso{
 \code{\link[=create_bootstrap_weights]{create_bootstrap_weights()}}, \code{\link[=create_jackknife_weights]{create_jackknife_weights()}},

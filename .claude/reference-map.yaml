@@ -78,6 +78,10 @@ effective_sample_size:
   - citation: "Kish, L. (1965). Survey Sampling. New York: John Wiley & Sons."
     file: ~
 
+weight_variability:
+  - citation: "Kish, L. (1965). Survey Sampling. New York: John Wiley & Sons."
+    file: ~
+
 trim_weights:
   - citation: "Potter, F. and Zheng, Y. (2015). Methods and issues in trimming extreme weights in sample surveys. Proceedings of the Joint Statistical Meetings, Section on Survey Research Methods, 2707-2719."
     file: ../analysis-sops/knowledge/raw/papers/potter_zheng_2015_weight_trimming_methods.md

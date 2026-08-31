@@ -2,6 +2,9 @@
 #
 # redistribute_weights() — general-purpose weight redistribution primitive.
 # Transfers weight from a "reduce" group to an "increase" group.
+#
+# adjust_nonresponse() does not call redistribute_weights() internally
+# because it is currently the only call site; refactor if a second emerges.
 
 # ---------------------------------------------------------------------------
 # redistribute_weights() — exported
@@ -9,9 +12,9 @@
 
 #' Transfer weight from excluded rows to retained rows
 #'
-#' Sets the weights of rows satisfying `reduce_if` to zero and proportionally
-#' redistributes their weight to rows satisfying `increase_if` within groups
-#' defined by `by`. Rows matching neither condition are unchanged.
+#' Removes the rows satisfying `reduce_if` and proportionally redistributes
+#' their weight to rows satisfying `increase_if` within groups defined by
+#' `by`. Rows matching neither condition keep their weight unchanged.
 #'
 #' @param data A `survey_taylor` or `survey_nonprob`. `survey_replicate` ->
 #'   error. Any other class -> error.
@@ -53,8 +56,6 @@
 #'   [adjust_nonresponse(method = "weighting-class")][adjust_nonresponse()].
 #'   When `reduce_if = nonrespondent indicator` and `increase_if = respondent
 #'   indicator`, the two produce equivalent results (within `1e-10`).
-#'   `adjust_nonresponse()` does not call `redistribute_weights()` internally
-#'   because it is currently the only call site; refactor if a second emerges.
 #'
 #' @examples
 #' # survey_taylor: mutate the tibble first, then construct the design -------

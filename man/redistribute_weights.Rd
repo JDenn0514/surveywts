@@ -50,16 +50,14 @@ with \code{reduce_if} rows removed (zero weights violate survey validators).
 A history entry with \code{operation = "redistribute_weights"} is appended.
 }
 \description{
-Sets the weights of rows satisfying \code{reduce_if} to zero and proportionally
-redistributes their weight to rows satisfying \code{increase_if} within groups
-defined by \code{by}. Rows matching neither condition are unchanged.
+Removes the rows satisfying \code{reduce_if} and proportionally redistributes
+their weight to rows satisfying \code{increase_if} within groups defined by
+\code{by}. Rows matching neither condition keep their weight unchanged.
 }
 \details{
 This function is the general form of
 \link[=adjust_nonresponse]{adjust_nonresponse(method = "weighting-class")}.
 When \verb{reduce_if = nonrespondent indicator} and \verb{increase_if = respondent indicator}, the two produce equivalent results (within \code{1e-10}).
-\code{adjust_nonresponse()} does not call \code{redistribute_weights()} internally
-because it is currently the only call site; refactor if a second emerges.
 }
 \section{Algorithm}{
 

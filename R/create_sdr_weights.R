@@ -19,7 +19,9 @@
 #' @param sort_var <[`tidy-select`][tidyselect::language]> Bare column name
 #'   giving the systematic selection order. Required for stratified designs
 #'   (svrep >= 0.9.1); for non-stratified designs row order is used as fallback.
-#' @param mse `logical(1)`, default `TRUE`.
+#' @param mse `logical(1)`, default `TRUE`. Centers each replicate deviation
+#'   on the full-sample estimate (`TRUE`; conservative) or on the mean of
+#'   the replicate estimates (`FALSE`).
 #'
 #' @returns A `survey_replicate` with `@variables$type = "successive-difference"`.
 #'

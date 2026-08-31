@@ -24,10 +24,13 @@
 #' @param aux_var_names <[`tidy-select`][tidyselect::language]> or `NULL`.
 #'   Auxiliary variable columns. Required when
 #'   `variance_estimator = "Deville-Tille"`.
-#' @param mse `logical(1)`, default `TRUE`.
+#' @param mse `logical(1)`, default `TRUE`. Centers each replicate deviation
+#'   on the full-sample estimate (`TRUE`; conservative) or on the mean of
+#'   the replicate estimates (`FALSE`).
 #' @param seed `integer(1)` or `NULL`. RNG seed.
 #'
-#' @returns A `survey_replicate` with `@variables$type = "bootstrap"`.
+#' @returns A `survey_replicate` with `@variables$type = "bootstrap"` (the
+#'   stored replicate type, not the method name).
 #'
 #' @section Algorithm:
 #' The generalized bootstrap (Beaumont & Patak, 2012) generates replicate
@@ -45,15 +48,16 @@
 #'   *International Statistical Review*, 80(1), 127--148.
 #'
 #'   Fay, R.E. (1984). Some properties of estimates of variance based on
-#'   replication methods. *Proceedings of the American Statistical
-#'   Association*, 495--500.
+#'   replication methods. *Proceedings of the Section on Survey Research
+#'   Methods, American Statistical Association*, 495--500.
 #'
 #'   Dippo, C., Fay, R.E. and Morganstein, D. (1984). Computing variances
 #'   from complex samples with replicate weights. *Proceedings of the
-#'   American Statistical Association*, 489--494.
+#'   Section on Survey Research Methods, American Statistical Association*,
+#'   489--494.
 #'
 #'   Bellhouse, D.R. (1985). Computing methods for variance estimation in
-#'   complex surveys. *Journal of Official Statistics*, 1(3).
+#'   complex surveys. *Journal of Official Statistics*, 1(3), 323--329.
 #'
 #' @examples
 #' # generalized bootstrap with reproducible seed -------------------------

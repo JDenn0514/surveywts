@@ -43,6 +43,10 @@ calibrated designs, but the replicate weight adjustment now uses the Opsomer
 algorithm directly rather than delegating to svrep. Numerical results may
 differ slightly from prior versions.
 
+The default calibration method is now `method = "rake"`. The prior
+svrep-based path used linear GREG by default; callers who need that
+behavior should supply `method = "linear"` explicitly.
+
 ### `calibrate_to_survey()` history entry schema change
 
 The weighting history entry produced by `calibrate_to_survey()` now promotes
@@ -56,30 +60,27 @@ compatibility.
 
 ### New datasets
 
-Seven new tibble datasets and seven paired survey design companion objects
-replace the previous IPW-only reference designs.
+Seven tibble datasets replace the previous IPW-only reference designs:
 
-New tibbles:
-* `gss_2024`: GSS 2024 (3,309 rows, 30 columns) with derived `gender`,
-  `age_group`, and `wt_pop` columns.
-* `ns_wave1`: National Survey Wave 1 (6,422 rows, 174 columns) with derived
-  `age_group`, `race_ethn`, and `educ` columns; `gender` converted to factor.
-* `npors_2025`: Pew NPORS 2025 (5,022 rows, 69 columns) with derived
-  `gender` (factor), `age_group`, `race_ethn`, `educ`, and `wt_pop` columns.
-* `npors_2025_clean`: `npors_2025` filtered to complete cases on the four
-  derived columns (approximately 4,814 rows).
-* `acs_wy_2022`: ACS PUMS 2022 Wyoming adults (4,736 rows, 100 columns) with
-  derived `gender`, `age_group`, `race_ethn`, and `educ` columns.
+* `gss_2024`: GSS 2024 (3,309 rows, 32 columns) with derived `age_f3`,
+  `race_f4`, `pid_f3`, `edu_f3`, and `wt_pop` columns.
+* `ns_wave1`: National Survey Wave 1 (6,422 rows, 185 columns) with derived
+  `age_f3`, `race_f4`, `pid_f3`, and `edu_f3` columns; `gender` converted
+  to factor.
+* `npors_2025`: Pew NPORS 2025 (5,022 rows, 71 columns) with derived
+  `gender` (factor), `age_f3`, `race_f4`, `pid_f3`, `edu_f3`, and `wt_pop`
+  columns.
+* `npors_2025_clean`: `npors_2025` filtered to complete cases on the
+  derived columns (4,814 rows).
+* `cps_2023`: CPS ASEC 2023 (9,999 rows, 187 columns) with derived
+  `age_f3`, `race_f4`, and `edu_f3` columns.
+* `pew_2016_optin`: Pew 2016 opt-in sample (2,000 rows, 305 columns).
+* `pew_2016_synth_pop`: Pew 2016 synthetic population (20,000 rows,
+  43 columns).
 
-Companion survey design objects (one per tibble, plus two for the pew_2016
-datasets):
-* `gss_2024_svy`: `survey_taylor` using `wtssps` with `vstrat`/`vpsu`.
-* `ns_wave1_svy`: `survey_nonprob` using `weight`.
-* `npors_2025_svy`: `survey_taylor` using `weight`.
-* `npors_2025_clean_svy`: `survey_taylor` using `weight`.
-* `acs_wy_2022_svy`: `survey_replicate` (SDR, 80 replicates, `mse = TRUE`).
-* `pew_2016_optin_svy`: `survey_nonprob` with equal weights.
-* `pew_2016_synth_pop_svy`: `survey_taylor` (SRS) with equal weights.
+No survey design companion objects are shipped. Examples construct designs
+from the tibbles with `surveycore::as_survey()` or
+`surveycore::as_survey_nonprob()`.
 
 ### Retired datasets
 
@@ -91,7 +92,7 @@ The following datasets have been removed. Update code that references them:
 | `gss_ipw_ref` | `gss_2024` + `surveycore::as_survey(gss_2024, weights = wt_pop, ...)` |
 | `npors_2025_ref` | `npors_2025` |
 | `npors_2025_clean_ref` | `npors_2025_clean` |
-| `acs_ipw_ref` | `acs_wy_2022` + `surveycore::as_survey(acs_wy_2022, weights = pwgtp)` |
+| `acs_ipw_ref` | removed without replacement (the ACS reference is retired) |
 
 ### `ipw()` examples updated
 
@@ -101,7 +102,7 @@ designs for IPW are constructed from tibbles using `surveycore::as_survey()`:
 gss_ref <- surveycore::as_survey(
   gss_2024, weights = wt_pop, strata = vstrat, ids = vpsu, nest = TRUE
 )
-result <- ipw(ns_wave1, gss_ref, selection = ~gender + age_group)
+result <- ipw(ns_wave1, gss_ref, selection = ~sex + age_f3)
 ```
 
 # surveywts 0.2.0

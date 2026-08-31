@@ -19,7 +19,9 @@ selection order, or use \code{sort_var}.}
 giving the systematic selection order. Required for stratified designs
 (svrep >= 0.9.1); for non-stratified designs row order is used as fallback.}
 
-\item{mse}{\code{logical(1)}, default \code{TRUE}.}
+\item{mse}{\code{logical(1)}, default \code{TRUE}. Centers each replicate deviation
+on the full-sample estimate (\code{TRUE}; conservative) or on the mean of
+the replicate estimates (\code{FALSE}).}
 }
 \value{
 A \code{survey_replicate} with \verb{@variables$type = "successive-difference"}.

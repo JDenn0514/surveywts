@@ -23,6 +23,15 @@ history. Replicate weight columns are dropped from \verb{@data}.
 Returns \code{data} unchanged (with a warning) if \code{data} is already a
 \code{survey_taylor}.
 }
+\section{Warnings}{
+
+Every successful conversion warns that the replicate weight columns —
+and the variance capability they carry — are discarded. The warning
+marks an intentional loss of information, not a failure. When \code{data}
+is already a \code{survey_taylor}, the function instead warns that it
+returned the input unchanged.
+}
+
 \examples{
 # convert a bootstrap replicate design back to Taylor ------------------
 gss_design <- surveycore::as_survey(

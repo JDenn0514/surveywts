@@ -32,6 +32,66 @@ Dispatches to the appropriate \verb{create_*_weights()} function based on
 \code{method}. All validation, defaults, and error messages are handled by the
 dispatched function; this function only resolves the method name.
 }
+\details{
+All six methods estimate variance by rebuilding the estimate on many
+perturbed copies of the weights, then measuring the spread across
+those copies. They differ in how the perturbation is built, and each
+one assumes something about the sample design. Replication avoids the
+derivatives that Taylor linearization needs, which makes variance
+available for complex statistics (Dippo, Fay & Morganstein 1984).
+
+\strong{Bootstrap} (\code{method = "bootstrap"}) resamples with replacement and
+recomputes the estimate. It is the only method here that is consistent
+for quantiles (Elliott & Valliant 2017), and the practical choice when
+an estimator has no closed-form variance (Wu 2022). On a
+non-probability sample with \code{type = "quasi-randomization"}, the
+pseudo-weight model refits inside every replicate. Note that \code{mse} is
+a string here, not a logical.
+
+\strong{Jackknife} (\code{method = "jackknife"}) drops one PSU at a time and
+reweights the rest of its stratum (Valliant, Dever & Kreuter 2018,
+Section 15.4). Use \code{type = "jk1"} for a simple random sample and
+\code{type = "jkn"} for a stratified or multi-stage design; the replicate
+count follows from the design. No jackknife variant converges to the
+correct variance for a quantile. For delete-a-group jackknife on a
+\code{survey_nonprob} design, use \code{type = "grouped"} and set \code{replicates}
+(Valliant 2020).
+
+\strong{BRR} (\code{method = "brr"}) needs exactly two PSUs per stratum, and
+uses a Hadamard matrix to keep the half-samples balanced across strata
+(Fay 1984). Unlike the jackknife, it is proven for nonlinear
+estimators and quantiles. The default \code{rho = 0} gives classic BRR,
+which zeroes one PSU per stratum in each replicate; set \code{rho > 0} for
+Fay's variant, which keeps every weight positive and so keeps ratio
+statistics defined (Dippo, Fay & Morganstein 1984).
+
+\strong{Generalized bootstrap} (\code{method = "generalized-bootstrap"}) draws
+random weight multipliers that reproduce a target variance estimator
+you name through \code{variance_estimator} (Beaumont & Patak 2012). It is
+the general-purpose choice for designs the named methods do not fit,
+and the documented approach for Poisson sampling. Use \code{tau} to clear
+negative multipliers; the variance then carries a matching \eqn{\tau^2}
+correction. Beaumont & Patak recommend at least 750 replicates.
+
+\strong{Generalized replication} (\code{method = "generalized-replicate"}) is
+the deterministic counterpart. It decomposes the same target variance
+matrix into components and turns each into a weight perturbation
+(Fay 1989). Its balanced construction extends BRR's logic beyond the
+two-PSU case. There is no \code{replicates} argument; use \code{max_replicates}.
+
+\strong{Successive difference replication}
+(\code{method = "successive-difference"}) estimates variance by comparing
+each unit with its neighbour in sort order, which is the right
+comparison for a systematic sample (Fay & Train 1995; Ash 2014). The
+row order of the data is part of the method: re-sorted rows give a
+different and incorrect answer, with no error raised.
+
+For full algorithm documentation, parameter behavior, and
+replicate-weight handling, see \code{\link[=create_bootstrap_weights]{create_bootstrap_weights()}},
+\code{\link[=create_jackknife_weights]{create_jackknife_weights()}}, \code{\link[=create_brr_weights]{create_brr_weights()}},
+\code{\link[=create_gen_boot_weights]{create_gen_boot_weights()}}, \code{\link[=create_gen_rep_weights]{create_gen_rep_weights()}}, and
+\code{\link[=create_sdr_weights]{create_sdr_weights()}}.
+}
 \examples{
 # bootstrap (default: Rao-Wu-Yue-Beaumont) ------------------------------
 gss_svy <- surveycore::as_survey(
@@ -53,6 +113,46 @@ create_replicate_weights(
   ns_wave1_cal, method = "jackknife", type = "grouped", replicates = 50L
 )
 
+}
+\references{
+Ash, S. (2014). Using successive difference replication for estimating
+variances. \emph{Survey Methodology}, 40(1), 47--59.
+
+Beaumont, J.-F. and Patak, Z. (2012). On the generalized bootstrap for
+sample surveys with special attention to Poisson sampling.
+\emph{International Statistical Review}, 80(1), 127--148.
+
+Dippo, C., Fay, R.E. and Morganstein, D. (1984). Computing variances
+from complex samples with replicate weights. \emph{Proceedings of the
+Section on Survey Research Methods, American Statistical Association},
+489--494.
+
+Elliott, M.R. and Valliant, R. (2017). Inference for nonprobability
+samples. \emph{Statistical Science}, 32(2), 249--264.
+
+Fay, R.E. (1984). Some properties of estimates of variance based on
+replication methods. \emph{Proceedings of the Section on Survey Research
+Methods, American Statistical Association}, 495--500.
+
+Fay, R.E. (1989). Theory and application of replicate weighting for
+variance calculations. \emph{Proceedings of the Section on Survey Research
+Methods, American Statistical Association}.
+
+Fay, R.E. and Train, G.F. (1995). Aspects of survey and model-based
+postcensal estimation of income and poverty characteristics for states
+and counties. \emph{Joint Statistical Meetings, Proceedings of the Section
+on Government Statistics}, 154--159.
+
+Valliant, R. (2020). Comparing alternatives for estimation from
+nonprobability samples. \emph{Journal of Survey Statistics and Methodology},
+8, 231--263.
+
+Valliant, R., Dever, J. and Kreuter, F. (2018). \emph{Practical Tools for
+Designing and Weighting Survey Samples}, 2nd edition. New York:
+Springer.
+
+Wu, C. (2022). Statistical inference with non-probability survey
+samples. \emph{Survey Methodology}, 48(2), 283--311.
 }
 \seealso{
 \code{\link[=create_bootstrap_weights]{create_bootstrap_weights()}}, \code{\link[=create_jackknife_weights]{create_jackknife_weights()}},

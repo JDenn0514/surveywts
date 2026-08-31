@@ -2,7 +2,7 @@
 #
 # Internal helpers shared by create_bootstrap_weights(), create_jackknife_weights(),
 # create_brr_weights(), create_gen_boot_weights(), create_gen_rep_weights(),
-# create_sdr_weights(), and create_group_jackknife_weights().
+# and create_sdr_weights().
 #
 # .validate_replicate_input()        — class/type guard for all create_*_weights()
 # .validate_replicates_arg()         — coerce & validate the replicates integer arg

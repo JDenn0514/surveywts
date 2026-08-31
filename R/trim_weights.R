@@ -68,7 +68,7 @@
 #'
 #' Within each clip-and-redistribute pass, weights above `upper_abs` are
 #' clipped to `upper_abs`; weights below `lower_abs` are clipped to
-#' `lower_abs`. The clipped mass is redistributed proportionally to
+#' `lower_abs`. The clipped mass is redistributed equally across
 #' untrimmed observations so that the total weight sum is preserved. When
 #' `strict = TRUE`, the pass repeats until all weights satisfy
 #' `[lower_abs, upper_abs]`.

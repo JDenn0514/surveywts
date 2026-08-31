@@ -68,13 +68,14 @@ Either \code{min_cell} or \code{max_adjust} condition alone triggers the warning
 }}
 }
 \value{
-All rows (respondents and nonrespondents) are returned. Nonrespondent
-weights are set to 0; respondent weights are adjusted upward to conserve
-the total weight within each cell.
+An object of the same class as \code{data} with adjusted weights. The rows
+it contains depend on the input class (see the \strong{Input class
+behavior} section):
 \itemize{
-\item \code{survey_nonprob} input -> \code{survey_nonprob} (same class)
-\item \code{survey_taylor} input -> \code{survey_taylor} (same class; respondent
-rows only, because \code{survey_taylor} does not support zero weights)
+\item \code{survey_nonprob} input -> \code{survey_nonprob} with all rows;
+nonrespondent weights are set to 0
+\item \code{survey_taylor} input -> \code{survey_taylor} with respondent rows only,
+because \code{survey_taylor} does not support zero weights
 }
 
 A history entry with \code{operation = "nonresponse_weighting_class"} (for
@@ -84,16 +85,19 @@ A history entry with \code{operation = "nonresponse_weighting_class"} (for
 }
 \description{
 Redistributes the weights of nonrespondents to respondents within weighting
-classes defined by \code{by}. All rows are returned; nonrespondent weights are
-set to zero and respondent weights increase proportionally to preserve the
-total weight within each class.
+classes defined by \code{by}. Respondent weights increase proportionally to
+preserve the total weight within each class. What happens to the
+nonrespondent rows depends on the input class — see the
+\strong{Input class behavior} section.
 }
 \details{
-Zero-weight observations are retained for design-based variance estimation.
-Survey estimation functions (e.g., \code{\link[survey:svymean]{survey::svymean()}}) handle zero
-weights correctly -- zero-weight units are excluded from point estimates
-but included in the design structure for variance estimation. For manual
-calculations, use \code{w[w > 0]} to exclude nonrespondents.
+For \code{survey_nonprob} input, zero-weight observations are retained for
+design-based variance estimation. Survey estimation functions (e.g.,
+\code{\link[survey:svymean]{survey::svymean()}}) handle zero weights correctly -- zero-weight units
+are excluded from point estimates but included in the design structure
+for variance estimation. For manual calculations, use \code{w[w > 0]} to
+exclude nonrespondents. For \code{survey_taylor} input, the returned object
+carries no zero-weight rows -- the nonrespondent rows are dropped.
 
 Diagnostic functions (\code{\link[=effective_sample_size]{effective_sample_size()}}, \code{\link[=weight_variability]{weight_variability()}},
 \code{\link[=summarize_weights]{summarize_weights()}}) automatically filter to positive weights before
@@ -117,6 +121,21 @@ corrected by this method. Additionally, propensity scores are treated as
 known (estimated from the data), not as true population propensities; this
 understates variance and should be accounted for in downstream analysis.
 }
+\section{Input class behavior}{
+
+The rows in the returned object depend on the class of \code{data}:
+\itemize{
+\item \code{survey_nonprob}: all rows are returned. Nonrespondent rows are kept
+with a weight of zero.
+\item \code{survey_taylor}: respondent rows only are returned. The
+\code{survey_taylor} validator requires strictly positive weights, so the
+zero-weight nonrespondent rows are dropped.
+}
+
+In both cases respondent weights are adjusted upward to conserve the
+total weight within each cell.
+}
+
 \section{Algorithm}{
 
 Within each cell \eqn{h} defined by \code{by}, the adjustment factor is

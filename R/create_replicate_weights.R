@@ -25,6 +25,106 @@
 #'   when `method = "jackknife"` and `type = "grouped"` is passed via `...`
 #'   for DAGJK on a non-probability sample.
 #'
+#' @details
+#' All six methods estimate variance by rebuilding the estimate on many
+#' perturbed copies of the weights, then measuring the spread across
+#' those copies. They differ in how the perturbation is built, and each
+#' one assumes something about the sample design. Replication avoids the
+#' derivatives that Taylor linearization needs, which makes variance
+#' available for complex statistics (Dippo, Fay & Morganstein 1984).
+#'
+#' **Bootstrap** (`method = "bootstrap"`) resamples with replacement and
+#' recomputes the estimate. It is the only method here that is consistent
+#' for quantiles (Elliott & Valliant 2017), and the practical choice when
+#' an estimator has no closed-form variance (Wu 2022). On a
+#' non-probability sample with `type = "quasi-randomization"`, the
+#' pseudo-weight model refits inside every replicate. Note that `mse` is
+#' a string here, not a logical.
+#'
+#' **Jackknife** (`method = "jackknife"`) drops one PSU at a time and
+#' reweights the rest of its stratum (Valliant, Dever & Kreuter 2018,
+#' Section 15.4). Use `type = "jk1"` for a simple random sample and
+#' `type = "jkn"` for a stratified or multi-stage design; the replicate
+#' count follows from the design. No jackknife variant converges to the
+#' correct variance for a quantile. For delete-a-group jackknife on a
+#' `survey_nonprob` design, use `type = "grouped"` and set `replicates`
+#' (Valliant 2020).
+#'
+#' **BRR** (`method = "brr"`) needs exactly two PSUs per stratum, and
+#' uses a Hadamard matrix to keep the half-samples balanced across strata
+#' (Fay 1984). Unlike the jackknife, it is proven for nonlinear
+#' estimators and quantiles. The default `rho = 0` gives classic BRR,
+#' which zeroes one PSU per stratum in each replicate; set `rho > 0` for
+#' Fay's variant, which keeps every weight positive and so keeps ratio
+#' statistics defined (Dippo, Fay & Morganstein 1984).
+#'
+#' **Generalized bootstrap** (`method = "generalized-bootstrap"`) draws
+#' random weight multipliers that reproduce a target variance estimator
+#' you name through `variance_estimator` (Beaumont & Patak 2012). It is
+#' the general-purpose choice for designs the named methods do not fit,
+#' and the documented approach for Poisson sampling. Use `tau` to clear
+#' negative multipliers; the variance then carries a matching \eqn{\tau^2}
+#' correction. Beaumont & Patak recommend at least 750 replicates.
+#'
+#' **Generalized replication** (`method = "generalized-replicate"`) is
+#' the deterministic counterpart. It decomposes the same target variance
+#' matrix into components and turns each into a weight perturbation
+#' (Fay 1989). Its balanced construction extends BRR's logic beyond the
+#' two-PSU case. There is no `replicates` argument; use `max_replicates`.
+#'
+#' **Successive difference replication**
+#' (`method = "successive-difference"`) estimates variance by comparing
+#' each unit with its neighbour in sort order, which is the right
+#' comparison for a systematic sample (Fay & Train 1995; Ash 2014). The
+#' row order of the data is part of the method: re-sorted rows give a
+#' different and incorrect answer, with no error raised.
+#'
+#' For full algorithm documentation, parameter behavior, and
+#' replicate-weight handling, see [create_bootstrap_weights()],
+#' [create_jackknife_weights()], [create_brr_weights()],
+#' [create_gen_boot_weights()], [create_gen_rep_weights()], and
+#' [create_sdr_weights()].
+#'
+#' @references
+#'   Ash, S. (2014). Using successive difference replication for estimating
+#'   variances. *Survey Methodology*, 40(1), 47--59.
+#'
+#'   Beaumont, J.-F. and Patak, Z. (2012). On the generalized bootstrap for
+#'   sample surveys with special attention to Poisson sampling.
+#'   *International Statistical Review*, 80(1), 127--148.
+#'
+#'   Dippo, C., Fay, R.E. and Morganstein, D. (1984). Computing variances
+#'   from complex samples with replicate weights. *Proceedings of the
+#'   Section on Survey Research Methods, American Statistical Association*,
+#'   489--494.
+#'
+#'   Elliott, M.R. and Valliant, R. (2017). Inference for nonprobability
+#'   samples. *Statistical Science*, 32(2), 249--264.
+#'
+#'   Fay, R.E. (1984). Some properties of estimates of variance based on
+#'   replication methods. *Proceedings of the Section on Survey Research
+#'   Methods, American Statistical Association*, 495--500.
+#'
+#'   Fay, R.E. (1989). Theory and application of replicate weighting for
+#'   variance calculations. *Proceedings of the Section on Survey Research
+#'   Methods, American Statistical Association*.
+#'
+#'   Fay, R.E. and Train, G.F. (1995). Aspects of survey and model-based
+#'   postcensal estimation of income and poverty characteristics for states
+#'   and counties. *Joint Statistical Meetings, Proceedings of the Section
+#'   on Government Statistics*, 154--159.
+#'
+#'   Valliant, R. (2020). Comparing alternatives for estimation from
+#'   nonprobability samples. *Journal of Survey Statistics and Methodology*,
+#'   8, 231--263.
+#'
+#'   Valliant, R., Dever, J. and Kreuter, F. (2018). *Practical Tools for
+#'   Designing and Weighting Survey Samples*, 2nd edition. New York:
+#'   Springer.
+#'
+#'   Wu, C. (2022). Statistical inference with non-probability survey
+#'   samples. *Survey Methodology*, 48(2), 283--311.
+#'
 #' @examples
 #' # bootstrap (default: Rao-Wu-Yue-Beaumont) ------------------------------
 #' gss_svy <- surveycore::as_survey(

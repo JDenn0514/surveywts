@@ -4,10 +4,11 @@
 **Revised:** 2026-08-26 — reconciled against `doc-rewrite` (Phase 1/2, PRs #79–#80)
 and re-verified against current source. Resolved items removed; open items
 confirmed live.
-**Revised:** 2026-08-31 — second verification pass against current source.
-Corrected the grouped-jackknife items (Sections G, H), narrowed the Section A
-claim, noted the nonprob limit under the Section B diagram, closed the
-row-retention re-verify items, and added one new quick win.
+**Revised:** 2026-08-31 — second verification pass and decision round.
+Narrowed the Section A claim, redrew the Section B class diagram, closed the
+row-retention re-verify items, reconciled Section G with its Outcome block,
+and added two quick wins: the nonresponse `@details` contradiction and the
+`create_bootstrap_weights()` nonprob pass-through.
 **Status:** Open — pre-implementation review
 **Source:** Multi-agent documentation audit of all 23 exported functions, the README,
 `_pkgdown.yml`, and `surveywts-package.R`, evaluated from the perspective of an
@@ -80,7 +81,7 @@ what the class system returns.
 | D | Jargon: define or link recurring terms | All functions | Open | Yes |
 | E | Constructor inconsistency | — | **Resolved** | — |
 | F | Class system: accurate `@returns` + orientation | `adjust_nonresponse`, `redistribute_weights`, `summarize_weights` | Partially open | No — fix inline |
-| G | Package-level docs stale | `surveywts-package.R`, `_pkgdown.yml`, README | Open (confirmed) | No — fix inline |
+| G | Package-level docs stale | `surveywts-package.R`, `_pkgdown.yml`, README | Partially resolved — README re-render blocked | No — fix inline |
 | H | Quick-win fixes (errors, omissions, reproducibility) | Scattered | Mostly open (confirmed item-by-item) | No — checklist below |
 
 ---
@@ -149,7 +150,9 @@ Every function's examples should:
 **Yes.** Touching 23 functions systematically requires a checklist-driven spec that
 tracks which functions have been updated, what downstream step each now shows, and
 verifies `R CMD check` still passes after all example changes. File:
-`plans/doc-examples-overhaul.md` (to be written).
+`plans/doc-examples-overhaul.md` (to be written). That plan starts with a full
+per-function example audit: the 2026-08-31 narrowing above came from spot
+checks of five families, not a sweep of all 23 functions.
 
 ---
 
@@ -178,23 +181,31 @@ rewrite from the original draft below — `weighted_df` no longer exists;
 every path now starts from a `surveycore` survey object.
 
 ```
-survey_taylor / survey_nonprob
-    │  create_*_weights()
-    ▼
-survey_replicate     ← adds replicate weight columns; enables bootstrap SEs
-    │  as_taylor_design()
-    ▼
-survey_taylor        ← Taylor linearization design; SE via delta method
+probability sample              non-probability sample
+
+survey_taylor                   survey_nonprob
+    │  create_*_weights()           │  create_*_weights()
+    ▼                               │  (quasi-randomization bootstrap,
+survey_replicate                    │   grouped jackknife / DAGJK)
+    │  as_taylor_design()           ▼
+    ▼                           survey_nonprob + repwt_* columns
+survey_taylor                       (class unchanged; variance-ready)
 ```
 
-This single diagram answers the question "what will I get back?" for every
-function in the package.
+This diagram answers the question "what will I get back?" for every function
+in the package. The nonprob path never changes class: the NPS methods add
+`repwt_*` columns and populate `@variables$repweights` in place
+(`R/replicate-utils.R:312`, `R/jackknife-dagjk-utils.R:432`).
 
-One limit (noted 2026-08-31): `as_taylor_design()` rejects a replicate design
-that comes from a `survey_nonprob` source. It throws
-`surveywts_error_taylor_from_nonprob_replicate` (`R/as_taylor_design.R`
-lines 100–115). The second arrow applies only to designs with a
-`survey_taylor` origin — the article must say so.
+One crossover exists (verified 2026-08-31): `create_bootstrap_weights()` also
+accepts a `survey_nonprob` on its probability-style types, the default
+included. It silently wraps the data as an SRS design and returns a
+`survey_replicate` (`R/replicate-utils.R:139–149`); `as_taylor_design()`
+later refuses that object with
+`surveywts_error_taylor_from_nonprob_replicate`
+(`R/as_taylor_design.R:102–115`). The other five creators reject a
+`survey_nonprob` at the door. The article must show the two paths above and
+flag the crossover as a footnote, not draw it as a normal route.
 
 **2. The standard workflow**
 
@@ -418,33 +429,23 @@ No separate plan needed. Add to quick-wins checklist in Section H.
 
 ## G. Package-Level Docs: Stale and Incomplete
 
-**Priority: medium.** **Status: confirmed still open** (re-verified
-2026-08-26).
+**Priority: medium.** **Status: partially resolved — README item blocked**
+(see Outcome below).
 
-### Problems
+### Problems (original audit, since resolved or superseded)
 
-**`surveywts-package.R`** (the `?surveywts` help page) — confirmed current:
-- Still references `rake()` (line 13) — a function that does not exist (it's
-  `calibrate_rake()`)
-- Key Functions section covers only 7 of 23 exported functions (Calibration,
-  Nonresponse, Diagnostics only — no replicate weights, IPW, or utilities)
+The audit found three problems. The Outcome below records what happened to
+each; the summaries here are historical.
 
-**`_pkgdown.yml`** — corrected 2026-08-31:
-- The earlier finding was wrong. `create_group_jackknife_weights()` does not
-  exist; the grouped jackknife is `create_jackknife_weights(type = "grouped")`.
-  `_pkgdown.yml` already lists `create_jackknife_weights` (line 67). No
-  `_pkgdown.yml` change is needed.
-
-**README** — confirmed current:
-- Line 190: `help('calibrate_to_sample')` — wrong function name; should be
-  `calibrate_to_survey`
-
-### Fix
-
-Update `surveywts-package.R` to reflect the current function set. Fix the
-README typo. `_pkgdown.yml` needs no change (see the correction above).
-
-No separate plan needed. Add to quick-wins checklist.
+- **`surveywts-package.R`** referenced `rake()`, which does not exist, and
+  its Key Functions section covered only a subset of the 23 exports.
+  **Fixed in PR #93.**
+- **`_pkgdown.yml`** appeared to be missing a replicate function. The
+  finding was wrong — the function it named does not exist. **Dropped;** the
+  file is correct as is.
+- **README line 190** appeared to name a wrong function. The line is
+  generated svrep chunk output, not a typo. The real fix is a README
+  re-render, which is **blocked** — see the Outcome and Section H.
 
 ### Outcome (2026-08-28, branch `docs/package-level-docs`)
 
@@ -551,6 +552,17 @@ changing), or removed if resolved.
       "zero-weight observations are retained" with no condition. That
       contradicts the `survey_taylor` path, which drops the rows. Make the
       sentence conditional on input class.
+- [ ] **[open, decided 2026-08-31]** `create_bootstrap_weights()`: the
+      probability-style types (the default included) silently accept a
+      `survey_nonprob`. The data is wrapped as an SRS design
+      (`R/replicate-utils.R:139–149`), so the replicates ignore the
+      propensity-estimation step that `type = "quasi-randomization"` exists
+      to capture. The behavior is intended — `@param data` documents it, and
+      `tests/testthat/test-replicate-weights.R:82–93` locks it in — but
+      `@details` never states what the silent path does. Add a `@details`
+      paragraph that names the SRS wrapping, points NPS users to
+      `type = "quasi-randomization"`, and notes that `as_taylor_design()`
+      refuses the resulting object.
 
 ### Inadvertent content
 
@@ -583,8 +595,7 @@ changing), or removed if resolved.
       longer exists (merged into `create_jackknife_weights(type =
       "grouped")` in `986b8bc`). Adding the entry would break the pkgdown
       reference build. `_pkgdown.yml` audited against `NAMESPACE`: all 23
-      exports already present, no change needed. The 2026-08-31 verification
-      pass confirmed this independently.
+      exports already present, no change needed.
 - [ ] **[open, blocked]** README: the stale `help('calibrate_to_sample')`
       line is generated chunk output of an upstream
       `svrep::calibrate_to_sample()` message, not a typo — do NOT rename it.
@@ -671,7 +682,7 @@ subagent reports for detailed findings.
 | `trim_weights()` | "equally" vs. "proportionally" contradiction (confirmed); `survey_replicate` example is 10-line setup for a one-line call |
 | `rescale_weights()` | `n_h / W_h` notation undefined; example comment placement resolved 2026-08-31 (fine) |
 | `ipw()` | Mechanism-before-motivation description; GEE example uses inline data (confirmed 2026-08-31); variance details section is long before plain-language summary |
-| `create_bootstrap_weights()` | `type` options (5 methods) with no selection guidance; purpose of output never stated |
+| `create_bootstrap_weights()` | `type` options (5 methods) with no selection guidance; purpose of output never stated; silent nonprob pass-through on probability types needs `@details` (see H) |
 | `create_brr_weights()` | Substantially thinner than siblings; `mse` undocumented; no Warnings section |
 | `create_jackknife_weights()` | Best-documented of the replicate family; verify example `replicates` value meets recommended minimum |
 | `create_gen_boot_weights()` | 12 `variance_estimator` options with no selection guidance; `mse` undocumented; `tau` guidance absent |

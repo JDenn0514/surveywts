@@ -135,13 +135,13 @@ variables. \emph{Survey Methodology} \strong{40}(1), 21--38.
 \code{\link[=create_gen_rep_weights]{create_gen_rep_weights()}}, \code{\link[=create_sdr_weights]{create_sdr_weights()}},
 \code{\link[=create_replicate_weights]{create_replicate_weights()}}, \code{\link[=as_taylor_design]{as_taylor_design()}}
 
-Other replicate-weights: 
-\code{\link{as_taylor_design}()},
-\code{\link{create_brr_weights}()},
-\code{\link{create_gen_boot_weights}()},
-\code{\link{create_gen_rep_weights}()},
-\code{\link{create_jackknife_weights}()},
-\code{\link{create_replicate_weights}()},
-\code{\link{create_sdr_weights}()}
+Other replicate-weights:
+\code{\link[=as_taylor_design]{as_taylor_design()}},
+\code{\link[=create_brr_weights]{create_brr_weights()}},
+\code{\link[=create_gen_boot_weights]{create_gen_boot_weights()}},
+\code{\link[=create_gen_rep_weights]{create_gen_rep_weights()}},
+\code{\link[=create_jackknife_weights]{create_jackknife_weights()}},
+\code{\link[=create_replicate_weights]{create_replicate_weights()}},
+\code{\link[=create_sdr_weights]{create_sdr_weights()}}
 }
 \concept{replicate-weights}

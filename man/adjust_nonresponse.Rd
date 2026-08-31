@@ -90,7 +90,7 @@ total weight within each class.
 }
 \details{
 Zero-weight observations are retained for design-based variance estimation.
-Survey estimation functions (e.g., \code{\link[survey:surveysummary]{survey::svymean()}}) handle zero
+Survey estimation functions (e.g., \code{\link[survey:svymean]{survey::svymean()}}) handle zero
 weights correctly -- zero-weight units are excluded from point estimates
 but included in the design structure for variance estimation. For manual
 calculations, use \code{w[w > 0]} to exclude nonrespondents.
@@ -141,7 +141,7 @@ result <- adjust_nonresponse(gss_svy, response_status = responded, by = sex)
 \seealso{
 \code{\link[=redistribute_weights]{redistribute_weights()}}
 
-Other nonresponse: 
-\code{\link{redistribute_weights}()}
+Other nonresponse:
+\code{\link[=redistribute_weights]{redistribute_weights()}}
 }
 \concept{nonresponse}

@@ -208,10 +208,10 @@ Statistical Meetings — Section on Survey Research Methods.
 \code{\link[=calibrate]{calibrate()}}, \code{\link[=calibrate_linear]{calibrate_linear()}}, \code{\link[=calibrate_logit]{calibrate_logit()}},
 \code{\link[=poststratify]{poststratify()}}
 
-Other calibration: 
-\code{\link{calibrate}()},
-\code{\link{calibrate_linear}()},
-\code{\link{calibrate_logit}()},
-\code{\link{poststratify}()}
+Other calibration:
+\code{\link[=calibrate]{calibrate()}},
+\code{\link[=calibrate_linear]{calibrate_linear()}},
+\code{\link[=calibrate_logit]{calibrate_logit()}},
+\code{\link[=poststratify]{poststratify()}}
 }
 \concept{calibration}

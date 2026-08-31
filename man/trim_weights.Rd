@@ -128,7 +128,7 @@ Meetings, Section on Survey Research Methods}, 2707--2719.
 \seealso{
 \code{\link[=rescale_weights]{rescale_weights()}}
 
-Other utilities: 
-\code{\link{rescale_weights}()}
+Other utilities:
+\code{\link[=rescale_weights]{rescale_weights()}}
 }
 \concept{utilities}

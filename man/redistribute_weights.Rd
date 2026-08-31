@@ -90,7 +90,7 @@ redistribute_weights(
 \seealso{
 \code{\link[=adjust_nonresponse]{adjust_nonresponse()}}
 
-Other nonresponse: 
-\code{\link{adjust_nonresponse}()}
+Other nonresponse:
+\code{\link[=adjust_nonresponse]{adjust_nonresponse()}}
 }
 \concept{nonresponse}

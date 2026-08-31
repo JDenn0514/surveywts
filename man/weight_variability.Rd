@@ -36,8 +36,8 @@ weight_variability(ns_wave1_svy)
 \seealso{
 \code{\link[=effective_sample_size]{effective_sample_size()}}, \code{\link[=summarize_weights]{summarize_weights()}}
 
-Other diagnostics: 
-\code{\link{effective_sample_size}()},
-\code{\link{summarize_weights}()}
+Other diagnostics:
+\code{\link[=effective_sample_size]{effective_sample_size()}},
+\code{\link[=summarize_weights]{summarize_weights()}}
 }
 \concept{diagnostics}

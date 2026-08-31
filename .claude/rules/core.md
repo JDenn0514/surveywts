@@ -48,6 +48,10 @@ never exported.
 
 - Every non-trivial change lives on a feature branch — never commit
   implementation code to `main` or `develop`.
+- Exception (decided 2026-08-31): edits to files under `plans/` may be
+  committed directly to `develop` with a `docs(plans):` message. The
+  exception covers `plans/` only — README, `.claude/`, and all other
+  documentation still use a branch and a PR.
 - Branch naming: `feature/`, `fix/`, `hotfix/`, `test/`, `docs/`, `chore/`,
   `refactor/`.
 - All commits use Conventional Commits format: `feat(scope): description`.

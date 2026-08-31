@@ -6,31 +6,85 @@
 \alias{surveywts-package}
 \title{Tools for Survey Weighting and Calibration}
 \description{
-Provides tools for calibrating survey weights to known population totals
-using GREG, raking (iterative proportional fitting), and
-post-stratification. Supports nonresponse adjustment via the
-weighting-class method, effective sample size diagnostics, and full
-weighting history tracking for reproducible survey analysis workflows.
+Provides the full weight adjustment workflow for survey data. Calibrates
+weights to known population totals by raking, linear (GREG), logit-bounded,
+or post-stratification estimators. Corrects unit nonresponse, estimates
+inverse probability weights for a non-probability sample, and generates
+replicate weights for variance estimation. Trims and rescales weights,
+reports weight diagnostics, and records every adjustment in the weighting
+history of the survey object.
 }
 \section{Key Functions}{
 
 \strong{Calibration:}
 \itemize{
-\item \code{calibrate()}: GREG (linear) or logit calibration to population totals
-\item \code{rake()}: raking via iterative proportional fitting
-\item \code{poststratify()}: exact post-stratification to cell counts or proportions
+\item \code{calibrate()}: a thin dispatcher that routes to \code{calibrate_rake()},
+\code{calibrate_linear()}, or \code{calibrate_logit()} based on \code{method}
+\item \code{calibrate_linear()}: linear (GREG) calibration to marginal totals;
+\code{bounds} switches it to truncated-linear calibration
+\item \code{calibrate_logit()}: logit-bounded calibration; the g-weights stay inside
+an open interval, so the calibrated weights stay positive
+\item \code{calibrate_rake()}: raking (iterative proportional fitting) to several
+marginal totals at the same time
+\item \code{poststratify()}: matches the exact cross-tabulation cells in one pass
+instead of the marginal totals
 }
 
-\strong{Nonresponse:}
+\strong{Sample-Based Calibration:}
 \itemize{
-\item \code{adjust_nonresponse()}: weighting-class nonresponse adjustment
+\item \code{calibrate_to_survey()}: reweights a design to the totals estimated from
+a control survey, and propagates the uncertainty of those estimates
+\item \code{calibrate_to_estimate()}: reweights a design to externally supplied
+count totals, with a variance-covariance matrix for those totals
+}
+
+\strong{Propensity Weighting:}
+\itemize{
+\item \code{ipw()}: estimates inverse probability weights for a non-probability
+sample from the participation propensity against a reference sample
+}
+
+\strong{Nonresponse Adjustment:}
+\itemize{
+\item \code{adjust_nonresponse()}: moves the weight of the nonrespondents to the
+respondents inside weighting classes
+\item \code{redistribute_weights()}: sets the weight of the excluded rows to zero
+and moves that weight to the retained rows
+}
+
+\strong{Replicate Weights:}
+\itemize{
+\item \code{create_replicate_weights()}: a dispatcher that routes to one of the
+\verb{create_*_weights()} functions based on \code{method}
+\item \code{create_bootstrap_weights()}: bootstrap replicate weights, or
+quasi-randomization bootstrap weights for a non-probability sample
+\item \code{create_jackknife_weights()}: jackknife replicate weights, including the
+delete-a-group jackknife for a non-probability sample
+\item \code{create_brr_weights()}: balanced repeated replication (BRR) or Fay's BRR
+weights; the design must have exactly 2 PSUs per stratum
+\item \code{create_sdr_weights()}: successive difference replication weights
+\item \code{create_gen_boot_weights()}: generalized bootstrap replicate weights for
+a given target variance estimator
+\item \code{create_gen_rep_weights()}: Fay's generalized replication weights, which
+are deterministic
+\item \code{as_taylor_design()}: converts a replicate design back to a Taylor
+design and drops the replicate weight columns
+}
+
+\strong{Weight Utilities:}
+\itemize{
+\item \code{trim_weights()}: clips the weights to a bounded interval and spreads the
+trimmed excess across the untrimmed units
+\item \code{rescale_weights()}: rescales the weights to sum to the sample size,
+either overall or within each group
 }
 
 \strong{Diagnostics:}
 \itemize{
-\item \code{effective_sample_size()}: Kish effective sample size
-\item \code{weight_variability()}: coefficient of variation of weights
-\item \code{summarize_weights()}: full weight distribution summary table
+\item \code{effective_sample_size()}: Kish's effective sample size
+\item \code{weight_variability()}: the coefficient of variation of the weights
+\item \code{summarize_weights()}: a table of weight distribution statistics,
+optionally by group
 }
 }
 
@@ -45,6 +99,11 @@ Useful links:
 }
 \author{
 \strong{Maintainer}: Jacob Dennen \email{jdenn0514@gmail.com} (\href{https://orcid.org/0000-0003-3006-7364}{ORCID}) [copyright holder]
+
+Authors:
+\itemize{
+  \item Jacob Dennen \email{jdenn0514@gmail.com} (\href{https://orcid.org/0000-0003-3006-7364}{ORCID}) [copyright holder]
+}
 
 }
 \keyword{internal}

@@ -55,7 +55,10 @@
 #'   This function is the general form of
 #'   [adjust_nonresponse(method = "weighting-class")][adjust_nonresponse()].
 #'   When `reduce_if = nonrespondent indicator` and `increase_if = respondent
-#'   indicator`, the two produce equivalent results (within `1e-10`).
+#'   indicator`, the two produce equivalent results (within `1e-10`). Reach for
+#'   `redistribute_weights()` when the rows losing weight are defined by a
+#'   condition other than nonresponse — for example, removing ineligible cases
+#'   while conserving the group totals.
 #'
 #' @examples
 #' # survey_taylor: mutate the tibble first, then construct the design -------

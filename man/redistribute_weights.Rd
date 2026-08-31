@@ -57,7 +57,10 @@ their weight to rows satisfying \code{increase_if} within groups defined by
 \details{
 This function is the general form of
 \link[=adjust_nonresponse]{adjust_nonresponse(method = "weighting-class")}.
-When \verb{reduce_if = nonrespondent indicator} and \verb{increase_if = respondent indicator}, the two produce equivalent results (within \code{1e-10}).
+When \verb{reduce_if = nonrespondent indicator} and \verb{increase_if = respondent indicator}, the two produce equivalent results (within \code{1e-10}). Reach for
+\code{redistribute_weights()} when the rows losing weight are defined by a
+condition other than nonresponse — for example, removing ineligible cases
+while conserving the group totals.
 }
 \section{Algorithm}{
 

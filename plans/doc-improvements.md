@@ -458,8 +458,9 @@ that svrep path: `.svrep_calibrate_to_sample()` is defined at
 `tests/testthat/test-sample-calibration.R:3264` asserts no path calls it.
 So the correct fix is to re-render `README.md` from `README.Rmd`.
 
-That render currently fails. See the two new README.Rmd items in Section H
-("Broken README.Rmd chunks"). Item 3 stays open until those land.
+That render currently fails. Two chunks in `README.Rmd` reference columns
+and objects that do not exist. See Section H ("Broken README.Rmd chunks").
+Item 3 stays open until those land.
 
 ---
 
@@ -562,31 +563,50 @@ changing), or removed if resolved.
       line is generated chunk output of an upstream
       `svrep::calibrate_to_sample()` message, not a typo — do NOT rename it.
       surveywts no longer calls that path, so the fix is to re-render
-      `README.md` from `README.Rmd`. Blocked on the two "Broken README.Rmd
+      `README.md` from `README.Rmd`. Blocked on the "Broken README.Rmd
       chunks" items below.
 
 ### Broken README.Rmd chunks
 
-Found 2026-08-28 while working Section G item 3. `devtools::build_readme()`
-fails, so `README.md` cannot be re-rendered at all. Both items must land
-before the Section G README item can close.
+Found 2026-08-28, extended 2026-08-31, while working Section G item 3.
+`devtools::build_readme()` fails, so `README.md` cannot be re-rendered at
+all. Two chunks are broken. Every item below is verified against the
+bundled data. All must land before the Section G README item can close.
 
-- [ ] **[open]** `README.Rmd:126` — the `ipw` chunk passes
+`README.md` is therefore stale by an unknown margin. Its current output
+blocks were produced by an older render, against an older data schema.
+
+**The `ipw` chunk (line 120 onward):**
+
+- [ ] **[open]** `README.Rmd:126` — the chunk passes
       `predictors = c("gender", "age_group", "race_ethn", "educ")`, but only
       `gender` is a column of `ns_wave1`. `age_group`, `race_ethn`, and
-      `educ` do not exist in that dataset, so the chunk errors. The
-      harmonized columns shared by `ns_wave1` and `npors_2025_clean` are
-      `sex`, `age_f3`, `race_f4`, `edu_f3`, `pid_f3`, `language`, `gender`,
-      and `registration`; `c("sex", "age_f3", "race_f4", "edu_f3")` is the
-      natural replacement. Re-rendering changes the `ipw()` output numbers
-      shown in the README, so check the surrounding prose too.
-- [ ] **[open]** `README.Rmd:113` — names `acs_wy_2022` as a bundled
-      reference survey. No such dataset is in `data/`. The bundled sets are
-      `cps_2023`, `gss_2024`, `npors_2025`, `npors_2025_clean`, `ns_wave1`,
-      `pew_2016_optin`, and `pew_2016_synth_pop`. Either drop the reference
-      or add the dataset. The same line claims each tibble is "paired with a
-      survey design companion (e.g., `gss_2024_svy`)" — verify those
-      companion objects exist and are exported before keeping that sentence.
+      `educ` do not exist in that dataset, so the chunk errors.
+- [ ] **[open]** `README.Rmd:113` — the paragraph above the chunk names
+      `acs_wy_2022` as a bundled reference survey. No such dataset is in
+      `data/`. The bundled sets are `cps_2023`, `gss_2024`, `npors_2025`,
+      `npors_2025_clean`, `ns_wave1`, `pew_2016_optin`, and
+      `pew_2016_synth_pop`. The same line states that each tibble is "paired
+      with a survey design companion (e.g., `gss_2024_svy`)". No
+      `gss_2024_svy` object exists. Nothing named `*_svy` is exported, and
+      `data/` holds none; the only `*_svy` name in the repo is
+      `ns_wave1_svy`, a local variable in `data-raw/ns-wave1.R` that line
+      339 of that script discards.
+
+**The `calibrate-to-survey` chunk (line 160 onward):**
+
+- [ ] **[open]** `README.Rmd:161` — passes `npors_2025_clean_svy` to
+      `create_bootstrap_weights()`. No such object exists. `data/` holds the
+      `npors_2025_clean` tibble only.
+- [ ] **[open]** `README.Rmd:165` — filters on `gss_2024$gender` and
+      `gss_2024$age_group`. Neither column is in `gss_2024`. That dataset
+      carries `sex`, `age`, and `age_f3`.
+- [ ] **[open]** `README.Rmd:178` — passes `variables = c(gender,
+      age_group)` to `calibrate_to_survey()`. Same two missing columns as
+      line 165.
+- [ ] **[open]** `README.Rmd:163` — the comment states that `gss_2024_svy`
+      "retains all rows including those with NA sex (19 rows)". The object
+      does not exist, and the claim is unverified.
 
 ### Dataset docs / examples
 

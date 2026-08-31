@@ -426,6 +426,41 @@ Update `surveywts-package.R` to reflect the current function set. Add
 
 No separate plan needed. Add to quick-wins checklist.
 
+### Outcome (2026-08-28, branch `docs/package-level-docs`)
+
+Item 1 shipped. Items 2 and 3 did not survive verification against current
+source.
+
+**Item 1 — `surveywts-package.R`: DONE.** `rake()` is gone. `@section Key
+Functions:` now names all 23 exports across 7 families, and `@description`
+covers the current function set.
+
+**Item 2 — `_pkgdown.yml`: DROPPED, not needed.**
+`create_group_jackknife_weights()` no longer exists. Commit `986b8bc` merged
+it into `create_jackknife_weights(type = "grouped")`. It is absent from
+`NAMESPACE`, `R/`, and `man/`. A `contents:` entry with no matching `.Rd`
+breaks the pkgdown reference build, so the entry must not be added.
+`_pkgdown.yml` was audited against `NAMESPACE` instead: all 23 exports
+appear exactly once. The file is already correct.
+
+**Item 3 — README: DEFERRED, blocked.** The fix as written is wrong, and the
+correct fix is blocked by an unrelated defect.
+
+`README.md:190` is not authored prose. It is captured chunk output. The
+message comes from `svrep::calibrate_to_sample()`, and inside that message
+`help('calibrate_to_sample')` correctly names svrep's own function.
+Renaming it to `calibrate_to_survey` would point the reader at a help page
+that exists in neither package.
+
+The real defect is that `README.md` is stale. surveywts no longer reaches
+that svrep path: `.svrep_calibrate_to_sample()` is defined at
+`R/calibrate_to_survey.R:1249` and nothing calls it, and
+`tests/testthat/test-sample-calibration.R:3264` asserts no path calls it.
+So the correct fix is to re-render `README.md` from `README.Rmd`.
+
+That render currently fails. See the two new README.Rmd items in Section H
+("Broken README.Rmd chunks"). Item 3 stays open until those land.
+
 ---
 
 ## H. Quick-Win Fixes
@@ -505,14 +540,44 @@ changing), or removed if resolved.
 
 ### Package-level
 
-- [ ] **[open]** `surveywts-package.R`: replace `rake()` with
-      `calibrate_rake()`; expand Key Functions to cover at least one function
-      per family (calibration, nonresponse, propensity, replicate, utilities,
-      diagnostics)
-- [ ] **[open]** `_pkgdown.yml`: add `create_group_jackknife_weights` to the
-      Replicate Weights section
-- [ ] **[open]** README: fix `help('calibrate_to_sample')` →
-      `help('calibrate_to_survey')`
+- [x] **[done 2026-08-28]** `surveywts-package.R`: replaced `rake()` with
+      `calibrate_rake()`; Key Functions now covers all 23 exports across 7
+      families. See Section G "Outcome".
+- [x] ~~`_pkgdown.yml`: add `create_group_jackknife_weights` to the
+      Replicate Weights section~~ — **dropped 2026-08-28**, the function no
+      longer exists (merged into `create_jackknife_weights(type =
+      "grouped")` in `986b8bc`). Adding the entry would break the pkgdown
+      reference build. `_pkgdown.yml` audited against `NAMESPACE`: all 23
+      exports already present, no change needed.
+- [ ] **[open, blocked]** README: the stale `help('calibrate_to_sample')`
+      line is generated chunk output of an upstream
+      `svrep::calibrate_to_sample()` message, not a typo — do NOT rename it.
+      surveywts no longer calls that path, so the fix is to re-render
+      `README.md` from `README.Rmd`. Blocked on the two "Broken README.Rmd
+      chunks" items below.
+
+### Broken README.Rmd chunks
+
+Found 2026-08-28 while working Section G item 3. `devtools::build_readme()`
+fails, so `README.md` cannot be re-rendered at all. Both items must land
+before the Section G README item can close.
+
+- [ ] **[open]** `README.Rmd:126` — the `ipw` chunk passes
+      `predictors = c("gender", "age_group", "race_ethn", "educ")`, but only
+      `gender` is a column of `ns_wave1`. `age_group`, `race_ethn`, and
+      `educ` do not exist in that dataset, so the chunk errors. The
+      harmonized columns shared by `ns_wave1` and `npors_2025_clean` are
+      `sex`, `age_f3`, `race_f4`, `edu_f3`, `pid_f3`, `language`, `gender`,
+      and `registration`; `c("sex", "age_f3", "race_f4", "edu_f3")` is the
+      natural replacement. Re-rendering changes the `ipw()` output numbers
+      shown in the README, so check the surrounding prose too.
+- [ ] **[open]** `README.Rmd:113` — names `acs_wy_2022` as a bundled
+      reference survey. No such dataset is in `data/`. The bundled sets are
+      `cps_2023`, `gss_2024`, `npors_2025`, `npors_2025_clean`, `ns_wave1`,
+      `pew_2016_optin`, and `pew_2016_synth_pop`. Either drop the reference
+      or add the dataset. The same line claims each tibble is "paired with a
+      survey design companion (e.g., `gss_2024_svy`)" — verify those
+      companion objects exist and are exported before keeping that sentence.
 
 ### Dataset docs / examples
 

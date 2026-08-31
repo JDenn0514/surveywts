@@ -68,6 +68,13 @@ count totals. The \code{vcov_estimate} matrix propagates the uncertainty of
 those external estimates into the calibrated design's variance estimates.
 }
 \details{
+\strong{When to use.} Use \code{calibrate_to_estimate()} when you have only
+point estimates and their variance-covariance matrix, for example
+published totals from a statistical agency. When you have the
+control survey itself with replicate weights, use
+\code{\link[=calibrate_to_survey]{calibrate_to_survey()}}, which estimates the targets and their
+uncertainty directly.
+
 \code{design} must carry replicate weights — either as a \code{survey_replicate}
 object or as a \code{survey_nonprob} object to which replicate weights have
 been added. Taylor-linearization designs are not sufficient for this

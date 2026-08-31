@@ -128,7 +128,7 @@ after sample-based calibration. \emph{Survey Methodology}, 47, 265--277.
 \seealso{
 \code{\link[=calibrate_to_survey]{calibrate_to_survey()}}
 
-Other sample-calibration: 
-\code{\link{calibrate_to_survey}()}
+Other sample-calibration:
+\code{\link[=calibrate_to_survey]{calibrate_to_survey()}}
 }
 \concept{sample-calibration}

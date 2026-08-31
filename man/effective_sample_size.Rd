@@ -39,8 +39,8 @@ Kish, L. (1965). \emph{Survey Sampling}. New York: John Wiley & Sons.
 \seealso{
 \code{\link[=weight_variability]{weight_variability()}}, \code{\link[=summarize_weights]{summarize_weights()}}
 
-Other diagnostics: 
-\code{\link{summarize_weights}()},
-\code{\link{weight_variability}()}
+Other diagnostics:
+\code{\link[=summarize_weights]{summarize_weights()}},
+\code{\link[=weight_variability]{weight_variability()}}
 }
 \concept{diagnostics}

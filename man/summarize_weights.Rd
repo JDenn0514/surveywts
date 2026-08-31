@@ -40,8 +40,8 @@ summarize_weights(ns_wave1_svy, by = sex)
 \seealso{
 \code{\link[=effective_sample_size]{effective_sample_size()}}, \code{\link[=weight_variability]{weight_variability()}}
 
-Other diagnostics: 
-\code{\link{effective_sample_size}()},
-\code{\link{weight_variability}()}
+Other diagnostics:
+\code{\link[=effective_sample_size]{effective_sample_size()}},
+\code{\link[=weight_variability]{weight_variability()}}
 }
 \concept{diagnostics}

@@ -250,7 +250,7 @@ samples. \emph{Statistica Sinica}, 8, 1153--1164.
 \seealso{
 \code{\link[=calibrate_to_estimate]{calibrate_to_estimate()}}
 
-Other sample-calibration: 
-\code{\link{calibrate_to_estimate}()}
+Other sample-calibration:
+\code{\link[=calibrate_to_estimate]{calibrate_to_estimate()}}
 }
 \concept{sample-calibration}

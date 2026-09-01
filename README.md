@@ -72,12 +72,11 @@ rounds out the ecosystem with tidy data manipulation for survey objects.
 |----|----|
 | `create_replicate_weights()` | Dispatcher for all replicate weight methods |
 | `create_bootstrap_weights()` | Bootstrap replicate weights (Rao-Wu-Yue-Beaumont; quasi-randomization for NPS) |
-| `create_jackknife_weights()` | Jackknife replicate weights (JK1, JKn, random groups) |
+| `create_jackknife_weights()` | Jackknife replicate weights (`type = "jk1"`, `"jkn"`, or `"grouped"`) |
 | `create_brr_weights()` | Balanced repeated replication (standard or Fay’s variant) |
 | `create_gen_boot_weights()` | Generalized bootstrap weights |
 | `create_gen_rep_weights()` | Generalized replication weights (Fay’s method) |
 | `create_sdr_weights()` | Successive difference replication |
-| `create_group_jackknife_weights()` | Delete-a-group jackknife for non-probability samples |
 | `as_taylor_design()` | Convert a replicate design back to Taylor linearization |
 
 ### Diagnostics
@@ -111,7 +110,11 @@ from the tibbles with `surveycore::as_survey()` or
 library(surveywts)
 
 # Construct a reference design from the npors_2025_clean tibble
-npors_ref <- surveycore::as_survey(npors_2025_clean, weights = wt_pop)
+npors_ref <- surveycore::as_survey(
+  npors_2025_clean,
+  weights = wt_pop,
+  strata = stratum
+)
 
 # Drop the 7 rows with NA partisanship (pid_f3) — the benchmark variable
 # in the calibrate-to-survey step below.

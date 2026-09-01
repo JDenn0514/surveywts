@@ -1,8 +1,10 @@
 # Getting Started article + glossary (Sections B + D)
 
 **Created:** 2026-08-31.
-**Status:** Ready for implementation — adversarially reviewed 2026-08-31
-(see the review log at the bottom).
+**Status:** Implemented 2026-08-31 — PR #99 (article + infrastructure) and
+PR #100 (anchors + `@seealso` links), both merged to `develop`. Item 5b
+(live URL check) is open until the next merge to `main`: the pkgdown
+workflow deploys from `main` only.
 **Source:** `plans/doc-improvements.md` Sections B and D. The Plans to Write
 table folds Section D into this file.
 **Verified sources for claims:** `plans/comprehension-replicate-methods.md`
@@ -210,11 +212,11 @@ has no `articles:` or `navbar:` block; pkgdown adds the Articles menu on
 its own when an article exists, so no `_pkgdown.yml` change is needed
 either. A pkgdown CI workflow exists (`.github/workflows/pkgdown.yaml`).
 
-- [ ] **1a.** Create `vignettes/articles/getting-started.Rmd` (Task 2
+- [x] **1a.** Create `vignettes/articles/getting-started.Rmd` (Task 2
   writes the content). Do not create any file directly under `vignettes/`
   — the vignette suite belongs to the Polish release, and this plan sets
   up only what the article needs.
-- [ ] **1b.** Add one line to `.Rbuildignore`:
+- [x] **1b.** Add one line to `.Rbuildignore`:
 
   ```
   ^vignettes/articles$
@@ -223,7 +225,7 @@ either. A pkgdown CI workflow exists (`.github/workflows/pkgdown.yaml`).
   This keeps the article out of the built package, so `R CMD check` never
   sees it. Do not ignore `^vignettes$` — future vignettes must stay in
   the build.
-- [ ] **1c.** After Task 2, run `pkgdown::build_site()` locally (or at
+- [x] **1c.** After Task 2, run `pkgdown::build_site()` locally (or at
   minimum `pkgdown::build_articles()`). The article must render with no
   errors, and the Articles menu must appear in the navbar.
 
@@ -510,7 +512,7 @@ Method names:
 - **GREG** — generalized regression estimator; the survey name for
   linear calibration. See `calibrate_linear()`.
 
-- [ ] **2f. Term-list sweep.** Before finalizing the glossary, grep the
+- [x] **2f. Term-list sweep.** Before finalizing the glossary, grep the
   current roxygen for each of the 15 terms above plus any recurring
   undefined term the sweep surfaces. Section D's "Defined? No" column is
   from the 2026-06 audit and is already partially stale: `ipw()` now
@@ -585,26 +587,26 @@ Placement, starting from Section D's first-appears column — the
 implementation session finalizes it by grepping each term across `R/`
 (the 2026-06 audit predates PR #97/#98, which moved first-use points):
 
-- [ ] **3a.** replicate weights → the 8 replicate-family pages, plus
+- [x] **3a.** replicate weights → the 8 replicate-family pages, plus
   `calibrate_to_survey()` and `calibrate_to_estimate()` (both require
   replicate designs).
-- [ ] **3b.** PSU → `create_brr_weights()`, `create_jackknife_weights()`,
+- [x] **3b.** PSU → `create_brr_weights()`, `create_jackknife_weights()`,
   `create_replicate_weights()`.
-- [ ] **3c.** FPC and Taylor linearization → `as_taylor_design()`.
+- [x] **3c.** FPC and Taylor linearization → `as_taylor_design()`.
   Exception to the first-use rule: "Taylor linearization" appears in that
   file only inside an error message (`R/as_taylor_design.R:118`), never in
   the roxygen prose — the title says "Taylor design." Here the anchor is a
   new sentence at the top of `@details` that introduces the term with its
   gloss; it does not rename the title (title changes are out of scope).
-- [ ] **3d.** design effect → `weight_variability()`.
-- [ ] **3e.** g-weight → `calibrate_linear()`, `calibrate_logit()`,
+- [x] **3d.** design effect → `weight_variability()`.
+- [x] **3e.** g-weight → `calibrate_linear()`, `calibrate_logit()`,
   `calibrate()`.
-- [ ] **3f.** propensity score and MAR → `adjust_nonresponse()`, `ipw()`.
-- [ ] **3g.** weighting class → `adjust_nonresponse()`.
-- [ ] **3h.** GREG → `calibrate_linear()`. BRR → `create_brr_weights()`,
+- [x] **3f.** propensity score and MAR → `adjust_nonresponse()`, `ipw()`.
+- [x] **3g.** weighting class → `adjust_nonresponse()`.
+- [x] **3h.** GREG → `calibrate_linear()`. BRR → `create_brr_weights()`,
   `create_replicate_weights()`. DAGJK → `create_jackknife_weights()`,
   `create_replicate_weights()`.
-- [ ] **3i.** quasi-randomization bootstrap →
+- [x] **3i.** quasi-randomization bootstrap →
   `create_bootstrap_weights()`. doubly robust → `ipw()` (skip if the
   existing `R/ipw.R:308-311` definition already covers first use).
   Hadamard matrix → `create_replicate_weights()` only
@@ -626,7 +628,7 @@ verbatim; a term is glossed at most once per help page.
 **Files:** all 23 exported functions' `R/` files (G1 — every one already
 has a `@seealso` tag; verified 2026-08-31). Dataset docs are excluded.
 
-- [ ] **4a.** Append this text to each function's existing `@seealso`
+- [x] **4a.** Append this text to each function's existing `@seealso`
   block, as its final sentence (verbatim; wrap to the file's line width):
 
   ```r
@@ -635,7 +637,7 @@ has a `@seealso` tag; verified 2026-08-31). Dataset docs are excluded.
   #'   article](https://jdenn0514.github.io/surveywts/articles/getting-started.html).
   ```
 
-- [ ] **4b.** Where a `@seealso` is a bare comma-separated link list (most
+- [x] **4b.** Where a `@seealso` is a bare comma-separated link list (most
   files), end the list with a period before the new sentence, or place
   the sentence on its own lines after the list — match each file's
   existing layout. Where `@seealso` already carries prose
@@ -652,21 +654,23 @@ nothing else.
 
 ## Task 5 — Document, check, ship
 
-- [ ] **5a.** PR 1 (Tasks 1–2): branch `docs/getting-started-article`,
+- [x] **5a.** PR 1 (Tasks 1–2): branch `docs/getting-started-article`,
   commit `docs(docs): add the getting-started pkgdown article`, PR to
   `develop`. `devtools::check()` must be clean and unchanged from
   `develop` — the article is build-ignored, so any check diff means
   Task 1b failed.
 - [ ] **5b.** After PR 1 merges and the pkgdown deploy runs, confirm the
   article URL resolves:
-  `https://jdenn0514.github.io/surveywts/articles/getting-started.html`.
-- [ ] **5c.** PR 2 (Tasks 3–4): branch `docs/getting-started-links`.
+  `https://jdenn0514.github.io/surveywts/articles/getting-started.html` —
+  deferred: pkgdown deploys from `main` only; the URL goes live at the
+  next release merge.
+- [x] **5c.** PR 2 (Tasks 3–4): branch `docs/getting-started-links`.
   Run `devtools::document()`; the `man/` diff covers exactly the touched
   topics. Run `devtools::check()`: 0 errors, 0 warnings, notes unchanged
   from `develop`. No `@examples` block changes in the diff. Commit
   `docs(docs): link function docs to the getting-started article`, PR to
   `develop`.
-- [ ] **5d.** Update `plans/doc-improvements.md`: mark Sections B and D
+- [x] **5d.** Update `plans/doc-improvements.md`: mark Sections B and D
   as plan-written (this file), and after the PRs merge, mark them done.
   Update the Plans to Write table row for this file. Also correct two
   errors in that file, inline (per the plan-files rule: rewrite in

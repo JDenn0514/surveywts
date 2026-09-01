@@ -64,9 +64,9 @@ what the class system returns.
 | # | Initiative | Scope | Status | Needs own plan? |
 |---|-----------|-------|--------|-----------------|
 | A | Examples: show what comes next | All 23 functions | Open | Yes |
-| B | Conceptual overview / Getting Started | Package-level + pkgdown | Plan drafted 2026-08-31 | Yes — written (with D) |
+| B | Conceptual overview / Getting Started | Package-level + pkgdown | **Done** — implemented 2026-08-31 (PRs #99, #100) | Yes — written (with D) |
 | C | Method-choice guidance | Calibration, replicate, nonresponse families | Plan drafted 2026-08-31; dispatcher `@details` done (Phase 1, PR #97) | Yes — written |
-| D | Jargon: define or link recurring terms | All functions | Plan drafted 2026-08-31 | Yes — written (with B) |
+| D | Jargon: define or link recurring terms | All functions | **Done** — implemented 2026-08-31 (PRs #99, #100) | Yes — written (with B) |
 | E | Constructor inconsistency | — | **Resolved** — see Resolved log | — |
 | F | Class system: accurate `@returns` + orientation | `adjust_nonresponse`, `summarize_weights` | Fixed 2026-08-31 on `docs/section-h-quick-wins`, pending merge | No — fix inline |
 | G | Package-level docs stale | `surveywts-package.R`, `_pkgdown.yml`, README | Fixed — README re-rendered 2026-08-31, pending merge | No — fix inline |
@@ -153,9 +153,8 @@ checks of five families, not a sweep of all 23 functions.
 ## B. Conceptual Overview / Getting Started
 
 **Priority: high.** A single article would lift the entire package.
-**Status: plan drafted 2026-08-31** (`plans/doc-getting-started.md`,
-adversarially reviewed, ready for implementation). No article content is
-written yet.
+**Status: done 2026-08-31** — the article shipped in PR #99 and the
+function-doc links in PR #100 (`plans/doc-getting-started.md`).
 
 ### Problem
 
@@ -199,16 +198,19 @@ included. It silently wraps the data as an SRS design and returns a
 `survey_replicate` (`R/replicate-utils.R:139–149`); `as_taylor_design()`
 later refuses that object with
 `surveywts_error_taylor_from_nonprob_replicate`
-(`R/as_taylor_design.R:102–115`). The other five creators reject a
-`survey_nonprob` at the door. The article must show the two paths above and
-flag the crossover as a footnote, not draw it as a normal route.
+(`R/as_taylor_design.R:102–115`). Of the other creators, brr, gen-boot,
+gen-rep, and sdr reject a `survey_nonprob` at the door; the jackknife
+rejects it for `"jk1"`/`"jkn"` and accepts it via `type = "grouped"`
+(DAGJK). The article must show the two paths above and flag the crossover
+as a footnote, not draw it as a normal route.
 
 **2. The standard workflow**
 
 A plain-language description of the two primary use cases:
 
-- **Probability sample workflow:** start with a `survey_taylor` → calibrate to
-  population targets → generate replicate weights → run estimation → report
+- **Probability sample workflow:** start with a `survey_taylor` → generate
+  replicate weights → calibrate to population targets (each replicate
+  column is recalibrated) → run estimation → report
 - **Non-probability sample workflow:** start with a data frame → `ipw()` to get
   a `survey_nonprob` → `calibrate()` for doubly-robust adjustment → generate
   replicate weights → run estimation → report
@@ -336,9 +338,8 @@ roxygen text drafted verbatim, a claim ledger, and grep gates.
 
 ## D. Jargon: Define or Link Recurring Terms
 
-**Priority: high.** **Status: plan drafted 2026-08-31** — folded into
-`plans/doc-getting-started.md` (glossary term list, entry depths, anchor
-texts, and placement rules).
+**Priority: high.** **Status: done 2026-08-31** — glossary and anchors
+shipped in PRs #99 and #100 (`plans/doc-getting-started.md`).
 
 ### Problem
 
@@ -838,7 +839,7 @@ complements to that release, not replacements for it:
 | Plan file | Initiative | Status |
 |-----------|-----------|--------|
 | `plans/doc-examples-overhaul.md` | Section A: per-function examples checklist | Not started |
-| `plans/doc-getting-started.md` | Section B + D: conceptual article + glossary | **Drafted 2026-08-31**, adversarially reviewed; ready for implementation |
+| `plans/doc-getting-started.md` | Section B + D: conceptual article + glossary | **Implemented 2026-08-31** (PRs #99, #100); 5b URL check open until the next `main` merge |
 | `plans/doc-method-choice-guidance.md` | Section C: when-to-use content per family | **Drafted 2026-08-31**, adversarially reviewed; ready for implementation |
 | `plans/comprehension-replicate-methods.md` | Prerequisite for `create_replicate_weights()` `@details`/`@references` (Section C/H) | **Complete 2026-08-28.** All 14 sources audited (4 citations corrected; two residual open items); carries a draft `@details` block and the Section C method-choice table |
 

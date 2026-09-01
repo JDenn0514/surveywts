@@ -119,8 +119,8 @@
 #' # Real analyses use more replicates; 100 keeps `R CMD check` fast.
 #' boot_rep <- create_bootstrap_weights(gss_svy, replicates = 100L, seed = 1L)
 #' summarize_weights(boot_rep)
-#' # Replicate weights are for variance estimation: the interval below comes
-#' # from the 100 replicate columns, not from an SRS approximation.
+#' # The confidence interval below is computed from the 100 replicate
+#' # columns, which is what the replicate weights are for.
 #' surveycore::get_means(boot_rep, age)
 #'
 #' # quasi-randomization bootstrap for a calibrated non-probability sample ----

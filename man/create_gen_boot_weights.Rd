@@ -109,8 +109,8 @@ gen_boot_design <- create_gen_boot_weights(
   seed = 42L
 )
 summarize_weights(gen_boot_design)
-# Replicate weights are for variance estimation: the interval below comes
-# from the replicate columns, not from an SRS approximation.
+# The confidence interval below is computed from the 100 replicate
+# columns, which is what the replicate weights are for.
 surveycore::get_means(gen_boot_design, age)
 
 }

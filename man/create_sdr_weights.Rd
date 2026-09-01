@@ -57,8 +57,8 @@ to \code{\link[svrep:as_sdr_design]{svrep::as_sdr_design()}}.
 cps_design <- surveycore::as_survey(cps_2023, weights = wtfinl)
 sdr_design <- create_sdr_weights(cps_design, replicates = 50L)
 summarize_weights(sdr_design)
-# Replicate weights are for variance estimation: the interval below comes
-# from the replicate columns, not from an SRS approximation.
+# The confidence interval below is computed from the 50 replicate
+# columns rather than by Taylor linearization.
 surveycore::get_means(sdr_design, age)
 
 }

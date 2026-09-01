@@ -80,8 +80,8 @@
 #' # `seed` only matters below that count, so it is defensive here.
 #' gen_rep_design <- create_gen_rep_weights(gss_svy, seed = 42L)
 #' summarize_weights(gen_rep_design)
-#' # Replicate weights are for variance estimation: the interval below comes
-#' # from the replicate columns, not from an SRS approximation.
+#' # The confidence interval below is computed from the replicate columns
+#' # rather than by Taylor linearization.
 #' surveycore::get_means(gen_rep_design, age)
 #'
 #' @seealso [create_bootstrap_weights()], [create_jackknife_weights()],

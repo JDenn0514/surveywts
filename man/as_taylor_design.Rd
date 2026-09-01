@@ -51,9 +51,9 @@ rep_design <- create_bootstrap_weights(
   seed = 1L
 )
 class(rep_design)[1]
-# Converting to <survey_taylor> discards replicate weights and variance
-# capability.
 result <- as_taylor_design(rep_design)
+# Warning: Converting to <survey_taylor> discards replicate weights and
+# variance capability.
 class(result)[1]
 
 }

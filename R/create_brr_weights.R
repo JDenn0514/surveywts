@@ -73,8 +73,8 @@
 #' )
 #' brr_design <- create_brr_weights(gss_svy)
 #' summarize_weights(brr_design)
-#' # Replicate weights are for variance estimation: the interval below comes
-#' # from the replicate columns, not from an SRS approximation.
+#' # The confidence interval below is computed from the BRR half-sample
+#' # columns rather than by Taylor linearization.
 #' surveycore::get_means(brr_design, age)
 #'
 #' # Fay's BRR with damping coefficient -----------------------------------

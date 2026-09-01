@@ -265,8 +265,8 @@ gss_svy <- surveycore::as_survey(
 )
 jkn_design <- create_jackknife_weights(gss_svy, type = "jkn")
 summarize_weights(jkn_design)
-# Replicate weights are for variance estimation: the interval below comes
-# from the replicate columns, not from an SRS approximation.
+# The confidence interval below is computed from the delete-one
+# replicate columns rather than by Taylor linearization.
 surveycore::get_means(jkn_design, age)
 
 # Grouped jackknife on a probability sample -------------------------------

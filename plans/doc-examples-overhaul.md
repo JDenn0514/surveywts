@@ -395,10 +395,10 @@ a number. This is a direct consequence of the no-seed exception, and it
 is why item 4's expected-output comments are confined to the three
 diagnostics.
 
-**`ipw()` at 111 lines.** Cut it to five scenarios in about 40 lines: GSS
+**`ipw()` at 111 lines.** Cut it to five scenarios in about 55 lines: GSS
 reference with both interfaces, CPS `survey_replicate` reference, NPORS
 with the three `missing_method` values, GEE (D4), and known population
-size. Every scenario assigns and every assignment is used. 40 lines still
+size. Every scenario assigns and every assignment is used. 55 lines still
 exceeds the ~25-line guideline, and that is deliberate: `ipw()` accepts
 three reference classes and has four arguments whose behavior only an
 example makes concrete. The guideline says "consider whether the longer
@@ -556,7 +556,7 @@ and by running the example.
 |---|---|---|
 | `as_taylor_design()` | `surveywts_warning_taylor_loses_variance` (`R/as_taylor_design.R:135-140`) | unguarded after every early exit — every successful conversion warns |
 | `trim_weights()` | `surveywts_warning_no_weights_trimmed` (`R/trim_weights.R:269-274`) | fires when nothing falls outside the bounds, which is true of the IQR-default scenario and the `survey_replicate` scenario on the bundled data |
-| `ipw()` | `surveywts_warning_ipw_data_na_omitted` (x2), `surveywts_warning_ipw_reference_na_omitted` (x3), `surveywts_warning_ipw_reference_unadjusted_large_nps` (x1) | `missing_method = "omit"` drops 120 `ns_wave1` rows with NA in `race_f4`; `gss_2024` has NA in `sex` and `age_f3` (112 rows); the third comes from the GEE scenario's `adjust_reference = FALSE`, and goes with that scenario |
+| `ipw()` | `surveywts_warning_ipw_data_na_omitted` (x2), `surveywts_warning_ipw_reference_na_omitted` (x2), `surveywts_warning_ipw_reference_unadjusted_large_nps` (x1) | `missing_method = "omit"` drops 120 `ns_wave1` rows with NA in `race_f4`; `gss_2024` has NA in `sex` and `age_f3` (112 rows); the third comes from the GEE scenario's `adjust_reference = FALSE`, and goes with that scenario |
 
 **`as_taylor_design()`.** Show the warning text in a comment, then show
 `class(result)[1]` changing from `survey_replicate` to `survey_taylor`.
@@ -587,6 +587,14 @@ scenario, `missing_method` is the thing being demonstrated, so the
 warning is the point: comment it there. Net: the `"omit"` sub-case of the
 NPORS scenario carries the warning comment; the other scenarios
 pre-filter and stay quiet.
+
+The GSS reference pre-filters too, added 2026-09-01. Measured: the
+reference-NA warning fires once per call, not three times as the table
+above said, and each firing is five console lines, so the two GSS calls
+printed ten lines of warning. The warning's own advice settles it —
+"Remove or impute NA values in `reference` before calling `ipw()` to avoid
+this warning" — so the example does that and the scenario runs silent. The
+shipped block emits exactly one warning, the NPORS `"omit"` one.
 
 **Everything else is not applicable.** The audit checked every remaining
 `cli_warn()` in the package against the arguments its examples pass. Each
@@ -1100,8 +1108,12 @@ Branch `docs/examples-diagnostics-ipw`. Four files plus one new test file.
 
 **Acceptance criteria**
 
-- [ ] `ipw()`'s block is 45 lines or fewer; the PR body records the count
-      and why it exceeds 25.
+- [ ] `ipw()`'s block is 55 lines or fewer; the PR body records the count
+      and why it exceeds 25. **Raised from 45 on 2026-09-01.** Hitting 45
+      exactly cost the block every blank line between its five scenarios
+      and two of its five headers, so the last scenario was unlabelled and
+      the whole block read as one run of code. Readability of the help page
+      is the point of the exercise. The shipped block is 54 lines.
 - [ ] No inline data.frame construction remains anywhere in `R/ipw.R`'s
       examples.
 - [ ] The GEE scenario converges and returns a `survey_nonprob`.

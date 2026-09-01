@@ -4,7 +4,7 @@
 **Parent:** `plans/doc-improvements.md` Section A ("Examples: Show What
 Comes Next"), priority highest, the last major open initiative.
 **Status:** Drafted 2026-09-01, adversarially reviewed the same day, and
-revised against the review. Not started. **Blocked on one code fix** —
+revised against the review. Not started. **Blocked on [#101](https://github.com/JDenn0514/surveywts/issues/101)** —
 see the blocking prerequisite below.
 **Scope:** The `@examples` block of all 23 exported functions. No other
 roxygen section, no R source outside roxygen comments, no vignette.
@@ -1164,7 +1164,9 @@ File before PR 2. Not part of any PR in this plan.
 2026-09-01 by testing every creator path against the sum test, the
 estimate test, and external references.
 
-- [ ] **Bug 1 — probability path writes multipliers.** One site:
+- [x] **Bug 1 — probability path writes multipliers.** Filed as
+      [#101](https://github.com/JDenn0514/surveywts/issues/101) on
+      2026-09-01. One site:
       `.convert_and_call()` in `R/replicate-utils.R:155` takes
       `as.matrix(svyrep_obj$repweights)` and ignores
       `svyrep_obj$combined.weights`, which `survey` and `svrep` both

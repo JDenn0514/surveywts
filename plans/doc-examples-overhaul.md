@@ -81,10 +81,10 @@ line that ends the block. One rule for all 23 rows.
 | `calibrate_linear()` | ✗ | ✗ | - | - | - | none | 17 | 0.03 |
 | `calibrate_logit()` | ✗ | ✗ | - | - | - | none | 16 | 0.05 |
 | `poststratify()` | ✗ | ✗ | - | - | - | none | 17 | 0.04 |
-| `calibrate_to_survey()` | ✓ | ✗ | ✗ | - | - | none | 9 | 4.83 |
-| `calibrate_to_estimate()` | ✓ | ✗ | ✗ | - | - | none | 32 | 66.86 |
-| `create_replicate_weights()` | ✗ | ✗ | ✗ | - | - | none | 20 | 5.25 |
-| `create_bootstrap_weights()` | ✗ | ✗ | ✗ | - | - | none | 19 | 41.34 |
+| `calibrate_to_survey()` | ✓ | ✓ | ✓ | - | - | `summarize_weights()` (PR 1) | 9 | 4.83 |
+| `calibrate_to_estimate()` | ✓ | ✓ | ✓ | - | - | `summarize_weights()` (PR 1) | 32 | 66.86 |
+| `create_replicate_weights()` | ✓ | ✓ | ✓ | - | - | `summarize_weights()` x3 (PR 1) | 20 | 5.25 |
+| `create_bootstrap_weights()` | ✓ | ✓ | ✓ | - | - | `summarize_weights()` x2 (PR 1) | 19 | 41.34 |
 | `create_jackknife_weights()` | ✓ | ✗ | ✓ | - | - | none — 3 dead-end assignments | 28 | 3.89 |
 | `create_brr_weights()` | ✗ | ✗ | - | - | - | none | 9 | 0.16 |
 | `create_gen_boot_weights()` | ✗ | ✗ | ✓ | - | - | none | 6 | 2.09 |
@@ -672,11 +672,14 @@ command.
 
 **Acceptance criteria**
 
-- [ ] The command runs and produces `surveywts-Ex.timings`.
-- [ ] The ranking reproduces: `calibrate_to_estimate()` first at 60 s or
+- [x] The command runs and produces `surveywts-Ex.timings`.
+- [x] The ranking reproduces: `calibrate_to_estimate()` first at 60 s or
       more, `create_bootstrap_weights()` second at 33 s or more, and
       those two holding more than 80% of the total.
-- [ ] The check directory is under the scratchpad, not the repo.
+      Measured 2026-09-01 on `docs/examples-runtime` before any edit:
+      `calibrate_to_estimate` 69.20 s, `create_bootstrap_weights`
+      39.27 s, total 130.53 s. The two hold 83%.
+- [x] The check directory is under the scratchpad, not the repo.
 
 **Do not gate on the absolute total.** Two runs on this machine gave
 130.34 s and 114.82 s elapsed, with system time differing by more than
@@ -694,7 +697,7 @@ Branch `docs/examples-runtime`. Four files.
 
 ### 2a. `calibrate_to_estimate()` — `R/calibrate_to_estimate.R:81-112`
 
-- [ ] **Delete the `survey::as.svrepdesign()` line.** Do not replace it.
+- [x] **Delete the `survey::as.svrepdesign()` line.** Do not replace it.
       `survey::svytotal()` on the plain `survey::svydesign()` returns the
       same vcov, to every digit, in 0.92 s against 66.32 s:
 
@@ -714,11 +717,13 @@ Branch `docs/examples-runtime`. Four files.
       resampling-based vcov, changing the example's numbers for no
       methodological reason. Deleting the line keeps the vcov exact and
       makes the example shorter as well as faster.
-- [ ] Add `set.seed()` before the `calibrate_to_estimate()` call — the
+- [x] Add `set.seed()` before the `calibrate_to_estimate()` call — the
       random column selection comes from svrep, not from this package
       (D6).
-- [ ] Add `summarize_weights(result)`.
-- [ ] Keep the example under 5 s. Measured on the fixed shape: 2.22 s.
+- [x] Add `summarize_weights(result)`.
+- [x] Keep the example under 5 s. Measured on the fixed shape: 2.22 s.
+      Reproduced 2026-09-01: 2.84 s elapsed, 2.78 s user+system, SEs
+      2924458 / 1554625 / 2759587 and `n` = 3185, both matching A5.
 
 **Acceptance:** the example runs under 5 s, contains no
 `as.svrepdesign()` call, and `summarize_weights()` prints an 11-column
@@ -730,7 +735,7 @@ message.
 
 ### 2b. `calibrate_to_survey()` — `R/calibrate_to_survey.R:206-214`
 
-- [ ] Fix the crossover trap. Calibrate the `survey_nonprob` first, then
+- [x] Fix the crossover trap. Calibrate the `survey_nonprob` first, then
       call `create_bootstrap_weights(..., type = "quasi-randomization",
       replicates = 10L, seed = 1L)`. The result stays `survey_nonprob`,
       which is what the header comment already claims. Note the modest
@@ -738,54 +743,108 @@ message.
       a `survey_nonprob` primary carries no replicate weights, not a
       separate computation path. The reason to fix this is that the
       example currently teaches the trap, not that it unlocks new code.
-- [ ] Control design: `replicates = 20L`.
-- [ ] `set.seed()` before the `calibrate_to_survey()` call — the random
+- [x] Control design: `replicates = 20L`.
+- [x] `set.seed()` before the `calibrate_to_survey()` call — the random
       replicate mapping is at `R/calibrate_to_survey.R:553`.
-- [ ] Add `summarize_weights(result)`.
-- [ ] Comment that the quasi-randomization type is required on a
+- [x] Add `summarize_weights(result)`.
+- [x] Comment that the quasi-randomization type is required on a
       non-probability sample, and link the trap to the article.
 
 **Acceptance:** the example runs silent; `class(result)[1]` is
 `surveycore::survey_nonprob`; total 3.86 s as measured.
 
+**Met, with one addition the plan did not name.** The quasi-randomization
+bootstrap aborts with `surveywts_error_qr_bootstrap_no_history` unless the
+weighting history already holds an `ipw()` or a calibration entry
+(`R/replicate-utils.R:353-372`). "Calibrate the `survey_nonprob` first" is
+therefore required by the code, not only by the plan. The example rakes to
+an `edu_f3` margin, which does not overlap the `age_f3` and `sex` that
+`calibrate_to_survey()` then calibrates. Measured: 3.81 s elapsed, silent,
+`class(result)[1]` is `surveycore::survey_nonprob`.
+
 ### 2c. `create_bootstrap_weights()` — `R/create_bootstrap_weights.R:114-133`
 
-- [ ] Scenario 1: pass `replicates = 100L, seed = 1L` explicitly instead
+- [x] Scenario 1: pass `replicates = 100L, seed = 1L` explicitly instead
       of falling through to the 500 default. Assign; then
       `summarize_weights(result)`. No estimation call — see the blocking
       prerequisite.
-- [ ] Scenario 2: `replicates = 200L` becomes `15L`, add `seed = 1L`.
-      Assign; then `summarize_weights(result)`. Measured end-to-end at
-      `20L`: 4.57 s elapsed, 4.36 s user+system — a 13% margin against a
-      hard 5 s stop, on the plan's least stable number (the QR
-      per-replicate cost spans 0.172 to 0.207 s). `15L` removes the risk.
-- [ ] Remove the redundant `data()` call if one is present.
+- [x] Scenario 2: `replicates = 200L` becomes **`10L`**, not the `15L`
+      this plan first prescribed. Add `seed = 1L`. Assign; then
+      `summarize_weights(result)`.
+
+      **Why the number changed.** The `15L` choice rested on a `20L`
+      measurement of 4.36 s user+system. Implementation measured the
+      whole block at `15L` and got 4.61 s user+system — an 8% margin
+      against a hard 5 s stop, on the plan's own least stable number.
+      That is the risk `15L` was picked to remove, so it did not remove
+      it. At `10L` the block measures 2.97 s user+system: scenario 1
+      costs 0.86 s and scenario 2 costs 2.11 s. `10L` also matches the
+      count 2b uses for the same quasi-randomization path, so the two
+      help pages agree.
+- [x] Remove the redundant `data()` call if one is present. None was —
+      neither of the four files in PR 1 carries one. The five recorded
+      at A27 are all in `R/ipw.R` and `R/trim_weights.R`, which PRs 4
+      and 5 touch.
 
 **Acceptance:** both scenarios assign and use their result; the example
-is under 5 s, against 41.34 s.
+is under 5 s, against 41.34 s. **Met:** 2.44 s elapsed, 2.38 s
+user+system, against a 39.27 s baseline measured in the same session.
 
 ### 2d. `create_replicate_weights()` — `R/create_replicate_weights.R:133-153`
 
-- [ ] Scenario 1 (bootstrap): `replicates = 100L, seed = 1L`. Assign;
-      then `summarize_weights(result)`.
-- [ ] Scenario 2 (jackknife, jkn): assign; then
+- [x] Scenario 1 (bootstrap): `replicates = 100L, seed = 1L`. Assign;
+      then `summarize_weights(result)`. `seed` reaches the creator
+      through `...`; `create_replicate_weights()` has no `seed`
+      parameter of its own (`R/create_replicate_weights.R:162-173`).
+- [x] Scenario 2 (jackknife, jkn): assign; then
       `summarize_weights(result)`. The count is design-determined — no
       argument.
-- [ ] Scenario 3 (DAGJK): `replicates = 50L` becomes `25L`, add
+- [x] Scenario 3 (DAGJK): `replicates = 50L` becomes `25L`, add
       `seed = 42L`. Assign; then `summarize_weights(result)`. Expect the
-      22-line raking-message block (Task 0, in-scope item 5).
+      22-line raking-message block (Task 0, in-scope item 5). It appeared
+      as recorded, and the example does not suppress it.
 
 **Acceptance:** three scenarios, three assignments, three used; under 5 s
-against 5.25 s.
+against 5.25 s. **Met:** 2.25 s elapsed, 2.24 s user+system, against a
+5.00 s baseline measured in the same session.
 
 ### PR 1 gates
 
-- [ ] `devtools::document()`; `man/` changes committed.
-- [ ] `devtools::check()` clean — no new warning, no new note.
-- [ ] Task 1's measurement in the PR body: the full timings table, the
+- [x] `devtools::document()`; `man/` changes committed. Four `.Rd` files
+      moved, one per source file.
+- [x] `devtools::check()` clean — no new warning, no new note. Before and
+      after both give 0 errors, 0 warnings, 1 note. The note is the
+      pre-existing hidden `.git` directory, which this worktree creates
+      and no PR here changes.
+- [x] Task 1's measurement in the PR body: the full timings table, the
       new total, and the count of examples over 5 s, which must be 0.
-- [ ] The PR body states that the runtime baseline for PRs 2-5 is now
+- [x] The PR body states that the runtime baseline for PRs 2-5 is now
       this PR's total, not 130.34 s.
+
+### PR 1 result, measured 2026-09-01
+
+Both runs used Task 1's command on the same machine in the same session.
+
+| | Before | After |
+|---|--:|--:|
+| Total elapsed, 23 examples | 130.53 s | 21.10 s |
+| Examples over 5 s (user+system) | 2 | 0 |
+| Slowest example | `calibrate_to_estimate` 69.20 s | `create_jackknife_weights` 3.41 s |
+
+The four changed examples, elapsed:
+
+| Function | Before | After |
+|---|--:|--:|
+| `calibrate_to_estimate()` | 69.20 | 2.01 |
+| `create_bootstrap_weights()` | 39.27 | 2.44 |
+| `create_replicate_weights()` | 5.00 | 2.25 |
+| `calibrate_to_survey()` | 4.76 | 2.58 |
+
+**The baseline for PRs 2-5 is 21.10 s, not 130.34 s.** The 45 s ceiling in
+D3 still holds, and PR 1 leaves about 24 s of room under it.
+
+The slowest example is now `create_jackknife_weights()` at 3.41 s, which
+PR 2 cuts further when it moves that DAGJK count from `50L` to `25L`.
 
 ---
 
@@ -1197,7 +1256,9 @@ estimate test, and external references.
       `sum(base)` is 250,865,240 while every replicate column sums to
       about 3,197 — the row count. Multiplying each column by the base
       weight recovers SE 0.4835 against Taylor's 0.4834.
-- [ ] **Bug 2 — the quasi-randomization bootstrap misaligns rows.**
+- [x] **Bug 2 — the quasi-randomization bootstrap misaligns rows.**
+      Filed as [#102](https://github.com/JDenn0514/surveywts/issues/102)
+      on 2026-09-01.
       Different symptom, different cause. The values are right and the
       assignment is not. On an `ipw()` design: `sum(rep)` equals
       `sum(base)` exactly at 249,929,567, the value multiset matches
@@ -1218,14 +1279,32 @@ estimate test, and external references.
 - [ ] The DAGJK replay emits one convergence message per replicate — 22
       identical lines at 25 replicates. A replay should not narrate each
       replicate.
-- [ ] `surveycore::as_svydesign()` hands the multiplier columns to
+- [x] `surveycore::as_svydesign()` hands the multiplier columns to
       `survey::svrepdesign()` as finished weights, so `survey` warns and
       every SE through that bridge is wrong. Same root cause as the
       first item; fixing one may fix both. `as_svydesign()` takes only
       `x`, so callers have no way to work around it.
+      **Resolved 2026-09-01: no surveycore issue.** The bridge is already
+      correct. Finished-weight columns through the unmodified
+      `as_svydesign()` reproduce `survey`'s own bootstrap SE exactly
+      (0.428678 against 0.428678); the factor-form columns give 0.279983.
+      It fixes itself when #101 lands. Add a regression test then, in
+      surveycore `tests/testthat/test-conversion.R`. Two unrelated
+      surveycore defects were found in the same code and filed:
+      `surveycore#198` (`as_svydesign()` passes the per-row `fpc` column
+      where `svrepdesign()` wants one value per replicate) and
+      `surveycore#197` (`from_svydesign()` stores zero replicate columns
+      from an `as.svrepdesign()` design, and ignores `combined.weights`).
 
 Both belong in the same code PR. This plan's PRs 1 and 3-5 do not depend
 on either; PR 2 depends on the first.
+
+Two further gaps found in the same `@examples` audit, both filed against
+surveycore, neither blocking this plan: `surveycore#199` (`get_totals()`
+rejects factors) and `surveycore#200` (nothing returns the `k x k`
+covariance matrix `calibrate_to_estimate(vcov_estimate =)` needs). The
+question of which package should own a `combined_weights` field needs no
+issue of its own — #101's own notes already settle it.
 
 ## Found while planning, not this plan's scope
 

@@ -4,8 +4,13 @@
 **Parent:** `plans/doc-improvements.md` Section A ("Examples: Show What
 Comes Next"), priority highest, the last major open initiative.
 **Status:** Drafted 2026-09-01, adversarially reviewed the same day, and
-revised against the review. Not started. **Not blocked** — see the
-sequencing note below.
+revised against the review. **PR 1 merged** as
+[#103](https://github.com/JDenn0514/surveywts/pull/103) on 2026-09-01.
+PRs 2-5 open. Nothing is blocked: the two prerequisite code defects both
+landed on 2026-09-01 as
+[#104](https://github.com/JDenn0514/surveywts/pull/104) (issue #101) and
+[#105](https://github.com/JDenn0514/surveywts/pull/105) (issue #102), so
+the estimation call D2 deferred is now available — see the revised D2.
 **Scope:** The `@examples` block of all 23 exported functions. No other
 roxygen section, no R source outside roxygen comments, no vignette.
 
@@ -249,68 +254,55 @@ Getting Started article describes and the reason it is expensive.
 
 ---
 
-## Blocking prerequisite — replicate variance is wrong (found 2026-09-01)
+## Prerequisite defect — resolved 2026-09-01
 
 The adversarial review of this plan found a package defect while checking
-the downstream step this plan wanted to prescribe. It is not a
-documentation problem, it is not this plan's to fix, and it changes what
-this plan may prescribe. **File it as a code issue before PR 2 ships.**
+the downstream step this plan wanted to prescribe. It was a code defect,
+not a documentation one, and it decided what this plan could prescribe.
+Both halves are now fixed and merged, so this section is history plus the
+re-measurement that closes it.
 
-**The replicate columns hold resampling multipliers, not finished
-replicate weights.** surveycore reads `@variables$repweights` as finished
-weights, so every variance estimate from a surveywts-created replicate
-design is wrong.
+**What was wrong.** The replicate columns held resampling multipliers,
+not finished replicate weights. surveycore reads `@variables$repweights`
+as finished weights, so every variance estimate from a surveywts-created
+replicate design was wrong. Measured on a 50-replicate bootstrap of
+`gss_2024` (3,197 rows, seed 1), `surveycore::get_means(rep_design, age)`
+returned mean 48.0 with CI 42.9 to 53.0, against `survey::svymean()`'s
+47.95 and CI 47.00 to 48.90. The jackknife was worse: all 134
+`type = "jkn"` replicate means sat at the **unweighted** mean age of
+50.4032, and `get_means()` returned CI 8.62 to 87.3.
 
-Measured on a 50-replicate bootstrap of `gss_2024` (3,197 rows, seed 1):
+Two independent bugs, two PRs, both merged 2026-09-01:
 
-| Quantity | Value |
-|---|---|
-| `rep_1` column | values in {0, 1, 2}, mean 1.02, sd 1.00 — a resampling count |
-| `cor(rep_1, base weight)` | -0.04. The columns do not carry the base weight |
-| `surveycore::get_means(rep_design, age)` | mean 48.0, CI **42.9 to 53.0** |
-| `survey::svymean()` on the Taylor design | mean 47.95, SE 0.4834, CI 47.00 to 48.90 |
-| `svrep::as_bootstrap_design()`, 50 replicates | SE 0.4786 — agrees with Taylor |
-| Replicate means, columns used as stored | 49.53 to 51.30, mean 50.50, against a full sample of 47.95 |
-| Replicate means, columns used as multipliers (`rep * base`) | mean 48.04, sd **0.4835** — matches Taylor |
+| Issue | PR | Root cause |
+|---|---|---|
+| #101 | [#104](https://github.com/JDenn0514/surveywts/pull/104) | `.convert_and_call()` copied `svyrep_obj$repweights` and ignored `combined.weights = FALSE`, so the base weight was never folded in. One site, all seven probability creators |
+| #102 | [#105](https://github.com/JDenn0514/surveywts/pull/105) | the quasi-randomization bootstrap wrote resample-order weights into original-order rows |
 
-The offset is systematic and one-directional across every column, so with
-`mse = TRUE` it becomes the whole variance. The jackknife is worse: all
-134 `type = "jkn"` replicate means sit at 50.4032 — exactly the
-**unweighted** mean age — and `get_means()` returns CI 8.62 to 87.3.
-`create_gen_rep_weights()` gives 8.60 to 87.28.
+**Re-measured on `develop` at `a0bc8e1`, after both fixes.** Taylor
+reference: `survey::svymean(~age)` on the `gss_2024` design gives mean
+47.937, SE 0.4832, CI 46.990 to 48.884. Against that:
 
-Reordering rows recovers nothing, and `@data` comes back in the input
-order with the base weight untouched, so this is not a row-alignment bug.
-Multiplying each column by the base weight recovers the correct SE to
-four digits. One side is missing that multiplication. The bundled
-`cps_2023` `repwtp*` columns are finished population-scale weights, which
-is evidence the convention is finished weights and surveywts is the side
-that is wrong.
+| Design | `get_means(design, age)` CI | Cost of the call |
+|---|---|--:|
+| Bootstrap, 100 replicates, seed 1 | 46.9 to 49.0 | 0.02 s |
+| Jackknife, JKn | 47.0 to 48.9 | 0.00 s |
+| BRR | 47.0 to 48.9 | 0.01 s |
+| Generalized bootstrap, 100 replicates | 46.9 to 48.9 | 0.02 s |
+| Generalized replicate, SD2 | 47.0 to 48.9 | 0.01 s |
+| SDR on `cps_2023`, 50 replicates | 46.6 to 47.4 | 0.00 s |
+| `as_taylor_design()` of the bootstrap | 47.0 to 48.9 | 0.05 s |
 
-**Sequencing, not blocking.** No PR in this plan reads a replicate weight
-column. `summarize_weights()` reads the main weight column only — verified,
-no `repweight` reference anywhere in `R/summarize_weights.R` or the
-`.compute_weight_stats()` helper it calls — and `#101` changes neither the
-main weight nor the class. So PRs 1, 3, 4, and 5 can ship today, and PR 2
-is *correct* today as written.
+Every interval now agrees with the Taylor reference, and every call is
+silent and costs at most 0.05 s. `get_freqs()` on a factor outcome works
+on the same designs and is silent: on the bootstrap, `pid_f3` returns
+36.1 / 27.1 / 36.8 percent.
 
-The reason to run PR 2 after `#101` is churn, not correctness. D2 says to
-revisit the estimation call once the intervals are right, and that revisit
-touches the same six files PR 2 touches. Running PR 2 after the fix lets
-one pass add both the assignment and the estimation call. Running it before
-means editing those six files twice.
-
-**Recommended order:** PR 1, then PRs 3-5 in any order or in parallel, then
-PR 2 once `#101` has landed. If `#101` stalls, ship PR 2 as written and
-accept the second pass — the examples are better with `summarize_weights()`
-than with no downstream step at all.
-
-**What this costs the plan.** D2 originally prescribed
-`surveycore::get_means(result, age)` as the replicate family's downstream
-step, on seven help pages. That would publish "mean age 48.0, 95% CI 8.6
-to 87.3". D2 now prescribes `summarize_weights(result)` for the whole
-family instead — it reports the weight distribution, which is correct
-today. Revisit the estimation call after the defect is fixed.
+**What this gives the plan back.** D2's original prohibition — no
+estimation call on any replicate help page — existed only because the
+intervals were wrong. It is lifted. The revised D2 below prescribes the
+estimation call for the replicate family, and PR 2 adds it to the two
+replicate pages PR 1 already touched.
 
 ---
 
@@ -329,38 +321,46 @@ striking the ✗ in its own PR, not by editing another PR's rows.
 
 ### D2. Per-function downstream step
 
-The estimation call depends on the class and on the outcome variable's
-type. Four facts settle every case, and all four are run-verified:
+Revised 2026-09-01, after #104 and #105 merged. The estimation call
+depends on the class and on the outcome variable's type. Four facts
+settle every case, and all four are run-verified:
 
-- **No estimation call goes on a replicate help page.** The blocking
-  prerequisite above explains why: `get_means()` on a surveywts replicate
-  design returns a wrong confidence interval, as wide as 8.6 to 87.3.
-  The whole replicate family ends at `summarize_weights(result)`.
+- **A replicate help page ends with an estimation call.** That is what
+  replicate weights are for. `get_means()` on a surveywts replicate
+  design now reproduces the Taylor interval on every path — see the
+  re-measurement table above — and costs at most 0.05 s. A page that
+  stops at the weight distribution never shows the payoff.
 - `surveycore::get_means()` rejects a factor: "`x` must be numeric, not
-  <factor>." It is unusable on this package's factor outcomes anyway.
+  <factor>." Use `age` on the replicate pages; `get_freqs()` where a
+  factor outcome is the point.
 - `surveycore::get_freqs()` handles factors, and `pid_f3` is the factor
   outcome the Getting Started article uses.
 - `surveycore::get_freqs()` on a `survey_nonprob` with no replicate
   weights emits a surveycore warning three times over — "Standard errors
   use an SRS approximation that underestimates calibration uncertainty."
 
-That last fact decides the calibration family. Their examples build a
-`survey_nonprob` from `ns_wave1` with no replicates, so an estimation
+That last fact still decides the calibration family. Their examples build
+a `survey_nonprob` from `ns_wave1` with no replicates, so an estimation
 call would bury the example in three repeated warnings. Those examples
 end at `summarize_weights(result)`, which is what the Section A
 workflow-hints table already prescribes.
 
-The result: `summarize_weights()` is the downstream step almost
-everywhere. That is a narrower outcome than Section A's workflow-hints
-table imagined, and it is what the code currently supports. An example
-that shows a correct weight distribution teaches more than one that
-shows a wrong standard error.
+So the package splits in two. `summarize_weights()` is the downstream step
+everywhere; the replicate family adds one estimation call on top of it,
+and nothing else does.
+
+**One estimation call per help page, not per scenario.** Item 2 asks for
+"at least one downstream step." Put the estimation call on the page's
+primary scenario and let the other scenarios end at
+`summarize_weights()`. Two reasons: the replicate pages run 2 to 3
+scenarios each, and a second interval on the same data teaches nothing
+the first did not.
 
 | Function | Downstream step | Verified |
 |---|---|---|
 | `calibrate()`, `calibrate_rake()`, `calibrate_linear()`, `calibrate_logit()`, `poststratify()` | `summarize_weights(result)` | 0.02 s, silent |
 | `calibrate_to_survey()`, `calibrate_to_estimate()` | `summarize_weights(result)` | verified on both fixed shapes |
-| `create_bootstrap_weights()`, `create_jackknife_weights()`, `create_brr_weights()`, `create_gen_boot_weights()`, `create_gen_rep_weights()`, `create_sdr_weights()`, `create_replicate_weights()` — both paths | `summarize_weights(result)` | silent on a `survey_replicate`; no estimation call until the prerequisite defect is fixed |
+| `create_bootstrap_weights()`, `create_jackknife_weights()`, `create_brr_weights()`, `create_gen_boot_weights()`, `create_gen_rep_weights()`, `create_sdr_weights()`, `create_replicate_weights()` — both paths | `summarize_weights(result)`, then `surveycore::get_means(result, age)` on the primary scenario | silent on a `survey_replicate`; every interval matches the Taylor reference; 0.00 to 0.02 s per call |
 | `as_taylor_design()` | the warning in a comment, then `class(result)[1]` | see D6 |
 | `adjust_nonresponse()` | `summarize_weights(result)`, then `nrow()` before and after | 3,290 rows in; the out-count moves every run — see below |
 | `redistribute_weights()` | `summarize_weights(result)` | the function always drops the `reduce_if` rows |
@@ -556,10 +556,12 @@ the interval narrows from 42.9-53.0 to 47.0-48.9 after conversion. Both
 numbers reproduce, and the reading was backwards: the Taylor interval is
 the correct one. `survey::svymean()` on the Taylor design gives SE
 0.4832, and a correct svrep 50-replicate bootstrap gives SE 0.4809 — the
-same interval. The wide replicate interval is the prerequisite defect
-above, not variance capability being discarded. A correctly built
-replicate design and its Taylor conversion give nearly the same interval,
-so there is no two-number demonstration to make here.
+same interval. The wide replicate interval was the prerequisite defect
+above, not variance capability being discarded.
+
+Re-measured after #104 and #105, on the same bootstrap the example
+builds: `get_means()` gives CI 46.9 to 49.0 before conversion and 47.0 to
+48.9 after. The two-number demonstration has nothing left to show.
 
 **`trim_weights()`.** Two scenarios warn on the bundled data. Rather than
 comment the warning twice, change one scenario so the bounds actually
@@ -611,7 +613,7 @@ by what a reviewer checks rather than by family:
 | PR | Branch | Functions | What the reviewer checks |
 |---|---|---|---|
 | 1 | `docs/examples-runtime` | `calibrate_to_estimate()`, `calibrate_to_survey()`, `create_bootstrap_weights()`, `create_replicate_weights()` | the measured before-and-after, and the crossover-trap fix |
-| 2 | `docs/examples-replicate` | `create_jackknife_weights()`, `create_brr_weights()`, `create_gen_boot_weights()`, `create_gen_rep_weights()`, `create_sdr_weights()`, `as_taylor_design()` | that no estimation call slipped in; the `as_taylor_design()` warning comment and class change |
+| 2 | `docs/examples-replicate` | `create_jackknife_weights()`, `create_brr_weights()`, `create_gen_boot_weights()`, `create_gen_rep_weights()`, `create_sdr_weights()`, `create_bootstrap_weights()`, `create_replicate_weights()`, `as_taylor_design()` | one estimation call per page and none on `as_taylor_design()`; every documented CI against the measured table; the `as_taylor_design()` warning comment and class change |
 | 3 | `docs/examples-calibration` | `calibrate()`, `calibrate_rake()`, `calibrate_linear()`, `calibrate_logit()`, `poststratify()` | 5 mechanical `summarize_weights()` additions |
 | 4 | `docs/examples-nonresponse-utils` | `adjust_nonresponse()`, `redistribute_weights()`, `trim_weights()`, `rescale_weights()` | the no-seed exception is preserved; `rescale_weights()` is untouched |
 | 5 | `docs/examples-diagnostics-ipw` | `effective_sample_size()`, `weight_variability()`, `summarize_weights()`, `ipw()` | the expected-output comments, the new test file, the `ipw()` rewrite |
@@ -840,7 +842,10 @@ The four changed examples, elapsed:
 | `create_replicate_weights()` | 5.00 | 2.25 |
 | `calibrate_to_survey()` | 4.76 | 2.58 |
 
-**The baseline for PRs 2-5 is 21.10 s, not 130.34 s.** The 45 s ceiling in
+**The baseline for PRs 2-5 is 20.70 s, not 130.34 s.** PR 1 measured
+21.10 s; re-measured on `develop` at `a0bc8e1`, after #104 and #105, the
+total is 20.70 s with 0 examples over 5 s and
+`create_jackknife_weights()` slowest at 3.39 s. The 45 s ceiling in
 D3 still holds, and PR 1 leaves about 24 s of room under it.
 
 The slowest example is now `create_jackknife_weights()` at 3.41 s, which
@@ -850,49 +855,100 @@ PR 2 cuts further when it moves that DAGJK count from `50L` to `25L`.
 
 ## Task 3 — PR 2, the replicate family and `as_taylor_design()`
 
-Branch `docs/examples-replicate`. Six files. Every one gets an assignment
-and a downstream step; the counts follow D3.
+Branch `docs/examples-replicate`. **Eight files.** Six get an assignment,
+a downstream step, and the counts from D3. Two — `create_bootstrap_weights()`
+and `create_replicate_weights()` — already got their assignment and
+`summarize_weights()` from PR 1, and here gain the estimation call only,
+because PR 1 shipped before #104 and #105 landed.
+
+**The estimation call.** One per help page, on the page's first
+probability-design scenario, immediately after that scenario's
+`summarize_weights()`:
+
+```r
+# Replicate weights are for variance estimation: the interval below comes
+# from the 100 replicate columns, not from an SRS approximation.
+surveycore::get_means(rep_design, age)
+```
+
+Use `age`. `get_means()` rejects a factor, and `age` is present in
+`gss_2024`, `cps_2023`, and `ns_wave1`. Do not add a second estimation
+call on a second scenario.
 
 - [ ] `create_jackknife_weights()` — three assignments already exist and
-      all three are dead ends. Add `summarize_weights()` to each. DAGJK
-      count 50L becomes 25L; expect the raking-message block (Task 0,
-      in-scope item 5). Leave `replicates = 2L` on the grouped-on-Taylor scenario
-      alone — it is a separate open item (Task 0, out-of-scope item 8).
+      all three are dead ends. Add `summarize_weights()` to each. Add the
+      estimation call to the JKn scenario only. DAGJK count 50L becomes
+      25L; expect the raking-message block (Task 0, in-scope item 5).
+      Leave `replicates = 2L` on the grouped-on-Taylor scenario alone —
+      it is a separate open item (Task 0, out-of-scope item 8).
 - [ ] `create_brr_weights()` — assign both scenarios; add
-      `summarize_weights(result)` to each. No count to set.
+      `summarize_weights(result)` to each; estimation call on the first.
+      No count to set.
 - [ ] `create_gen_boot_weights()` — assign; `replicates = 100L`
-      explicitly; add `summarize_weights(result)`. Keep `seed = 42L`.
+      explicitly; add `summarize_weights(result)` and the estimation
+      call. Keep `seed = 42L`.
 - [ ] `create_gen_rep_weights()` — assign; add
-      `summarize_weights(result)`. Keep `seed = 42L`, and
-      comment that the construction is deterministic at the default
-      `max_replicates = Inf`, so the seed is defensive. That resolves the
-      "deterministic vs. seed" confusion the Per-Function reference
-      records for this function.
+      `summarize_weights(result)` and the estimation call. Keep
+      `seed = 42L`, and comment that the construction is deterministic at
+      the default `max_replicates = Inf`, so the seed is defensive. That
+      resolves the "deterministic vs. seed" confusion the Per-Function
+      reference records for this function.
 - [ ] `create_sdr_weights()` — assign; `replicates = 50L` explicitly; add
-      `summarize_weights(result)`. Note that `cps_2023` carries no strata
-      or PSU columns, which is why this example's design construction
-      differs from the rest of the family.
+      `summarize_weights(result)` and the estimation call. Note that
+      `cps_2023` carries no strata or PSU columns, which is why this
+      example's design construction differs from the rest of the family.
+- [ ] `create_bootstrap_weights()` — add the estimation call to the
+      probability-bootstrap scenario. Change nothing else; PR 1 set this
+      block and its 100L / 10L counts.
+- [ ] `create_replicate_weights()` — add the estimation call to the
+      probability scenario. Change nothing else.
 - [ ] `as_taylor_design()` — assign. Add `seed = 1L` to the setup
       bootstrap, which is currently the block's only unseeded random
       call. Show the warning text in a comment. Then show
       `class(result)[1]` moving from `survey_replicate` to
-      `survey_taylor`. **No confidence-interval demonstration** — D6
-      explains why the earlier proposal was backwards.
+      `survey_taylor`. **No confidence-interval demonstration, and no
+      estimation call** — D6 explains why the earlier proposal was
+      backwards, and the post-fix measurement confirms it: the bootstrap
+      gives CI 46.9 to 49.0 and its Taylor conversion gives 47.0 to 48.9,
+      so there is no two-number contrast to draw.
+
+**Measured values, for the implementer to check against.** All from
+`develop` at `a0bc8e1`. If a value differs, report it rather than
+adjusting the comment.
+
+| Page, first probability scenario | `get_means(., age)` CI |
+|---|---|
+| `create_jackknife_weights()`, JKn on `gss_2024` | 47.0 to 48.9 |
+| `create_brr_weights()`, `gss_2024` | 47.0 to 48.9 |
+| `create_gen_boot_weights()`, 100L on `gss_2024` | 46.9 to 48.9 |
+| `create_gen_rep_weights()`, `gss_2024` | 47.0 to 48.9 |
+| `create_sdr_weights()`, 50L on `cps_2023` | 46.6 to 47.4 |
+| `create_bootstrap_weights()`, 100L seed 1 on `gss_2024` | 46.9 to 49.0 |
+
+The Taylor reference for `gss_2024` is `survey::svymean(~age)`: mean
+47.937, SE 0.4832, CI 46.990 to 48.884. Every row above agrees with it.
 
 **Acceptance criteria**
 
-- [ ] Each of the six examples assigns every result and uses every
+- [ ] Each of the eight examples assigns every result and uses every
       assignment.
-- [ ] No `get_means()` or `get_freqs()` call appears in any of the six.
-      A reviewer who finds one rejects the PR — see the blocking
-      prerequisite.
+- [ ] Exactly one `get_means()` call per help page, on the first
+      probability-design scenario, with `age` as the outcome. Zero on
+      `as_taylor_design()`. A reviewer who finds two on one page, or one
+      on `as_taylor_design()`, rejects the PR.
+- [ ] No `get_freqs()` call anywhere in the eight. The factor outcome
+      adds a third line of output and no new fact.
+- [ ] Every documented CI matches the measured table above.
 - [ ] `as_taylor_design()`'s comment reproduces the warning text from
       `R/as_taylor_design.R:135-140`.
 - [ ] `devtools::document()`, `devtools::check()` clean, timings in the
-      PR body, no example over 5 s.
+      PR body, no example over 5 s. Baseline for this PR is **20.70 s**
+      total (measured 2026-09-01 on `develop` at `a0bc8e1`, 0 examples
+      over 5 s, slowest `create_jackknife_weights` at 3.39 s). The
+      estimation calls cost 0.00 to 0.02 s each, so the total should move
+      by well under 1 s.
 
 ---
-
 ## Task 4 — PR 3, the calibration family
 
 Branch `docs/examples-calibration`. Five files, five mechanical edits.
@@ -1233,9 +1289,11 @@ fix. It belongs with the code issue below.
 `svydesign()` + `svytotal()`. Revisit point 2 if surveycore ever grows a
 factor-aware covariance producer, and point 3 when the defect is fixed.
 
-## Handoff — the code issue this plan needs
+## Handoff — the code issues this plan needed
 
-File before PR 2. Not part of any PR in this plan.
+Both are merged. #101 shipped as #104 and #102 shipped as #105, both on
+2026-09-01, neither as part of any PR in this plan. One item below is
+still open: the per-replicate convergence message.
 
 **Two independent weight bugs, different root causes.** Scoped
 2026-09-01 by testing every creator path against the sum test, the
@@ -1276,9 +1334,12 @@ estimate test, and external references.
       estimates track the weighted mean to four decimals (47.0961 against
       47.0960). Write site: `R/create_jackknife_weights.R:735-762`. It is
       the working reference for what the other two should produce.
-- [ ] The DAGJK replay emits one convergence message per replicate — 22
-      identical lines at 25 replicates. A replay should not narrate each
-      replicate.
+- [ ] The DAGJK replay emits one convergence message per replicate — 20
+      identical "Raking converged in 1 sweep" lines at 25 replicates,
+      re-measured 2026-09-01 after #104 and #105. Neither fix touched it,
+      so it is still open and still not this plan's to fix. A replay
+      should not narrate each replicate. PR 2 accepts the block, per
+      Task 0 in-scope item 5 — no `suppressMessages()`.
 - [x] `surveycore::as_svydesign()` hands the multiplier columns to
       `survey::svrepdesign()` as finished weights, so `survey` warns and
       every SE through that bridge is wrong. Same root cause as the

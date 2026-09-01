@@ -42,7 +42,10 @@ adds the `rescale_weights()` replicate scenario as a new open quick win,
 and retires the per-function table as a to-do list.
 **Status:** All seven initiatives closed. Sections B, C, D, F, G shipped
 in PRs #97–#100; Section A shipped 2026-09-01 in PRs #103 and #106–#109.
-Open work is the Section H straggler list and the Polish vignette suite.
+Every checklist item in this file is closed as of 2026-09-01. What
+remains for the documentation surface is the Polish release's vignette
+suite, and five package defects the audits surfaced, filed as code issues:
+surveywts #110, #111, #113, #114 and surveycore #203.
 **Source:** Multi-agent documentation audit of all 23 exported functions, the README,
 `_pkgdown.yml`, and `surveywts-package.R`, evaluated from the perspective of an
 R/tidyverse-fluent analyst who is not a survey methodology expert.
@@ -89,7 +92,7 @@ Section H items.
 | E | Constructor inconsistency | — | **Resolved** — see Resolved log | — |
 | F | Class system: accurate `@returns` + orientation | `adjust_nonresponse`, `summarize_weights` | **Done** — merged in PR #97 (2026-08-31) | No — fix inline |
 | G | Package-level docs stale | `surveywts-package.R`, `_pkgdown.yml`, README | **Done** — README re-rendered; merged in PR #97 (2026-08-31) | No — fix inline |
-| H | Quick-win fixes (errors, omissions, reproducibility) | Scattered | Done 2026-08-31 except the `ipw()` GEE example (deferred to Section A) and the `max_adjust` default contradiction (added 2026-08-31) | No — checklist below |
+| H | Quick-win fixes (errors, omissions, reproducibility) | Scattered | **Done** — the bulk 2026-08-31 (PR #97), the `ipw()` GEE example 2026-09-01 (PR #109), the last six stragglers 2026-09-01 (PR #112) | No — checklist below |
 
 ---
 
@@ -538,8 +541,8 @@ changing). Closed items are in the Resolved log at the bottom of this file.
 
 ### Factual errors
 
-- [ ] **[open, found 2026-08-31 during the Section C planning pass]**
-      `adjust_nonresponse()` `@param control` contradicts itself on the
+- [x] **[done 2026-09-01, PR #112]**
+      `adjust_nonresponse()` `@param control` contradicted itself on the
       `max_adjust` default. The defaults list says `max_adjust = 2.0`
       (`R/adjust_nonresponse.R:45`, matching the signature at line 144),
       but the bullet below says "(default 5.0)" (line 49). The bullet is
@@ -654,8 +657,8 @@ changing). Closed items are in the Resolved log at the bottom of this file.
       (lines 12-13) says "Sets the weights of rows satisfying `reduce_if` to
       zero". The rows are then removed (`R/redistribute_weights.R:379-389`),
       not kept at zero weight. Reword to say the rows are removed.
-- [ ] **[open, found 2026-08-31 during the Section B+D planning pass]**
-      The README function table names a function that does not exist.
+- [x] **[done 2026-09-01, PR #112]**
+      The README function table named a function that does not exist.
       `README.Rmd:88` (and the rendered `README.md`) lists
       `create_group_jackknife_weights()` in the Replicate weights table;
       the function was merged into
@@ -666,8 +669,8 @@ changing). Closed items are in the Resolved log at the bottom of this file.
       `"grouped"`. The 2026-08-31 re-render fixed the chunks, not this
       static table. Fix `README.Rmd`, then re-render with
       `devtools::build_readme()`.
-- [ ] **[open, found 2026-08-31 during the Section B+D planning pass]**
-      The README reference construction omits `strata`. `README.Rmd:121`
+- [x] **[done 2026-09-01, PR #112]**
+      The README reference construction omitted `strata`. `README.Rmd:121`
       builds the NPORS reference with
       `surveycore::as_survey(npors_2025_clean, weights = wt_pop)`, but
       the dataset docs say "Always include `strata = stratum`"
@@ -717,7 +720,9 @@ All items closed 2026-08-31: the chunks were fixed on
 
 **The `ipw` chunk (line 120 onward):**
 
-- [ ] **[open]** `README.Rmd:126` — the chunk passes
+- [x] **[done — fixed in an earlier pass; the checkbox was stale until
+      2026-09-01, when PR #112 verified it against source]**
+      `README.Rmd:126` — the chunk passed
       `predictors = c("gender", "age_group", "race_ethn", "educ")`, but only
       `gender` is a column of `ns_wave1`. `age_group`, `race_ethn`, and
       `educ` do not exist in that dataset, so the chunk errors. Fixed with
@@ -798,13 +803,13 @@ per-replicate refits) is benchmarked to the NPORS estimate of partisanship
       `survey_nonprob`, run-tested at 1.06 s for the whole block. The
       comment claiming "population-scale reference weights" about a flat
       `base_weight = 1` is gone too, replaced by the real constraint.
-- [ ] **[open, added 2026-09-01]** `rescale_weights()` documents replicate
-      behaviour (`R/rescale_weights.R:37-42`) but shows no
-      `survey_replicate` scenario. That is the "one example per input
-      class" rule in `.claude/standards/function-documentation.md`, not
-      Section A's five-item standard, which is why the examples overhaul
-      left it. `rescale_weights()` was the one file that overhaul reviewed
-      and deliberately did not touch.
+- [x] **[added and done 2026-09-01, PR #112]** `rescale_weights()`
+      documented replicate behaviour (`R/rescale_weights.R:37-42`) but
+      showed no `survey_replicate` scenario. It now carries one, on
+      `cps_2023`, mirroring `trim_weights()`. The scenario prints
+      `mean(repwtp1)` before and after — 1886.27 to 0.998 — which is the
+      claim `@section Replicate Weights` makes: the replicate columns move
+      by the same factor as the main weight.
 
 ---
 
@@ -875,10 +880,9 @@ complements to that release, not replacements for it:
   vignette suite planned for Polish
 
 **Suggested sequencing (statuses as of 2026-09-01):**
-1. Section H (quick wins) — **largely done** (PR #97, 2026-08-31); the
-   open stragglers live in the H checklist (the `max_adjust` bullet, the
-   two README items from the Section B+D review, the `ipw()` GEE example
-   deferred to Section A)
+1. Section H (quick wins) — **done**: the bulk in PR #97 (2026-08-31),
+   the `ipw()` GEE example in PR #109, and the last six stragglers in
+   PR #112 (both 2026-09-01)
 2. Section F — **done** (PR #97)
 3. Section G — **done** (PR #97)
 4. Section C (method-choice) — **done** (PRs #97–#98)
@@ -887,10 +891,23 @@ complements to that release, not replacements for it:
    2026-09-01). Plan file `plans/doc-examples-overhaul.md` carries the
    23-function audit and every decision behind it.
 
-All seven initiatives are now closed. What remains is the Section H
-straggler list (the `max_adjust` bullet, the two README items, and the new
-`rescale_weights()` replicate scenario) and the Polish release's vignette
-suite.
+All seven initiatives are closed, and so is every checklist item in this
+file. Two things came out of the work and live elsewhere:
+
+- **The Polish release's vignette suite**, which is roadmap work, not an
+  audit finding.
+- **Five package defects** the audits surfaced, none of them documentation
+  problems: surveywts
+  [#110](https://github.com/JDenn0514/surveywts/issues/110) (propensity
+  fits warn "non-integer #successes"),
+  [#111](https://github.com/JDenn0514/surveywts/issues/111) (the grouped
+  jackknife replay narrates every replicate),
+  [#113](https://github.com/JDenn0514/surveywts/issues/113) (three copies
+  of one warning class), and
+  [#114](https://github.com/JDenn0514/surveywts/issues/114) (unclassed
+  third-party messages); plus surveycore
+  [#203](https://github.com/JDenn0514/surveycore/issues/203) (`nrow()`,
+  `ncol()`, and `dim()` return `NULL` on every design class).
 
 ---
 

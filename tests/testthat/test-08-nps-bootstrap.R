@@ -43,13 +43,16 @@ test_that("create_bootstrap_weights() quasi-randomization Level A returns survey
   test_invariants(result)
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
 
-  # 50 repwt_* columns present, all numeric, all positive
+  # 50 repwt_* columns present, all numeric, none negative.
+  # A resample with replacement leaves some units undrawn, and an undrawn
+  # unit carries weight 0, so the column is non-negative, not positive.
   expect_identical(length(result@variables$repweights), 50L)
   expect_identical(result@variables$repweights, paste0("repwt_", 1:50))
   for (col in result@variables$repweights) {
     v <- result@data[[col]]
     expect_true(is.numeric(v))
-    expect_true(all(v > 0))
+    expect_true(all(v >= 0))
+    expect_true(any(v > 0))
   }
 
   # @variables$weights unchanged
@@ -1072,4 +1075,102 @@ test_that(".dispatch_calibration_replay() aborts on unknown calibration operatio
     ),
     class = "surveywts_error_unsupported_calibration_op"
   )
+})
+
+# ============================================================================
+# Resample map-back (GH #102)
+# ============================================================================
+
+test_that(".map_resample_weights() sums duplicates and zeroes undrawn units", {
+  # Units 1 and 3 are each drawn twice; units 2, 4, 5 are never drawn.
+  out <- surveywts:::.map_resample_weights(
+    w_b = c(10, 20, 30, 40),
+    idx = c(3L, 1L, 3L, 1L),
+    n = 5L
+  )
+  expect_identical(out, c(60, 0, 40, 0, 0))
+})
+
+test_that(".map_resample_weights() reproduces the draw's weighted total", {
+  set.seed(11)
+  n <- 200L
+  idx <- sample(n, n, replace = TRUE)
+  w_b <- runif(n, 1, 10)
+  y <- rnorm(n)
+
+  out <- surveywts:::.map_resample_weights(w_b, idx, n)
+
+  # The whole point of the sum: an estimator applied to the mapped column
+  # returns the value the draw produced.
+  expect_equal(sum(out * y), sum(w_b * y[idx]))
+  expect_equal(sum(out), sum(w_b))
+  expect_identical(length(out), n)
+  expect_true(all(out[setdiff(seq_len(n), unique(idx))] == 0))
+  expect_true(all(out[unique(idx)] > 0))
+})
+
+test_that(".map_resample_weights() rejects a length mismatch", {
+  expect_error(
+    surveywts:::.map_resample_weights(c(1, 2), c(1L, 2L, 3L), 3L),
+    "does not match the draw index"
+  )
+})
+
+test_that("quasi-randomization repwt columns are in original-unit order", {
+  skip_if_not_installed("svrep")
+  lev_a <- suppressWarnings(make_nps_level_a(seed = 1))
+  result <- suppressWarnings(create_bootstrap_weights(
+    lev_a,
+    type = "quasi-randomization",
+    replicates = 30L,
+    seed = 1L
+  ))
+
+  base <- result@data[[result@variables$weights]]
+  n <- nrow(result@data)
+
+  for (col in result@variables$repweights) {
+    v <- result@data[[col]]
+
+    # A resample with replacement leaves about 36.8% of units undrawn.
+    # Before the fix every entry was non-zero, because the resample-order
+    # vector has no slot for an undrawn unit.
+    zero_share <- mean(v == 0)
+    expect_gt(zero_share, 0.25)
+    expect_lt(zero_share, 0.50)
+    expect_true(all(v >= 0))
+    expect_identical(length(v), n)
+  }
+
+  # Alignment check. IPW gives every unit in a covariate cell the same weight,
+  # and the map-back multiplies that weight by the number of times the draw
+  # picked the unit. So inside one cell the non-zero replicate weights are all
+  # integer multiples of a single value. Under the defect the column held a
+  # permutation, which mixes values from every cell and breaks the pattern.
+  cell <- interaction(
+    result@data$age_group,
+    result@data$sex,
+    drop = TRUE
+  )
+  for (col in result@variables$repweights) {
+    v <- result@data[[col]]
+    ratios <- unlist(lapply(split(v, cell), function(x) {
+      x <- x[x > 0]
+      if (length(x) == 0L) {
+        return(numeric(0))
+      }
+      x / min(x)
+    }))
+    expect_equal(ratios, round(ratios), ignore_attr = TRUE)
+  }
+
+  # A permuted weight vector is uncorrelated with the base weight. A correctly
+  # ordered one is not. The margin is small on this fixture because the base
+  # weights vary little; the cell check above is the sharp test.
+  cors <- vapply(
+    result@variables$repweights,
+    function(col) stats::cor(result@data[[col]], base),
+    numeric(1)
+  )
+  expect_gt(mean(cors), 0.05)
 })

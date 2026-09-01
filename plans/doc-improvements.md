@@ -34,8 +34,15 @@ This revision updates the surfaces that implementation made stale: the
 executive summary's "single biggest gap," the F/G "pending merge" labels
 (merged in PR #97), the suggested sequencing, and the per-function table
 staleness note.
-**Status:** Open — Section A (examples) is the last major open
-initiative; Sections B, C, D, F, G shipped in PRs #97–#100.
+
+**Revised again:** 2026-09-01 — Section A closed. All 23 `@examples`
+blocks shipped in PRs #103 and #106–#109. This revision marks Section A
+done, closes the Section H `ipw()` GEE row as fixed rather than flagged,
+adds the `rescale_weights()` replicate scenario as a new open quick win,
+and retires the per-function table as a to-do list.
+**Status:** All seven initiatives closed. Sections B, C, D, F, G shipped
+in PRs #97–#100; Section A shipped 2026-09-01 in PRs #103 and #106–#109.
+Open work is the Section H straggler list and the Polish vignette suite.
 **Source:** Multi-agent documentation audit of all 23 exported functions, the README,
 `_pkgdown.yml`, and `surveywts-package.R`, evaluated from the perspective of an
 R/tidyverse-fluent analyst who is not a survey methodology expert.
@@ -75,7 +82,7 @@ Section H items.
 
 | # | Initiative | Scope | Status | Needs own plan? |
 |---|-----------|-------|--------|-----------------|
-| A | Examples: show what comes next | All 23 functions | Open | Yes |
+| A | Examples: show what comes next | All 23 functions | **Done** — implemented 2026-09-01 (PRs #103, #106, #107, #108, #109) | Yes — written |
 | B | Conceptual overview / Getting Started | Package-level + pkgdown | **Done** — implemented 2026-08-31 (PRs #99, #100) | Yes — written (with D) |
 | C | Method-choice guidance | Calibration, replicate, nonresponse families | Plan drafted 2026-08-31; dispatcher `@details` done (Phase 1, PR #97) | Yes — written |
 | D | Jargon: define or link recurring terms | All functions | **Done** — implemented 2026-08-31 (PRs #99, #100) | Yes — written (with B) |
@@ -89,7 +96,21 @@ Section H items.
 ## A. Examples: Show What Comes Next
 
 **Priority: highest.** Examples are the most-read part of any R help page.
-**Status: open — narrowed 2026-08-31.**
+**Status: done 2026-09-01.** All 23 `@examples` blocks now meet the
+five-item standard. Shipped in five PRs, all merged 2026-09-01:
+
+| PR | Scope |
+|---|---|
+| [#103](https://github.com/JDenn0514/surveywts/pull/103) | the four runtime hot spots, and the `calibrate_to_survey()` crossover-trap fix |
+| [#106](https://github.com/JDenn0514/surveywts/pull/106) | the replicate family and `as_taylor_design()`: assignments, `summarize_weights()`, one `get_means()` per page |
+| [#107](https://github.com/JDenn0514/surveywts/pull/107) | the calibration family: five `summarize_weights()` additions |
+| [#108](https://github.com/JDenn0514/surveywts/pull/108) | nonresponse and utilities |
+| [#109](https://github.com/JDenn0514/surveywts/pull/109) | the three diagnostics, the `ipw()` rewrite, and `tests/testthat/test-example-values.R` |
+
+The audit, the decisions, and the measured numbers are in
+`plans/doc-examples-overhaul.md`. Two package defects found during that
+work were filed and fixed separately: #101 (fixed by #104) and #102 (fixed
+by #105).
 
 ### Problem
 
@@ -769,13 +790,21 @@ per-replicate refits) is benchmarked to the NPORS estimate of partisanship
 
 ### Dataset docs / examples
 
-- [ ] **[open, deferred 2026-08-31]** `ipw()` GEE example: still uses inline
-      synthetic data (`nps_gee`, `ref_gee_df`). Deliberately left open during
-      the quick-wins pass: the documentation standards say to flag a dataset
-      gap rather than force a substitution, and a replacement must be chosen
-      for GEE convergence (population-scale reference weights) and run-tested
-      for `R CMD check` example time. Belongs with the Section A examples
-      overhaul (`plans/doc-examples-overhaul.md`).
+- [x] **[closed 2026-09-01, PR #109]** `ipw()` GEE example: the inline
+      synthetic data (`nps_gee`, `ref_gee_df`, and the direct
+      `surveycore::survey_taylor()` constructor call) is gone. The gap was
+      **closed, not flagged**: `npors_2025_clean` with `weights = wt_pop`
+      and `strata = stratum` converges under GEE and returns a
+      `survey_nonprob`, run-tested at 1.06 s for the whole block. The
+      comment claiming "population-scale reference weights" about a flat
+      `base_weight = 1` is gone too, replaced by the real constraint.
+- [ ] **[open, added 2026-09-01]** `rescale_weights()` documents replicate
+      behaviour (`R/rescale_weights.R:37-42`) but shows no
+      `survey_replicate` scenario. That is the "one example per input
+      class" rule in `.claude/standards/function-documentation.md`, not
+      Section A's five-item standard, which is why the examples overhaul
+      left it. `rescale_weights()` was the one file that overhaul reviewed
+      and deliberately did not touch.
 
 ---
 
@@ -792,9 +821,17 @@ undefined jargon ("g-weight undefined", "Design effect undefined", BRR/
 DAGJK expansions), missing when-to-use guidance, or missing cross-links
 are likewise stale: PRs #98–#100 (Sections C and B+D) added when-to-use
 paragraphs, jargon anchors, and the Getting Started `@seealso` link
-across all 23 functions. What this table still reads reliably for is the
-examples column — Section A has not been touched. Refresh the whole
-table at the next audit pass.
+across all 23 functions. As of 2026-09-01 the examples column is stale
+too: Section A rewrote every `@examples` block (PRs #103, #106–#109).
+
+**No column of this table is reliable any more.** Every gap it names has
+been addressed by PRs #97–#100 or #103/#106–#109. Read it as a record of
+the 2026-08-26 audit, not as a to-do list. Three rows do still name open
+work, and they are tracked in the Section H checklist rather than here:
+`adjust_nonresponse()` demonstrates only `method = "weighting-class"`,
+`create_jackknife_weights()` passes `replicates = 2L` on its
+grouped-on-Taylor scenario, and `rescale_weights()` has no
+`survey_replicate` scenario. Rebuild the table at the next audit pass.
 
 | Function | Key gaps |
 |----------|----------|
@@ -846,10 +883,14 @@ complements to that release, not replacements for it:
 3. Section G — **done** (PR #97)
 4. Section C (method-choice) — **done** (PRs #97–#98)
 5. Section B + D (getting started + glossary) — **done** (PRs #99–#100)
-6. Section A (examples overhaul) — **next up, now unblocked**: the
-   getting-started article it was waiting on exists, so examples can
-   reference its workflows. Plan file `plans/doc-examples-overhaul.md` is
-   still to be written.
+6. Section A (examples overhaul) — **done** (PRs #103, #106–#109,
+   2026-09-01). Plan file `plans/doc-examples-overhaul.md` carries the
+   23-function audit and every decision behind it.
+
+All seven initiatives are now closed. What remains is the Section H
+straggler list (the `max_adjust` bullet, the two README items, and the new
+`rescale_weights()` replicate scenario) and the Polish release's vignette
+suite.
 
 ---
 
@@ -857,7 +898,7 @@ complements to that release, not replacements for it:
 
 | Plan file | Initiative | Status |
 |-----------|-----------|--------|
-| `plans/doc-examples-overhaul.md` | Section A: per-function examples checklist | Not started |
+| `plans/doc-examples-overhaul.md` | Section A: per-function examples checklist | **Implemented** 2026-09-01 |
 | `plans/doc-getting-started.md` | Section B + D: conceptual article + glossary | **Implemented 2026-08-31** (PRs #99, #100); 5b URL check open until the next `main` merge |
 | `plans/doc-method-choice-guidance.md` | Section C: when-to-use content per family | **Drafted 2026-08-31**, adversarially reviewed; ready for implementation |
 | `plans/comprehension-replicate-methods.md` | Prerequisite for `create_replicate_weights()` `@details`/`@references` (Section C/H) | **Complete 2026-08-28.** All 14 sources audited (4 citations corrected; two residual open items); carries a draft `@details` block and the Section C method-choice table |

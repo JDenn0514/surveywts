@@ -3,14 +3,17 @@
 **Created:** 2026-09-01
 **Parent:** `plans/doc-improvements.md` Section A ("Examples: Show What
 Comes Next"), priority highest, the last major open initiative.
-**Status:** Drafted 2026-09-01, adversarially reviewed the same day, and
-revised against the review. **PR 1 merged** as
-[#103](https://github.com/JDenn0514/surveywts/pull/103) on 2026-09-01.
-PRs 2-5 open. Nothing is blocked: the two prerequisite code defects both
-landed on 2026-09-01 as
+**Status: implemented 2026-09-01.** All five PRs merged the same day:
+[#103](https://github.com/JDenn0514/surveywts/pull/103) (PR 1),
+[#106](https://github.com/JDenn0514/surveywts/pull/106) (PR 2),
+[#107](https://github.com/JDenn0514/surveywts/pull/107) (PR 3),
+[#108](https://github.com/JDenn0514/surveywts/pull/108) (PR 4),
+[#109](https://github.com/JDenn0514/surveywts/pull/109) (PR 5). The two
+prerequisite code defects landed the same day as
 [#104](https://github.com/JDenn0514/surveywts/pull/104) (issue #101) and
-[#105](https://github.com/JDenn0514/surveywts/pull/105) (issue #102), so
-the estimation call D2 deferred is now available — see the revised D2.
+[#105](https://github.com/JDenn0514/surveywts/pull/105) (issue #102),
+which reopened the estimation call D2 had deferred — see the revised D2.
+Final measurement below.
 **Scope:** The `@examples` block of all 23 exported functions. No other
 roxygen section, no R source outside roxygen comments, no vignette.
 
@@ -1123,25 +1126,46 @@ Branch `docs/examples-diagnostics-ipw`. Four files plus one new test file.
 
 ---
 
-## Task 7 — close the parent plan
+## Task 7 — close the parent plan (complete, 2026-09-01)
 
-After PR 5 merges. `plans/` edits go straight to `develop` with a
-`docs(plans):` message (`.claude/rules/core.md` §6).
+- [x] `plans/doc-improvements.md` Section A: marked done, with a table of
+      the five PRs.
+- [x] Section H "Dataset docs / examples": the `ipw()` GEE row is closed
+      as **fixed, not flagged** — `npors_2025_clean` with `weights =
+      wt_pop` and `strata = stratum`.
+- [x] Section H: the `rescale_weights()` missing `survey_replicate`
+      scenario is added as a new open quick win.
+- [x] "Issues at a Glance" and the suggested sequencing: Section A is
+      Done, and the sequencing records that all seven initiatives are
+      closed.
+- [x] The Per-Function Issue Reference: the staleness note is rewritten.
+      No column of that table is reliable now, so it is retired as a
+      to-do list and kept as a record of the 2026-08-26 audit. The three
+      rows that still name open work are named explicitly and tracked in
+      the Section H checklist instead.
+- [x] This file: marked implemented, final measurement below.
 
-- [ ] `plans/doc-improvements.md` Section A: mark done, name the five PRs
-      and their dates.
-- [ ] Section H "Dataset docs / examples": close the `ipw()` GEE row.
-      Record that the gap was closed with `npors_2025_clean` + `wt_pop`,
-      not flagged.
-- [ ] Section H: add the `rescale_weights()` missing `survey_replicate`
-      scenario as a new quick win (Task 0, out-of-scope item 6).
-- [ ] The "Issues at a Glance" table and the suggested sequencing:
-      Section A becomes Done.
-- [ ] The Per-Function Issue Reference: its staleness note says the
-      examples column is the last reliable one. After PR 5 that column is
-      stale too. Rewrite the note, or refresh the table.
-- [ ] This file: mark implemented, and record the final measured example
-      time against the 130.34 s baseline.
+## Final measurement, 2026-09-01
+
+`R CMD check --timings`, examples only, on `develop` after all five PRs
+merged, on an otherwise idle machine.
+
+| | Value |
+|---|--:|
+| Total elapsed, 23 examples | **16.86 s** |
+| Original baseline | 130.34 s |
+| Reduction | 87% |
+| Examples over 5 s (user + system) | **0** |
+| Slowest example | `calibrate_to_survey` at 2.60 s |
+
+The D3 gate asked for 45 s or less with no example over 5 s. Both hold
+with room to spare. The four one-time hot spots are gone: the slowest
+example is now 2.60 s, against `calibrate_to_estimate()`'s 69.20 s at the
+start.
+
+Every example gained a downstream step, and the runtime fell by 87% at
+the same time. The two are connected: the audit that found the missing
+downstream steps also found the replicate counts nobody had set.
 
 ---
 

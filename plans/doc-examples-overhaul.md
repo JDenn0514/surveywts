@@ -279,7 +279,9 @@ Two independent bugs, two PRs, both merged 2026-09-01:
 | #101 | [#104](https://github.com/JDenn0514/surveywts/pull/104) | `.convert_and_call()` copied `svyrep_obj$repweights` and ignored `combined.weights = FALSE`, so the base weight was never folded in. One site, all seven probability creators |
 | #102 | [#105](https://github.com/JDenn0514/surveywts/pull/105) | the quasi-randomization bootstrap wrote resample-order weights into original-order rows |
 
-**Re-measured on `develop` at `a0bc8e1`, after both fixes.** Taylor
+**Re-measured at `a0bc8e1`, which carries #104 only.** #105 changes the
+quasi-randomization bootstrap alone, and every path below is a probability
+path, so the numbers stand; the attribution does not. Taylor
 reference: `survey::svymean(~age)` on the `gss_2024` design gives mean
 47.937, SE 0.4832, CI 46.990 to 48.884. Against that:
 
@@ -568,7 +570,7 @@ the correct one. `survey::svymean()` on the Taylor design gives SE
 same interval. The wide replicate interval was the prerequisite defect
 above, not variance capability being discarded.
 
-Re-measured after #104 and #105, on the same bootstrap the example
+Re-measured at `a0bc8e1`, on the same bootstrap the example
 builds: `get_means()` gives CI 46.9 to 49.0 before conversion and 47.0 to
 48.9 after. The two-number demonstration has nothing left to show.
 
@@ -852,7 +854,7 @@ The four changed examples, elapsed:
 | `calibrate_to_survey()` | 4.76 | 2.58 |
 
 **The baseline for PRs 2-5 is 20.70 s, not 130.34 s.** PR 1 measured
-21.10 s; re-measured on `develop` at `a0bc8e1`, after #104 and #105, the
+21.10 s; re-measured at `a0bc8e1`, which carries #104 but not #105, the
 total is 20.70 s with 0 examples over 5 s and
 `create_jackknife_weights()` slowest at 3.39 s. The 45 s ceiling in
 D3 still holds, and PR 1 leaves about 24 s of room under it.
@@ -922,7 +924,8 @@ call on a second scenario.
       so there is no two-number contrast to draw.
 
 **Measured values, for the implementer to check against.** All from
-`develop` at `a0bc8e1`. If a value differs, report it rather than
+`a0bc8e1`, which carries #104 but not #105. If a value differs, report it
+rather than
 adjusting the comment.
 
 | Page, first probability scenario | `get_means(., age)` CI |
@@ -952,7 +955,7 @@ The Taylor reference for `gss_2024` is `survey::svymean(~age)`: mean
       `R/as_taylor_design.R:135-140`.
 - [ ] `devtools::document()`, `devtools::check()` clean, timings in the
       PR body, no example over 5 s. Baseline for this PR is **20.70 s**
-      total (measured 2026-09-01 on `develop` at `a0bc8e1`, 0 examples
+      total (measured 2026-09-01 at `a0bc8e1`, 0 examples
       over 5 s, slowest `create_jackknife_weights` at 3.39 s). The
       estimation calls cost 0.00 to 0.02 s each, so the total should move
       by well under 1 s.
@@ -1347,7 +1350,7 @@ estimate test, and external references.
       the working reference for what the other two should produce.
 - [ ] The DAGJK replay emits one convergence message per replicate — 20
       identical "Raking converged in 1 sweep" lines at 25 replicates,
-      re-measured 2026-09-01 after #104 and #105. Neither fix touched it,
+      re-measured 2026-09-01 at `a0bc8e1`. Neither fix touched it,
       so it is still open and still not this plan's to fix. A replay
       should not narrate each replicate. PR 2 accepts the block, per
       Task 0 in-scope item 5 — no `suppressMessages()`.

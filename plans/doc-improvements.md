@@ -27,7 +27,15 @@ implementation: Section B's "the other five creators reject a
 `survey_nonprob`" claim (four do; the jackknife accepts
 `type = "grouped"`), and the probability workflow sketch's step order
 (replicate weights come before calibration).
-**Status:** Open — pre-implementation review
+**Revised:** 2026-09-01 — post-implementation refresh. Sections B+D
+shipped 2026-08-31 (PR #99: the Getting Started article; PR #100: jargon
+anchors and `@seealso` links in all 23 functions; closeout `ea088ab`).
+This revision updates the surfaces that implementation made stale: the
+executive summary's "single biggest gap," the F/G "pending merge" labels
+(merged in PR #97), the suggested sequencing, and the per-function table
+staleness note.
+**Status:** Open — Section A (examples) is the last major open
+initiative; Sections B, C, D, F, G shipped in PRs #97–#100.
 **Source:** Multi-agent documentation audit of all 23 exported functions, the README,
 `_pkgdown.yml`, and `surveywts-package.R`, evaluated from the perspective of an
 R/tidyverse-fluent analyst who is not a survey methodology expert.
@@ -51,11 +59,15 @@ coherent story, shows realistic workflow examples with console output, and
 contextualizes the package. The function-level help pages do not sustain that
 quality.
 
-**The single biggest gap:** there is no conceptual layer between the README's
-workflow narrative and the function-level reference pages. A user who graduates
-from the README to `?calibrate_rake` hits a help page written for someone who
-already knows what raking is, why they'd choose it over linear calibration, and
-what the class system returns.
+**The single biggest gap — closed 2026-08-31:** there was no conceptual
+layer between the README's workflow narrative and the function-level
+reference pages. That layer now exists: the Getting Started article
+(PRs #99–#100) covers the class system, the two standard workflows,
+method-choice tables, and a 15-term glossary, and every exported
+function's `@seealso` links to it. The jargon gap closed with it
+(Section D), and the sibling-choice gap closed with Section C (PR #98).
+The open remainder of this audit is Section A (examples) and the open
+Section H items.
 
 ---
 
@@ -68,8 +80,8 @@ what the class system returns.
 | C | Method-choice guidance | Calibration, replicate, nonresponse families | Plan drafted 2026-08-31; dispatcher `@details` done (Phase 1, PR #97) | Yes — written |
 | D | Jargon: define or link recurring terms | All functions | **Done** — implemented 2026-08-31 (PRs #99, #100) | Yes — written (with B) |
 | E | Constructor inconsistency | — | **Resolved** — see Resolved log | — |
-| F | Class system: accurate `@returns` + orientation | `adjust_nonresponse`, `summarize_weights` | Fixed 2026-08-31 on `docs/section-h-quick-wins`, pending merge | No — fix inline |
-| G | Package-level docs stale | `surveywts-package.R`, `_pkgdown.yml`, README | Fixed — README re-rendered 2026-08-31, pending merge | No — fix inline |
+| F | Class system: accurate `@returns` + orientation | `adjust_nonresponse`, `summarize_weights` | **Done** — merged in PR #97 (2026-08-31) | No — fix inline |
+| G | Package-level docs stale | `surveywts-package.R`, `_pkgdown.yml`, README | **Done** — README re-rendered; merged in PR #97 (2026-08-31) | No — fix inline |
 | H | Quick-win fixes (errors, omissions, reproducibility) | Scattered | Done 2026-08-31 except the `ipw()` GEE example (deferred to Section A) and the `max_adjust` default contradiction (added 2026-08-31) | No — checklist below |
 
 ---
@@ -393,10 +405,10 @@ added as a 15th term), drafted anchor texts, and placement rules.
 
 ## F. Class System: Accurate `@returns` and Orientation
 
-**Priority: medium.** **Status: fixed 2026-08-31** on
-`docs/section-h-quick-wins` (pending merge) — the earlier closed half is in
-the Resolved log. The `n_zero` design question (document the always-0
-behavior vs. stop dropping zero rows) is documented, not decided.
+**Priority: medium.** **Status: done 2026-08-31** — merged in PR #97; the
+earlier closed half is in the Resolved log. The `n_zero` design question
+(document the always-0 behavior vs. stop dropping zero rows) is
+documented, not decided.
 
 ### Fixed 2026-08-31 (kept for reference)
 
@@ -452,9 +464,8 @@ No separate plan needed. Add to quick-wins checklist in Section H.
 
 ## G. Package-Level Docs: Stale and Incomplete
 
-**Priority: medium.** **Status: resolved 2026-08-31** — the README chunks
-were fixed and `README.md` re-rendered on `docs/section-h-quick-wins`
-(pending merge; see Section H).
+**Priority: medium.** **Status: done 2026-08-31** — the README chunks
+were fixed and `README.md` re-rendered; merged in PR #97 (see Section H).
 
 ### Problems (original audit, since resolved or superseded)
 
@@ -775,9 +786,15 @@ Constructor-inconsistency and `weighted_df`-return mentions from the original
 audit are removed as resolved/moot. This is not exhaustive — see the full
 subagent reports for detailed findings.
 
-Rows that point at Section H items closed on 2026-08-31 (branch
-`docs/section-h-quick-wins`) are stale for those items — the H checklist is
-authoritative. Refresh this table at the next audit pass.
+Rows that point at Section H items closed on 2026-08-31 (PR #97) are
+stale for those items — the H checklist is authoritative. Rows naming
+undefined jargon ("g-weight undefined", "Design effect undefined", BRR/
+DAGJK expansions), missing when-to-use guidance, or missing cross-links
+are likewise stale: PRs #98–#100 (Sections C and B+D) added when-to-use
+paragraphs, jargon anchors, and the Getting Started `@seealso` link
+across all 23 functions. What this table still reads reliably for is the
+examples column — Section A has not been touched. Refresh the whole
+table at the next audit pass.
 
 | Function | Key gaps |
 |----------|----------|
@@ -820,17 +837,19 @@ complements to that release, not replacements for it:
 - The Getting Started article (Section B) is the natural predecessor to the full
   vignette suite planned for Polish
 
-**Suggested sequencing:**
-1. Section H (quick wins) — no design needed; knock these out opportunistically.
-   The two **[decide]** items were resolved on 2026-08-28: keep the no-seed
-   convention; write the comprehension plan. They no longer block the rest.
-2. Section F (row-retention doc fix, `n_positive`/`n_zero`) — bounded,
-   standalone; the behavior itself is verified as of 2026-08-31
-3. Section G (package-level docs) — standalone, fast
-4. Section C (method-choice) — feed into Section B design
-5. Section B + D (getting started + glossary) — the flagship deliverable
-6. Section A (examples overhaul) — last, because downstream workflow steps become
-   clearer once the getting-started article exists to reference
+**Suggested sequencing (statuses as of 2026-09-01):**
+1. Section H (quick wins) — **largely done** (PR #97, 2026-08-31); the
+   open stragglers live in the H checklist (the `max_adjust` bullet, the
+   two README items from the Section B+D review, the `ipw()` GEE example
+   deferred to Section A)
+2. Section F — **done** (PR #97)
+3. Section G — **done** (PR #97)
+4. Section C (method-choice) — **done** (PRs #97–#98)
+5. Section B + D (getting started + glossary) — **done** (PRs #99–#100)
+6. Section A (examples overhaul) — **next up, now unblocked**: the
+   getting-started article it was waiting on exists, so examples can
+   reference its workflows. Plan file `plans/doc-examples-overhaul.md` is
+   still to be written.
 
 ---
 

@@ -38,6 +38,8 @@
 #' @examples
 #' ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
 #' effective_sample_size(ns_wave1_svy)
+#' #>    n_eff
+#' #> 2254.539
 effective_sample_size <- function(x, weights = NULL) {
   weights_quo <- rlang::enquo(weights)
   vld <- .diag_validate_input(x, weights_quo)

@@ -39,9 +39,19 @@
 #'
 #' # overall summary --------------------------------------------------------
 #' summarize_weights(ns_wave1_svy)
+#' #> # A tibble: 1 × 11
+#' #>       n n_positive n_zero  mean    cv     min   p25   p50   p75   max   ess
+#' #>   <int>      <int>  <int> <dbl> <dbl>   <dbl> <dbl> <dbl> <dbl> <dbl> <dbl>
+#' #> 1  6422       6422      0  1.00  1.36 0.00382 0.153 0.400  1.13  4.78 2255.
 #'
 #' # grouped by sex ---------------------------------------------------------
 #' summarize_weights(ns_wave1_svy, by = sex)
+#' #> # A tibble: 2 × 12
+#' #>   sex        n n_positive n_zero  mean    cv     min   p25   p50   p75   max
+#' #>   <fct>  <int>      <int>  <int> <dbl> <dbl>   <dbl> <dbl> <dbl> <dbl> <dbl>
+#' #> 1 Male    3632       3632      0 0.877  1.44 0.00382 0.138 0.353 0.893  4.78
+#' #> 2 Female  2790       2790      0 1.16   1.26 0.00382 0.173 0.494 1.47   4.77
+#' #> # ℹ 1 more variable: ess <dbl>
 summarize_weights <- function(x, weights = NULL, by = NULL) {
   weights_quo <- rlang::enquo(weights)
   by_quo <- rlang::enquo(by)

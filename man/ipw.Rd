@@ -368,115 +368,58 @@ are returned; inspect them before use.
 }
 
 \examples{
-data(ns_wave1)
-
-# --- GSS 2024 as probability reference --------------------------------
-# Construct a Taylor reference design from the gss_2024 tibble using wt_pop.
-data(gss_2024)
+# --- GSS 2024 as probability reference, both interfaces ---------------
+# ipw() always listwise-deletes reference rows with NA in a selection
+# variable, and warns once per call. Drop them first, as the warning says.
+gss_complete <- gss_2024[!is.na(gss_2024$sex) & !is.na(gss_2024$age_f3), ]
 gss_ref <- surveycore::as_survey(
-  gss_2024, weights = wt_pop, strata = vstrat, ids = vpsu, nest = TRUE
+  gss_complete, weights = wt_pop, strata = vstrat, ids = vpsu, nest = TRUE
 )
-
-# Formula interface
 result1 <- ipw(ns_wave1, gss_ref, selection = ~sex + age_f3)
+result2 <- ipw(ns_wave1, gss_ref, predictors = c("sex", "age_f3"))
+summarize_weights(result1)
+calibrate(result2, list(sex = c(Male = 0.49, Female = 0.51)))
 
-# Programmatic interface — suitable for lapply()
-result2 <- ipw(
-  ns_wave1,
-  gss_ref,
-  predictors = c("sex", "age_f3")
-)
-
-# Inspect weight quality before analysis
-effective_sample_size(result1)
-weight_variability(result1)
-
-# --- CPS ASEC 2023 as survey_replicate reference ----------------------
-# cps_2023 is a plain data.frame; construct the replicate design inline.
-data(cps_2023)
+# --- CPS ASEC 2023 as survey_replicate reference -----------------------
+ns_complete <- ns_wave1[!is.na(ns_wave1$race_f4), ]
 cps_ref <- surveycore::as_survey_replicate(
-  cps_2023,
-  weights    = "wtfinl",
-  repweights = paste0("repwtp", 1:160),
-  type       = "successive-difference",
-  scale      = 4 / 160,
-  rscales    = rep(1, 160)
+  cps_2023, weights = "wtfinl", repweights = paste0("repwtp", 1:160),
+  type = "successive-difference", scale = 4 / 160, rscales = rep(1, 160)
 )
 result_cps <- ipw(
-  ns_wave1,
-  cps_ref,
-  selection      = ~sex + age_f3 + race_f4 + edu_f3,
-  missing_method = "omit"
+  ns_complete, cps_ref, selection = ~sex + age_f3 + race_f4 + edu_f3
 )
+summarize_weights(result_cps)
 
-# --- Pew NPORS 2025 as probability reference --------------------------
-# ns_wave1 has ~120 NA values in race_f4; missing_method controls handling.
-# Use npors_2025_clean to avoid reference-NA listwise-deletion warnings.
-data(npors_2025_clean)
-npors_ref <- surveycore::as_survey(npors_2025_clean, weights = wt_pop)
-
-# missing_method = "omit" (default): rows with NA in race_f4 are dropped
-result_omit <- ipw(
-  ns_wave1,
-  npors_ref,
-  selection = ~sex + age_f3 + race_f4 + edu_f3,
-  missing_method = "omit"
+# --- Pew NPORS 2025: the three missing_method values -------------------
+npors_ref <- surveycore::as_survey(
+  npors_2025_clean, weights = wt_pop, strata = stratum
 )
-
-# missing_method = "separate": NA recoded to "(Missing)" level; all rows kept
+sel <- ~sex + age_f3 + race_f4 + edu_f3
+result_omit <- ipw(ns_wave1, npors_ref, selection = sel)
+#> ! 120 row(s) in `data` dropped: NA in race_f4.
 result_sep <- ipw(
-  ns_wave1,
-  npors_ref,
-  selection = ~sex + age_f3 + race_f4 + edu_f3,
-  missing_method = "separate"
+  ns_wave1, npors_ref, selection = sel, missing_method = "separate"
 )
-
-# missing_method = "impute": NA imputed via mice::mice() (requires mice)
+nrow(result_sep@data) - nrow(result_omit@data)
 if (requireNamespace("mice", quietly = TRUE)) {
   result_imp <- ipw(
-    ns_wave1,
-    npors_ref,
-    selection = ~sex + age_f3 + race_f4 + edu_f3,
-    missing_method = "impute"
+    ns_wave1, npors_ref, selection = sel,
+    missing_method = "impute", mice_args = list(seed = 42L)
   )
+  nrow(result_imp@data)
 }
 
 # --- GEE estimating equation ------------------------------------------
-# GEE guarantees sum(w * x) = sum(d * x) at convergence and is the
-# default. The example below uses population-scale reference weights
-# to show GEE convergence with realistic survey data scales.
-set.seed(42L)
-nps_gee <- data.frame(
-  age_group = sample(c("18-34", "35-54", "55+"), 200L, replace = TRUE),
-  sex       = sample(c("M", "F"), 200L, replace = TRUE),
-  stringsAsFactors = FALSE
-)
-ref_gee_df <- data.frame(
-  age_group   = sample(c("18-34", "35-54", "55+"), 500L,
-                       replace = TRUE, prob = c(0.3, 0.4, 0.3)),
-  sex         = sample(c("M", "F"), 500L, replace = TRUE),
-  base_weight = 1,
-  stringsAsFactors = FALSE
-)
-ref_gee <- surveycore::survey_taylor(
-  ref_gee_df,
-  variables = list(weights = "base_weight")
-)
+# GEE needs population-scale reference weights, or the solver diverges.
 result_gee <- ipw(
-  nps_gee,
-  ref_gee,
-  selection        = ~age_group + sex,
-  estimating_eq    = "gee",
-  adjust_reference = FALSE
+  ns_complete, npors_ref, selection = sel, estimating_eq = "gee"
 )
+summarize_weights(result_gee)
 
-# --- Known population size --------------------------------------------
-# Supply N from a census frame to record it in the history entry.
+# --- known population size --------------------------------------------
 result_known_n <- ipw(
-  ns_wave1,
-  gss_ref,
-  selection = ~sex + age_f3,
-  population_size = 258000000L
+  ns_wave1, gss_ref, selection = ~sex + age_f3, population_size = 258000000L
 )
 result_known_n@metadata@weighting_history[[1]]$population_size_known
 }

@@ -33,6 +33,8 @@ the same size). Rows with zero weights (typically produced by
 \examples{
 ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
 weight_variability(ns_wave1_svy)
+#>       cv
+#> 1.359692
 }
 \references{
 Kish, L. (1965). \emph{Survey Sampling}. New York: John Wiley & Sons.

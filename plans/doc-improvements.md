@@ -18,6 +18,15 @@ drafted (`plans/doc-method-choice-guidance.md`); its adversarial review
 found defects in this file's Section C draft tables (fixed in place),
 confirmed a calibration comprehension doc exists in the archive, and added
 one new Section H quick win (`max_adjust` default contradiction).
+**Revised:** 2026-08-31 — Section B+D planning pass. The combined plan is
+drafted and adversarially reviewed (`plans/doc-getting-started.md`). Its
+review added two Section H quick wins (the README static function table
+and the missing `strata` in the README reference construction) and found
+two defects in this file that the plan's Task 5d corrects on
+implementation: Section B's "the other five creators reject a
+`survey_nonprob`" claim (four do; the jackknife accepts
+`type = "grouped"`), and the probability workflow sketch's step order
+(replicate weights come before calibration).
 **Status:** Open — pre-implementation review
 **Source:** Multi-agent documentation audit of all 23 exported functions, the README,
 `_pkgdown.yml`, and `surveywts-package.R`, evaluated from the perspective of an
@@ -55,9 +64,9 @@ what the class system returns.
 | # | Initiative | Scope | Status | Needs own plan? |
 |---|-----------|-------|--------|-----------------|
 | A | Examples: show what comes next | All 23 functions | Open | Yes |
-| B | Conceptual overview / Getting Started | Package-level + pkgdown | Open | Yes |
+| B | Conceptual overview / Getting Started | Package-level + pkgdown | Plan drafted 2026-08-31 | Yes — written (with D) |
 | C | Method-choice guidance | Calibration, replicate, nonresponse families | Plan drafted 2026-08-31; dispatcher `@details` done (Phase 1, PR #97) | Yes — written |
-| D | Jargon: define or link recurring terms | All functions | Open | Yes |
+| D | Jargon: define or link recurring terms | All functions | Plan drafted 2026-08-31 | Yes — written (with B) |
 | E | Constructor inconsistency | — | **Resolved** — see Resolved log | — |
 | F | Class system: accurate `@returns` + orientation | `adjust_nonresponse`, `summarize_weights` | Fixed 2026-08-31 on `docs/section-h-quick-wins`, pending merge | No — fix inline |
 | G | Package-level docs stale | `surveywts-package.R`, `_pkgdown.yml`, README | Fixed — README re-rendered 2026-08-31, pending merge | No — fix inline |
@@ -144,7 +153,9 @@ checks of five families, not a sweep of all 23 functions.
 ## B. Conceptual Overview / Getting Started
 
 **Priority: high.** A single article would lift the entire package.
-**Status: fully open** — no work has touched this.
+**Status: plan drafted 2026-08-31** (`plans/doc-getting-started.md`,
+adversarially reviewed, ready for implementation). No article content is
+written yet.
 
 ### Problem
 
@@ -231,8 +242,10 @@ full vignette suite.
 
 ### Needs own plan?
 
-**Yes.** Requires content decisions about scope, structure, and which concepts
-to define. File: `plans/doc-getting-started.md` (to be written).
+**Yes — written.** `plans/doc-getting-started.md` (drafted 2026-08-31,
+adversarially reviewed): article structure, the two workflow skeletons,
+the method-choice tables' sources, linking, and infrastructure, with
+per-task acceptance criteria.
 
 ---
 
@@ -323,7 +336,9 @@ roxygen text drafted verbatim, a claim ledger, and grep gates.
 
 ## D. Jargon: Define or Link Recurring Terms
 
-**Priority: high.** **Status: fully open.**
+**Priority: high.** **Status: plan drafted 2026-08-31** — folded into
+`plans/doc-getting-started.md` (glossary term list, entry depths, anchor
+texts, and placement rules).
 
 ### Problem
 
@@ -369,8 +384,9 @@ perturbed weights used to estimate variance)."
 
 ### Needs own plan?
 
-**Yes** — the glossary content decisions and which terms warrant full definitions
-vs. one-line anchors are non-trivial. Fold into `plans/doc-getting-started.md`.
+**Yes — written.** Folded into `plans/doc-getting-started.md` (drafted
+2026-08-31): 12 concept entries plus 3 acronym entries (Hadamard matrix
+added as a 15th term), drafted anchor texts, and placement rules.
 
 ---
 
@@ -605,6 +621,26 @@ changing). Closed items are in the Resolved log at the bottom of this file.
       (lines 12-13) says "Sets the weights of rows satisfying `reduce_if` to
       zero". The rows are then removed (`R/redistribute_weights.R:379-389`),
       not kept at zero weight. Reword to say the rows are removed.
+- [ ] **[open, found 2026-08-31 during the Section B+D planning pass]**
+      The README function table names a function that does not exist.
+      `README.Rmd:88` (and the rendered `README.md`) lists
+      `create_group_jackknife_weights()` in the Replicate weights table;
+      the function was merged into
+      `create_jackknife_weights(type = "grouped")` in `986b8bc`. Delete
+      the row or fold it into the `create_jackknife_weights()` row. The
+      jackknife row at `README.Rmd:83` also says "(JK1, JKn, random
+      groups)"; the accepted `type` values are `"jk1"`, `"jkn"`,
+      `"grouped"`. The 2026-08-31 re-render fixed the chunks, not this
+      static table. Fix `README.Rmd`, then re-render with
+      `devtools::build_readme()`.
+- [ ] **[open, found 2026-08-31 during the Section B+D planning pass]**
+      The README reference construction omits `strata`. `README.Rmd:121`
+      builds the NPORS reference with
+      `surveycore::as_survey(npors_2025_clean, weights = wt_pop)`, but
+      the dataset docs say "Always include `strata = stratum`"
+      (`R/data.R:110-111`, `:251-253`). Add the argument and re-render.
+      The Getting Started article already uses the documented form
+      (`plans/doc-getting-started.md`, Task 2c).
 - [x] **[done 2026-08-31 — switched to `as_survey_nonprob()` with
       `repweights = paste0("repwt_", 1:200)`, run-verified]**
       `R/data.R:396-400` demonstrated the
@@ -802,7 +838,7 @@ complements to that release, not replacements for it:
 | Plan file | Initiative | Status |
 |-----------|-----------|--------|
 | `plans/doc-examples-overhaul.md` | Section A: per-function examples checklist | Not started |
-| `plans/doc-getting-started.md` | Section B + D: conceptual article + glossary | Not started |
+| `plans/doc-getting-started.md` | Section B + D: conceptual article + glossary | **Drafted 2026-08-31**, adversarially reviewed; ready for implementation |
 | `plans/doc-method-choice-guidance.md` | Section C: when-to-use content per family | **Drafted 2026-08-31**, adversarially reviewed; ready for implementation |
 | `plans/comprehension-replicate-methods.md` | Prerequisite for `create_replicate_weights()` `@details`/`@references` (Section C/H) | **Complete 2026-08-28.** All 14 sources audited (4 citations corrected; two residual open items); carries a draft `@details` block and the Section C method-choice table |
 

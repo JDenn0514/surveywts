@@ -1,0 +1,337 @@
+---
+title: "Getting started with surveywts"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup, message = FALSE}
+library(surveywts)
+set.seed(1)
+```
+
+This article is for an R-fluent analyst who is not a survey
+methodologist. It explains the objects the package returns, the two
+standard workflows, how to choose among sibling methods, and the
+recurring terms. The README shows the calls; this article explains what
+comes back and why.
+
+## The class system
+
+Every surveywts function takes a survey object from
+[surveycore](https://jdenn0514.github.io/surveycore/) and returns one.
+Three classes cover everything:
+
+| Class | What it is |
+|---|---|
+| `survey_taylor` | A probability design that computes variance by Taylor linearization (see the [glossary](#taylor-linearization)). |
+| `survey_replicate` | A probability design that carries replicate weight columns (`rep_1`, `rep_2`, ...) and computes variance from their spread. |
+| `survey_nonprob` | A non-probability sample with estimated weights. Replicate methods add `repwt_*` columns in place; the class never changes. |
+
+The diagram shows the object progression for the two sample types:
+
+```
+probability sample              non-probability sample
+
+survey_taylor                   survey_nonprob
+    │  create_*_weights()           │  create_*_weights()
+    ▼                               │  (quasi-randomization bootstrap,
+survey_replicate                    │   grouped jackknife / DAGJK)
+    │  as_taylor_design()           ▼
+    ▼                           survey_nonprob + repwt_* columns
+survey_taylor                       (class unchanged; variance-ready)
+```
+
+Weighting functions preserve the input class. `calibrate()`,
+`adjust_nonresponse()`, `trim_weights()`, and their siblings return the
+same class they receive. Only the probability-path replicate creators
+change the class: they turn a `survey_taylor` into a `survey_replicate`.
+`as_taylor_design()` converts a `survey_replicate` back, and it always
+warns that the replicate-specific variance detail is lost in the
+conversion.
+
+One crossover exists, and it is a trap rather than a route.
+`create_bootstrap_weights()` with a probability-style `type` (the
+default included) accepts a `survey_nonprob`, silently wraps it as a
+simple-random-sample design, and returns a `survey_replicate`. Those
+replicates ignore the propensity-estimation step, and
+`as_taylor_design()` refuses the result. On a non-probability sample,
+use `type = "quasi-randomization"` instead — see the note in
+`create_bootstrap_weights()`. Of the other creators,
+`create_brr_weights()`, `create_gen_boot_weights()`,
+`create_gen_rep_weights()`, and `create_sdr_weights()` reject a
+`survey_nonprob` outright; `create_jackknife_weights()` rejects it for
+`type = "jk1"` and `"jkn"` and accepts it only with `type = "grouped"`,
+the DAGJK path the diagram shows.
+
+## The two standard workflows
+
+Both workflows end the same way: replicate weights, a diagnostic check,
+and an estimate. They differ in where the replicate step sits, and that
+difference is the one rule worth memorizing.
+
+### Probability sample
+
+On a probability sample, create replicate weights **before** you
+calibrate. `calibrate()` applied to a `survey_replicate` recalibrates
+every replicate weight column to the same targets, so each replicate
+carries its own copy of the adjustment. That per-replicate replay is
+required: replicate weights built after the fact, from the already
+calibrated full-sample weights, drop the variance the calibration step
+contributes (Valliant, Dever & Kreuter 2018).
+
+```{r probability-workflow}
+# 1. Construct the design from the raw tibble. Calibration variables
+#    must be NA-free, so drop the rows with NA sex or age first.
+gss_complete <- gss_2024[!is.na(gss_2024$sex) & !is.na(gss_2024$age_f3), ]
+gss <- surveycore::as_survey(
+  gss_complete, weights = wtssps, strata = vstrat, ids = vpsu, nest = TRUE
+)
+
+# 2. Create replicate weights BEFORE calibrating.
+#    Real analyses use more replicates; 100 keeps this article fast.
+gss_rep <- create_replicate_weights(
+  gss, method = "bootstrap", replicates = 100L, seed = 1
+)
+
+# 3. Calibrate to population margins — every replicate column is
+#    recalibrated to the same targets
+targets <- list(
+  sex = c("Male" = 0.49, "Female" = 0.51),
+  age_f3 = c("18-34" = 0.28, "35-54" = 0.37, "55+" = 0.35)
+)
+gss_cal <- calibrate(gss_rep, targets = targets)
+
+# 4. Inspect the weights
+summarize_weights(gss_cal)
+
+# 5. Estimate
+surveycore::get_freqs(gss_cal, pid_f3)
+```
+
+### Non-probability sample
+
+A non-probability sample starts as a plain data frame. `ipw()` models
+each unit's chance of appearing in the sample against a probability
+reference survey and returns a `survey_nonprob`. Calibrating those
+weights to census margins afterward gives a doubly robust estimate (see
+the [glossary](#doubly-robust)).
+
+Here the replicate step comes **last**. The quasi-randomization
+bootstrap replays the whole weighting pipeline — the propensity model
+and the calibration — inside every replicate, so the estimation error of
+the models enters the variance. Calibrate the full-sample weights first;
+create replicates as the final weighting step.
+
+```{r nonprobability-workflow}
+# 1. Start from a plain tibble; drop rows with NA in the benchmark
+#    variable
+ns_complete <- ns_wave1[!is.na(ns_wave1$pid_f3), ]
+
+# 2. Estimate inverse probability weights against a probability
+#    reference. With missing_method = "omit", ipw() warns and drops
+#    rows with NA in a predictor.
+npors_ref <- surveycore::as_survey(
+  npors_2025_clean, weights = wt_pop, strata = stratum
+)
+nps_wts <- ipw(
+  ns_complete,
+  npors_ref,
+  predictors = c("sex", "age_f3", "race_f4", "edu_f3"),
+  missing_method = "omit",
+  estimating_eq = "mle"
+)
+
+# 3. Calibrate the IPW weights to census margins (doubly robust)
+nps_cal <- calibrate(nps_wts, targets = targets)
+
+# 4. Create replicate weights LAST — each replicate refits the IPW
+#    model and replays the calibration
+nps_rep <- create_bootstrap_weights(
+  nps_cal,
+  type = "quasi-randomization",
+  replicates = 100L,
+  seed = 1
+)
+
+# 5. Inspect and estimate
+summarize_weights(nps_rep)
+surveycore::get_freqs(nps_rep, pid_f3)
+```
+
+The contrast in one sentence: on a probability sample the replicate
+weights come first so calibration can be replayed onto them; on a
+non-probability sample they come last because the replicate creator
+replays the pipeline itself.
+
+## Choosing a method
+
+Each family's functions carry a "When to use" paragraph in their help
+pages. The tables below give the short version.
+
+### Calibration
+
+`calibrate()` routes to the first three methods; `poststratify()` is a
+separate function for full cell targets.
+
+| Method | Choose it when | Watch for |
+|---|---|---|
+| `calibrate_rake()` (the default) | Your targets are separate margins — sex, age group, region — and the weights must stay positive (Deville, Sarndal & Sautory 1993). | The weight ratio has no upper bound. Use `cap`, or `trim_weights()` afterward. |
+| `calibrate_linear()` | Speed matters: with `bounds = NULL` the solution is exact in one step, with no iteration (Deville, Sarndal & Sautory 1993). | Large gaps between sample and targets can produce negative weights. Set `bounds`, or switch method. |
+| `calibrate_logit()` | You must limit how far any weight can move: the ratio of calibrated to starting weight stays inside `(L, U)` (Deville & Sarndal 1992). | Bounds that are too tight for the targets make a solution impossible, and the iteration fails. Widen `bounds` or rake. |
+| `poststratify()` | You have population values for every joint cell of the stratification variables, and every cell contains sample members (Deville & Sarndal 1992). | With several variables the cells thin out quickly. When cells run empty, match margins via `calibrate()`. |
+
+### Replicate weights
+
+`create_replicate_weights()` routes to six methods. Each one assumes
+something about how the sample was drawn.
+
+| `method =` | Choose it when | Do not choose it when |
+|---|---|---|
+| `"bootstrap"` | Your estimand is a median or another quantile. Your estimator has no textbook variance formula. You have a non-probability sample plus a reference sample. | Your reference sample is stratified and multi-stage — that case is unproven. |
+| `"jackknife"` (`"jkn"`) | You have a stratified, possibly multi-stage probability sample, every stratum holds 2 or more PSUs, and your estimand is a total, mean, or ratio. | Your estimand is a quantile. Any stratum holds one PSU. Every stratum holds exactly 2 PSUs — use `"brr"` instead. |
+| `"jackknife"` (`"jk1"`) | You have a simple random sample with no strata and no clusters. | Same quantile limit as `"jkn"`. |
+| `"jackknife"` (`"grouped"`) | You have a non-probability sample plus a reference sample, and you want fewer replicates than the ungrouped jackknife. Set `replicates` yourself. | Your estimand is a quantile. You need a proven consistency result for a doubly robust estimator — none exists. |
+| `"brr"` | Every stratum holds exactly 2 PSUs, and especially when your estimand is a quantile or another nonlinear statistic. | Any stratum does not hold exactly 2 PSUs. Also set `rho > 0` if your estimand is a ratio. |
+| `"generalized-bootstrap"` | Your design fits none of the above — Poisson sampling, an unusual multi-stage structure, or a case where you must name the target variance estimator yourself. | You cannot say which `variance_estimator` matches your design. Raise `replicates` to 750 or more. |
+| `"generalized-replicate"` | You want the deterministic counterpart of generalized bootstrap, built from the same target variance estimators. | You planned to pass `replicates` — the argument does not exist. |
+| `"successive-difference"` | Your sample was drawn systematically from a sorted list, and the rows still carry that sort order. | The rows are not in the original sort order. The sort variable carried no information — then the design was effectively a simple random sample. |
+
+### Nonresponse
+
+| Function and method | Choose it when |
+|---|---|
+| `adjust_nonresponse(method = "weighting-class")` | You can name the groups whose response rates differ, and those groups are observed for respondents and nonrespondents alike. |
+| `adjust_nonresponse(method = "propensity-cell")` | No natural grouping exists: the model builds the cells from the data, and the cell-level factor smooths over individual fitted propensities. |
+| `adjust_nonresponse(method = "propensity")` | Each unit's own fitted propensity should set its adjustment. Individual factors can move further than cell-level ones, so watch the `max_adjust` warning. |
+| `redistribute_weights()` | The rows losing weight are defined by a condition other than nonresponse — for example, removing ineligible cases while conserving the group totals. |
+
+### Calibrating to a survey vs. to estimates
+
+| Function | Choose it when |
+|---|---|
+| `calibrate()` | Your targets are fixed census values with no sampling error of their own. |
+| `calibrate_to_survey()` | The targets come from another survey and you have its data: the control survey's sampling error then carries into the replicate variance. |
+| `calibrate_to_estimate()` | You have only published estimates and their variance-covariance matrix, not the control survey's data. |
+
+## Glossary
+
+### Design effect (DEFF)
+
+How much the sampling design and the weights inflate the variance of an
+estimate, compared with a simple random sample of the same size. A
+design effect of 2 means the sample carries the information of an
+unweighted sample half its size. `weight_variability()` reports the
+weight CV, the quantity that drives the weighting component of the
+design effect (Kish 1965).
+
+### Doubly robust
+
+An estimation strategy that combines two models — a selection model
+(such as the IPW propensity model) and an outcome model (such as
+calibration to population margins). The estimate stays consistent when
+either model is right, so a mistake in one of the two is survivable. In
+this package: `ipw()` followed by `calibrate()`.
+
+### FPC (finite population correction)
+
+A factor that shrinks a variance estimate when the sample is a large
+share of the population. With a 5% sampling fraction it barely matters;
+with 50% it halves the variance. Carried in the design object; not
+something the weighting functions change.
+
+### G-weight
+
+The ratio of the calibrated weight to the starting weight,
+`g = w_calibrated / w_start`. On the default multiplicative scale,
+calibration `bounds` constrain this ratio rather than the weight itself:
+`bounds = c(0.5, 2)` means no weight moves to less than half or more
+than double its starting value. (`bounds_scale = "absolute"` switches to
+bounding the weight directly.)
+
+### Hadamard matrix
+
+A square grid of +1 and -1 values arranged so that any two rows agree in
+exactly half their positions. BRR, generalized replication, and
+successive difference replication use one to keep the replicates
+balanced — so that every unit is up-weighted and down-weighted in a
+controlled pattern across replicates.
+
+### MAR (missing at random)
+
+The assumption that whether a unit responds depends only on things you
+observed (age, region, mode), not on the unobserved answer itself. Every
+nonresponse adjustment in this package leans on it, and no function can
+test it for you.
+
+### Propensity score
+
+The modeled probability that a unit responds (in nonresponse adjustment)
+or appears in the sample (in non-probability weighting). Weighting by
+its inverse gives units from underrepresented groups more weight.
+
+### PSU (primary sampling unit)
+
+The first thing the design selects — often a county, a school, or a city
+block, not a person. Replicate methods drop or reweight whole PSUs, not
+individual respondents, because the PSU is the unit the randomness lives
+in.
+
+### Quasi-randomization bootstrap
+
+The bootstrap for a non-probability sample with a probability reference
+sample. Each replicate resamples the non-probability sample and refits
+the weighting model, so the model's own estimation error enters the
+variance; the reference sample is also resampled when the calibration
+targets were estimated from it. See
+`create_bootstrap_weights(type = "quasi-randomization")`.
+
+### Replicate weights
+
+Sets of perturbed copies of the main weight, stored as extra columns.
+You compute your estimate once per column; the spread of those estimates
+gives the standard error. They exist so that variance estimation
+survives complex designs and multi-step weighting.
+
+### Taylor linearization
+
+The closed-form alternative to replication: approximate a nonlinear
+statistic by a linear one, then apply the design's exact variance
+formula. Fast and standard for totals, means, and ratios; it is what a
+`survey_taylor` object uses.
+
+### Weighting class
+
+A group of units assumed to share the same response rate.
+`adjust_nonresponse(method = "weighting-class")` moves the weight of
+nonrespondents to respondents inside each class.
+
+### Method names
+
+- **BRR** — balanced repeated replication; needs exactly two PSUs per
+  stratum. See `create_brr_weights()`.
+- **DAGJK** — delete-a-group jackknife; the grouped jackknife for
+  non-probability samples. See
+  `create_jackknife_weights(type = "grouped")`.
+- **GREG** — generalized regression estimator; the survey name for
+  linear calibration. See `calibrate_linear()`.
+
+## Further reading
+
+Deville, J.-C. and Sarndal, C.-E. (1992). Calibration estimators in
+survey sampling. *Journal of the American Statistical Association*,
+87(418), 376--382.
+
+Deville, J.-C., Sarndal, C.-E. and Sautory, O. (1993). Generalized
+raking procedures in survey sampling. *Journal of the American
+Statistical Association*, 88(423), 1013--1020.
+
+Kish, L. (1965). *Survey Sampling*. New York: John Wiley & Sons.
+
+Valliant, R., Dever, J. and Kreuter, F. (2018). *Practical Tools for
+Designing and Weighting Survey Samples*, 2nd edition. New York:
+Springer.

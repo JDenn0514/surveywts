@@ -145,6 +145,9 @@
 #'   gss_svy, method = "bootstrap", replicates = 100L, seed = 1L
 #' )
 #' summarize_weights(boot_rep)
+#' # The confidence interval below is computed from the 100 replicate
+#' # columns, which is what the replicate weights are for.
+#' surveycore::get_means(boot_rep, age)
 #'
 #' # jackknife ----------------------------------------------------------------
 #' # the design fixes the replicate count, so there is no `replicates` to set

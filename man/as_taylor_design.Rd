@@ -45,8 +45,16 @@ returned the input unchanged.
 gss_design <- surveycore::as_survey(
   gss_2024, weights = wtssps, strata = vstrat, ids = vpsu, nest = TRUE
 )
-rep_design <- create_bootstrap_weights(gss_design, replicates = 50L)
-as_taylor_design(rep_design)
+rep_design <- create_bootstrap_weights(
+  gss_design,
+  replicates = 50L,
+  seed = 1L
+)
+class(rep_design)[1]
+result <- as_taylor_design(rep_design)
+# Warning: Converting to <survey_taylor> discards replicate weights and
+# variance capability.
+class(result)[1]
 
 }
 \seealso{

@@ -56,8 +56,13 @@
 #'
 #' @examples
 #' # apply SDR to a Taylor-linearization design ---------------------------
+#' # `cps_2023` carries no strata or PSU columns, so this design has neither.
 #' cps_design <- surveycore::as_survey(cps_2023, weights = wtfinl)
-#' create_sdr_weights(cps_design)
+#' sdr_design <- create_sdr_weights(cps_design, replicates = 50L)
+#' summarize_weights(sdr_design)
+#' # The confidence interval below is computed from the 50 replicate
+#' # columns rather than by Taylor linearization.
+#' surveycore::get_means(sdr_design, age)
 #'
 #' @seealso [create_bootstrap_weights()], [create_jackknife_weights()],
 #'   [create_brr_weights()], [create_gen_boot_weights()],

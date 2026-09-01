@@ -264,6 +264,10 @@ gss_svy <- surveycore::as_survey(
   gss_2024, weights = wtssps, strata = vstrat, ids = vpsu, nest = TRUE
 )
 jkn_design <- create_jackknife_weights(gss_svy, type = "jkn")
+summarize_weights(jkn_design)
+# The confidence interval below is computed from the delete-one
+# replicate columns rather than by Taylor linearization.
+surveycore::get_means(jkn_design, age)
 
 # Grouped jackknife on a probability sample -------------------------------
 grouped_design <- create_jackknife_weights(
@@ -272,6 +276,7 @@ grouped_design <- create_jackknife_weights(
   type = "grouped",
   seed = 42L
 )
+summarize_weights(grouped_design)
 
 # DAGJK on a calibrated non-probability sample ----------------------------
 targets_a <- list(
@@ -280,12 +285,16 @@ targets_a <- list(
 )
 ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
 ns_wave1_cal <- calibrate_rake(ns_wave1_svy, targets = targets_a)
+# This path replays the calibration inside every replicate and announces
+# each one, so expect a block of convergence messages. Real analyses use
+# more replicates; 25 keeps `R CMD check` fast.
 dagjk_design <- create_jackknife_weights(
   ns_wave1_cal,
-  replicates = 50L,
+  replicates = 25L,
   type = "grouped",
   seed = 42L
 )
+summarize_weights(dagjk_design)
 
 }
 \references{

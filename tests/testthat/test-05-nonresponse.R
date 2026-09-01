@@ -1950,7 +1950,7 @@ test_that("propensity-cell respondent weights within each cell scale correctly",
   old_wts <- df$base_weight
   model <- stats::glm(
     responded ~ age_group,
-    family = stats::binomial,
+    family = stats::quasibinomial,
     data = df,
     weights = old_wts
   )
@@ -2430,7 +2430,7 @@ test_that("adjust_nonresponse(propensity) produces weights equal to w / predicte
     prop_form,
     data = df,
     weights = df$base_weight,
-    family = stats::binomial(link = "logit"),
+    family = stats::quasibinomial(link = "logit"),
     control = stats::glm.control(maxit = 25L, epsilon = 1e-8)
   )
   scores_ref <- stats::predict(fit_ref, type = "response")
@@ -2777,10 +2777,6 @@ test_that("adjust_nonresponse(propensity) warns on high adjustment with 20% resp
 
 test_that("adjust_nonresponse(propensity) ignores control$n_cells without warning", {
   df <- make_surveywts_data(n = 200L, seed = 81L, include_nonrespondents = TRUE)
-  # Use integer weights to avoid "non-integer #successes in a binomial glm!"
-  # warning from stats::glm() — the point of this test is only that n_cells
-  # is silently ignored, not to exercise non-integer weight paths.
-  df$base_weight <- rep(1L, nrow(df))
   design <- .make_test_taylor_nr(df)
 
   # max_adjust = Inf to suppress any adjustment warning; we only want to
@@ -2796,4 +2792,37 @@ test_that("adjust_nonresponse(propensity) ignores control$n_cells without warnin
   )
 
   test_invariants(result)
+})
+
+# ---------------------------------------------------------------------------
+# P-E4. Regression (#110) — non-integer weights emit no binomial glm warning
+# ---------------------------------------------------------------------------
+
+test_that("propensity fits do not warn on non-integer survey weights", {
+  df <- make_surveywts_data(
+    n = 200L,
+    seed = 110L,
+    include_nonrespondents = TRUE
+  )
+  # make_surveywts_data() draws lognormal base weights, so none are integers.
+  expect_false(any(df$base_weight %% 1 == 0))
+  design <- .make_test_taylor_nr(df)
+
+  # max_adjust = Inf keeps the adjustment warnings out of the way; the point
+  # here is only that stats::glm() itself stays quiet.
+  expect_no_warning(adjust_nonresponse(
+    design,
+    response_status = responded,
+    formula = ~ age_group + sex,
+    method = "propensity-cell",
+    control = list(min_cell = 0, max_adjust = Inf, n_cells = 5)
+  ))
+
+  expect_no_warning(adjust_nonresponse(
+    design,
+    response_status = responded,
+    formula = ~ age_group + sex,
+    method = "propensity",
+    control = list(min_cell = 0, max_adjust = Inf)
+  ))
 })

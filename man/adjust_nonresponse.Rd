@@ -121,11 +121,13 @@ first, because \code{\link[=calibrate]{calibrate()}}, \code{\link[=calibrate_rak
 \code{\link[=poststratify]{poststratify()}} reject zero weights.
 
 \strong{Propensity-cell method:} A logistic regression is fitted via
-\code{\link[stats:glm]{stats::glm()}} with \code{family = binomial}. GLM convergence warnings (e.g.,
-fitted probabilities numerically 0 or 1) pass through unchanged. Cell
-boundaries are defined by unweighted quantiles of the predicted
-propensity scores (the modeled probability of responding or of
-appearing in the sample). This method assumes missing at random
+\code{\link[stats:glm]{stats::glm()}} with \code{family = quasibinomial}. The quasibinomial family
+gives the same coefficients as \code{binomial} and does not warn about
+non-integer counts, which survey weights always produce. GLM convergence
+warnings (e.g., fitted probabilities numerically 0 or 1) pass through
+unchanged. Cell boundaries are defined by unweighted quantiles of the
+predicted propensity scores (the modeled probability of responding or
+of appearing in the sample). This method assumes missing at random
 (response depends only on observed variables). The \code{by} argument is
 silently ignored (a warning is issued).
 }
@@ -183,8 +185,6 @@ nrow(surveycore::survey_data(gss_svy))
 nrow(surveycore::survey_data(result))
 
 # method = "propensity-cell": one factor per propensity cell ---------------
-# Both propensity methods fit a weighted logistic regression, so base R
-# warns "non-integer #successes in a binomial glm!". The fit is unaffected.
 result_pc <- adjust_nonresponse(
   gss_svy,
   response_status = responded,

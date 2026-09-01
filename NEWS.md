@@ -2,6 +2,29 @@
 
 ## Bug fixes
 
+* The quasi-randomization bootstrap wrote resample-order weights into
+  original-order rows (#102). `.quasi_randomization_bootstrap()` drew a
+  resample, refit the weighting model on it, and stored the returned vector
+  straight into a `repwt_*` column. Both vectors have the same length, so
+  nothing errored: row *i* held the weight of whatever unit landed at
+  position *i* of the resample. The column was a permutation of roughly the
+  right values, so it summed to the base weight's scale while its
+  correlation with the base weight was about 0. Every replicate estimate
+  collapsed toward the unweighted mean, in the same direction across all
+  columns, which `mse = TRUE` then turned into the variance. On `ns_wave1`
+  weighted to `npors_2025_clean`, the four replicate estimates of mean `age`
+  centred on 45.71 against the weighted 47.43; they now centre on 47.37.
+
+  Each replicate column is now mapped back to original-unit order. A unit
+  the draw picked `m` times carries the sum of the weights of its `m`
+  copies, so an estimator applied to the column returns the value that draw
+  produced. A unit the draw did not pick carries 0, so about 37% of each
+  column is now zero where none was before. This affects
+  `create_bootstrap_weights(type = "quasi-randomization")` and
+  `create_replicate_weights(method = "bootstrap", type =
+  "quasi-randomization")`. The five probability types were unaffected;
+  their separate defect is #101 above.
+
 * The probability replicate creators stored replication factors instead of
   finished replicate weights (#101). `survey` and `svrep` return the
   replicate matrix with `combined.weights = FALSE`, meaning each value is a
@@ -19,8 +42,8 @@
 
   The DAGJK path (`create_jackknife_weights(type = "grouped")` on a
   `survey_nonprob`) was already correct and is unchanged. The
-  quasi-randomization bootstrap has a separate defect with a different cause
-  and is not fixed here.
+  quasi-randomization bootstrap has a separate defect with a different cause,
+  fixed under #102 above.
 
 ## Internal
 

@@ -279,7 +279,9 @@ Two independent bugs, two PRs, both merged 2026-09-01:
 | #101 | [#104](https://github.com/JDenn0514/surveywts/pull/104) | `.convert_and_call()` copied `svyrep_obj$repweights` and ignored `combined.weights = FALSE`, so the base weight was never folded in. One site, all seven probability creators |
 | #102 | [#105](https://github.com/JDenn0514/surveywts/pull/105) | the quasi-randomization bootstrap wrote resample-order weights into original-order rows |
 
-**Re-measured on `develop` at `a0bc8e1`, after both fixes.** Taylor
+**Re-measured at `a0bc8e1`, which carries #104 only.** #105 changes the
+quasi-randomization bootstrap alone, and every path below is a probability
+path, so the numbers stand; the attribution does not. Taylor
 reference: `survey::svymean(~age)` on the `gss_2024` design gives mean
 47.937, SE 0.4832, CI 46.990 to 48.884. Against that:
 
@@ -362,12 +364,21 @@ the first did not.
 | `calibrate_to_survey()`, `calibrate_to_estimate()` | `summarize_weights(result)` | verified on both fixed shapes |
 | `create_bootstrap_weights()`, `create_jackknife_weights()`, `create_brr_weights()`, `create_gen_boot_weights()`, `create_gen_rep_weights()`, `create_sdr_weights()`, `create_replicate_weights()` — both paths | `summarize_weights(result)`, then `surveycore::get_means(result, age)` on the primary scenario | silent on a `survey_replicate`; every interval matches the Taylor reference; 0.00 to 0.02 s per call |
 | `as_taylor_design()` | the warning in a comment, then `class(result)[1]` | see D6 |
-| `adjust_nonresponse()` | `summarize_weights(result)`, then `nrow()` before and after | 3,290 rows in; the out-count moves every run — see below |
+| `adjust_nonresponse()` | `summarize_weights(result)`, then `nrow(surveycore::survey_data(.))` before and after | 3,290 rows in; the out-count moves every run — see below |
 | `redistribute_weights()` | `summarize_weights(result)` | the function always drops the `reduce_if` rows |
 | `effective_sample_size()`, `weight_variability()`, `summarize_weights()` | the printed value, with item 4's expected-output comment | see D5 |
 | `trim_weights()` | `summarize_weights()` before and after | mirrors `rescale_weights()` |
 | `rescale_weights()` | already compliant — do not touch | `R/rescale_weights.R:49-60` |
 | `ipw()` | `summarize_weights(result)`, then `calibrate(result, targets)` | full chain 0.30 s, silent |
+
+**`nrow()` does not work on a survey design.** It returns `NULL`, and
+`R CMD check` does not catch it because `NULL` is not an error — PR 4's
+first draft shipped `nrow(gss_svy)` and printed nothing. The exported
+accessor is `surveycore::survey_data()`:
+`nrow(surveycore::survey_data(result))`. surveywts does not re-export it,
+so the call stays namespace-qualified, like `surveycore::as_survey()` in
+every other example. Verified 2026-09-01: 3,290 rows in, 2,642 out on one
+draw.
 
 **Row counts, not just weights, for the nonresponse family.** On a
 `survey_taylor`, `adjust_nonresponse()` drops the nonrespondent rows,
@@ -559,7 +570,7 @@ the correct one. `survey::svymean()` on the Taylor design gives SE
 same interval. The wide replicate interval was the prerequisite defect
 above, not variance capability being discarded.
 
-Re-measured after #104 and #105, on the same bootstrap the example
+Re-measured at `a0bc8e1`, on the same bootstrap the example
 builds: `get_means()` gives CI 46.9 to 49.0 before conversion and 47.0 to
 48.9 after. The two-number demonstration has nothing left to show.
 
@@ -843,7 +854,7 @@ The four changed examples, elapsed:
 | `calibrate_to_survey()` | 4.76 | 2.58 |
 
 **The baseline for PRs 2-5 is 20.70 s, not 130.34 s.** PR 1 measured
-21.10 s; re-measured on `develop` at `a0bc8e1`, after #104 and #105, the
+21.10 s; re-measured at `a0bc8e1`, which carries #104 but not #105, the
 total is 20.70 s with 0 examples over 5 s and
 `create_jackknife_weights()` slowest at 3.39 s. The 45 s ceiling in
 D3 still holds, and PR 1 leaves about 24 s of room under it.
@@ -913,7 +924,8 @@ call on a second scenario.
       so there is no two-number contrast to draw.
 
 **Measured values, for the implementer to check against.** All from
-`develop` at `a0bc8e1`. If a value differs, report it rather than
+`a0bc8e1`, which carries #104 but not #105. If a value differs, report it
+rather than
 adjusting the comment.
 
 | Page, first probability scenario | `get_means(., age)` CI |
@@ -943,7 +955,7 @@ The Taylor reference for `gss_2024` is `survey::svymean(~age)`: mean
       `R/as_taylor_design.R:135-140`.
 - [ ] `devtools::document()`, `devtools::check()` clean, timings in the
       PR body, no example over 5 s. Baseline for this PR is **20.70 s**
-      total (measured 2026-09-01 on `develop` at `a0bc8e1`, 0 examples
+      total (measured 2026-09-01 at `a0bc8e1`, 0 examples
       over 5 s, slowest `create_jackknife_weights` at 3.39 s). The
       estimation calls cost 0.00 to 0.02 s each, so the total should move
       by well under 1 s.
@@ -994,7 +1006,9 @@ Branch `docs/examples-nonresponse-utils`. Four functions, three files
 changed — `rescale_weights()` is reviewed and left alone.
 
 - [ ] `adjust_nonresponse()` — the assignment exists and is a dead end.
-      Add `summarize_weights(result)` and an `nrow()` comparison. Record
+      Add `summarize_weights(result)` and a row-count comparison, using
+      `nrow(surveycore::survey_data(.))`. Plain `nrow()` on a design
+      returns `NULL` — see D2. Record
       the row change in a comment: on a `survey_taylor` the nonrespondent
       rows are dropped, because that class requires strictly positive
       weights. **Do not add `set.seed()`** — the no-seed exception holds.
@@ -1336,7 +1350,7 @@ estimate test, and external references.
       the working reference for what the other two should produce.
 - [ ] The DAGJK replay emits one convergence message per replicate — 20
       identical "Raking converged in 1 sweep" lines at 25 replicates,
-      re-measured 2026-09-01 after #104 and #105. Neither fix touched it,
+      re-measured 2026-09-01 at `a0bc8e1`. Neither fix touched it,
       so it is still open and still not this plan's to fix. A replay
       should not narrate each replicate. PR 2 accepts the block, per
       Task 0 in-scope item 5 — no `suppressMessages()`.

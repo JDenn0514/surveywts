@@ -71,10 +71,15 @@
 #' gss_svy <- surveycore::as_survey(
 #'   gss_2024, weights = wtssps, strata = vstrat, ids = vpsu, nest = TRUE
 #' )
-#' create_brr_weights(gss_svy)
+#' brr_design <- create_brr_weights(gss_svy)
+#' summarize_weights(brr_design)
+#' # Replicate weights are for variance estimation: the interval below comes
+#' # from the replicate columns, not from an SRS approximation.
+#' surveycore::get_means(brr_design, age)
 #'
 #' # Fay's BRR with damping coefficient -----------------------------------
-#' create_brr_weights(gss_svy, rho = 0.5)
+#' fay_design <- create_brr_weights(gss_svy, rho = 0.5)
+#' summarize_weights(fay_design)
 #'
 #' @seealso [create_bootstrap_weights()], [create_jackknife_weights()],
 #'   [create_gen_boot_weights()], [create_gen_rep_weights()],

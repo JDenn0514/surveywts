@@ -100,7 +100,16 @@
 #' gss_svy <- surveycore::as_survey(
 #'   gss_2024, weights = wtssps, strata = vstrat, ids = vpsu, nest = TRUE
 #' )
-#' create_gen_boot_weights(gss_svy, seed = 42L)
+#' # Real analyses use more replicates; 100 keeps `R CMD check` fast.
+#' gen_boot_design <- create_gen_boot_weights(
+#'   gss_svy,
+#'   replicates = 100L,
+#'   seed = 42L
+#' )
+#' summarize_weights(gen_boot_design)
+#' # Replicate weights are for variance estimation: the interval below comes
+#' # from the replicate columns, not from an SRS approximation.
+#' surveycore::get_means(gen_boot_design, age)
 #'
 #' @seealso [create_bootstrap_weights()], [create_jackknife_weights()],
 #'   [create_brr_weights()], [create_gen_rep_weights()],

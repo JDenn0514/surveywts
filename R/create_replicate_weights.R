@@ -145,6 +145,9 @@
 #'   gss_svy, method = "bootstrap", replicates = 100L, seed = 1L
 #' )
 #' summarize_weights(boot_rep)
+#' # Replicate weights are for variance estimation: the interval below comes
+#' # from the 100 replicate columns, not from an SRS approximation.
+#' surveycore::get_means(boot_rep, age)
 #'
 #' # jackknife ----------------------------------------------------------------
 #' # the design fixes the replicate count, so there is no `replicates` to set

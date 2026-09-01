@@ -76,7 +76,13 @@
 #' gss_svy <- surveycore::as_survey(
 #'   gss_2024, weights = wtssps, strata = vstrat, ids = vpsu, nest = TRUE
 #' )
-#' create_gen_rep_weights(gss_svy, seed = 42L)
+#' # The construction is deterministic at the default `max_replicates = Inf`;
+#' # `seed` only matters below that count, so it is defensive here.
+#' gen_rep_design <- create_gen_rep_weights(gss_svy, seed = 42L)
+#' summarize_weights(gen_rep_design)
+#' # Replicate weights are for variance estimation: the interval below comes
+#' # from the replicate columns, not from an SRS approximation.
+#' surveycore::get_means(gen_rep_design, age)
 #'
 #' @seealso [create_bootstrap_weights()], [create_jackknife_weights()],
 #'   [create_brr_weights()], [create_gen_boot_weights()],

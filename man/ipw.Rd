@@ -369,13 +369,17 @@ are returned; inspect them before use.
 
 \examples{
 # --- GSS 2024 as probability reference, both interfaces ---------------
+# ipw() always listwise-deletes reference rows with NA in a selection
+# variable, and warns once per call. Drop them first, as the warning says.
+gss_complete <- gss_2024[!is.na(gss_2024$sex) & !is.na(gss_2024$age_f3), ]
 gss_ref <- surveycore::as_survey(
-  gss_2024, weights = wt_pop, strata = vstrat, ids = vpsu, nest = TRUE
+  gss_complete, weights = wt_pop, strata = vstrat, ids = vpsu, nest = TRUE
 )
 result1 <- ipw(ns_wave1, gss_ref, selection = ~sex + age_f3)
 result2 <- ipw(ns_wave1, gss_ref, predictors = c("sex", "age_f3"))
 summarize_weights(result1)
 calibrate(result2, list(sex = c(Male = 0.49, Female = 0.51)))
+
 # --- CPS ASEC 2023 as survey_replicate reference -----------------------
 ns_complete <- ns_wave1[!is.na(ns_wave1$race_f4), ]
 cps_ref <- surveycore::as_survey_replicate(
@@ -386,7 +390,8 @@ result_cps <- ipw(
   ns_complete, cps_ref, selection = ~sex + age_f3 + race_f4 + edu_f3
 )
 summarize_weights(result_cps)
-# --- Pew NPORS 2025: the three missing_method values --------------------
+
+# --- Pew NPORS 2025: the three missing_method values -------------------
 npors_ref <- surveycore::as_survey(
   npors_2025_clean, weights = wt_pop, strata = stratum
 )
@@ -404,11 +409,15 @@ if (requireNamespace("mice", quietly = TRUE)) {
   )
   nrow(result_imp@data)
 }
+
+# --- GEE estimating equation ------------------------------------------
 # GEE needs population-scale reference weights, or the solver diverges.
 result_gee <- ipw(
   ns_complete, npors_ref, selection = sel, estimating_eq = "gee"
 )
 summarize_weights(result_gee)
+
+# --- known population size --------------------------------------------
 result_known_n <- ipw(
   ns_wave1, gss_ref, selection = ~sex + age_f3, population_size = 258000000L
 )

@@ -121,9 +121,9 @@ linear approximation.
 \description{
 Adjusts survey weights so that the weighted marginal totals of calibration
 variables match known population values using logit calibration. Uses the
-logit \code{F}-function that keeps g-weights in the open interval \verb{(L, U)},
-guaranteeing strictly positive calibrated weights. Requires Newton-Raphson
-iteration.
+logit \code{F}-function that keeps g-weights (the ratio of calibrated to
+starting weight) in the open interval \verb{(L, U)}, guaranteeing strictly
+positive calibrated weights. Requires Newton-Raphson iteration.
 }
 \details{
 \strong{When to use.} Choose logit calibration when you must limit how
@@ -181,7 +181,8 @@ Statistical Association}, 88(423), 1013--1020.
 }
 \seealso{
 \code{\link[=calibrate]{calibrate()}}, \code{\link[=calibrate_rake]{calibrate_rake()}}, \code{\link[=calibrate_linear]{calibrate_linear()}},
-\code{\link[=poststratify]{poststratify()}}
+\code{\link[=poststratify]{poststratify()}}. For the class system, the standard workflows, and a
+glossary of terms, see the \href{https://jdenn0514.github.io/surveywts/articles/getting-started.html}{Getting started article}.
 
 Other calibration:
 \code{\link[=calibrate]{calibrate()}},

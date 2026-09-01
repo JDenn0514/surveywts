@@ -23,9 +23,11 @@ the replicate estimates (\code{FALSE}).}
 A \code{survey_replicate} with \verb{@variables$type} of \code{"BRR"} or \code{"Fay"}.
 }
 \description{
-Generates balanced repeated replication (BRR) or Fay's BRR replicate weights
-via \code{\link[survey:as.svrepdesign]{survey::as.svrepdesign()}}. Requires a paired-PSU design (exactly 2 PSUs
-per stratum).
+Generates BRR (balanced repeated replication) or Fay's BRR replicate
+weights (sets of perturbed weight columns used to compute standard
+errors) via \code{\link[survey:as.svrepdesign]{survey::as.svrepdesign()}}. Requires a paired-PSU design:
+exactly 2 PSUs (primary sampling units: the first units the design
+selects, such as counties or schools) per stratum.
 }
 \details{
 \strong{When to use.} Choose BRR when the design holds exactly two PSUs
@@ -84,7 +86,9 @@ Springer.
 \seealso{
 \code{\link[=create_bootstrap_weights]{create_bootstrap_weights()}}, \code{\link[=create_jackknife_weights]{create_jackknife_weights()}},
 \code{\link[=create_gen_boot_weights]{create_gen_boot_weights()}}, \code{\link[=create_gen_rep_weights]{create_gen_rep_weights()}},
-\code{\link[=create_sdr_weights]{create_sdr_weights()}}, \code{\link[=create_replicate_weights]{create_replicate_weights()}}, \code{\link[=as_taylor_design]{as_taylor_design()}}
+\code{\link[=create_sdr_weights]{create_sdr_weights()}}, \code{\link[=create_replicate_weights]{create_replicate_weights()}}, \code{\link[=as_taylor_design]{as_taylor_design()}}.
+For the class system, the standard workflows, and a glossary of terms,
+see the \href{https://jdenn0514.github.io/surveywts/articles/getting-started.html}{Getting started article}.
 
 Other replicate-weights:
 \code{\link[=as_taylor_design]{as_taylor_design()}},

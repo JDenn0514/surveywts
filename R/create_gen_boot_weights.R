@@ -8,7 +8,8 @@
 
 #' Generate generalized bootstrap replicate weights
 #'
-#' Generates generalized bootstrap replicate weights via
+#' Generates generalized bootstrap replicate weights (sets of perturbed
+#' weight columns used to compute standard errors) via
 #' [svrep::as_gen_boot_design()]. Requires a `survey_taylor` design.
 #'
 #' @param data A `survey_taylor` design.
@@ -103,7 +104,10 @@
 #'
 #' @seealso [create_bootstrap_weights()], [create_jackknife_weights()],
 #'   [create_brr_weights()], [create_gen_rep_weights()],
-#'   [create_sdr_weights()], [create_replicate_weights()], [as_taylor_design()]
+#'   [create_sdr_weights()], [create_replicate_weights()], [as_taylor_design()].
+#'   For the class system, the standard workflows, and a glossary of terms,
+#'   see the [Getting started
+#'   article](https://jdenn0514.github.io/surveywts/articles/getting-started.html).
 #' @family replicate-weights
 #' @export
 create_gen_boot_weights <- function(

@@ -12,7 +12,14 @@
 #' Reconstructs a `survey_taylor` from a `survey_replicate` created by
 #' `create_*_weights()`. The original Taylor structure (PSU IDs, strata, FPC,
 #' nest flag) is read from the `"replicate_creation"` entry in the weighting
-#' history. Replicate weight columns are dropped from `@data`.
+#' history. The replicate weights (sets of perturbed weight columns used
+#' to compute standard errors) are dropped from `@data`.
+#'
+#' The reconstructed design uses Taylor linearization (closed-form
+#' variance from a linear approximation, the alternative to replication)
+#' for variance estimation, and its restored structure includes the
+#' finite population correction (a factor that shrinks the variance when
+#' the sample is a large share of the population), stored as FPC.
 #'
 #' Returns `data` unchanged (with a warning) if `data` is already a
 #' `survey_taylor`.
@@ -40,7 +47,9 @@
 #' @seealso [create_bootstrap_weights()], [create_jackknife_weights()],
 #'   [create_brr_weights()], [create_gen_boot_weights()],
 #'   [create_gen_rep_weights()], [create_sdr_weights()],
-#'   [create_replicate_weights()]
+#'   [create_replicate_weights()]. For the class system, the standard
+#'   workflows, and a glossary of terms, see the [Getting started
+#'   article](https://jdenn0514.github.io/surveywts/articles/getting-started.html).
 #' @family replicate-weights
 #' @export
 as_taylor_design <- function(data) {

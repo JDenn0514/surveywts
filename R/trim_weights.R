@@ -78,7 +78,9 @@
 #'   weights in sample surveys. *Proceedings of the Joint Statistical
 #'   Meetings, Section on Survey Research Methods*, 2707--2719.
 #'
-#' @seealso [rescale_weights()]
+#' @seealso [rescale_weights()]. For the class system, the standard
+#'   workflows, and a glossary of terms, see the [Getting started
+#'   article](https://jdenn0514.github.io/surveywts/articles/getting-started.html).
 #' @family utilities
 #' @export
 #' @examples

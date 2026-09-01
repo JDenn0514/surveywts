@@ -43,7 +43,9 @@ summarize_weights(ns_wave1_svy)
 summarize_weights(ns_wave1_svy, by = sex)
 }
 \seealso{
-\code{\link[=effective_sample_size]{effective_sample_size()}}, \code{\link[=weight_variability]{weight_variability()}}
+\code{\link[=effective_sample_size]{effective_sample_size()}}, \code{\link[=weight_variability]{weight_variability()}}. For the
+class system, the standard workflows, and a glossary of terms, see
+the \href{https://jdenn0514.github.io/surveywts/articles/getting-started.html}{Getting started article}.
 
 Other diagnostics:
 \code{\link[=effective_sample_size]{effective_sample_size()}},

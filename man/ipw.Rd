@@ -119,14 +119,18 @@ entry with \code{operation = "ipw"} is appended to the weighting history. The
 Constructs inverse probability weights for a non-probability sample (NPS)
 by estimating participation propensity via pseudo-likelihood logistic
 regression. The weights adjust for selection bias by upweighting NPS units
-that are underrepresented relative to a probability-based reference sample.
-Routes to the MLE Newton-Raphson path or the GEE calibration path based on
+that are underrepresented relative to a probability-based reference
+sample. This assumes missing at random (response depends only on
+observed variables): participation may depend on the covariates in
+\code{selection}, but not on the outcome itself. Routes to the MLE
+Newton-Raphson path or the GEE calibration path based on
 \code{estimating_eq}; see the \strong{Algorithm} section for method details.
 }
 \details{
 \strong{Variance estimation — refit required:} Naive variance estimates from
-the returned \code{survey_nonprob} object treat the propensity scores as fixed
-and underestimate variance. Correct variance estimation requires a
+the returned \code{survey_nonprob} object treat the propensity scores (the
+modeled probability of responding or of appearing in the sample) as
+fixed and underestimate variance. Correct variance estimation requires a
 replication approach in which the propensity model is \strong{refit at every
 replicate} (bootstrap resample or jackknife group) so that estimation
 uncertainty in the propensity parameters is captured (Elliott & Valliant,
@@ -525,5 +529,8 @@ produced by this function.
 including AUC, covariate balance plots, and standardized mean differences.
 Uses the \code{propensity_scores} stored in the history entry returned by
 \code{ipw()} without refitting the model.
+
+For the class system, the standard workflows, and a glossary of
+terms, see the \href{https://jdenn0514.github.io/surveywts/articles/getting-started.html}{Getting started article}.
 }
 \concept{propensity}

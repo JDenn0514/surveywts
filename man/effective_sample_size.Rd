@@ -37,7 +37,9 @@ effective_sample_size(ns_wave1_svy)
 Kish, L. (1965). \emph{Survey Sampling}. New York: John Wiley & Sons.
 }
 \seealso{
-\code{\link[=weight_variability]{weight_variability()}}, \code{\link[=summarize_weights]{summarize_weights()}}
+\code{\link[=weight_variability]{weight_variability()}}, \code{\link[=summarize_weights]{summarize_weights()}}. For the class
+system, the standard workflows, and a glossary of terms, see the
+\href{https://jdenn0514.github.io/surveywts/articles/getting-started.html}{Getting started article}.
 
 Other diagnostics:
 \code{\link[=summarize_weights]{summarize_weights()}},

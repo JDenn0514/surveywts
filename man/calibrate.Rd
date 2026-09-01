@@ -95,7 +95,8 @@ All three methods implement the Deville-Sarndal calibration framework:
 each adjusts survey weights so that weighted auxiliary totals match
 known population totals. The methods share a variance estimator and
 differ in the weight-ratio function \eqn{F} applied during calibration
-(Deville & Sarndal 1992; Deville, Sarndal & Sautory 1993).
+(Deville & Sarndal 1992; Deville, Sarndal & Sautory 1993). That ratio
+is the g-weight (the ratio of calibrated to starting weight).
 
 \strong{Raking} (\code{method = "rake"}, the default) uses the multiplicative
 function \eqn{F(u) = \exp(u)}, which keeps all calibrated weights
@@ -173,7 +174,8 @@ Statistical Meetings — Section on Survey Research Methods.
 }
 \seealso{
 \code{\link[=calibrate_rake]{calibrate_rake()}}, \code{\link[=calibrate_linear]{calibrate_linear()}}, \code{\link[=calibrate_logit]{calibrate_logit()}},
-\code{\link[=poststratify]{poststratify()}}
+\code{\link[=poststratify]{poststratify()}}. For the class system, the standard workflows, and a
+glossary of terms, see the \href{https://jdenn0514.github.io/surveywts/articles/getting-started.html}{Getting started article}.
 
 Other calibration:
 \code{\link[=calibrate_linear]{calibrate_linear()}},

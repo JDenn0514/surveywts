@@ -74,7 +74,9 @@
 #'   gss_svy, reduce_if = excluded, increase_if = retained, by = sex
 #' )
 #'
-#' @seealso [adjust_nonresponse()]
+#' @seealso [adjust_nonresponse()]. For the class system, the standard
+#'   workflows, and a glossary of terms, see the [Getting started
+#'   article](https://jdenn0514.github.io/surveywts/articles/getting-started.html).
 #' @family nonresponse
 #' @export
 redistribute_weights <- function(

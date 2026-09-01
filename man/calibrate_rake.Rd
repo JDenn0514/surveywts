@@ -214,7 +214,8 @@ Statistical Meetings — Section on Survey Research Methods.
 }
 \seealso{
 \code{\link[=calibrate]{calibrate()}}, \code{\link[=calibrate_linear]{calibrate_linear()}}, \code{\link[=calibrate_logit]{calibrate_logit()}},
-\code{\link[=poststratify]{poststratify()}}
+\code{\link[=poststratify]{poststratify()}}. For the class system, the standard workflows, and a
+glossary of terms, see the \href{https://jdenn0514.github.io/surveywts/articles/getting-started.html}{Getting started article}.
 
 Other calibration:
 \code{\link[=calibrate]{calibrate()}},

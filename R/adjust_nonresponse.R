@@ -7,11 +7,11 @@
 
 #' Correct weights for unit nonresponse
 #'
-#' Redistributes the weights of nonrespondents to respondents within weighting
-#' classes defined by `by`. Respondent weights increase proportionally to
-#' preserve the total weight within each class. What happens to the
-#' nonrespondent rows depends on the input class — see the
-#' **Input class behavior** section.
+#' Redistributes the weights of nonrespondents to respondents within
+#' weighting classes (groups assumed to share one response rate) defined by
+#' `by`. Respondent weights increase proportionally to preserve the total
+#' weight within each class. What happens to the nonrespondent rows depends
+#' on the input class — see the **Input class behavior** section.
 #'
 #' @param data A `survey_taylor` or `survey_nonprob`. Must include BOTH
 #'   respondents and nonrespondents. `survey_replicate` -> error. Any other
@@ -120,8 +120,11 @@
 #'   **Propensity-cell method:** A logistic regression is fitted via
 #'   [stats::glm()] with `family = binomial`. GLM convergence warnings (e.g.,
 #'   fitted probabilities numerically 0 or 1) pass through unchanged. Cell
-#'   boundaries are defined by unweighted quantiles of the predicted propensity
-#'   scores. The `by` argument is silently ignored (a warning is issued).
+#'   boundaries are defined by unweighted quantiles of the predicted
+#'   propensity scores (the modeled probability of responding or of
+#'   appearing in the sample). This method assumes missing at random
+#'   (response depends only on observed variables). The `by` argument is
+#'   silently ignored (a warning is issued).
 #'
 #' @note
 #'   The propensity-cell method assumes **Missing At Random (MAR)**: response
@@ -131,7 +134,9 @@
 #'   known (estimated from the data), not as true population propensities; this
 #'   understates variance and should be accounted for in downstream analysis.
 #'
-#' @seealso [redistribute_weights()], [ipw()]
+#' @seealso [redistribute_weights()], [ipw()]. For the class system, the
+#'   standard workflows, and a glossary of terms, see the [Getting started
+#'   article](https://jdenn0514.github.io/surveywts/articles/getting-started.html).
 #'
 #' @examples
 #' # survey_taylor: mutate the tibble first, then construct the design -------

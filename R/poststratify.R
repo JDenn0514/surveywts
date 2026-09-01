@@ -118,7 +118,9 @@
 #'   18(2), 209--217.
 #'
 #' @seealso [calibrate()], [calibrate_rake()], [calibrate_linear()],
-#'   [calibrate_logit()]
+#'   [calibrate_logit()]. For the class system, the standard workflows, and
+#'   a glossary of terms, see the [Getting started
+#'   article](https://jdenn0514.github.io/surveywts/articles/getting-started.html).
 #' @family calibration
 #' @export
 #'

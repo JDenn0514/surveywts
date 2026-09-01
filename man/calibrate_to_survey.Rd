@@ -89,7 +89,8 @@ factor). When \code{targets} is non-NULL, the entry additionally includes
 \code{targets} (user-supplied fixed margins), \code{type}, and \code{fixed_variables}.
 }
 \description{
-Adjusts the full-sample and replicate weights of \code{primary_design} so that
+Adjusts the full-sample and replicate weights (sets of perturbed weight
+columns used to compute standard errors) of \code{primary_design} so that
 its estimated totals for \code{variables} match those estimated from
 \code{control_design}. Implements the Opsomer & Erciulescu (2022) replication
 variance adjustment, which correctly propagates the sampling uncertainty
@@ -250,7 +251,8 @@ Fuller, W.A. (1998). Replication variance estimation for two-phase
 samples. \emph{Statistica Sinica}, 8, 1153--1164.
 }
 \seealso{
-\code{\link[=calibrate_to_estimate]{calibrate_to_estimate()}}
+\code{\link[=calibrate_to_estimate]{calibrate_to_estimate()}}. For the class system, the standard
+workflows, and a glossary of terms, see the \href{https://jdenn0514.github.io/surveywts/articles/getting-started.html}{Getting started article}.
 
 Other sample-calibration:
 \code{\link[=calibrate_to_estimate]{calibrate_to_estimate()}}

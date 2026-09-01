@@ -9,9 +9,11 @@
 
 #' Generate bootstrap replicate weights
 #'
-#' Generates bootstrap replicate weights for probability-sample designs via
-#' [svrep::as_bootstrap_design()], or quasi-randomization bootstrap replicate
-#' weights for non-probability samples (`survey_nonprob`) via an internal
+#' Generates bootstrap replicate weights (sets of perturbed weight columns
+#' used to compute standard errors) for probability-sample designs via
+#' [svrep::as_bootstrap_design()]. For non-probability samples
+#' (`survey_nonprob`), it generates quasi-randomization bootstrap (each
+#' replicate refits the weighting model) replicate weights via an internal
 #' resample-reweight algorithm.
 #'
 #' @param data A `survey_taylor` or `survey_nonprob` design object.
@@ -131,7 +133,10 @@
 #'
 #' @seealso [create_jackknife_weights()], [create_brr_weights()], [create_gen_boot_weights()],
 #'   [create_gen_rep_weights()], [create_sdr_weights()],
-#'   [create_replicate_weights()], [as_taylor_design()]
+#'   [create_replicate_weights()], [as_taylor_design()]. For the class
+#'   system, the standard workflows, and a glossary of terms, see the
+#'   [Getting started
+#'   article](https://jdenn0514.github.io/surveywts/articles/getting-started.html).
 #' @family replicate-weights
 #' @export
 create_bootstrap_weights <- function(

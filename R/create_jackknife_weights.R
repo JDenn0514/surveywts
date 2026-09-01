@@ -9,9 +9,10 @@
 
 #' Construct jackknife replicate weights
 #'
-#' Generates jackknife replicate weights for probability samples via the
+#' Generates jackknife replicate weights (sets of perturbed weight columns
+#' used to compute standard errors) for probability samples via the
 #' `survey` or `svrep` package, and for non-probability samples via the
-#' delete-a-group jackknife (DAGJK) engine. The `type` argument selects the
+#' DAGJK (delete-a-group jackknife) engine. The `type` argument selects the
 #' jackknife variant; `survey_nonprob` inputs are restricted to
 #' `type = "grouped"`.
 #'
@@ -96,12 +97,14 @@
 #' @details
 #' **When to use.** Choose the jackknife for a stratified, possibly
 #' multi-stage probability sample where every stratum holds two or
-#' more PSUs and you estimate a total, a mean, or a ratio (Valliant,
-#' Dever & Kreuter 2018, Section 15.4). Do not use it for a median or
-#' another quantile — the jackknife standard error for a quantile does
-#' not improve as the sample grows; use [create_bootstrap_weights()]
-#' or, on a paired design, [create_brr_weights()]. When every stratum
-#' holds exactly two PSUs, prefer BRR.
+#' more PSUs (primary sampling units: the first units the design
+#' selects, such as counties or schools) and you estimate a total, a
+#' mean, or a ratio (Valliant, Dever & Kreuter 2018, Section 15.4). Do
+#' not use it for a median or another quantile — the jackknife standard
+#' error for a quantile does not improve as the sample grows; use
+#' [create_bootstrap_weights()] or, on a paired design,
+#' [create_brr_weights()]. When every stratum holds exactly two PSUs,
+#' prefer BRR.
 #'
 #' @section Algorithm:
 #'
@@ -259,6 +262,10 @@
 #'   [create_replicate_weights()] for the method-dispatch wrapper;
 #'   [as_taylor_design()] to recover the Taylor-linearization design from
 #'   replicate-weight history.
+#'
+#'   For the class system, the standard workflows, and a glossary of
+#'   terms, see the [Getting started
+#'   article](https://jdenn0514.github.io/surveywts/articles/getting-started.html).
 #'
 #' @examples
 #' # JKn (stratified delete-one) on a probability sample --------------------

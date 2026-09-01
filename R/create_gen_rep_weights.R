@@ -9,8 +9,9 @@
 #' Generate generalized replication replicate weights
 #'
 #' Generates Fay's generalized replication weights via
-#' [svrep::as_fays_gen_rep_design()]. Produces deterministic replicate weights
-#' (no randomness). Requires a `survey_taylor` design.
+#' [svrep::as_fays_gen_rep_design()]. Produces deterministic replicate
+#' weights (sets of perturbed weight columns used to compute standard
+#' errors); no randomness is involved. Requires a `survey_taylor` design.
 #'
 #' @param data A `survey_taylor` design.
 #' @param ... Must be empty.
@@ -79,7 +80,10 @@
 #'
 #' @seealso [create_bootstrap_weights()], [create_jackknife_weights()],
 #'   [create_brr_weights()], [create_gen_boot_weights()],
-#'   [create_sdr_weights()], [create_replicate_weights()], [as_taylor_design()]
+#'   [create_sdr_weights()], [create_replicate_weights()], [as_taylor_design()].
+#'   For the class system, the standard workflows, and a glossary of terms,
+#'   see the [Getting started
+#'   article](https://jdenn0514.github.io/surveywts/articles/getting-started.html).
 #' @family replicate-weights
 #' @export
 create_gen_rep_weights <- function(

@@ -6,7 +6,8 @@
 
 #' Reweight to population totals estimated from a control survey
 #'
-#' Adjusts the full-sample and replicate weights of `primary_design` so that
+#' Adjusts the full-sample and replicate weights (sets of perturbed weight
+#' columns used to compute standard errors) of `primary_design` so that
 #' its estimated totals for `variables` match those estimated from
 #' `control_design`. Implements the Opsomer & Erciulescu (2022) replication
 #' variance adjustment, which correctly propagates the sampling uncertainty
@@ -212,7 +213,9 @@
 #' control <- create_bootstrap_weights(npors_design, replicates = 50L)
 #' result <- calibrate_to_survey(primary, control, variables = c(age_f3, sex))
 #'
-#' @seealso [calibrate_to_estimate()]
+#' @seealso [calibrate_to_estimate()]. For the class system, the standard
+#'   workflows, and a glossary of terms, see the [Getting started
+#'   article](https://jdenn0514.github.io/surveywts/articles/getting-started.html).
 #' @family sample-calibration
 #' @export
 calibrate_to_survey <- function(

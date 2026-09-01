@@ -110,21 +110,24 @@ to the weighting history.
 the weighting history.
 }
 \description{
-Generates jackknife replicate weights for probability samples via the
+Generates jackknife replicate weights (sets of perturbed weight columns
+used to compute standard errors) for probability samples via the
 \code{survey} or \code{svrep} package, and for non-probability samples via the
-delete-a-group jackknife (DAGJK) engine. The \code{type} argument selects the
+DAGJK (delete-a-group jackknife) engine. The \code{type} argument selects the
 jackknife variant; \code{survey_nonprob} inputs are restricted to
 \code{type = "grouped"}.
 }
 \details{
 \strong{When to use.} Choose the jackknife for a stratified, possibly
 multi-stage probability sample where every stratum holds two or
-more PSUs and you estimate a total, a mean, or a ratio (Valliant,
-Dever & Kreuter 2018, Section 15.4). Do not use it for a median or
-another quantile — the jackknife standard error for a quantile does
-not improve as the sample grows; use \code{\link[=create_bootstrap_weights]{create_bootstrap_weights()}}
-or, on a paired design, \code{\link[=create_brr_weights]{create_brr_weights()}}. When every stratum
-holds exactly two PSUs, prefer BRR.
+more PSUs (primary sampling units: the first units the design
+selects, such as counties or schools) and you estimate a total, a
+mean, or a ratio (Valliant, Dever & Kreuter 2018, Section 15.4). Do
+not use it for a median or another quantile — the jackknife standard
+error for a quantile does not improve as the sample grows; use
+\code{\link[=create_bootstrap_weights]{create_bootstrap_weights()}} or, on a paired design,
+\code{\link[=create_brr_weights]{create_brr_weights()}}. When every stratum holds exactly two PSUs,
+prefer BRR.
 }
 \section{Algorithm}{
 
@@ -317,6 +320,9 @@ Springer.
 \code{\link[=create_replicate_weights]{create_replicate_weights()}} for the method-dispatch wrapper;
 \code{\link[=as_taylor_design]{as_taylor_design()}} to recover the Taylor-linearization design from
 replicate-weight history.
+
+For the class system, the standard workflows, and a glossary of
+terms, see the \href{https://jdenn0514.github.io/surveywts/articles/getting-started.html}{Getting started article}.
 
 Other replicate-weights:
 \code{\link[=as_taylor_design]{as_taylor_design()}},

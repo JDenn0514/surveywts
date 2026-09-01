@@ -27,11 +27,13 @@
 #'
 #' @details
 #' All six methods estimate variance by rebuilding the estimate on many
-#' perturbed copies of the weights, then measuring the spread across
-#' those copies. They differ in how the perturbation is built, and each
-#' one assumes something about the sample design. Replication avoids the
-#' derivatives that Taylor linearization needs, which makes variance
-#' available for complex statistics (Dippo, Fay & Morganstein 1984).
+#' perturbed copies of the weights — replicate weights (sets of
+#' perturbed weight columns used to compute standard errors) — then
+#' measuring the spread across those copies. They differ in how the
+#' perturbation is built, and each one assumes something about the
+#' sample design. Replication avoids the derivatives that Taylor
+#' linearization needs, which makes variance available for complex
+#' statistics (Dippo, Fay & Morganstein 1984).
 #'
 #' **Bootstrap** (`method = "bootstrap"`) resamples with replacement and
 #' recomputes the estimate. It is the only method here that is consistent
@@ -41,22 +43,25 @@
 #' pseudo-weight model refits inside every replicate. Note that `mse` is
 #' a string here, not a logical.
 #'
-#' **Jackknife** (`method = "jackknife"`) drops one PSU at a time and
-#' reweights the rest of its stratum (Valliant, Dever & Kreuter 2018,
-#' Section 15.4). Use `type = "jk1"` for a simple random sample and
-#' `type = "jkn"` for a stratified or multi-stage design; the replicate
-#' count follows from the design. No jackknife variant converges to the
-#' correct variance for a quantile. For delete-a-group jackknife on a
-#' `survey_nonprob` design, use `type = "grouped"` and set `replicates`
-#' (Valliant 2020).
+#' **Jackknife** (`method = "jackknife"`) drops one PSU (a primary
+#' sampling unit: the first unit the design selects, such as a county
+#' or school) at a time and reweights the rest of its stratum (Valliant,
+#' Dever & Kreuter 2018, Section 15.4). Use `type = "jk1"` for a simple
+#' random sample and `type = "jkn"` for a stratified or multi-stage
+#' design; the replicate count follows from the design. No jackknife
+#' variant converges to the correct variance for a quantile. For DAGJK
+#' (delete-a-group jackknife) on a `survey_nonprob` design, use
+#' `type = "grouped"` and set `replicates` (Valliant 2020).
 #'
-#' **BRR** (`method = "brr"`) needs exactly two PSUs per stratum, and
-#' uses a Hadamard matrix to keep the half-samples balanced across strata
-#' (Fay 1984). Unlike the jackknife, it is proven for nonlinear
-#' estimators and quantiles. The default `rho = 0` gives classic BRR,
-#' which zeroes one PSU per stratum in each replicate; set `rho > 0` for
-#' Fay's variant, which keeps every weight positive and so keeps ratio
-#' statistics defined (Dippo, Fay & Morganstein 1984).
+#' **BRR (balanced repeated replication)** (`method = "brr"`) needs
+#' exactly two PSUs per stratum, and uses a Hadamard matrix (a +1/-1
+#' grid that keeps replicates balanced) to keep the half-samples
+#' balanced across strata (Fay 1984). Unlike the jackknife, it is
+#' proven for nonlinear estimators and quantiles. The default `rho = 0`
+#' gives classic BRR, which zeroes one PSU per stratum in each
+#' replicate; set `rho > 0` for Fay's variant, which keeps every weight
+#' positive and so keeps ratio statistics defined (Dippo, Fay &
+#' Morganstein 1984).
 #'
 #' **Generalized bootstrap** (`method = "generalized-bootstrap"`) draws
 #' random weight multipliers that reproduce a target variance estimator
@@ -149,7 +154,10 @@
 #' @family replicate-weights
 #' @seealso [create_bootstrap_weights()], [create_jackknife_weights()],
 #'   [create_brr_weights()], [create_gen_boot_weights()],
-#'   [create_gen_rep_weights()], [create_sdr_weights()], [as_taylor_design()]
+#'   [create_gen_rep_weights()], [create_sdr_weights()], [as_taylor_design()].
+#'   For the class system, the standard workflows, and a glossary of terms,
+#'   see the [Getting started
+#'   article](https://jdenn0514.github.io/surveywts/articles/getting-started.html).
 #' @export
 create_replicate_weights <- function(
   data,

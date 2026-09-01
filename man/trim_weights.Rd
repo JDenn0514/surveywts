@@ -126,7 +126,8 @@ weights in sample surveys. \emph{Proceedings of the Joint Statistical
 Meetings, Section on Survey Research Methods}, 2707--2719.
 }
 \seealso{
-\code{\link[=rescale_weights]{rescale_weights()}}
+\code{\link[=rescale_weights]{rescale_weights()}}. For the class system, the standard
+workflows, and a glossary of terms, see the \href{https://jdenn0514.github.io/surveywts/articles/getting-started.html}{Getting started article}.
 
 Other utilities:
 \code{\link[=rescale_weights]{rescale_weights()}}

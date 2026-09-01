@@ -87,7 +87,8 @@
 #' each adjusts survey weights so that weighted auxiliary totals match
 #' known population totals. The methods share a variance estimator and
 #' differ in the weight-ratio function \eqn{F} applied during calibration
-#' (Deville & Sarndal 1992; Deville, Sarndal & Sautory 1993).
+#' (Deville & Sarndal 1992; Deville, Sarndal & Sautory 1993). That ratio
+#' is the g-weight (the ratio of calibrated to starting weight).
 #'
 #' **Raking** (`method = "rake"`, the default) uses the multiplicative
 #' function \eqn{F(u) = \exp(u)}, which keeps all calibrated weights
@@ -139,7 +140,9 @@
 #'   Statistical Meetings — Section on Survey Research Methods.
 #'
 #' @seealso [calibrate_rake()], [calibrate_linear()], [calibrate_logit()],
-#'   [poststratify()]
+#'   [poststratify()]. For the class system, the standard workflows, and a
+#'   glossary of terms, see the [Getting started
+#'   article](https://jdenn0514.github.io/surveywts/articles/getting-started.html).
 #' @family calibration
 #' @export
 #'

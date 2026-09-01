@@ -6,7 +6,8 @@
 
 #' Reweight to externally estimated population totals
 #'
-#' Adjusts the full-sample and replicate weights of `design` so that its
+#' Adjusts the full-sample and replicate weights (sets of perturbed weight
+#' columns used to compute standard errors) of `design` so that its
 #' estimated totals for the variables named in `targets` match the supplied
 #' count totals. The `vcov_estimate` matrix propagates the uncertainty of
 #' those external estimates into the calibrated design's variance estimates.
@@ -110,7 +111,9 @@
 #'   vcov_estimate = vcov_pid_f3
 #' )
 #'
-#' @seealso [calibrate_to_survey()]
+#' @seealso [calibrate_to_survey()]. For the class system, the standard
+#'   workflows, and a glossary of terms, see the [Getting started
+#'   article](https://jdenn0514.github.io/surveywts/articles/getting-started.html).
 #' @family sample-calibration
 #' @export
 calibrate_to_estimate <- function(

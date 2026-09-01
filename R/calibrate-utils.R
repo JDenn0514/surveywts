@@ -841,8 +841,10 @@
   pweights <- data_df[[wt_col]]
   repwts <- as.matrix(data_df[, rep_cols, drop = FALSE])
 
-  # Build a svyrep.design object. Suppress the "combined weights" warning
-  # that fires when mean(repweights) << mean(sampling weights).
+  # Build a svyrep.design object. survey's default is combined.weights = TRUE,
+  # which matches what the replicate creators store. Suppress the "combined
+  # weights" warning that still fires for the quasi-randomization bootstrap,
+  # which writes factor-form columns (tracked in issue #101).
   suppressWarnings(
     survey::svrepdesign(
       data = data_df,

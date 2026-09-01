@@ -118,7 +118,9 @@ test_that("create_bootstrap_weights() matches svrep::as_bootstrap_design() direc
     replicates = 50L,
     mse = TRUE
   )
-  direct_mat <- as.matrix(direct_svyrep$repweights)
+  # `weights(type = "analysis")` folds the base weight into each column.
+  # surveywts stores finished weights, so that is the correct comparison.
+  direct_mat <- as.matrix(weights(direct_svyrep, type = "analysis"))
 
   # surveywts wrapper with same seed
   result <- create_bootstrap_weights(td, replicates = 50L, seed = 99L)
@@ -372,7 +374,7 @@ test_that("create_jackknife_weights() jk1 matches survey::as.svrepdesign(JK1)", 
   )
   result <- create_jackknife_weights(td, type = "jk1")
   test_invariants(result)
-  expected <- unname(as.matrix(direct$repweights))
+  expected <- unname(as.matrix(weights(direct, type = "analysis")))
   actual <- unname(as.matrix(result@data[, result@variables$repweights]))
 
   expect_equal(actual, expected, tolerance = 1e-10)
@@ -395,7 +397,7 @@ test_that("create_jackknife_weights() jkn matches survey::as.svrepdesign(JKn)", 
   )
   result <- create_jackknife_weights(td, type = "jkn")
   test_invariants(result)
-  expected <- unname(as.matrix(direct$repweights))
+  expected <- unname(as.matrix(weights(direct, type = "analysis")))
   actual <- unname(as.matrix(result@data[, result@variables$repweights]))
 
   expect_equal(actual, expected, tolerance = 1e-10)
@@ -420,7 +422,7 @@ test_that("create_jackknife_weights() grouped matches svrep::as_random_group_jac
   )
   test_invariants(result)
 
-  expected <- unname(as.matrix(direct$repweights))
+  expected <- unname(as.matrix(weights(direct, type = "analysis")))
   actual <- unname(as.matrix(result@data[, result@variables$repweights]))
   expect_equal(actual, expected, tolerance = 1e-10)
 })
@@ -605,7 +607,7 @@ test_that("create_brr_weights() matches survey::as.svrepdesign(BRR) directly", {
   )
   result <- create_brr_weights(pd)
   test_invariants(result)
-  expected <- unname(as.matrix(direct$repweights))
+  expected <- unname(as.matrix(weights(direct, type = "analysis")))
   actual <- unname(as.matrix(result@data[, result@variables$repweights]))
   expect_equal(actual, expected, tolerance = 1e-10)
 })
@@ -807,7 +809,7 @@ test_that("create_gen_boot_weights() matches svrep::as_gen_boot_design() directl
   test_invariants(result)
   # svrep attaches rscales/scale/tau attrs to repweights; drop them so expect_equal
   # compares only numeric values (our impl stores a plain data frame).
-  expected_mat <- as.matrix(direct$repweights)
+  expected_mat <- as.matrix(weights(direct, type = "analysis"))
   for (a in c("rscales", "scale", "tau")) {
     attr(expected_mat, a) <- NULL
   }
@@ -1000,7 +1002,7 @@ test_that("create_gen_rep_weights() matches svrep::as_fays_gen_rep_design() dire
 
   # svrep attaches rscales/scale attrs to repweights; drop them so expect_equal
   # compares only numeric values (our impl stores a plain data frame).
-  expected_mat <- as.matrix(direct$repweights)
+  expected_mat <- as.matrix(weights(direct, type = "analysis"))
   for (a in c("rscales", "scale")) {
     attr(expected_mat, a) <- NULL
   }
@@ -1169,7 +1171,7 @@ test_that("create_sdr_weights() matches svrep::as_sdr_design() directly", {
   result <- create_sdr_weights(td, replicates = 40L, sort_var = id)
   test_invariants(result)
 
-  expected <- as.matrix(direct$repweights)
+  expected <- unname(as.matrix(weights(direct, type = "analysis")))
   actual <- unname(as.matrix(result@data[, result@variables$repweights]))
   expect_equal(actual, expected, tolerance = 1e-10)
 })
@@ -2345,4 +2347,101 @@ test_that("create_jackknife_weights() errors when ... is non-empty", {
   expect_error(
     create_jackknife_weights(gss_2024_svy, type = "jkn", extra = 1)
   )
+})
+
+# ---- Issue #101: creators store finished replicate weights -------------------
+# survey and svrep return replication factors (combined.weights = FALSE).
+# surveycore reads @variables$repweights as finished weights. Each block below
+# checks that the base weight is folded in, so the replicate columns sit on the
+# same scale as the base weight column.
+
+test_that("create_bootstrap_weights() stores finished replicate weights", {
+  skip_if_not_installed("svrep")
+  td <- make_taylor_design(n = 100L, seed = 7L)
+  result <- create_bootstrap_weights(td, replicates = 50L, seed = 99L)
+  test_invariants(result)
+
+  base_wt <- result@data[[result@variables$weights]]
+  rep_mat <- as.matrix(result@data[, result@variables$repweights])
+
+  # Each replicate column totals near the base weight total, not the row count.
+  expect_equal(mean(colSums(rep_mat)), sum(base_wt), tolerance = 0.05)
+  expect_false(isTRUE(all.equal(mean(colSums(rep_mat)), nrow(rep_mat))))
+})
+
+test_that("create_jackknife_weights() type = 'jkn' stores finished replicate weights", {
+  skip_if_not_installed("survey")
+  td <- make_taylor_design(n = 100L, seed = 7L)
+  result <- create_jackknife_weights(td, type = "jkn")
+  test_invariants(result)
+
+  base_wt <- result@data[[result@variables$weights]]
+  rep_mat <- as.matrix(result@data[, result@variables$repweights])
+
+  # A JKn replicate drops one PSU and inflates the rest, so each column totals
+  # close to the base weight total.
+  expect_equal(mean(colSums(rep_mat)), sum(base_wt), tolerance = 0.05)
+})
+
+test_that("create_brr_weights() stores finished replicate weights", {
+  skip_if_not_installed("survey")
+  pd <- make_paired_design(seed = 1L)
+  result <- create_brr_weights(pd)
+  test_invariants(result)
+
+  base_wt <- result@data[[result@variables$weights]]
+  rep_mat <- as.matrix(result@data[, result@variables$repweights])
+
+  expect_equal(mean(colSums(rep_mat)), sum(base_wt), tolerance = 0.05)
+})
+
+test_that("replicate means track the weighted mean, not the unweighted mean", {
+  skip_if_not_installed("survey")
+  td <- make_taylor_design(n = 200L, seed = 11L)
+  base_wt <- td@data[[td@variables$weights]]
+  # make_taylor_design() draws y independent of the base weight, so the
+  # weighted and unweighted means agree. Tie y to the base weight to separate
+  # them; the wrong convention lands on the unweighted mean.
+  td@data$y <- 10 * base_wt
+  y <- td@data$y
+
+  weighted_mean <- sum(base_wt * y) / sum(base_wt)
+  unweighted_mean <- mean(y)
+  expect_gt(abs(weighted_mean - unweighted_mean), 0.5)
+
+  result <- create_bootstrap_weights(td, replicates = 100L, seed = 5L)
+  rep_mat <- as.matrix(result@data[, result@variables$repweights])
+  rep_means <- colSums(rep_mat * y) / colSums(rep_mat)
+
+  expect_equal(mean(rep_means), weighted_mean, tolerance = 0.02)
+  expect_gt(
+    abs(mean(rep_means) - unweighted_mean),
+    abs(mean(rep_means) - weighted_mean)
+  )
+})
+
+test_that("bootstrap standard errors match survey's Taylor design", {
+  skip_if_not_installed("survey")
+  skip_if_not_installed("svrep")
+  td <- make_taylor_design(n = 400L, seed = 3L)
+
+  taylor_se <- survey::SE(
+    survey::svymean(~y, surveycore::as_svydesign(td))
+  )
+  result <- create_bootstrap_weights(td, replicates = 500L, seed = 2L)
+  rep_se <- survey::SE(
+    survey::svymean(~y, surveycore::as_svydesign(result))
+  )
+
+  # Bootstrap and Taylor are different estimators; 25% is a loose band that
+  # still fails by orders of magnitude when the convention is wrong.
+  expect_equal(as.numeric(rep_se), as.numeric(taylor_se), tolerance = 0.25)
+})
+
+test_that("as_svydesign() on a creator result does not warn about combined weights", {
+  skip_if_not_installed("svrep")
+  td <- make_taylor_design(n = 100L, seed = 7L)
+  result <- create_bootstrap_weights(td, replicates = 50L, seed = 99L)
+
+  expect_no_warning(surveycore::as_svydesign(result))
 })

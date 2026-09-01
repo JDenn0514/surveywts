@@ -25,6 +25,11 @@
 #'   when `method = "jackknife"` and `type = "grouped"` is passed via `...`
 #'   for DAGJK on a non-probability sample.
 #'
+#'   Every replicate weight column holds a finished weight, on the same
+#'   scale as the base weight column, not a factor to apply to the base
+#'   weight. This matches the replicate columns in the bundled `cps_2023`
+#'   dataset and the convention `survey` calls combined weights.
+#'
 #' @details
 #' All six methods estimate variance by rebuilding the estimate on many
 #' perturbed copies of the weights — replicate weights (sets of

@@ -26,6 +26,11 @@ the selected method produce R's native "unused argument" error.}
 A \code{survey_replicate} for most methods, or a \code{survey_nonprob}
 when \code{method = "jackknife"} and \code{type = "grouped"} is passed via \code{...}
 for DAGJK on a non-probability sample.
+
+Every replicate weight column holds a finished weight, on the same
+scale as the base weight column, not a factor to apply to the base
+weight. This matches the replicate columns in the bundled \code{cps_2023}
+dataset and the convention \code{survey} calls combined weights.
 }
 \description{
 Dispatches to the appropriate \verb{create_*_weights()} function based on

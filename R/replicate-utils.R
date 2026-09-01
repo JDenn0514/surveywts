@@ -154,6 +154,17 @@
   # gen-rep) and `repweights_compressed` (survey JKn/BRR, svrep random-group JK)
   # support as.matrix().
   rep_matrix <- as.matrix(svyrep_obj$repweights)
+
+  # survey and svrep return the matrix in replication-factor form, not as
+  # finished weights: `combined.weights` is FALSE for every backend this
+  # package uses. surveycore reads @variables$repweights as finished weights,
+  # so fold the base weight in here. This matches the bundled `cps_2023`
+  # replicate columns and the DAGJK path in create_jackknife_weights().
+  # `svyrep_obj$pweights` is the base weight in the row order of
+  # `svyrep_obj$variables`, which is the order the output inherits below.
+  if (!isTRUE(svyrep_obj$combined.weights)) {
+    rep_matrix <- rep_matrix * as.numeric(svyrep_obj$pweights)
+  }
   n_rep <- ncol(rep_matrix)
   rep_names <- paste0("rep_", seq_len(n_rep))
 

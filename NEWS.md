@@ -1,5 +1,27 @@
 # surveywts 0.2.1 (development)
 
+## Bug fixes
+
+* The probability replicate creators stored replication factors instead of
+  finished replicate weights (#101). `survey` and `svrep` return the
+  replicate matrix with `combined.weights = FALSE`, meaning each value is a
+  factor to apply to the base weight. `.convert_and_call()` copied that
+  matrix straight into `@variables$repweights`, which surveycore reads as
+  finished weights, so the base weight was never folded in. Every variance
+  estimate from `create_bootstrap_weights()`, `create_jackknife_weights()`
+  (types `"jkn"`, `"jk1"`, `"grouped"`), `create_brr_weights()`,
+  `create_gen_boot_weights()`, `create_gen_rep_weights()`, and
+  `create_sdr_weights()` was wrong. On `gss_2024` with `weights = wtssps`,
+  the mean of `age` had a confidence interval of 42.9-53.0 against 47.0-48.9
+  from `survey::svymean()` on the Taylor design; it now returns 47.05-48.82.
+  The base weight is folded in at extraction time, so each replicate column
+  is a finished weight on the same scale as the base weight column.
+
+  The DAGJK path (`create_jackknife_weights(type = "grouped")` on a
+  `survey_nonprob`) was already correct and is unchanged. The
+  quasi-randomization bootstrap has a separate defect with a different cause
+  and is not fixed here.
+
 ## Internal
 
 * Add tests for `calibrate_to_survey()` and `calibrate_to_estimate()` edge

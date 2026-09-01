@@ -58,6 +58,22 @@
 #' # Rescale within groups using by = -----------------------------------------
 #' result_by <- rescale_weights(ns_wave1_svy, by = ns_region)
 #' summarize_weights(result_by, by = ns_region)
+#'
+#' # survey_replicate: the replicate columns scale by the same factor ----------
+#' cps_svy <- surveycore::as_survey_replicate(
+#'   cps_2023,
+#'   weights    = "wtfinl",
+#'   repweights = paste0("repwtp", 1:160),
+#'   type       = "successive-difference",
+#'   scale      = 4 / 160,
+#'   rscales    = rep(1, 160)
+#' )
+#' result_rep <- rescale_weights(cps_svy)
+#' summarize_weights(result_rep)
+#'
+#' # The first replicate column moved by the same factor as the main weight.
+#' mean(surveycore::survey_data(cps_svy)$repwtp1)
+#' mean(surveycore::survey_data(result_rep)$repwtp1)
 rescale_weights <- function(
   data,
   weights = NULL,

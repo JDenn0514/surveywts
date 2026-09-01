@@ -270,6 +270,9 @@ summarize_weights(jkn_design)
 surveycore::get_means(jkn_design, age)
 
 # Grouped jackknife on a probability sample -------------------------------
+# Every one of `gss_2024`'s 67 strata holds exactly 2 PSUs, and the grouped
+# jackknife cannot ask for more replicates than the smallest stratum has
+# PSUs. 2 is the maximum this design allows, not a low setting: 3L errors.
 grouped_design <- create_jackknife_weights(
   gss_svy,
   replicates = 2L,

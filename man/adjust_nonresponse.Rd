@@ -66,7 +66,7 @@ be present in \code{data} with no \code{NA} values.}
 \item \code{min_cell}: warn when a cell has fewer than this many respondents
 (default 20, per NAEP methodology). Used only for \code{"propensity-cell"}.
 \item \code{max_adjust}: warn when the nonresponse adjustment factor exceeds
-this value (default 5.0). For \code{"propensity-cell"}, the cell-level
+this value (default 2.0). For \code{"propensity-cell"}, the cell-level
 factor; for \code{"propensity"}, the individual IPW ratio relative to the
 mean respondent weight.
 \item \code{n_cells}: number of propensity score cells (default 5). Must be a whole
@@ -163,13 +163,16 @@ sums respondent weights only. Each respondent weight becomes
 
 \examples{
 # survey_taylor: mutate the tibble first, then construct the design -------
-gss_with_resp <- gss_2024[!is.na(gss_2024$sex), ]
+# `formula` below needs no NA in sex or age_f3, so filter both here.
+gss_with_resp <- gss_2024[!is.na(gss_2024$sex) & !is.na(gss_2024$age_f3), ]
 gss_with_resp$responded <- sample(
   c(0L, 1L), nrow(gss_with_resp), replace = TRUE, prob = c(0.2, 0.8)
 )
 gss_svy <- surveycore::as_survey(
   gss_with_resp, weights = wtssps, strata = vstrat, ids = vpsu, nest = TRUE
 )
+
+# method = "weighting-class" (the default) ---------------------------------
 result <- adjust_nonresponse(gss_svy, response_status = responded, by = sex)
 summarize_weights(result)
 
@@ -178,6 +181,28 @@ summarize_weights(result)
 # unseeded draw above; the two counts below still differ every run.
 nrow(surveycore::survey_data(gss_svy))
 nrow(surveycore::survey_data(result))
+
+# method = "propensity-cell": one factor per propensity cell ---------------
+# Both propensity methods fit a weighted logistic regression, so base R
+# warns "non-integer #successes in a binomial glm!". The fit is unaffected.
+result_pc <- adjust_nonresponse(
+  gss_svy,
+  response_status = responded,
+  method = "propensity-cell",
+  formula = ~ sex + age_f3
+)
+summarize_weights(result_pc)
+
+# method = "propensity": one factor per unit ------------------------------
+# Individual factors move further than cell-level ones, so this trips the
+# `max_adjust` warning. The factor itself moves with the unseeded draw.
+result_p <- adjust_nonresponse(
+  gss_svy,
+  response_status = responded,
+  method = "propensity",
+  formula = ~ sex + age_f3
+)
+summarize_weights(result_p)
 
 }
 \seealso{

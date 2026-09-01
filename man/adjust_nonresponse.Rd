@@ -171,6 +171,13 @@ gss_svy <- surveycore::as_survey(
   gss_with_resp, weights = wtssps, strata = vstrat, ids = vpsu, nest = TRUE
 )
 result <- adjust_nonresponse(gss_svy, response_status = responded, by = sex)
+summarize_weights(result)
+
+# survey_taylor requires strictly positive weights, so the zero-weight
+# nonrespondent rows are dropped. The exact drop count moves with the
+# unseeded draw above; the two counts below still differ every run.
+nrow(surveycore::survey_data(gss_svy))
+nrow(surveycore::survey_data(result))
 
 }
 \seealso{

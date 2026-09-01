@@ -70,9 +70,10 @@
 #' gss_svy <- surveycore::as_survey(
 #'   gss_excl, weights = wtssps, strata = vstrat, ids = vpsu, nest = TRUE
 #' )
-#' redistribute_weights(
+#' result <- redistribute_weights(
 #'   gss_svy, reduce_if = excluded, increase_if = retained, by = sex
 #' )
+#' summarize_weights(result)
 #'
 #' @seealso [adjust_nonresponse()]. For the class system, the standard
 #'   workflows, and a glossary of terms, see the [Getting started

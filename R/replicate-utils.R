@@ -307,6 +307,44 @@
 }
 
 # ============================================================================
+# .map_resample_weights()
+# ============================================================================
+
+# Internal helper: put a resample-order weight vector back into original-unit
+# order.
+#
+# A bootstrap draw refits the weighting model on the resample S_A_b, so the
+# weight vector it returns is in resample order. Unit i appears m_i times in
+# the resample, so the replicate weight of unit i is the sum of the weights of
+# its copies. A unit that the draw never selected gets 0.
+#
+# The sum is what makes the replicate column reproduce the draw. For any
+# variable y:
+#   sum(out * y) == sum(w_b * y[idx])
+# so an estimator applied to the replicate column returns the value the draw
+# produced. Keeping one copy instead of the sum would drop the ~36.8% of units
+# the draw did not select and pull the estimate toward zero.
+#
+# Arguments:
+#   w_b : numeric - weights in resample order, one per row of S_A_b
+#   idx : integer - the original row index each resample row came from
+#   n   : integer(1) - number of rows in the original data
+#
+# Returns: numeric(n) in original-unit order.
+.map_resample_weights <- function(w_b, idx, n) {
+  if (length(w_b) != length(idx)) {
+    # The draw changed the row count (for example, the refit dropped
+    # incomplete cases), so the weights no longer line up with idx. The
+    # caller runs inside tryCatch and counts this as a failed draw.
+    stop("resample weight vector length does not match the draw index")
+  }
+  out <- numeric(n)
+  agg <- rowsum(as.numeric(w_b), group = idx, reorder = FALSE)
+  out[as.integer(rownames(agg))] <- agg[, 1L]
+  out
+}
+
+# ============================================================================
 # .quasi_randomization_bootstrap()
 # ============================================================================
 
@@ -497,6 +535,11 @@
             w_b <- ipw_result_b@data[[data@variables$weights]]
           }
 
+          # Step 5: put w_b back into original-unit order. Without this the
+          # resample-order vector lands in row order and every unit carries
+          # some other unit's weight.
+          w_b <- .map_resample_weights(w_b, idx, n_A)
+
           repwt_list[[length(repwt_list) + 1L]] <- w_b
           TRUE
         },
@@ -595,6 +638,11 @@
             stop("non-positive calibrated weight")
           }
           # nocov end
+
+          # Step 5: put w_b back into original-unit order. The check above
+          # runs first, on the resample-order vector, because after the map
+          # every unit the draw did not select carries a legitimate 0.
+          w_b <- .map_resample_weights(w_b, idx, n_A)
 
           repwt_list[[length(repwt_list) + 1L]] <- w_b
           TRUE

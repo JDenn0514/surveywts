@@ -95,6 +95,13 @@
 #' replicate weights that reflect the variability of the propensity
 #' estimation step.
 #'
+#' The refit returns weights in resample order, so each replicate column is
+#' mapped back to original-unit order before it is stored. A unit the draw
+#' picked more than once carries the sum of the weights of its copies, and a
+#' unit the draw did not pick carries 0. Every `repwt_*` column therefore
+#' holds about 37% zeros, and an estimator applied to the column reproduces
+#' the estimate that draw produced.
+#'
 #' @section Limitations:
 #' Bootstrap standard errors from `type = "quasi-randomization"` likely
 #' understate true sampling variability because SRSWR resampling cannot

@@ -90,8 +90,9 @@
 #' summarize_weights(ns_wave1_svy)
 #' result_iqr <- trim_weights(ns_wave1_svy)
 #' summarize_weights(result_iqr)
-#' # Warns: "No weights were trimmed: all main weights already fall
-#' # within [-Inf, 5.29]." The IQR-default upper bound sits above every weight.
+#' # Warns: "No weights were trimmed: all main weights already fall within
+#' # [-Inf, 5.29094227304786]." The IQR-default upper bound sits above every
+#' # weight, so there is nothing to trim.
 #'
 #' # explicit percentile bounds --------------------------------------------
 #' result_pct <- trim_weights(
@@ -99,7 +100,7 @@
 #' )
 #' summarize_weights(result_pct)
 #'
-#' # absolute bounds ---------------------------------------------------------
+#' # absolute bounds -------------------------------------------------------
 #' result_abs <- trim_weights(
 #'   ns_wave1_svy, lower = 0.3, upper = 3.0, type = "absolute"
 #' )

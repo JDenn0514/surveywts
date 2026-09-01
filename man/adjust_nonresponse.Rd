@@ -175,9 +175,9 @@ summarize_weights(result)
 
 # survey_taylor requires strictly positive weights, so the zero-weight
 # nonrespondent rows are dropped. The exact drop count moves with the
-# unseeded draw above; nrow() still shows that rows were dropped.
-nrow(gss_svy)
-nrow(result)
+# unseeded draw above; the two counts below still differ every run.
+nrow(surveycore::survey_data(gss_svy))
+nrow(surveycore::survey_data(result))
 
 }
 \seealso{

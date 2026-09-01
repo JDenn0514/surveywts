@@ -32,6 +32,8 @@ weighted estimates. Rows with zero weights (typically produced by
 \examples{
 ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
 effective_sample_size(ns_wave1_svy)
+#>    n_eff
+#> 2254.539
 }
 \references{
 Kish, L. (1965). \emph{Survey Sampling}. New York: John Wiley & Sons.

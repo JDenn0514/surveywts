@@ -36,6 +36,8 @@
 #' @examples
 #' ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
 #' weight_variability(ns_wave1_svy)
+#' #>       cv
+#' #> 1.359692
 weight_variability <- function(x, weights = NULL) {
   weights_quo <- rlang::enquo(weights)
   vld <- .diag_validate_input(x, weights_quo)

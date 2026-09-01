@@ -168,7 +168,9 @@
 #'   Statistical Meetings — Section on Survey Research Methods.
 #'
 #' @seealso [calibrate()], [calibrate_linear()], [calibrate_logit()],
-#'   [poststratify()]
+#'   [poststratify()]. For the class system, the standard workflows, and a
+#'   glossary of terms, see the [Getting started
+#'   article](https://jdenn0514.github.io/surveywts/articles/getting-started.html).
 #' @family calibration
 #' @export
 #'

@@ -72,9 +72,11 @@ populated, and a \code{"bootstrap_weights"} history entry.
 }
 }
 \description{
-Generates bootstrap replicate weights for probability-sample designs via
-\code{\link[svrep:as_bootstrap_design]{svrep::as_bootstrap_design()}}, or quasi-randomization bootstrap replicate
-weights for non-probability samples (\code{survey_nonprob}) via an internal
+Generates bootstrap replicate weights (sets of perturbed weight columns
+used to compute standard errors) for probability-sample designs via
+\code{\link[svrep:as_bootstrap_design]{svrep::as_bootstrap_design()}}. For non-probability samples
+(\code{survey_nonprob}), it generates quasi-randomization bootstrap (each
+replicate refits the weighting model) replicate weights via an internal
 resample-reweight algorithm.
 }
 \details{
@@ -153,7 +155,9 @@ package for modern methods for non-probability surveys.
 \seealso{
 \code{\link[=create_jackknife_weights]{create_jackknife_weights()}}, \code{\link[=create_brr_weights]{create_brr_weights()}}, \code{\link[=create_gen_boot_weights]{create_gen_boot_weights()}},
 \code{\link[=create_gen_rep_weights]{create_gen_rep_weights()}}, \code{\link[=create_sdr_weights]{create_sdr_weights()}},
-\code{\link[=create_replicate_weights]{create_replicate_weights()}}, \code{\link[=as_taylor_design]{as_taylor_design()}}
+\code{\link[=create_replicate_weights]{create_replicate_weights()}}, \code{\link[=as_taylor_design]{as_taylor_design()}}. For the class
+system, the standard workflows, and a glossary of terms, see the
+\href{https://jdenn0514.github.io/surveywts/articles/getting-started.html}{Getting started article}.
 
 Other replicate-weights:
 \code{\link[=as_taylor_design]{as_taylor_design()}},

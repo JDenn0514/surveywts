@@ -89,7 +89,8 @@ redistribute_weights(
 
 }
 \seealso{
-\code{\link[=adjust_nonresponse]{adjust_nonresponse()}}
+\code{\link[=adjust_nonresponse]{adjust_nonresponse()}}. For the class system, the standard
+workflows, and a glossary of terms, see the \href{https://jdenn0514.github.io/surveywts/articles/getting-started.html}{Getting started article}.
 
 Other nonresponse:
 \code{\link[=adjust_nonresponse]{adjust_nonresponse()}}

@@ -46,7 +46,8 @@ A \code{survey_replicate} with \verb{@variables$type = "bootstrap"} (the
 stored replicate type, not the method name).
 }
 \description{
-Generates generalized bootstrap replicate weights via
+Generates generalized bootstrap replicate weights (sets of perturbed
+weight columns used to compute standard errors) via
 \code{\link[svrep:as_gen_boot_design]{svrep::as_gen_boot_design()}}. Requires a \code{survey_taylor} design.
 }
 \details{
@@ -127,7 +128,9 @@ variances. \emph{Survey Methodology}, 40(1), 47--59.
 \seealso{
 \code{\link[=create_bootstrap_weights]{create_bootstrap_weights()}}, \code{\link[=create_jackknife_weights]{create_jackknife_weights()}},
 \code{\link[=create_brr_weights]{create_brr_weights()}}, \code{\link[=create_gen_rep_weights]{create_gen_rep_weights()}},
-\code{\link[=create_sdr_weights]{create_sdr_weights()}}, \code{\link[=create_replicate_weights]{create_replicate_weights()}}, \code{\link[=as_taylor_design]{as_taylor_design()}}
+\code{\link[=create_sdr_weights]{create_sdr_weights()}}, \code{\link[=create_replicate_weights]{create_replicate_weights()}}, \code{\link[=as_taylor_design]{as_taylor_design()}}.
+For the class system, the standard workflows, and a glossary of terms,
+see the \href{https://jdenn0514.github.io/surveywts/articles/getting-started.html}{Getting started article}.
 
 Other replicate-weights:
 \code{\link[=as_taylor_design]{as_taylor_design()}},

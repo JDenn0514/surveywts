@@ -24,9 +24,9 @@
 #'
 #' Adjusts survey weights so that the weighted marginal totals of calibration
 #' variables match known population values using logit calibration. Uses the
-#' logit `F`-function that keeps g-weights in the open interval `(L, U)`,
-#' guaranteeing strictly positive calibrated weights. Requires Newton-Raphson
-#' iteration.
+#' logit `F`-function that keeps g-weights (the ratio of calibrated to
+#' starting weight) in the open interval `(L, U)`, guaranteeing strictly
+#' positive calibrated weights. Requires Newton-Raphson iteration.
 #'
 #' @param data A `survey_nonprob`, `survey_taylor`, or `survey_replicate`. Any
 #'   other class -> error. When `data` is a `survey_replicate`, calibration is
@@ -151,7 +151,9 @@
 #'   Statistical Association*, 88(423), 1013--1020.
 #'
 #' @seealso [calibrate()], [calibrate_rake()], [calibrate_linear()],
-#'   [poststratify()]
+#'   [poststratify()]. For the class system, the standard workflows, and a
+#'   glossary of terms, see the [Getting started
+#'   article](https://jdenn0514.github.io/surveywts/articles/getting-started.html).
 #' @family calibration
 #' @export
 #'

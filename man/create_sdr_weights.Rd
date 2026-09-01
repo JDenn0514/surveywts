@@ -27,8 +27,10 @@ the replicate estimates (\code{FALSE}).}
 A \code{survey_replicate} with \verb{@variables$type = "successive-difference"}.
 }
 \description{
-Generates successive difference replication weights via
-\code{\link[svrep:as_sdr_design]{svrep::as_sdr_design()}}. Requires a \code{survey_taylor} design.
+Generates successive difference replication weights — a form of
+replicate weights (sets of perturbed weight columns used to compute
+standard errors) — via \code{\link[svrep:as_sdr_design]{svrep::as_sdr_design()}}. Requires a
+\code{survey_taylor} design.
 }
 \details{
 \strong{When to use.} Choose successive difference replication only when
@@ -68,7 +70,9 @@ the Section on Government Statistics}, 154--159.
 \seealso{
 \code{\link[=create_bootstrap_weights]{create_bootstrap_weights()}}, \code{\link[=create_jackknife_weights]{create_jackknife_weights()}},
 \code{\link[=create_brr_weights]{create_brr_weights()}}, \code{\link[=create_gen_boot_weights]{create_gen_boot_weights()}},
-\code{\link[=create_gen_rep_weights]{create_gen_rep_weights()}}, \code{\link[=create_replicate_weights]{create_replicate_weights()}}, \code{\link[=as_taylor_design]{as_taylor_design()}}
+\code{\link[=create_gen_rep_weights]{create_gen_rep_weights()}}, \code{\link[=create_replicate_weights]{create_replicate_weights()}}, \code{\link[=as_taylor_design]{as_taylor_design()}}.
+For the class system, the standard workflows, and a glossary of terms,
+see the \href{https://jdenn0514.github.io/surveywts/articles/getting-started.html}{Getting started article}.
 
 Other replicate-weights:
 \code{\link[=as_taylor_design]{as_taylor_design()}},

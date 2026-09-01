@@ -10,9 +10,10 @@
 #'
 #' The coefficient of variation (CV) measures how spread out the weights are
 #' relative to their mean. A CV near zero indicates near-uniform weights;
-#' higher values signal greater variability and a correspondingly larger design
-#' effect. Rows with zero weights (typically produced by [adjust_nonresponse()])
-#' are excluded before computing CV.
+#' higher values signal greater variability and a correspondingly larger
+#' design effect (variance inflation relative to a simple random sample of
+#' the same size). Rows with zero weights (typically produced by
+#' [adjust_nonresponse()]) are excluded before computing CV.
 #'
 #' @inheritParams effective_sample_size
 #'
@@ -25,7 +26,10 @@
 #' @references
 #'   Kish, L. (1965). *Survey Sampling*. New York: John Wiley & Sons.
 #'
-#' @seealso [effective_sample_size()], [summarize_weights()]
+#' @seealso [effective_sample_size()], [summarize_weights()]. For the
+#'   class system, the standard workflows, and a glossary of terms, see
+#'   the [Getting started
+#'   article](https://jdenn0514.github.io/surveywts/articles/getting-started.html).
 #' @family diagnostics
 #' @export
 #'

@@ -28,7 +28,10 @@
 #' @references
 #'   Kish, L. (1965). *Survey Sampling*. New York: John Wiley & Sons.
 #'
-#' @seealso [weight_variability()], [summarize_weights()]
+#' @seealso [weight_variability()], [summarize_weights()]. For the class
+#'   system, the standard workflows, and a glossary of terms, see the
+#'   [Getting started
+#'   article](https://jdenn0514.github.io/surveywts/articles/getting-started.html).
 #' @family diagnostics
 #' @export
 #'

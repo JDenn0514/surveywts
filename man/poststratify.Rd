@@ -138,7 +138,8 @@ resampling methods for complex surveys. \emph{Survey Methodology},
 }
 \seealso{
 \code{\link[=calibrate]{calibrate()}}, \code{\link[=calibrate_rake]{calibrate_rake()}}, \code{\link[=calibrate_linear]{calibrate_linear()}},
-\code{\link[=calibrate_logit]{calibrate_logit()}}
+\code{\link[=calibrate_logit]{calibrate_logit()}}. For the class system, the standard workflows, and
+a glossary of terms, see the \href{https://jdenn0514.github.io/surveywts/articles/getting-started.html}{Getting started article}.
 
 Other calibration:
 \code{\link[=calibrate]{calibrate()}},

@@ -23,11 +23,12 @@
 #' Fit weights using linear (GREG) calibration
 #'
 #' Adjusts survey weights so that the weighted marginal totals of calibration
-#' variables match known population values using linear (GREG) estimation. Uses
-#' `F(u) = 1 + u` which is exact in a single Newton step when `bounds = NULL`.
+#' variables match known population values using linear estimation — GREG
+#' (generalized regression, the survey name for linear calibration). Uses
+#' `F(u) = 1 + u`, which is exact in a single Newton step when `bounds = NULL`.
 #' When `bounds = c(L, U)` is specified, switches to truncated-linear
-#' calibration where g-weights are constrained to `[L, U]` using
-#' Newton-Raphson iteration.
+#' calibration where g-weights (the ratio of calibrated to starting weight)
+#' are constrained to `[L, U]` using Newton-Raphson iteration.
 #'
 #' @param data A `survey_taylor`, `survey_nonprob`, or `survey_replicate`. Any
 #'   other class -> error. When `data` is a `survey_replicate`, calibration is
@@ -154,7 +155,9 @@
 #'   Statistical Association*, 88(423), 1013--1020.
 #'
 #' @seealso [calibrate()], [calibrate_rake()], [calibrate_logit()],
-#'   [poststratify()]
+#'   [poststratify()]. For the class system, the standard workflows, and a
+#'   glossary of terms, see the [Getting started
+#'   article](https://jdenn0514.github.io/surveywts/articles/getting-started.html).
 #' @family calibration
 #' @export
 #'

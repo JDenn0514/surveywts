@@ -114,11 +114,12 @@ History entry \code{operation} field: \code{"calibrate_linear"}.
 }
 \description{
 Adjusts survey weights so that the weighted marginal totals of calibration
-variables match known population values using linear (GREG) estimation. Uses
-\code{F(u) = 1 + u} which is exact in a single Newton step when \code{bounds = NULL}.
+variables match known population values using linear estimation — GREG
+(generalized regression, the survey name for linear calibration). Uses
+\code{F(u) = 1 + u}, which is exact in a single Newton step when \code{bounds = NULL}.
 When \code{bounds = c(L, U)} is specified, switches to truncated-linear
-calibration where g-weights are constrained to \verb{[L, U]} using
-Newton-Raphson iteration.
+calibration where g-weights (the ratio of calibrated to starting weight)
+are constrained to \verb{[L, U]} using Newton-Raphson iteration.
 }
 \details{
 \strong{When to use.} Choose linear calibration when speed matters: with
@@ -185,7 +186,8 @@ Statistical Association}, 88(423), 1013--1020.
 }
 \seealso{
 \code{\link[=calibrate]{calibrate()}}, \code{\link[=calibrate_rake]{calibrate_rake()}}, \code{\link[=calibrate_logit]{calibrate_logit()}},
-\code{\link[=poststratify]{poststratify()}}
+\code{\link[=poststratify]{poststratify()}}. For the class system, the standard workflows, and a
+glossary of terms, see the \href{https://jdenn0514.github.io/surveywts/articles/getting-started.html}{Getting started article}.
 
 Other calibration:
 \code{\link[=calibrate]{calibrate()}},

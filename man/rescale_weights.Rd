@@ -62,7 +62,8 @@ result_by <- rescale_weights(ns_wave1_svy, by = ns_region)
 summarize_weights(result_by, by = ns_region)
 }
 \seealso{
-\code{\link[=trim_weights]{trim_weights()}}
+\code{\link[=trim_weights]{trim_weights()}}. For the class system, the standard
+workflows, and a glossary of terms, see the \href{https://jdenn0514.github.io/surveywts/articles/getting-started.html}{Getting started article}.
 
 Other utilities:
 \code{\link[=trim_weights]{trim_weights()}}

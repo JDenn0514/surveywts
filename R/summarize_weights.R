@@ -27,7 +27,10 @@
 #'   before the summary, `n_zero` is `0` and `n_positive` equals `n`. When
 #'   `by` is non-`NULL`, the group columns precede the summary columns.
 #'
-#' @seealso [effective_sample_size()], [weight_variability()]
+#' @seealso [effective_sample_size()], [weight_variability()]. For the
+#'   class system, the standard workflows, and a glossary of terms, see
+#'   the [Getting started
+#'   article](https://jdenn0514.github.io/surveywts/articles/getting-started.html).
 #' @family diagnostics
 #' @export
 #'

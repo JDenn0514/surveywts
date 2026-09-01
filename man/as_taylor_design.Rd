@@ -17,9 +17,17 @@ A \code{survey_taylor}.
 Reconstructs a \code{survey_taylor} from a \code{survey_replicate} created by
 \verb{create_*_weights()}. The original Taylor structure (PSU IDs, strata, FPC,
 nest flag) is read from the \code{"replicate_creation"} entry in the weighting
-history. Replicate weight columns are dropped from \verb{@data}.
+history. The replicate weights (sets of perturbed weight columns used
+to compute standard errors) are dropped from \verb{@data}.
 }
 \details{
+The reconstructed design uses Taylor linearization (closed-form
+variance from a linear approximation, the alternative to replication)
+for variance estimation, and its restored structure includes the
+finite population correction (a factor that shrinks the variance when
+the sample is a large share of the population), stored as FPC, when
+the original design carried one.
+
 Returns \code{data} unchanged (with a warning) if \code{data} is already a
 \code{survey_taylor}.
 }
@@ -45,7 +53,8 @@ as_taylor_design(rep_design)
 \code{\link[=create_bootstrap_weights]{create_bootstrap_weights()}}, \code{\link[=create_jackknife_weights]{create_jackknife_weights()}},
 \code{\link[=create_brr_weights]{create_brr_weights()}}, \code{\link[=create_gen_boot_weights]{create_gen_boot_weights()}},
 \code{\link[=create_gen_rep_weights]{create_gen_rep_weights()}}, \code{\link[=create_sdr_weights]{create_sdr_weights()}},
-\code{\link[=create_replicate_weights]{create_replicate_weights()}}
+\code{\link[=create_replicate_weights]{create_replicate_weights()}}. For the class system, the standard
+workflows, and a glossary of terms, see the \href{https://jdenn0514.github.io/surveywts/articles/getting-started.html}{Getting started article}.
 
 Other replicate-weights:
 \code{\link[=create_bootstrap_weights]{create_bootstrap_weights()}},

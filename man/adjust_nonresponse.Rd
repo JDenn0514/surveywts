@@ -91,11 +91,11 @@ A history entry with \code{operation = "nonresponse_weighting_class"} (for
 (for \code{method = "propensity"}) is appended to \code{weighting_history}.
 }
 \description{
-Redistributes the weights of nonrespondents to respondents within weighting
-classes defined by \code{by}. Respondent weights increase proportionally to
-preserve the total weight within each class. What happens to the
-nonrespondent rows depends on the input class — see the
-\strong{Input class behavior} section.
+Redistributes the weights of nonrespondents to respondents within
+weighting classes (groups assumed to share one response rate) defined by
+\code{by}. Respondent weights increase proportionally to preserve the total
+weight within each class. What happens to the nonrespondent rows depends
+on the input class — see the \strong{Input class behavior} section.
 }
 \details{
 \strong{When to use.} This function corrects for known nonrespondents
@@ -123,8 +123,11 @@ first, because \code{\link[=calibrate]{calibrate()}}, \code{\link[=calibrate_rak
 \strong{Propensity-cell method:} A logistic regression is fitted via
 \code{\link[stats:glm]{stats::glm()}} with \code{family = binomial}. GLM convergence warnings (e.g.,
 fitted probabilities numerically 0 or 1) pass through unchanged. Cell
-boundaries are defined by unweighted quantiles of the predicted propensity
-scores. The \code{by} argument is silently ignored (a warning is issued).
+boundaries are defined by unweighted quantiles of the predicted
+propensity scores (the modeled probability of responding or of
+appearing in the sample). This method assumes missing at random
+(response depends only on observed variables). The \code{by} argument is
+silently ignored (a warning is issued).
 }
 \note{
 The propensity-cell method assumes \strong{Missing At Random (MAR)}: response
@@ -171,7 +174,8 @@ result <- adjust_nonresponse(gss_svy, response_status = responded, by = sex)
 
 }
 \seealso{
-\code{\link[=redistribute_weights]{redistribute_weights()}}, \code{\link[=ipw]{ipw()}}
+\code{\link[=redistribute_weights]{redistribute_weights()}}, \code{\link[=ipw]{ipw()}}. For the class system, the
+standard workflows, and a glossary of terms, see the \href{https://jdenn0514.github.io/surveywts/articles/getting-started.html}{Getting started article}.
 
 Other nonresponse:
 \code{\link[=redistribute_weights]{redistribute_weights()}}

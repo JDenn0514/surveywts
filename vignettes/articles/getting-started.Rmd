@@ -11,6 +11,7 @@ knitr::opts_chunk$set(
 
 ```{r setup, message = FALSE}
 library(surveywts)
+set.seed(1)
 ```
 
 This article is for an R-fluent analyst who is not a survey

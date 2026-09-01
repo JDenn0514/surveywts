@@ -87,16 +87,25 @@
 #' ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
 #'
 #' # IQR default (k = 5) ---------------------------------------------------
-#' trim_weights(ns_wave1_svy)
+#' summarize_weights(ns_wave1_svy)
+#' result_iqr <- trim_weights(ns_wave1_svy)
+#' summarize_weights(result_iqr)
+#' # Warns: "No weights were trimmed: all main weights already fall
+#' # within [-Inf, 5.29]." The IQR-default upper bound sits above every weight.
 #'
 #' # explicit percentile bounds --------------------------------------------
-#' trim_weights(ns_wave1_svy, lower = 0.05, upper = 0.95, type = "percentile")
+#' result_pct <- trim_weights(
+#'   ns_wave1_svy, lower = 0.05, upper = 0.95, type = "percentile"
+#' )
+#' summarize_weights(result_pct)
 #'
-#' # absolute bounds -------------------------------------------------------
-#' trim_weights(ns_wave1_svy, lower = 0.3, upper = 3.0, type = "absolute")
+#' # absolute bounds ---------------------------------------------------------
+#' result_abs <- trim_weights(
+#'   ns_wave1_svy, lower = 0.3, upper = 3.0, type = "absolute"
+#' )
+#' summarize_weights(result_abs)
 #'
 #' # survey_replicate — bounds auto-applied to all replicate columns -------
-#' data(cps_2023)
 #' cps_svy <- surveycore::as_survey_replicate(
 #'   cps_2023,
 #'   weights    = "wtfinl",
@@ -105,7 +114,10 @@
 #'   scale      = 4 / 160,
 #'   rscales    = rep(1, 160)
 #' )
-#' trim_weights(cps_svy)
+#' result_rep <- trim_weights(
+#'   cps_svy, lower = 0.05, upper = 0.95, type = "percentile"
+#' )
+#' summarize_weights(result_rep)
 trim_weights <- function(
   data,
   weights = NULL,

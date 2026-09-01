@@ -83,9 +83,10 @@ gss_excl$retained <- as.integer(!gss_excl$excluded)
 gss_svy <- surveycore::as_survey(
   gss_excl, weights = wtssps, strata = vstrat, ids = vpsu, nest = TRUE
 )
-redistribute_weights(
+result <- redistribute_weights(
   gss_svy, reduce_if = excluded, increase_if = retained, by = sex
 )
+summarize_weights(result)
 
 }
 \seealso{

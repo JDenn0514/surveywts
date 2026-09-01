@@ -148,6 +148,13 @@
 #'   gss_with_resp, weights = wtssps, strata = vstrat, ids = vpsu, nest = TRUE
 #' )
 #' result <- adjust_nonresponse(gss_svy, response_status = responded, by = sex)
+#' summarize_weights(result)
+#'
+#' # survey_taylor requires strictly positive weights, so the zero-weight
+#' # nonrespondent rows are dropped. The exact drop count moves with the
+#' # unseeded draw above; nrow() still shows that rows were dropped.
+#' nrow(gss_svy)
+#' nrow(result)
 #'
 #' @family nonresponse
 #' @export

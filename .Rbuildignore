@@ -23,3 +23,4 @@
 ^\.superpowers$
 ^skills-lock\.json$
 ^air\.toml$
+^vignettes/articles$

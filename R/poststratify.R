@@ -133,7 +133,8 @@
 #'   age_f3 = rep(c("18-34", "35-54", "55+"), times = 2),
 #'   target = c(0.1470, 0.1617, 0.1813, 0.1530, 0.1683, 0.1887)
 #' )
-#' poststratify(ns_wave1_svy, targets = ps_cells)
+#' result <- poststratify(ns_wave1_svy, targets = ps_cells)
+#' summarize_weights(result)
 #'
 #' # type = "count" with US adult population counts (260 million) ------------
 #' ps_counts <- data.frame(

@@ -155,7 +155,8 @@
 #' )
 #'
 #' # Format A + rake (default) --------------------------------------------
-#' calibrate(ns_wave1_svy, targets = targets_a)
+#' result <- calibrate(ns_wave1_svy, targets = targets_a)
+#' summarize_weights(result)
 #'
 #' # Format A + linear ----------------------------------------------------
 #' calibrate(ns_wave1_svy, targets = targets_a, method = "linear")

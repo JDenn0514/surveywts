@@ -165,7 +165,8 @@ targets_a <- list(
 )
 
 # Format A ---------------------------------------------------------------
-calibrate_linear(ns_wave1_svy, targets = targets_a)
+result <- calibrate_linear(ns_wave1_svy, targets = targets_a)
+summarize_weights(result)
 
 # Format B ---------------------------------------------------------------
 targets_b <- data.frame(

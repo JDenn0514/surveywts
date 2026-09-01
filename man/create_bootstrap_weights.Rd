@@ -126,7 +126,9 @@ understatement is not reduced by increasing \code{replicates}.
 gss_svy <- surveycore::as_survey(
   gss_2024, weights = wtssps, strata = vstrat, ids = vpsu, nest = TRUE
 )
-create_bootstrap_weights(gss_svy)
+# Real analyses use more replicates; 100 keeps `R CMD check` fast.
+boot_rep <- create_bootstrap_weights(gss_svy, replicates = 100L, seed = 1L)
+summarize_weights(boot_rep)
 
 # quasi-randomization bootstrap for a calibrated non-probability sample ----
 targets_a <- list(
@@ -135,11 +137,16 @@ targets_a <- list(
 )
 ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
 ns_wave1_cal <- calibrate_rake(ns_wave1_svy, targets = targets_a)
-create_bootstrap_weights(
+# This path refits the weighting model inside every replicate, so it costs
+# far more per replicate than the probability bootstrap above. Real
+# analyses use more; 10 keeps `R CMD check` fast.
+nps_rep <- create_bootstrap_weights(
   ns_wave1_cal,
   type       = "quasi-randomization",
-  replicates = 200L
+  replicates = 10L,
+  seed       = 1L
 )
+summarize_weights(nps_rep)
 
 }
 \references{

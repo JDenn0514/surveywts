@@ -91,25 +91,29 @@
 #' ) |>
 #'   create_jackknife_weights(type = "jkn")
 #'
-#' # build NPORS control design (must use survey pkg for svytotal/coef/vcov)
+#' # build NPORS control design. `vcov_estimate` must be a covariance matrix
+#' # across the levels of a factor, and only the survey package makes one.
 #' npors_pop <- survey::svydesign(
 #'   ids     = ~1,
 #'   strata  = ~stratum,
 #'   weights = ~wt_pop,
 #'   data    = npors_2025_clean
-#' ) |>
-#'   survey::as.svrepdesign(type = "JKn")
+#' )
 #'
 #' # derive targets from control survey
 #' pid_f3_est    <- survey::svytotal(~pid_f3, npors_pop)
 #' pid_f3_totals <- setNames(coef(pid_f3_est), levels(npors_2025_clean$pid_f3))
 #' vcov_pid_f3   <- vcov(pid_f3_est)
 #'
+#' # svrep draws the perturbed replicate columns at random, so seed the call
+#' set.seed(1)
 #' result <- calibrate_to_estimate(
 #'   gss_pop,
 #'   targets       = list(pid_f3 = pid_f3_totals),
 #'   vcov_estimate = vcov_pid_f3
 #' )
+#'
+#' summarize_weights(result)
 #'
 #' @seealso [calibrate_to_survey()]. For the class system, the standard
 #'   workflows, and a glossary of terms, see the [Getting started

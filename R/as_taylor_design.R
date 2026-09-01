@@ -19,7 +19,8 @@
 #' variance from a linear approximation, the alternative to replication)
 #' for variance estimation, and its restored structure includes the
 #' finite population correction (a factor that shrinks the variance when
-#' the sample is a large share of the population), stored as FPC.
+#' the sample is a large share of the population), stored as FPC, when
+#' the original design carried one.
 #'
 #' Returns `data` unchanged (with a warning) if `data` is already a
 #' `survey_taylor`.

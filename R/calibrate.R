@@ -87,8 +87,8 @@
 #' each adjusts survey weights so that weighted auxiliary totals match
 #' known population totals. The methods share a variance estimator and
 #' differ in the weight-ratio function \eqn{F} applied during calibration
-#' (Deville & Sarndal 1992; Deville, Sarndal & Sautory 1993). That ratio
-#' is the g-weight (the ratio of calibrated to starting weight).
+#' (Deville & Sarndal 1992; Deville, Sarndal & Sautory 1993). The value of
+#' \eqn{F} is the g-weight (the ratio of calibrated to starting weight).
 #'
 #' **Raking** (`method = "rake"`, the default) uses the multiplicative
 #' function \eqn{F(u) = \exp(u)}, which keeps all calibrated weights

@@ -62,8 +62,8 @@ variant converges to the correct variance for a quantile. For DAGJK
 
 \strong{BRR (balanced repeated replication)} (\code{method = "brr"}) needs
 exactly two PSUs per stratum, and uses a Hadamard matrix (a +1/-1
-grid that keeps replicates balanced) to keep the half-samples
-balanced across strata (Fay 1984). Unlike the jackknife, it is
+grid whose rows agree in exactly half their positions) to keep the
+half-samples balanced across strata (Fay 1984). Unlike the jackknife, it is
 proven for nonlinear estimators and quantiles. The default \code{rho = 0}
 gives classic BRR, which zeroes one PSU per stratum in each
 replicate; set \code{rho > 0} for Fay's variant, which keeps every weight

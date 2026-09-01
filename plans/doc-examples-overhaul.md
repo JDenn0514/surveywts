@@ -4,8 +4,8 @@
 **Parent:** `plans/doc-improvements.md` Section A ("Examples: Show What
 Comes Next"), priority highest, the last major open initiative.
 **Status:** Drafted 2026-09-01, adversarially reviewed the same day, and
-revised against the review. Not started. **Blocked on [#101](https://github.com/JDenn0514/surveywts/issues/101)** —
-see the blocking prerequisite below.
+revised against the review. Not started. **Not blocked** — see the
+sequencing note below.
 **Scope:** The `@examples` block of all 23 exported functions. No other
 roxygen section, no R source outside roxygen comments, no vignette.
 
@@ -286,6 +286,24 @@ four digits. One side is missing that multiplication. The bundled
 `cps_2023` `repwtp*` columns are finished population-scale weights, which
 is evidence the convention is finished weights and surveywts is the side
 that is wrong.
+
+**Sequencing, not blocking.** No PR in this plan reads a replicate weight
+column. `summarize_weights()` reads the main weight column only — verified,
+no `repweight` reference anywhere in `R/summarize_weights.R` or the
+`.compute_weight_stats()` helper it calls — and `#101` changes neither the
+main weight nor the class. So PRs 1, 3, 4, and 5 can ship today, and PR 2
+is *correct* today as written.
+
+The reason to run PR 2 after `#101` is churn, not correctness. D2 says to
+revisit the estimation call once the intervals are right, and that revisit
+touches the same six files PR 2 touches. Running PR 2 after the fix lets
+one pass add both the assignment and the estimation call. Running it before
+means editing those six files twice.
+
+**Recommended order:** PR 1, then PRs 3-5 in any order or in parallel, then
+PR 2 once `#101` has landed. If `#101` stalls, ship PR 2 as written and
+accept the second pass — the examples are better with `summarize_weights()`
+than with no downstream step at all.
 
 **What this costs the plan.** D2 originally prescribed
 `surveycore::get_means(result, age)` as the replicate family's downstream

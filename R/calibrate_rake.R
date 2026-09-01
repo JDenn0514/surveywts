@@ -183,7 +183,8 @@
 #' )
 #'
 #' # Format A + classic_ipf (default) ------------------------------------
-#' calibrate_rake(ns_wave1_svy, targets = targets_a)
+#' result <- calibrate_rake(ns_wave1_svy, targets = targets_a)
+#' summarize_weights(result)
 #'
 #' # Format A + Newton-Raphson algorithm ---------------------------------
 #' calibrate_rake(ns_wave1_svy, targets = targets_a, algorithm = "nr")

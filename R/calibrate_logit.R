@@ -165,7 +165,8 @@
 #'
 #' # survey_nonprob — Format A, weight column auto-detected -----------------
 #' ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
-#' calibrate_logit(ns_wave1_svy, targets = targets_a)
+#' result <- calibrate_logit(ns_wave1_svy, targets = targets_a)
+#' summarize_weights(result)
 #'
 #' # Format B -------------------------------------------------------
 #' targets_b <- data.frame(

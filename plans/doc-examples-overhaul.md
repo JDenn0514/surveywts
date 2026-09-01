@@ -362,12 +362,21 @@ the first did not.
 | `calibrate_to_survey()`, `calibrate_to_estimate()` | `summarize_weights(result)` | verified on both fixed shapes |
 | `create_bootstrap_weights()`, `create_jackknife_weights()`, `create_brr_weights()`, `create_gen_boot_weights()`, `create_gen_rep_weights()`, `create_sdr_weights()`, `create_replicate_weights()` — both paths | `summarize_weights(result)`, then `surveycore::get_means(result, age)` on the primary scenario | silent on a `survey_replicate`; every interval matches the Taylor reference; 0.00 to 0.02 s per call |
 | `as_taylor_design()` | the warning in a comment, then `class(result)[1]` | see D6 |
-| `adjust_nonresponse()` | `summarize_weights(result)`, then `nrow()` before and after | 3,290 rows in; the out-count moves every run — see below |
+| `adjust_nonresponse()` | `summarize_weights(result)`, then `nrow(surveycore::survey_data(.))` before and after | 3,290 rows in; the out-count moves every run — see below |
 | `redistribute_weights()` | `summarize_weights(result)` | the function always drops the `reduce_if` rows |
 | `effective_sample_size()`, `weight_variability()`, `summarize_weights()` | the printed value, with item 4's expected-output comment | see D5 |
 | `trim_weights()` | `summarize_weights()` before and after | mirrors `rescale_weights()` |
 | `rescale_weights()` | already compliant — do not touch | `R/rescale_weights.R:49-60` |
 | `ipw()` | `summarize_weights(result)`, then `calibrate(result, targets)` | full chain 0.30 s, silent |
+
+**`nrow()` does not work on a survey design.** It returns `NULL`, and
+`R CMD check` does not catch it because `NULL` is not an error — PR 4's
+first draft shipped `nrow(gss_svy)` and printed nothing. The exported
+accessor is `surveycore::survey_data()`:
+`nrow(surveycore::survey_data(result))`. surveywts does not re-export it,
+so the call stays namespace-qualified, like `surveycore::as_survey()` in
+every other example. Verified 2026-09-01: 3,290 rows in, 2,642 out on one
+draw.
 
 **Row counts, not just weights, for the nonresponse family.** On a
 `survey_taylor`, `adjust_nonresponse()` drops the nonrespondent rows,
@@ -994,7 +1003,9 @@ Branch `docs/examples-nonresponse-utils`. Four functions, three files
 changed — `rescale_weights()` is reviewed and left alone.
 
 - [ ] `adjust_nonresponse()` — the assignment exists and is a dead end.
-      Add `summarize_weights(result)` and an `nrow()` comparison. Record
+      Add `summarize_weights(result)` and a row-count comparison, using
+      `nrow(surveycore::survey_data(.))`. Plain `nrow()` on a design
+      returns `NULL` — see D2. Record
       the row change in a comment: on a `survey_taylor` the nonrespondent
       rows are dropped, because that class requires strictly positive
       weights. **Do not add `set.seed()`** — the no-seed exception holds.

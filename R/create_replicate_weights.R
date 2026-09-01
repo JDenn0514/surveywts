@@ -135,10 +135,16 @@
 #' gss_svy <- surveycore::as_survey(
 #'   gss_2024, weights = wtssps, strata = vstrat, ids = vpsu, nest = TRUE
 #' )
-#' create_replicate_weights(gss_svy, method = "bootstrap")
+#' # Real analyses use more replicates; 100 keeps `R CMD check` fast.
+#' boot_rep <- create_replicate_weights(
+#'   gss_svy, method = "bootstrap", replicates = 100L, seed = 1L
+#' )
+#' summarize_weights(boot_rep)
 #'
 #' # jackknife ----------------------------------------------------------------
-#' create_replicate_weights(gss_svy, method = "jackknife")
+#' # the design fixes the replicate count, so there is no `replicates` to set
+#' jack_rep <- create_replicate_weights(gss_svy, method = "jackknife")
+#' summarize_weights(jack_rep)
 #'
 #' # delete-a-group jackknife for a non-probability sample ------------------
 #' targets_a <- list(
@@ -147,9 +153,14 @@
 #' )
 #' ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
 #' ns_wave1_cal <- calibrate_rake(ns_wave1_svy, targets = targets_a)
-#' create_replicate_weights(
-#'   ns_wave1_cal, method = "jackknife", type = "grouped", replicates = 50L
+#' # This path replays the calibration inside every replicate and announces
+#' # each one, so expect a block of convergence messages. Real analyses use
+#' # more replicates; 25 keeps `R CMD check` fast.
+#' dagjk_rep <- create_replicate_weights(
+#'   ns_wave1_cal, method = "jackknife", type = "grouped",
+#'   replicates = 25L, seed = 42L
 #' )
+#' summarize_weights(dagjk_rep)
 #'
 #' @family replicate-weights
 #' @seealso [create_bootstrap_weights()], [create_jackknife_weights()],

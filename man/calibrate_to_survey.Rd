@@ -233,13 +233,33 @@ weights were constructed.
 
 \examples{
 # calibrate ns_wave1 NPS to NPORS probability survey on age_f3 and sex ----
+
+# calibrate the non-probability sample first; the quasi-randomization
+# bootstrap replays that step inside every replicate
+edu_targets <- c(
+  "Less than HS" = 0.09, "HS/Some college" = 0.55, "College+" = 0.36
+)
 ns_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
-primary <- create_bootstrap_weights(ns_svy, replicates = 50L)
+ns_cal <- calibrate_rake(ns_svy, targets = list(edu_f3 = edu_targets))
+
+# `type = "quasi-randomization"` is required here. The default type wraps a
+# non-probability sample as a simple random sample and returns a
+# `survey_replicate`, which this function rejects. See the Getting started
+# article. Real analyses use more replicates; 10 keeps `R CMD check` fast.
+primary <- create_bootstrap_weights(
+  ns_cal, type = "quasi-randomization", replicates = 10L, seed = 1L
+)
+
 npors_design <- surveycore::as_survey(
   npors_2025_clean, weights = weight, strata = stratum
 )
-control <- create_bootstrap_weights(npors_design, replicates = 50L)
+control <- create_bootstrap_weights(npors_design, replicates = 20L, seed = 1L)
+
+# the replicate mapping between the two designs is drawn at random
+set.seed(1)
 result <- calibrate_to_survey(primary, control, variables = c(age_f3, sex))
+
+summarize_weights(result)
 
 }
 \references{

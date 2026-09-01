@@ -224,7 +224,7 @@ to a single line:
 
 | Function | s | Cause, measured separately |
 |---|--:|---|
-| `calibrate_to_estimate()` | 66.86 | `survey::as.svrepdesign(type = "JKn")` on `npors_2025_clean` with `ids = ~1` builds one replicate per row — 4,814 columns — and takes 65.0 s of the 66.9 s |
+| `calibrate_to_estimate()` | 66.86 | `survey::as.svrepdesign(type = "JKn")` on `npors_2025_clean` with `ids = ~1` builds one replicate per row — 4,814 columns — and takes 65.0 s of the 66.9 s. The line is redundant: it changes no number (see Task 2a) |
 | `create_bootstrap_weights()` | 41.34 | the quasi-randomization bootstrap at `replicates = 200L`; measured 41.47 s standalone |
 | `create_replicate_weights()` | 5.25 | the probability bootstrap at its 500 default, plus DAGJK at `replicates = 50L` |
 | `calibrate_to_survey()` | 4.83 | two 50-replicate bootstraps plus a 3.54 s calibration call |
@@ -394,7 +394,7 @@ teaches, and an implicit 500 is what makes
 | Generalized bootstrap | `100L` | 0.57 s |
 | SDR | `50L` | under 1 s |
 | BRR, JKn | no argument | design-determined |
-| `survey::as.svrepdesign()` control design in `calibrate_to_estimate()` | `type = "bootstrap", replicates = 50L` | 0.22 s, replacing 65.0 s |
+| `survey::as.svrepdesign()` control design in `calibrate_to_estimate()` | **deleted** — a plain `svydesign()` gives the same vcov | 0.92 s, replacing 66.32 s |
 
 Every count carries the article's comment convention: a note that real
 analyses use more, and that the low count keeps `R CMD check` fast. The
@@ -676,19 +676,35 @@ Branch `docs/examples-runtime`. Four files.
 
 ### 2a. `calibrate_to_estimate()` — `R/calibrate_to_estimate.R:81-112`
 
-- [ ] Replace `survey::as.svrepdesign(type = "JKn")` with
-      `survey::as.svrepdesign(type = "bootstrap", replicates = 50L)`.
-      Measured: 0.22 s against 65.0 s.
-- [ ] Comment why the count is 50, in the article's phrasing.
+- [ ] **Delete the `survey::as.svrepdesign()` line.** Do not replace it.
+      `survey::svytotal()` on the plain `survey::svydesign()` returns the
+      same vcov, to every digit, in 0.92 s against 66.32 s:
+
+      | Path | SEs | Time |
+      |---|---|--:|
+      | `svydesign()` + `svytotal()` | 2924458, 1554625, 2759587 | 0.92 s |
+      | plus `as.svrepdesign(type = "JKn")` | 2924458, 1554625, 2759587 | 66.32 s |
+
+      The control design is `ids = ~1, strata = ~stratum` — stratified
+      single-stage, every row its own PSU — so JKn on it is algebraically
+      the same as Taylor linearization for a total. The 4,814 replicate
+      columns buy nothing. `calibrate_to_estimate()` accepts the Taylor
+      vcov and returns the same result (`n` = 3185, verified).
+
+      An earlier draft of this plan swapped JKn for a 50-replicate
+      bootstrap at 0.22 s. That was worse: it produces a *different*,
+      resampling-based vcov, changing the example's numbers for no
+      methodological reason. Deleting the line keeps the vcov exact and
+      makes the example shorter as well as faster.
 - [ ] Add `set.seed()` before the `calibrate_to_estimate()` call — the
       random column selection comes from svrep, not from this package
       (D6).
 - [ ] Add `summarize_weights(result)`.
 - [ ] Keep the example under 5 s. Measured on the fixed shape: 2.22 s.
 
-**Acceptance:** the example runs under 5 s and `summarize_weights()`
-prints an 11-column tibble with `n` = 3185. Measured on the fixed shape:
-2.04 to 2.22 s. It is **not** silent — svrep prints "Selection of
+**Acceptance:** the example runs under 5 s, contains no
+`as.svrepdesign()` call, and `summarize_weights()` prints an 11-column
+tibble with `n` = 3185. It is **not** silent — svrep prints "Selection of
 replicate columns whose control totals will be perturbed will be done at
 random" on every call, and `set.seed()` does not suppress it. Only
 passing `col_selection` would, and this example does not. Expect the one
@@ -983,7 +999,7 @@ here rests on older plan prose.
 | A2 | Baseline is a range, 115 to 130 s elapsed, 23 examples | Measured twice: 130.34 s and 114.82 s on the same machine. System time varies more than 2x |
 | A3 | Two examples exceed 5 s on every run; `create_replicate_weights()` straddles (5.25 s, then 4.42 s) | Measured — `00check.log:65-70` |
 | A4 | `calibrate_to_estimate()` costs 66.86 s; 65.0 s of it is `as.svrepdesign(type = "JKn")` building 4,814 replicates | Measured, step by step |
-| A5 | A bootstrap control design at 50 replicates takes 0.22 s; the whole fixed example takes 2.22 s and runs silent | Measured end to end |
+| A5 | `as.svrepdesign(type = "JKn")` is redundant in `calibrate_to_estimate()`'s example — a plain `svydesign()` + `svytotal()` gives an identical vcov (SEs 2924458, 1554625, 2759587) in 0.92 s against 66.32 s, and `calibrate_to_estimate()` accepts it (`n` = 3185) | Measured both paths end to end |
 | A6 | The quasi-randomization bootstrap costs about 0.19 s per replicate on `ns_wave1` | Measured at R = 10, 15, 20, 25, 50, 100, 200 |
 | A7 | `create_bootstrap_weights()`'s 41.34 s is its `replicates = 200L` QR scenario | Measured: 41.47 s standalone |
 | A8 | `calibrate_to_survey()`'s example hits the crossover trap — `create_bootstrap_weights()` with no `type =` on a `survey_nonprob` | Read `R/calibrate_to_survey.R:209`; the trap is documented in the article and at `R/create_bootstrap_weights.R:75-79` |
@@ -1091,6 +1107,55 @@ block is permitted, because `function-documentation.md` says "consider"
 rather than "must"; and leaving three `calibrate()` scenarios bare
 violates no rule, since nothing requires every scenario to assign.
 
+## Why the example still needs the `survey` package (checked 2026-09-01)
+
+The question came up while revising: have the surveywts creators advanced
+far enough that `calibrate_to_estimate()`'s example no longer needs raw
+`survey` calls? Three separate checks, three answers.
+
+**1. `as.svrepdesign()` — not needed, and never was.** Deleted in Task 2a.
+A plain `svydesign()` gives the identical vcov in 0.92 s. This is not a
+case of the creators catching up; the line was redundant from the start.
+
+**2. `svydesign()` + `svytotal()` — still needed.** `vcov_estimate` must
+be a `k x k` numeric matrix across the levels of the target factor
+(`R/calibrate_to_estimate.R:22`), and nothing in surveycore produces one.
+`get_totals()` and `get_variance()` both reject a factor outright — "`x`
+must be numeric, not <factor>" — the same limitation as `get_means()`, and
+neither returns a cross-level covariance matrix even for a numeric
+column. `survey::svytotal()` is the only available producer.
+
+**3. The halfway option does not work — same root cause as the blocking
+prerequisite.** Building the control design with `create_jackknife_weights()`
+and bridging back with `surveycore::as_svydesign()` reproduces the design
+exactly — 134 replicates, identical point totals — and then returns SEs
+about 162x too large:
+
+| Path | SEs |
+|---|---|
+| `survey::as.svrepdesign(type = "JKn")` | 4551869, 3606835, 3981909 |
+| `create_jackknife_weights()` + `as_svydesign()` | 738543983, 552797729, 751852121 |
+
+`survey` names the cause itself, in a warning on that call:
+
+```
+Data do not look like combined weights: mean replication weight is 1
+and mean sampling weight is 78373.3
+```
+
+That is independent confirmation of the multiplier defect, from the
+`survey` package rather than from this analysis. `as_svydesign()` takes
+only `x`, so a caller cannot correct the interpretation. Fixing the
+handoff involves both the combined-weights flag and the correct
+`scale`/`rscales` — a hand-built `svrepdesign()` with
+`combined.weights = FALSE` moved the SEs to the right order of magnitude
+but not to the reference values, so this plan does not name a one-line
+fix. It belongs with the code issue below.
+
+**Net for the plan:** Task 2a drops `as.svrepdesign()` and keeps
+`svydesign()` + `svytotal()`. Revisit point 2 if surveycore ever grows a
+factor-aware covariance producer, and point 3 when the defect is fixed.
+
 ## Handoff — the code issue this plan needs
 
 File before PR 2. Not part of any PR in this plan.
@@ -1102,6 +1167,11 @@ File before PR 2. Not part of any PR in this plan.
 - [ ] The DAGJK replay emits one convergence message per replicate — 22
       identical lines at 25 replicates. A replay should not narrate each
       replicate.
+- [ ] `surveycore::as_svydesign()` hands the multiplier columns to
+      `survey::svrepdesign()` as finished weights, so `survey` warns and
+      every SE through that bridge is wrong. Same root cause as the
+      first item; fixing one may fix both. `as_svydesign()` takes only
+      `x`, so callers have no way to work around it.
 
 Both belong in the same code PR. This plan's PRs 1 and 3-5 do not depend
 on either; PR 2 depends on the first.

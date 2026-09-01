@@ -1160,10 +1160,41 @@ factor-aware covariance producer, and point 3 when the defect is fixed.
 
 File before PR 2. Not part of any PR in this plan.
 
-- [ ] Replicate columns hold resampling multipliers where surveycore
-      expects finished weights. Every variance estimate from a
-      surveywts-created replicate design is wrong. Evidence and the
-      four-digit reproduction are in the blocking prerequisite above.
+**Two independent weight bugs, different root causes.** Scoped
+2026-09-01 by testing every creator path against the sum test, the
+estimate test, and external references.
+
+- [ ] **Bug 1 — probability path writes multipliers.** One site:
+      `.convert_and_call()` in `R/replicate-utils.R:155` takes
+      `as.matrix(svyrep_obj$repweights)` and ignores
+      `svyrep_obj$combined.weights`, which `survey` and `svrep` both
+      return as `FALSE` (verified for JKn, BRR, and svrep bootstrap). All
+      seven probability creators route through that one helper
+      (`create_bootstrap_weights.R:309`, `create_brr_weights.R:159,168`,
+      `create_gen_boot_weights.R:176`, `create_gen_rep_weights.R:151`,
+      `create_jackknife_weights.R:372,387`, `create_sdr_weights.R:112`),
+      so this is a single fix. Evidence: with `weights = wt_pop`,
+      `sum(base)` is 250,865,240 while every replicate column sums to
+      about 3,197 — the row count. Multiplying each column by the base
+      weight recovers SE 0.4835 against Taylor's 0.4834.
+- [ ] **Bug 2 — the quasi-randomization bootstrap misaligns rows.**
+      Different symptom, different cause. The values are right and the
+      assignment is not. On an `ipw()` design: `sum(rep)` equals
+      `sum(base)` exactly at 249,929,567, the value multiset matches
+      (71 distinct values against 72, `cor` of the sorted vectors 0.9941),
+      but `cor(rep1, base)` as stored is -0.0003 and the replicate
+      estimates track the *unweighted* mean (45.67 against a weighted
+      47.43). Two facts pin it: **no unit has weight 0**, where a
+      bootstrap resample should leave about 36.8% unselected; and IPW
+      gives every unit in a covariate cell the same weight — true for all
+      72 cells in the base weight, true for only 3 of 72 in the replicate
+      column. The resampled-order weights look like they are written back
+      into original-order rows without mapping through the resample index.
+      Write site: `R/replicate-utils.R:639-643`.
+- [ ] **The DAGJK path is correct — do not touch it.** Its replicate
+      estimates track the weighted mean to four decimals (47.0961 against
+      47.0960). Write site: `R/create_jackknife_weights.R:735-762`. It is
+      the working reference for what the other two should produce.
 - [ ] The DAGJK replay emits one convergence message per replicate — 22
       identical lines at 25 replicates. A replay should not narrate each
       replicate.

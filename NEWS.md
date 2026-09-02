@@ -2,6 +2,21 @@
 
 ## Bug fixes
 
+* Both propensity methods of `adjust_nonresponse()` warned "non-integer
+  #successes in a binomial glm!" on every call (#110). The fits passed
+  `family = binomial` to `stats::glm()` with the survey weights as case
+  weights. Survey weights are not integer counts, so base R warned, and the
+  warning appeared twice on the help page once the examples covered all three
+  methods.
+
+  Both fits now use `family = quasibinomial`, the standard choice for a
+  weighted logistic regression. The two families share the IRLS step, so the
+  coefficients, the fitted propensity scores, and the adjusted weights are
+  unchanged: on `gss_2024` with a simulated response indicator, the
+  `"propensity"` weights match the old fit to the last bit. The convergence
+  handler still fires, because "algorithm did not converge" comes from
+  `glm.fit()` and does not depend on the family.
+
 * The quasi-randomization bootstrap wrote resample-order weights into
   original-order rows (#102). `.quasi_randomization_bootstrap()` drew a
   resample, refit the weighting model on it, and stored the returned vector

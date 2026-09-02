@@ -118,11 +118,13 @@
 #'   [poststratify()] reject zero weights.
 #'
 #'   **Propensity-cell method:** A logistic regression is fitted via
-#'   [stats::glm()] with `family = binomial`. GLM convergence warnings (e.g.,
-#'   fitted probabilities numerically 0 or 1) pass through unchanged. Cell
-#'   boundaries are defined by unweighted quantiles of the predicted
-#'   propensity scores (the modeled probability of responding or of
-#'   appearing in the sample). This method assumes missing at random
+#'   [stats::glm()] with `family = quasibinomial`. The quasibinomial family
+#'   gives the same coefficients as `binomial` and does not warn about
+#'   non-integer counts, which survey weights always produce. GLM convergence
+#'   warnings (e.g., fitted probabilities numerically 0 or 1) pass through
+#'   unchanged. Cell boundaries are defined by unweighted quantiles of the
+#'   predicted propensity scores (the modeled probability of responding or
+#'   of appearing in the sample). This method assumes missing at random
 #'   (response depends only on observed variables). The `by` argument is
 #'   silently ignored (a warning is issued).
 #'
@@ -160,8 +162,6 @@
 #' nrow(surveycore::survey_data(result))
 #'
 #' # method = "propensity-cell": one factor per propensity cell ---------------
-#' # Both propensity methods fit a weighted logistic regression, so base R
-#' # warns "non-integer #successes in a binomial glm!". The fit is unaffected.
 #' result_pc <- adjust_nonresponse(
 #'   gss_svy,
 #'   response_status = responded,
@@ -418,9 +418,12 @@ adjust_nonresponse <- function(
     prop_formula <- stats::as.formula(
       paste(status_var, "~", deparse(formula[[2]]))
     )
+    # quasibinomial, not binomial: survey weights are not integer counts, so
+    # binomial warns "non-integer #successes" on every call. The two families
+    # share the IRLS step, so the coefficients and fitted scores are identical.
     model <- stats::glm(
       prop_formula,
-      family = stats::binomial,
+      family = stats::quasibinomial,
       data = plain_df,
       weights = weights_vec_pc
     )
@@ -602,13 +605,14 @@ adjust_nonresponse <- function(
     )
     before_stats_p <- .compute_weight_stats(weights_vec_p)
 
-    # Catch GLM convergence warning and re-emit with a more informative message
+    # Catch GLM convergence warning and re-emit with a more informative message.
+    # quasibinomial, not binomial: see the propensity-cell fit above.
     fit_p <- withCallingHandlers(
       stats::glm(
         prop_formula_p,
         data = plain_df,
         weights = weights_vec_p,
-        family = stats::binomial(link = "logit"),
+        family = stats::quasibinomial(link = "logit"),
         control = stats::glm.control(maxit = 25L, epsilon = 1e-8)
       ),
       warning = function(w) {

@@ -1721,6 +1721,15 @@ test_that("redistribute_weights() warns when a group has fewer than min_cell rec
     class = "surveywts_warning_class_near_empty"
   )
   test_invariants(result)
+
+  # Pins the message text built by .warn_near_empty_cell()
+  expect_snapshot(
+    result <- redistribute_weights(
+      design,
+      reduce_if = reduce_col,
+      increase_if = increase_col
+    )
+  )
 })
 
 # ---------------------------------------------------------------------------

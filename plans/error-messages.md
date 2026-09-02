@@ -189,7 +189,7 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_warning_taylor_loses_variance` | `as_taylor_design()` | Converting drops replicate weights |
 | `surveywts_warning_weight_col_dropped` | `dplyr_reconstruct.weighted_df()` | dplyr verb removed the weight column from a `weighted_df` |
 | `surveywts_warning_negative_calibrated_weights` | `calibrate()`, `calibrate_to_survey()`, `calibrate_to_estimate()` | Linear calibration produced negative calibrated weights |
-| `surveywts_warning_class_near_empty` | `adjust_nonresponse()` | A weighting class cell has fewer than `control$min_cell` respondents (default 20) OR adjustment factor exceeds `control$max_adjust` (default 2.0) |
+| `surveywts_warning_class_near_empty` | `adjust_nonresponse()`, `redistribute_weights()` | A weighting class cell, propensity cell, or redistribution group has fewer than `control$min_cell` members (default 20) OR adjustment factor exceeds `control$max_adjust` (default 2.0). All three messages come from `.warn_near_empty_cell()` |
 | `surveywts_warning_control_param_ignored` | `rake()`, `calibrate_to_survey()`, `calibrate_to_estimate()` | A `control` parameter is not applicable to the function (unknown key) |
 | `surveywts_warning_replicate_scheme_mismatch` | `calibrate_to_survey()` | `primary_design` and `control_design` have different replicate scheme types |
 | `surveywts_warning_repweights_overwritten` | `create_bootstrap_weights()` | A previous call already created replicate weight columns; they are overwritten |

@@ -341,20 +341,14 @@ redistribute_weights <- function(
     # Warn on sparse or extreme-adjustment groups
     cell_label <- if (cell == "__global__") "(global)" else cell
     if (n_increase < control$min_cell || adj_factor > control$max_adjust) {
-      adj_factor_fmt <- sprintf("%.2f", adj_factor)
-      cli::cli_warn(
-        c(
-          "!" = paste0(
-            "Redistribution group {.val {cell_label}} has {n_increase} ",
-            "recipient(s), adjustment factor {adj_factor_fmt}\u00d7."
-          ),
-          "i" = "Small or high-adjustment groups may produce extreme weights.",
-          "i" = paste0(
-            "Consider collapsing groups or adjusting ",
-            "{.code control$min_cell} / {.code control$max_adjust}."
-          )
-        ),
-        class = "surveywts_warning_class_near_empty"
+      .warn_near_empty_cell(
+        label = cell_label,
+        n = n_increase,
+        adj_factor = adj_factor,
+        unit_label = "Redistribution group",
+        unit = "group",
+        member = "recipient",
+        remedy = "collapsing groups"
       )
     }
 

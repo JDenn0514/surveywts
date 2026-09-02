@@ -3,6 +3,7 @@
 # Internal helpers shared by adjust_nonresponse() and redistribute_weights().
 #
 # .validate_response_status_binary() — validates binary 0/1 or logical indicator columns.
+# .warn_near_empty_cell() — emits surveywts_warning_class_near_empty.
 
 # ---------------------------------------------------------------------------
 # .validate_response_status_binary() — private helper
@@ -102,4 +103,71 @@
     ),
     class = error_class
   )
+}
+
+# ---------------------------------------------------------------------------
+# .warn_near_empty_cell() — private helper
+# ---------------------------------------------------------------------------
+
+# Emits the surveywts_warning_class_near_empty warning.
+#
+# Three call sites share this one condition class: the "propensity-cell"
+# method of adjust_nonresponse(), the "weighting-class" method of
+# adjust_nonresponse(), and redistribute_weights(). They differ only in the
+# nouns for the grouping unit and its members, and in the first suggested
+# remedy. Those four differences are arguments. The message shape, the
+# adjustment-factor format, and the class stay here, so all three sites
+# produce the same message shape.
+#
+# Arguments:
+#   label      : the grouping unit's label (character or integer)
+#   n          : integer(1) — number of members in the unit
+#   adj_factor : numeric(1) — the adjustment factor, formatted to 2 decimals
+#   unit_label : character(1) — noun phrase that opens the `!` bullet
+#   unit       : character(1) — bare noun, pluralized in the first `i` bullet
+#   member     : character(1) — noun for what `n` counts
+#   remedy     : character(1) — first suggested remedy
+#
+# unit_label, unit, member, and remedy can carry cli markup. Each one is
+# pasted into the format string, not interpolated into it, so cli parses the
+# markup.
+#
+# Returns invisible(NULL). The caller keeps the guard
+# `n < control$min_cell || adj_factor > control$max_adjust`, because the
+# caller is where the counts are computed.
+.warn_near_empty_cell <- function(
+  label,
+  n,
+  adj_factor,
+  unit_label = "Weighting class cell",
+  unit = "cell",
+  member = "respondent",
+  remedy = "collapsing weighting classes"
+) {
+  adj_factor_fmt <- sprintf("%.2f", adj_factor)
+
+  cli::cli_warn(
+    c(
+      "!" = paste0(
+        unit_label,
+        " {.val {label}} is sparse ",
+        "({n} ",
+        member,
+        "(s), adjustment factor {adj_factor_fmt}\u00d7)."
+      ),
+      "i" = paste0(
+        "Small or high-adjustment ",
+        unit,
+        "s may produce extreme weights."
+      ),
+      "i" = paste0(
+        "Consider ",
+        remedy,
+        " or adjusting {.code control$min_cell} / {.code control$max_adjust}."
+      )
+    ),
+    class = "surveywts_warning_class_near_empty"
+  )
+
+  invisible(NULL)
 }

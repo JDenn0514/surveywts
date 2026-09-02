@@ -83,6 +83,21 @@
 
 ## Internal
 
+* The `surveywts_warning_class_near_empty` warning was built in three places,
+  each with its own `cli_warn()` call: the `"propensity-cell"` method of
+  `adjust_nonresponse()`, the `"weighting-class"` method of
+  `adjust_nonresponse()`, and `redistribute_weights()` (#113). One internal
+  helper, `.warn_near_empty_cell()`, now builds all three. Each call site
+  passes the nouns for the grouping unit and its members, and the first
+  suggested remedy. The message shape, the adjustment-factor format, and the
+  class stay in the helper.
+
+  The `redistribute_weights()` message takes the same shape as the other two.
+  It read `Redistribution group "(global)" has 3 recipient(s), adjustment
+  factor 8.33×.` and now reads `Redistribution group "(global)" is sparse (3
+  recipient(s), adjustment factor 8.33×).` The other two messages are
+  unchanged.
+
 * Add tests for `calibrate_to_survey()` and `calibrate_to_estimate()` edge
   cases: `method = "logit"` and non-matrix `vcov_estimate`.
 

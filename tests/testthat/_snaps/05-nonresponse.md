@@ -340,6 +340,16 @@
       i NA values in grouping variables are not allowed.
       v Remove or impute NA values in age_group before calling `redistribute_weights()`.
 
+# redistribute_weights() warns when a group has fewer than min_cell recipients
+
+    Code
+      result <- redistribute_weights(design, reduce_if = reduce_col, increase_if = increase_col)
+    Condition
+      Warning:
+      ! Redistribution group "(global)" is sparse (3 recipient(s), adjustment factor 8.33×).
+      i Small or high-adjustment groups may produce extreme weights.
+      i Consider collapsing groups or adjusting `control$min_cell` / `control$max_adjust`.
+
 # redistribute_weights() with by: one group all-reduce triggers error, other groups succeed
 
     Code

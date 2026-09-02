@@ -468,21 +468,12 @@ adjust_nonresponse <- function(
       adj_factor_pc <- sum_all_pc / sum_resp_pc
 
       if (n_resp_pc < control$min_cell || adj_factor_pc > control$max_adjust) {
-        adj_factor_fmt <- sprintf("%.2f", adj_factor_pc)
-        cli::cli_warn(
-          c(
-            "!" = paste0(
-              "Propensity cell {k} is sparse ",
-              "({n_resp_pc} respondent(s), ",
-              "adjustment factor {adj_factor_fmt}\u00d7)."
-            ),
-            "i" = "Small or high-adjustment cells may produce extreme weights.",
-            "i" = paste0(
-              "Consider reducing {.code control$n_cells} or adjusting ",
-              "{.code control$min_cell} / {.code control$max_adjust}."
-            )
-          ),
-          class = "surveywts_warning_class_near_empty"
+        .warn_near_empty_cell(
+          label = k,
+          n = n_resp_pc,
+          adj_factor = adj_factor_pc,
+          unit_label = "Propensity cell",
+          remedy = "reducing {.code control$n_cells}"
         )
       }
 
@@ -846,21 +837,10 @@ adjust_nonresponse <- function(
     # Warn if cell is sparse or adjustment is extreme
     cell_label <- if (cell == "__global__") "(global)" else cell
     if (n_resp_cell < control$min_cell || adj_factor > control$max_adjust) {
-      adj_factor_fmt <- sprintf("%.2f", adj_factor)
-      cli::cli_warn(
-        c(
-          "!" = paste0(
-            "Weighting class cell {.val {cell_label}} is sparse ",
-            "({n_resp_cell} respondent(s), ",
-            "adjustment factor {adj_factor_fmt}\u00d7)."
-          ),
-          "i" = "Small or high-adjustment cells may produce extreme weights.",
-          "i" = paste0(
-            "Consider collapsing weighting classes or adjusting ",
-            "{.code control$min_cell} / {.code control$max_adjust}."
-          )
-        ),
-        class = "surveywts_warning_class_near_empty"
+      .warn_near_empty_cell(
+        label = cell_label,
+        n = n_resp_cell,
+        adj_factor = adj_factor
       )
     }
 

@@ -163,7 +163,7 @@ capture_summary <- function(expr) {
 
 test_that("DAGJK IPW path emits the summary, not one message per replicate", {
   expect_message(
-    suppressWarnings(create_jackknife_weights(
+    result <- suppressWarnings(create_jackknife_weights(
       replay$ipw_cal,
       replicates = 25L,
       type = "grouped",
@@ -171,35 +171,38 @@ test_that("DAGJK IPW path emits the summary, not one message per replicate", {
     )),
     class = "surveywts_message_replay_already_calibrated"
   )
+  test_invariants(result)
 })
 
 test_that("DAGJK IPW path lets no per-replicate message escape", {
-  n <- count_escaped(suppressWarnings(suppressMessages(
-    create_jackknife_weights(
+  n <- count_escaped(suppressWarnings(
+    result <- create_jackknife_weights(
       replay$ipw_cal,
       replicates = 25L,
       type = "grouped",
       seed = 42L
     )
-  )))
+  ))
   expect_identical(n, 0L)
+  test_invariants(result)
 })
 
 test_that("DAGJK calibration-only path lets no per-replicate message escape", {
-  n <- count_escaped(suppressWarnings(suppressMessages(
-    create_jackknife_weights(
+  n <- count_escaped(suppressWarnings(
+    result <- create_jackknife_weights(
       replay$cal_only,
       replicates = 25L,
       type = "grouped",
       seed = 42L
     )
-  )))
+  ))
   expect_identical(n, 0L)
+  test_invariants(result)
 })
 
 test_that("bootstrap IPW path emits the summary, not one per replicate", {
   expect_message(
-    suppressWarnings(create_bootstrap_weights(
+    result <- suppressWarnings(create_bootstrap_weights(
       replay$ipw_cal,
       replicates = 25L,
       type = "quasi-randomization",
@@ -208,11 +211,12 @@ test_that("bootstrap IPW path emits the summary, not one per replicate", {
     )),
     class = "surveywts_message_replay_already_calibrated"
   )
+  test_invariants(result)
 })
 
 test_that("bootstrap calibration-only path emits the summary", {
   expect_message(
-    suppressWarnings(create_bootstrap_weights(
+    result <- suppressWarnings(create_bootstrap_weights(
       replay$cal_only,
       replicates = 25L,
       type = "quasi-randomization",
@@ -220,21 +224,25 @@ test_that("bootstrap calibration-only path emits the summary", {
     )),
     class = "surveywts_message_replay_already_calibrated"
   )
+  test_invariants(result)
 })
 
 test_that("the summary names the count when every replicate met its margins", {
-  msg <- capture_summary(suppressWarnings(create_bootstrap_weights(
-    replay$cal_only,
-    replicates = 25L,
-    type = "quasi-randomization",
-    seed = 42L
-  )))
+  msg <- capture_summary(suppressWarnings(
+    result <- create_bootstrap_weights(
+      replay$cal_only,
+      replicates = 25L,
+      type = "quasi-randomization",
+      seed = 42L
+    )
+  ))
   expect_match(msg, "25 of 25 replicates", fixed = TRUE)
+  test_invariants(result)
 })
 
 test_that("no summary fires when no replicate meets its margins", {
   expect_no_message(
-    suppressWarnings(create_bootstrap_weights(
+    result <- suppressWarnings(create_bootstrap_weights(
       replay$quiet,
       replicates = 25L,
       type = "quasi-randomization",
@@ -242,6 +250,7 @@ test_that("no summary fires when no replicate meets its margins", {
     )),
     class = "surveywts_message_replay_already_calibrated"
   )
+  test_invariants(result)
 })
 
 test_that("a direct calibrate_rake() call still emits the per-replicate message", {
@@ -252,11 +261,12 @@ test_that("a direct calibrate_rake() call still emits the per-replicate message"
   )
   svy <- surveycore::as_survey_nonprob(df, weights = w)
   expect_message(
-    suppressWarnings(calibrate_rake(
+    result <- suppressWarnings(calibrate_rake(
       svy,
       targets = list(g = c("a" = 0.5, "b" = 0.5)),
       type = "prop"
     )),
     class = "surveywts_message_already_calibrated"
   )
+  test_invariants(result)
 })

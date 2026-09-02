@@ -161,6 +161,27 @@ capture_summary <- function(expr) {
   msg
 }
 
+# Assert the shape of a survey object a replicate-loop call produces: a
+# single numeric, non-negative weight column, present in the data, and
+# (when `replicates` is given) that many repwt_* columns, all present in
+# the data.
+expect_replicate_result <- function(result, replicates = NULL) {
+  wt_col <- result@variables$weights
+  expect_true(is.character(wt_col) && length(wt_col) == 1L)
+  expect_true(wt_col %in% names(result@data))
+
+  w <- result@data[[wt_col]]
+  expect_true(is.numeric(w))
+  expect_true(all(w >= 0))
+  expect_true(any(w > 0))
+
+  if (!is.null(replicates)) {
+    rep_cols <- result@variables$repweights
+    expect_identical(length(rep_cols), as.integer(replicates))
+    expect_true(all(rep_cols %in% names(result@data)))
+  }
+}
+
 test_that("DAGJK IPW path emits the summary, not one message per replicate", {
   expect_message(
     result <- suppressWarnings(create_jackknife_weights(
@@ -171,33 +192,39 @@ test_that("DAGJK IPW path emits the summary, not one message per replicate", {
     )),
     class = "surveywts_message_replay_already_calibrated"
   )
-  test_invariants(result)
+  expect_replicate_result(result, replicates = 25L)
 })
 
 test_that("DAGJK IPW path lets no per-replicate message escape", {
-  n <- count_escaped(suppressWarnings(
-    result <- create_jackknife_weights(
-      replay$ipw_cal,
-      replicates = 25L,
-      type = "grouped",
-      seed = 42L
-    )
-  ))
+  suppressMessages(
+    n <- count_escaped(suppressWarnings(
+      result <- create_jackknife_weights(
+        replay$ipw_cal,
+        replicates = 25L,
+        type = "grouped",
+        seed = 42L
+      )
+    )),
+    classes = "surveywts_message_replay_already_calibrated"
+  )
   expect_identical(n, 0L)
-  test_invariants(result)
+  expect_replicate_result(result, replicates = 25L)
 })
 
 test_that("DAGJK calibration-only path lets no per-replicate message escape", {
-  n <- count_escaped(suppressWarnings(
-    result <- create_jackknife_weights(
-      replay$cal_only,
-      replicates = 25L,
-      type = "grouped",
-      seed = 42L
-    )
-  ))
+  suppressMessages(
+    n <- count_escaped(suppressWarnings(
+      result <- create_jackknife_weights(
+        replay$cal_only,
+        replicates = 25L,
+        type = "grouped",
+        seed = 42L
+      )
+    )),
+    classes = "surveywts_message_replay_already_calibrated"
+  )
   expect_identical(n, 0L)
-  test_invariants(result)
+  expect_replicate_result(result, replicates = 25L)
 })
 
 test_that("bootstrap IPW path emits the summary, not one per replicate", {
@@ -211,7 +238,7 @@ test_that("bootstrap IPW path emits the summary, not one per replicate", {
     )),
     class = "surveywts_message_replay_already_calibrated"
   )
-  test_invariants(result)
+  expect_replicate_result(result, replicates = 25L)
 })
 
 test_that("bootstrap calibration-only path emits the summary", {
@@ -224,7 +251,7 @@ test_that("bootstrap calibration-only path emits the summary", {
     )),
     class = "surveywts_message_replay_already_calibrated"
   )
-  test_invariants(result)
+  expect_replicate_result(result, replicates = 25L)
 })
 
 test_that("the summary names the count when every replicate met its margins", {
@@ -237,7 +264,7 @@ test_that("the summary names the count when every replicate met its margins", {
     )
   ))
   expect_match(msg, "25 of 25 replicates", fixed = TRUE)
-  test_invariants(result)
+  expect_replicate_result(result, replicates = 25L)
 })
 
 test_that("no summary fires when no replicate meets its margins", {
@@ -250,7 +277,7 @@ test_that("no summary fires when no replicate meets its margins", {
     )),
     class = "surveywts_message_replay_already_calibrated"
   )
-  test_invariants(result)
+  expect_replicate_result(result, replicates = 25L)
 })
 
 test_that("a direct calibrate_rake() call still emits the per-replicate message", {
@@ -268,5 +295,5 @@ test_that("a direct calibrate_rake() call still emits the per-replicate message"
     )),
     class = "surveywts_message_already_calibrated"
   )
-  test_invariants(result)
+  expect_replicate_result(result)
 })

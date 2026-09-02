@@ -12,6 +12,9 @@
 # .handle_repweights_overwrite()     — detect/clear existing replicate weights
 # .quasi_randomization_bootstrap()   — QR bootstrap implementation for NPS
 # .reestimate_margins_from_reference() — re-derive margins from a replicate control
+# .new_replay_counter()             — fresh counter for the replay message
+# .muffle_replay_messages()         — muffle & count the per-replicate message
+# .report_replay_messages()         — print one summary line after the loop
 
 # ============================================================================
 # .validate_replicate_input()
@@ -916,4 +919,77 @@
     }
   }) |>
     stats::setNames(names(margins_orig))
+}
+
+# ============================================================================
+# .new_replay_counter()
+# ============================================================================
+
+# Create a fresh counter for the calibration replay message. One counter per
+# call to the enclosing weighting function, so a second call starts at zero.
+#
+# Returns: an environment with $n set to 0L
+.new_replay_counter <- function() {
+  counter <- new.env(parent = emptyenv())
+  counter$n <- 0L
+  counter
+}
+
+# ============================================================================
+# .muffle_replay_messages()
+# ============================================================================
+
+# Muffle and count the already-calibrated message that a calibration replay
+# emits inside a replicate loop.
+#
+# The grouped jackknife and the quasi-randomization bootstrap re-run the stored
+# calibration once per replicate. A replicate whose subsample already meets its
+# margins emits surveywts_message_already_calibrated. At 25 replicates that is
+# up to 25 identical lines, so this helper muffles each one and counts it.
+# .report_replay_messages() prints the count once after the loop.
+#
+# `expr` is a promise, so assignments inside it write to the caller's frame.
+# suppressMessages() behaves the same way.
+#
+# Arguments:
+#   expr    : the replicate body to evaluate
+#   counter : environment from .new_replay_counter()
+#
+# Returns: the value of expr
+.muffle_replay_messages <- function(expr, counter) {
+  withCallingHandlers(
+    expr,
+    surveywts_message_already_calibrated = function(m) {
+      counter$n <- counter$n + 1L
+      invokeRestart("muffleMessage")
+    }
+  )
+}
+
+# ============================================================================
+# .report_replay_messages()
+# ============================================================================
+
+# Print one line naming how many replicates already met their margins. Print
+# nothing when no replicate emitted the message.
+#
+# Arguments:
+#   counter    : environment from .new_replay_counter()
+#   replicates : integer(1) — the number of replicates the caller requested
+#
+# Returns: invisible(NULL); called for the message
+.report_replay_messages <- function(counter, replicates) {
+  if (counter$n == 0L) {
+    return(invisible(NULL))
+  }
+  cli::cli_inform(
+    c(
+      "i" = paste0(
+        "Raking converged in 1 sweep in {counter$n} of {replicates} ",
+        "replicates: those replicates already met their margins."
+      )
+    ),
+    class = "surveywts_message_replay_already_calibrated"
+  )
+  invisible(NULL)
 }

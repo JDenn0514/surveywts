@@ -95,6 +95,14 @@
 #' [create_gen_boot_weights()], [create_gen_rep_weights()], and
 #' [create_sdr_weights()].
 #'
+#' @section Messages:
+#'
+#' When the design carries a calibration, the replay re-runs it inside every
+#' replicate. Replicates that already meet their margins are counted and
+#' reported in one summary line, not announced one by one. A count close to
+#' `replicates` means the replay changed little, so the variance estimate
+#' may be near zero and deserves a look.
+#'
 #' @references
 #'   Ash, S. (2014). Using successive difference replication for estimating
 #'   variances. *Survey Methodology*, 40(1), 47--59.

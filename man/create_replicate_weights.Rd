@@ -102,6 +102,16 @@ replicate-weight handling, see \code{\link[=create_bootstrap_weights]{create_boo
 \code{\link[=create_gen_boot_weights]{create_gen_boot_weights()}}, \code{\link[=create_gen_rep_weights]{create_gen_rep_weights()}}, and
 \code{\link[=create_sdr_weights]{create_sdr_weights()}}.
 }
+\section{Messages}{
+
+
+When the design carries a calibration, the replay re-runs it inside every
+replicate. Replicates that already meet their margins are counted and
+reported in one summary line, not announced one by one. A count close to
+\code{replicates} means the replay changed little, so the variance estimate
+may be near zero and deserves a look.
+}
+
 \examples{
 # bootstrap (default: Rao-Wu-Yue-Beaumont) ------------------------------
 gss_svy <- surveycore::as_survey(

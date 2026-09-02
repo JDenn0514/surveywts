@@ -128,6 +128,16 @@ replicate the original NPS recruitment mechanism (AAPOR 2022, §4). This
 understatement is not reduced by increasing \code{replicates}.
 }
 
+\section{Messages}{
+
+
+When the design carries a calibration, the replay re-runs it inside every
+replicate. Replicates that already meet their margins are counted and
+reported in one summary line, not announced one by one. A count close to
+\code{replicates} means the replay changed little, so the variance estimate
+may be near zero and deserves a look.
+}
+
 \examples{
 # default SRSWR bootstrap on a probability survey -----------------------
 gss_svy <- surveycore::as_survey(

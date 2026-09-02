@@ -63,7 +63,7 @@ Verified in R before this spec was written:
 The handler wraps the replicate loop, not the replay call.
 
 `.dagjk_single_replicate()` calls `surveywts::calibrate_rake()` directly at
-`R/jackknife-dagjk-utils.R:198`. It does not go through
+`R/jackknife-dagjk-utils.R:300`. It does not go through
 `.dispatch_calibration_replay()`. There are four replay sites, and a handler on
 the dispatch helper misses one of them. A handler on the loop covers all four,
 and covers any site added later.

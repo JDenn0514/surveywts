@@ -12,9 +12,9 @@
 # .handle_repweights_overwrite()     — detect/clear existing replicate weights
 # .quasi_randomization_bootstrap()   — QR bootstrap implementation for NPS
 # .reestimate_margins_from_reference() — re-derive margins from a replicate control
-# .new_replay_counter()             — fresh counter for the replay message
-# .muffle_replay_messages()         — muffle & count the per-replicate message
-# .report_replay_messages()         — print one summary line after the loop
+# .new_replay_counter()              — fresh counter for the replay message
+# .muffle_replay_messages()          — muffle & count the per-replicate message
+# .report_replay_messages()          — print one summary line after the loop
 
 # ============================================================================
 # .validate_replicate_input()
@@ -960,6 +960,14 @@
 # `expr` is a promise, so assignments inside it write to the caller's frame.
 # suppressMessages() behaves the same way.
 #
+# The count this handler produces is a per-replicate count by construction:
+# each replay reads a single calib_entry, and the already-calibrated branch
+# at R/calibrate-utils.R:985 returns early, so the second emitter at :1049 is
+# unreachable in the same call. Replaying two calibration entries per
+# replicate would break the "of N replicates" wording in
+# .report_replay_messages(), because the count would then track emissions,
+# not replicates.
+#
 # Arguments:
 #   expr    : the replicate body to evaluate
 #   counter : environment from .new_replay_counter()
@@ -995,7 +1003,7 @@
     c(
       "i" = paste0(
         "Raking converged in 1 sweep in {counter$n} of {replicates} ",
-        "replicates: those replicates already met their margins."
+        "replicate{?s}: those replicates already met their margins."
       )
     ),
     class = "surveywts_message_replay_already_calibrated"

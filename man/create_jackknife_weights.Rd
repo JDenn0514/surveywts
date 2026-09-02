@@ -258,6 +258,16 @@ extreme calibration targets), a warning is emitted. Variance estimates
 using negative replicate weights should be interpreted cautiously.
 }
 
+\section{Messages}{
+
+
+When the design carries a calibration, the replay re-runs it inside every
+replicate. Replicates that already meet their margins are counted and
+reported in one summary line, not announced one by one. A count close to
+\code{replicates} means the replay changed little, so the variance estimate
+may be near zero and deserves a look.
+}
+
 \examples{
 # JKn (stratified delete-one) on a probability sample --------------------
 gss_svy <- surveycore::as_survey(

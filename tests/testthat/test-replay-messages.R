@@ -127,3 +127,136 @@ test_that(".report_replay_messages() returns invisible NULL", {
   counter <- .new_replay_counter()
   expect_null(.report_replay_messages(counter, replicates = 25L))
 })
+
+# ============================================================================
+# Integration — the three replicate loops
+# ============================================================================
+
+replay <- make_replay_message_datasets()
+
+# Count the per-replicate messages that escape a call. After the fix this is
+# always 0; before the fix it was one per replicate.
+count_escaped <- function(expr) {
+  n <- 0L
+  withCallingHandlers(
+    force(expr),
+    surveywts_message_already_calibrated = function(m) {
+      n <<- n + 1L
+      invokeRestart("muffleMessage")
+    }
+  )
+  n
+}
+
+# Capture the text of the one summary message.
+capture_summary <- function(expr) {
+  msg <- NULL
+  withCallingHandlers(
+    force(expr),
+    surveywts_message_replay_already_calibrated = function(m) {
+      msg <<- conditionMessage(m)
+      invokeRestart("muffleMessage")
+    }
+  )
+  msg
+}
+
+test_that("DAGJK IPW path emits the summary, not one message per replicate", {
+  expect_message(
+    suppressWarnings(create_jackknife_weights(
+      replay$ipw_cal,
+      replicates = 25L,
+      type = "grouped",
+      seed = 42L
+    )),
+    class = "surveywts_message_replay_already_calibrated"
+  )
+})
+
+test_that("DAGJK IPW path lets no per-replicate message escape", {
+  n <- count_escaped(suppressWarnings(suppressMessages(
+    create_jackknife_weights(
+      replay$ipw_cal,
+      replicates = 25L,
+      type = "grouped",
+      seed = 42L
+    )
+  )))
+  expect_identical(n, 0L)
+})
+
+test_that("DAGJK calibration-only path lets no per-replicate message escape", {
+  n <- count_escaped(suppressWarnings(suppressMessages(
+    create_jackknife_weights(
+      replay$cal_only,
+      replicates = 25L,
+      type = "grouped",
+      seed = 42L
+    )
+  )))
+  expect_identical(n, 0L)
+})
+
+test_that("bootstrap IPW path emits the summary, not one per replicate", {
+  expect_message(
+    suppressWarnings(create_bootstrap_weights(
+      replay$ipw_cal,
+      replicates = 25L,
+      type = "quasi-randomization",
+      seed = 42L,
+      reference_sample = replay$ref
+    )),
+    class = "surveywts_message_replay_already_calibrated"
+  )
+})
+
+test_that("bootstrap calibration-only path emits the summary", {
+  expect_message(
+    suppressWarnings(create_bootstrap_weights(
+      replay$cal_only,
+      replicates = 25L,
+      type = "quasi-randomization",
+      seed = 42L
+    )),
+    class = "surveywts_message_replay_already_calibrated"
+  )
+})
+
+test_that("the summary names the count when every replicate met its margins", {
+  msg <- capture_summary(suppressWarnings(create_bootstrap_weights(
+    replay$cal_only,
+    replicates = 25L,
+    type = "quasi-randomization",
+    seed = 42L
+  )))
+  expect_match(msg, "25 of 25 replicates", fixed = TRUE)
+})
+
+test_that("no summary fires when no replicate meets its margins", {
+  expect_no_message(
+    suppressWarnings(create_bootstrap_weights(
+      replay$quiet,
+      replicates = 25L,
+      type = "quasi-randomization",
+      seed = 42L
+    )),
+    class = "surveywts_message_replay_already_calibrated"
+  )
+})
+
+test_that("a direct calibrate_rake() call still emits the per-replicate message", {
+  df <- data.frame(
+    g = rep(c("a", "b"), each = 50L),
+    w = rep(1, 100L),
+    stringsAsFactors = FALSE
+  )
+  svy <- surveycore::as_survey_nonprob(df, weights = w)
+  expect_message(
+    suppressWarnings(calibrate_rake(
+      svy,
+      targets = list(g = c("a" = 0.5, "b" = 0.5)),
+      type = "prop"
+    )),
+    class = "surveywts_message_already_calibrated"
+  )
+})

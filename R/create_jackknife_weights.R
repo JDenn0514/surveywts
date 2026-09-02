@@ -649,55 +649,61 @@ create_jackknife_weights <- function(
 
   failed_reps <- 0L
   repwt_list <- list()
+  replay_counter <- .new_replay_counter()
 
   for (g in seq_len(replicates)) {
-    rep_ok <- tryCatch(
-      {
-        if (!is.null(ipw_entry)) {
-          # IPW path (and doubly-robust)
-          w_rep <- .dagjk_single_replicate(
-            g = g,
-            group_assign = group_assign,
-            nps_data = nps_data,
-            ref_data = ref_data,
-            ref_wt_col = ref_wt_col,
-            ipw_entry = ipw_entry,
-            calib_entry = calib_entry,
-            n_nps = n_nps,
-            n_ref = n_ref,
-            use_level_b = use_level_b,
-            ref_design = ref_design,
-            wt_col = wt_col,
-            strata_var = strata_var,
-            G = replicates
-          )
-        } else {
-          # Calibration-only path
-          w_rep <- .dagjk_single_replicate_calib(
-            g = g,
-            group_assign = group_assign,
-            nps_data = nps_data,
-            ref_data = ref_data,
-            ref_wt_col = ref_wt_col,
-            calib_entry = calib_entry,
-            n_nps = n_nps,
-            n_ref = n_ref,
-            use_level_b = use_level_b,
-            ref_design = ref_design,
-            wt_col = wt_col
-          )
+    rep_ok <- .muffle_replay_messages(
+      tryCatch(
+        {
+          if (!is.null(ipw_entry)) {
+            # IPW path (and doubly-robust)
+            w_rep <- .dagjk_single_replicate(
+              g = g,
+              group_assign = group_assign,
+              nps_data = nps_data,
+              ref_data = ref_data,
+              ref_wt_col = ref_wt_col,
+              ipw_entry = ipw_entry,
+              calib_entry = calib_entry,
+              n_nps = n_nps,
+              n_ref = n_ref,
+              use_level_b = use_level_b,
+              ref_design = ref_design,
+              wt_col = wt_col,
+              strata_var = strata_var,
+              G = replicates
+            )
+          } else {
+            # Calibration-only path
+            w_rep <- .dagjk_single_replicate_calib(
+              g = g,
+              group_assign = group_assign,
+              nps_data = nps_data,
+              ref_data = ref_data,
+              ref_wt_col = ref_wt_col,
+              calib_entry = calib_entry,
+              n_nps = n_nps,
+              n_ref = n_ref,
+              use_level_b = use_level_b,
+              ref_design = ref_design,
+              wt_col = wt_col
+            )
+          }
+          repwt_list[[length(repwt_list) + 1L]] <- w_rep
+          TRUE
+        },
+        error = function(e) {
+          FALSE
         }
-        repwt_list[[length(repwt_list) + 1L]] <- w_rep
-        TRUE
-      },
-      error = function(e) {
-        FALSE
-      }
+      ),
+      counter = replay_counter
     )
     if (!isTRUE(rep_ok)) {
       failed_reps <- failed_reps + 1L
     }
   }
+
+  .report_replay_messages(replay_counter, replicates)
 
   # ---- Post-loop checks ----------------------------------------------------
 

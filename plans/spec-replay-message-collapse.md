@@ -78,9 +78,13 @@ Three loops, each wrapped once:
 
 ## 5. Helpers
 
-Two internal helpers go in `R/replicate-utils.R`, with the other shared
+Three internal helpers go in `R/replicate-utils.R`, with the other shared
 replicate helpers. Add a row for each to the index block at lines 7 to 14.
 
+- `.new_replay_counter()` — returns an environment with the count set to `0L`.
+  It uses `new.env(parent = emptyenv())`, the idiom already used at
+  `R/calibrate_to_survey.R:1205`. The reset lives in one place instead of at
+  each call site.
 - `.muffle_replay_messages(expr, counter)` — evaluates `expr`, and muffles and
   counts the message. `expr` is a promise, so assignments in the loop body
   write to the caller frame. This is how `suppressMessages()` behaves.
@@ -88,10 +92,10 @@ replicate helpers. Add a row for each to the index block at lines 7 to 14.
   count is above zero. Prints nothing when the count is zero. Called
   immediately after the loop closes.
 
-The caller creates `counter` before the loop, with
-`new.env(parent = emptyenv())`, and sets the count to `0L`. This matches the
-idiom already used at `R/calibrate_to_survey.R:1205`. Each loop gets its own
-counter, so a second call starts from zero.
+One counter serves one call to the enclosing weighting function, so a second
+call starts from zero. The two bootstrap loops are the arms of one `if` and
+`else`, and only one arm runs per call, so they share a counter and one
+report.
 
 The denominator is `replicates`, the number the caller asked for. A replicate
 that fails emits no message, so the count can be lower than the number of
@@ -128,12 +132,20 @@ Out of scope:
 | Grouped jackknife on a calibrated non-probability design | Emits `surveywts_message_replay_already_calibrated` once |
 | The same call | Does not emit `surveywts_message_already_calibrated` |
 | Replay where every replicate meets its margins | The count in the message equals `replicates` |
+| Replay where no replicate meets its margins | Prints no summary |
 | Quasi-randomization bootstrap on the same design | Emits the summary once |
-| Replay where no replicate meets its margins | Emits no summary |
 | Direct `calibrate_rake()` on already-calibrated data | Still emits `surveywts_message_already_calibrated` |
 
 The last row is the existing test at `tests/testthat/test-03-rake.R:788`. It
 must keep passing without a change.
+
+Test fixtures need care. The existing fixtures do not fire the message:
+`make_dagjk_datasets()$B` gives 0 of 25. A design that sits exactly on its
+margins fires 14 of 25 in the jackknife and 0 of 25 in the bootstrap, because
+resampling with replacement moves the margins further than deleting one group.
+Adding `control = list(improvement = 5)` to the calibration fires every
+replicate on both, measured at 25 of 25. Use the saturated fixture, so no
+assertion rests on a borderline chi-square comparison.
 
 ## 9. Gates
 

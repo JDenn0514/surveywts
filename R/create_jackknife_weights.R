@@ -297,8 +297,8 @@
 #' )
 #' ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
 #' ns_wave1_cal <- calibrate_rake(ns_wave1_svy, targets = targets_a)
-#' # This path replays the calibration inside every replicate and announces
-#' # each one, so expect a block of convergence messages. Real analyses use
+#' # This path replays the calibration inside every replicate. Replicates that
+#' # already met their margins are named in one summary line. Real analyses use
 #' # more replicates; 25 keeps `R CMD check` fast.
 #' dagjk_design <- create_jackknife_weights(
 #'   ns_wave1_cal,

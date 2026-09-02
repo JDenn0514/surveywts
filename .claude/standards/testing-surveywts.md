@@ -38,6 +38,7 @@ only what is specific to surveywts.
 | `R/ipw.R` | `tests/testthat/test-nonprob-ipw.R` |
 | `R/jackknife-dagjk-utils.R` | `tests/testthat/test-nps-jackknife.R` |
 | `R/replicate-utils.R` — quasi-randomization bootstrap | `tests/testthat/test-08-nps-bootstrap.R` |
+| `R/replicate-utils.R` — replay-message helpers | `tests/testthat/test-replay-messages.R` |
 | `R/data.R` and the bundled datasets | `tests/testthat/test-datasets.R` |
 | `R/surveywts-package.R` | `tests/testthat/test-package.R` |
 | `R/utils.R` | (tested indirectly via all test files) |

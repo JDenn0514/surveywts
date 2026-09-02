@@ -230,6 +230,14 @@
 #' extreme calibration targets), a warning is emitted. Variance estimates
 #' using negative replicate weights should be interpreted cautiously.
 #'
+#' @section Messages:
+#'
+#' When the design carries a calibration, the replay re-runs it inside every
+#' replicate. Replicates that already meet their margins are counted and
+#' reported in one summary line, not announced one by one. A count close to
+#' `replicates` means the replay changed little, so the variance estimate
+#' may be near zero and deserves a look.
+#'
 #' @references
 #'   Elliott, M.R. and Valliant, R. (2017). Inference for nonprobability
 #'   samples. *Statistical Science* **32**(2), 249--264.
@@ -297,8 +305,8 @@
 #' )
 #' ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
 #' ns_wave1_cal <- calibrate_rake(ns_wave1_svy, targets = targets_a)
-#' # This path replays the calibration inside every replicate and announces
-#' # each one, so expect a block of convergence messages. Real analyses use
+#' # This path replays the calibration inside every replicate. Replicates that
+#' # already met their margins are named in one summary line. Real analyses use
 #' # more replicates; 25 keeps `R CMD check` fast.
 #' dagjk_design <- create_jackknife_weights(
 #'   ns_wave1_cal,
@@ -649,55 +657,61 @@ create_jackknife_weights <- function(
 
   failed_reps <- 0L
   repwt_list <- list()
+  replay_counter <- .new_replay_counter()
 
   for (g in seq_len(replicates)) {
-    rep_ok <- tryCatch(
-      {
-        if (!is.null(ipw_entry)) {
-          # IPW path (and doubly-robust)
-          w_rep <- .dagjk_single_replicate(
-            g = g,
-            group_assign = group_assign,
-            nps_data = nps_data,
-            ref_data = ref_data,
-            ref_wt_col = ref_wt_col,
-            ipw_entry = ipw_entry,
-            calib_entry = calib_entry,
-            n_nps = n_nps,
-            n_ref = n_ref,
-            use_level_b = use_level_b,
-            ref_design = ref_design,
-            wt_col = wt_col,
-            strata_var = strata_var,
-            G = replicates
-          )
-        } else {
-          # Calibration-only path
-          w_rep <- .dagjk_single_replicate_calib(
-            g = g,
-            group_assign = group_assign,
-            nps_data = nps_data,
-            ref_data = ref_data,
-            ref_wt_col = ref_wt_col,
-            calib_entry = calib_entry,
-            n_nps = n_nps,
-            n_ref = n_ref,
-            use_level_b = use_level_b,
-            ref_design = ref_design,
-            wt_col = wt_col
-          )
+    rep_ok <- .muffle_replay_messages(
+      tryCatch(
+        {
+          if (!is.null(ipw_entry)) {
+            # IPW path (and doubly-robust)
+            w_rep <- .dagjk_single_replicate(
+              g = g,
+              group_assign = group_assign,
+              nps_data = nps_data,
+              ref_data = ref_data,
+              ref_wt_col = ref_wt_col,
+              ipw_entry = ipw_entry,
+              calib_entry = calib_entry,
+              n_nps = n_nps,
+              n_ref = n_ref,
+              use_level_b = use_level_b,
+              ref_design = ref_design,
+              wt_col = wt_col,
+              strata_var = strata_var,
+              G = replicates
+            )
+          } else {
+            # Calibration-only path
+            w_rep <- .dagjk_single_replicate_calib(
+              g = g,
+              group_assign = group_assign,
+              nps_data = nps_data,
+              ref_data = ref_data,
+              ref_wt_col = ref_wt_col,
+              calib_entry = calib_entry,
+              n_nps = n_nps,
+              n_ref = n_ref,
+              use_level_b = use_level_b,
+              ref_design = ref_design,
+              wt_col = wt_col
+            )
+          }
+          repwt_list[[length(repwt_list) + 1L]] <- w_rep
+          TRUE
+        },
+        error = function(e) {
+          FALSE
         }
-        repwt_list[[length(repwt_list) + 1L]] <- w_rep
-        TRUE
-      },
-      error = function(e) {
-        FALSE
-      }
+      ),
+      counter = replay_counter
     )
     if (!isTRUE(rep_ok)) {
       failed_reps <- failed_reps + 1L
     }
   }
+
+  .report_replay_messages(replay_counter, replicates)
 
   # ---- Post-loop checks ----------------------------------------------------
 

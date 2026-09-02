@@ -258,6 +258,16 @@ extreme calibration targets), a warning is emitted. Variance estimates
 using negative replicate weights should be interpreted cautiously.
 }
 
+\section{Messages}{
+
+
+When the design carries a calibration, the replay re-runs it inside every
+replicate. Replicates that already meet their margins are counted and
+reported in one summary line, not announced one by one. A count close to
+\code{replicates} means the replay changed little, so the variance estimate
+may be near zero and deserves a look.
+}
+
 \examples{
 # JKn (stratified delete-one) on a probability sample --------------------
 gss_svy <- surveycore::as_survey(
@@ -288,8 +298,8 @@ targets_a <- list(
 )
 ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
 ns_wave1_cal <- calibrate_rake(ns_wave1_svy, targets = targets_a)
-# This path replays the calibration inside every replicate and announces
-# each one, so expect a block of convergence messages. Real analyses use
+# This path replays the calibration inside every replicate. Replicates that
+# already met their margins are named in one summary line. Real analyses use
 # more replicates; 25 keeps `R CMD check` fast.
 dagjk_design <- create_jackknife_weights(
   ns_wave1_cal,

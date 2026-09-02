@@ -12,6 +12,9 @@
 # .handle_repweights_overwrite()     — detect/clear existing replicate weights
 # .quasi_randomization_bootstrap()   — QR bootstrap implementation for NPS
 # .reestimate_margins_from_reference() — re-derive margins from a replicate control
+# .new_replay_counter()              — fresh counter for the replay message
+# .muffle_replay_messages()          — muffle & count the per-replicate message
+# .report_replay_messages()          — print one summary line after the loop
 
 # ============================================================================
 # .validate_replicate_input()
@@ -434,6 +437,7 @@
   )
 
   B <- replicates
+  replay_counter <- .new_replay_counter()
 
   # ---- Route to the appropriate path ----------------------------------------
   if (!is.null(ipw_entry)) {
@@ -469,81 +473,84 @@
     repwt_list <- list()
 
     for (b in seq_len(B)) {
-      draw_ok <- tryCatch(
-        {
-          # Step 1: SRSWR resample of NPS rows
-          idx <- sample(n_A, size = n_A, replace = TRUE)
-          S_A_b <- data@data[idx, , drop = FALSE]
+      draw_ok <- .muffle_replay_messages(
+        tryCatch(
+          {
+            # Step 1: SRSWR resample of NPS rows
+            idx <- sample(n_A, size = n_A, replace = TRUE)
+            S_A_b <- data@data[idx, , drop = FALSE]
 
-          # Drop weight column so ipw() doesn't find it
-          S_A_b <- S_A_b[,
-            setdiff(names(S_A_b), data@variables$weights),
-            drop = FALSE
-          ]
+            # Drop weight column so ipw() doesn't find it
+            S_A_b <- S_A_b[,
+              setdiff(names(S_A_b), data@variables$weights),
+              drop = FALSE
+            ]
 
-          # Revert "(Missing)" if missing_method = "separate"
-          if (identical(ipw_entry$missing_method, "separate")) {
-            sel_vars <- all.vars(ipw_entry$formula)
-            for (var in sel_vars) {
-              col <- S_A_b[[var]]
-              if (is.factor(col) && "(Missing)" %in% levels(col)) {
-                char_col <- as.character(col)
-                char_col[char_col == "(Missing)"] <- NA_character_
-                existing_levels <- sort(unique(char_col[!is.na(char_col)]))
-                S_A_b[[var]] <- factor(char_col, levels = existing_levels)
+            # Revert "(Missing)" if missing_method = "separate"
+            if (identical(ipw_entry$missing_method, "separate")) {
+              sel_vars <- all.vars(ipw_entry$formula)
+              for (var in sel_vars) {
+                col <- S_A_b[[var]]
+                if (is.factor(col) && "(Missing)" %in% levels(col)) {
+                  char_col <- as.character(col)
+                  char_col[char_col == "(Missing)"] <- NA_character_
+                  existing_levels <- sort(unique(char_col[!is.na(char_col)]))
+                  S_A_b[[var]] <- factor(char_col, levels = existing_levels)
+                }
               }
             }
-          }
 
-          # Step 2 (Level B): SRSWR resample of reference rows.
-          if (use_level_b) {
-            idx_ref <- sample(n_ref, size = n_ref, replace = TRUE)
-            ref_data_b <- ref_design@data[idx_ref, , drop = FALSE]
-            ref_b <- surveycore::survey_taylor(
-              data = ref_data_b,
-              variables = ref_design@variables
+            # Step 2 (Level B): SRSWR resample of reference rows.
+            if (use_level_b) {
+              idx_ref <- sample(n_ref, size = n_ref, replace = TRUE)
+              ref_data_b <- ref_design@data[idx_ref, , drop = FALSE]
+              ref_b <- surveycore::survey_taylor(
+                data = ref_data_b,
+                variables = ref_design@variables
+              )
+            } else {
+              ref_b <- ref_design
+              ref_data_b <- NULL
+            }
+
+            # Step 3: re-run ipw()
+            ipw_result_b <- surveywts::ipw(
+              data = S_A_b,
+              reference = ref_b,
+              selection = ipw_entry$formula,
+              method = ipw_entry$method,
+              estimating_eq = ipw_entry$estimating_eq,
+              missing_method = ipw_entry$missing_method,
+              adjust_reference = ipw_entry$adjust_reference,
+              trim = ipw_entry$trim,
+              wt_name = data@variables$weights
             )
-          } else {
-            ref_b <- ref_design
-            ref_data_b <- NULL
-          }
 
-          # Step 3: re-run ipw()
-          ipw_result_b <- surveywts::ipw(
-            data = S_A_b,
-            reference = ref_b,
-            selection = ipw_entry$formula,
-            method = ipw_entry$method,
-            estimating_eq = ipw_entry$estimating_eq,
-            missing_method = ipw_entry$missing_method,
-            adjust_reference = ipw_entry$adjust_reference,
-            trim = ipw_entry$trim,
-            wt_name = data@variables$weights
-          )
+            # Step 4: re-run calibration (if calibration entry present)
+            if (!is.null(calib_entry)) {
+              calib_result_b <- .dispatch_calibration_replay(
+                data = ipw_result_b,
+                calib_entry = calib_entry,
+                ref_design = ref_design,
+                ref_data_b = ref_data_b,
+                use_level_b = use_level_b
+              )
+              w_b <- .extract_weight_vec(calib_result_b, data@variables$weights)
+            } else {
+              w_b <- ipw_result_b@data[[data@variables$weights]]
+            }
 
-          # Step 4: re-run calibration (if calibration entry present)
-          if (!is.null(calib_entry)) {
-            calib_result_b <- .dispatch_calibration_replay(
-              data = ipw_result_b,
-              calib_entry = calib_entry,
-              ref_design = ref_design,
-              ref_data_b = ref_data_b,
-              use_level_b = use_level_b
-            )
-            w_b <- .extract_weight_vec(calib_result_b, data@variables$weights)
-          } else {
-            w_b <- ipw_result_b@data[[data@variables$weights]]
-          }
+            # Step 5: put w_b back into original-unit order. Without this the
+            # resample-order vector lands in row order and every unit carries
+            # some other unit's weight.
+            w_b <- .map_resample_weights(w_b, idx, n_A)
 
-          # Step 5: put w_b back into original-unit order. Without this the
-          # resample-order vector lands in row order and every unit carries
-          # some other unit's weight.
-          w_b <- .map_resample_weights(w_b, idx, n_A)
-
-          repwt_list[[length(repwt_list) + 1L]] <- w_b
-          TRUE
-        },
-        error = function(e) FALSE
+            repwt_list[[length(repwt_list) + 1L]] <- w_b
+            TRUE
+          },
+          error = function(e) FALSE
+        ),
+        counter = replay_counter
       )
 
       if (!isTRUE(draw_ok)) failed_draws <- failed_draws + 1L
@@ -590,69 +597,74 @@
     repwt_list <- list()
 
     for (b in seq_len(B)) {
-      draw_ok <- tryCatch(
-        {
-          # Step 1: SRSWR resample of NPS rows
-          idx <- sample(n_A, size = n_A, replace = TRUE)
-          S_A_b <- data@data[idx, , drop = FALSE]
+      draw_ok <- .muffle_replay_messages(
+        tryCatch(
+          {
+            # Step 1: SRSWR resample of NPS rows
+            idx <- sample(n_A, size = n_A, replace = TRUE)
+            S_A_b <- data@data[idx, , drop = FALSE]
 
-          # Step 3 (calibration-only): assign equal initial weight = 1.
-          # SRSWR gives each NPS unit equal selection probability per replicate;
-          # carrying forward the original calibrated weights would double-count.
-          S_A_b[[wt_col]] <- 1
+            # Step 3 (calibration-only): assign equal initial weight = 1.
+            # SRSWR gives each NPS unit equal selection probability per replicate;
+            # carrying forward the original calibrated weights would double-count.
+            S_A_b[[wt_col]] <- 1
 
-          # Wrap as survey_nonprob for dispatch
-          nps_b <- surveycore::survey_nonprob(
-            data = S_A_b,
-            variables = list(weights = wt_col),
-            metadata = surveycore::survey_metadata()
-          )
+            # Wrap as survey_nonprob for dispatch
+            nps_b <- surveycore::survey_nonprob(
+              data = S_A_b,
+              variables = list(weights = wt_col),
+              metadata = surveycore::survey_metadata()
+            )
 
-          # Level B: SRSWR resample of reference rows
-          ref_data_b <- if (use_level_b) {
-            idx_ref <- sample(n_ref, size = n_ref, replace = TRUE)
-            ref_design@data[idx_ref, , drop = FALSE]
-          } else {
-            NULL
-          }
+            # Level B: SRSWR resample of reference rows
+            ref_data_b <- if (use_level_b) {
+              idx_ref <- sample(n_ref, size = n_ref, replace = TRUE)
+              ref_design@data[idx_ref, , drop = FALSE]
+            } else {
+              NULL
+            }
 
-          # Step 4: calibration replay
-          calib_result_b <- .dispatch_calibration_replay(
-            data = nps_b,
-            calib_entry = calib_entry,
-            ref_design = ref_design,
-            ref_data_b = ref_data_b,
-            use_level_b = use_level_b
-          )
+            # Step 4: calibration replay
+            calib_result_b <- .dispatch_calibration_replay(
+              data = nps_b,
+              calib_entry = calib_entry,
+              ref_design = ref_design,
+              ref_data_b = ref_data_b,
+              use_level_b = use_level_b
+            )
 
-          w_b <- .extract_weight_vec(calib_result_b, wt_col)
+            w_b <- .extract_weight_vec(calib_result_b, wt_col)
 
-          # A draw fails if any calibrated weight is <= 0 (e.g., calibrate_linear
-          # with bounds = NULL can produce negative weights that pass the engine
-          # but violate the survey_nonprob validator)
-          # nocov start
-          # Requires calibrate_linear() to produce a negative weight on a bootstrap
-          # subsample — reliably engineering such extreme conditions without
-          # also causing convergence failure is not feasible in unit tests.
-          if (any(w_b <= 0, na.rm = TRUE)) {
-            stop("non-positive calibrated weight")
-          }
-          # nocov end
+            # A draw fails if any calibrated weight is <= 0 (e.g., calibrate_linear
+            # with bounds = NULL can produce negative weights that pass the engine
+            # but violate the survey_nonprob validator)
+            # nocov start
+            # Requires calibrate_linear() to produce a negative weight on a bootstrap
+            # subsample — reliably engineering such extreme conditions without
+            # also causing convergence failure is not feasible in unit tests.
+            if (any(w_b <= 0, na.rm = TRUE)) {
+              stop("non-positive calibrated weight")
+            }
+            # nocov end
 
-          # Step 5: put w_b back into original-unit order. The check above
-          # runs first, on the resample-order vector, because after the map
-          # every unit the draw did not select carries a legitimate 0.
-          w_b <- .map_resample_weights(w_b, idx, n_A)
+            # Step 5: put w_b back into original-unit order. The check above
+            # runs first, on the resample-order vector, because after the map
+            # every unit the draw did not select carries a legitimate 0.
+            w_b <- .map_resample_weights(w_b, idx, n_A)
 
-          repwt_list[[length(repwt_list) + 1L]] <- w_b
-          TRUE
-        },
-        error = function(e) FALSE
+            repwt_list[[length(repwt_list) + 1L]] <- w_b
+            TRUE
+          },
+          error = function(e) FALSE
+        ),
+        counter = replay_counter
       )
 
       if (!isTRUE(draw_ok)) failed_draws <- failed_draws + 1L
     }
   }
+
+  .report_replay_messages(replay_counter, B)
 
   # ---- Post-loop checks ---------------------------------------------------
   if (failed_draws > 0.1 * B) {
@@ -916,4 +928,85 @@
     }
   }) |>
     stats::setNames(names(margins_orig))
+}
+
+# ============================================================================
+# .new_replay_counter()
+# ============================================================================
+
+# Create a fresh counter for the calibration replay message. One counter per
+# call to the enclosing weighting function, so a second call starts at zero.
+#
+# Returns: an environment with $n set to 0L
+.new_replay_counter <- function() {
+  counter <- new.env(parent = emptyenv())
+  counter$n <- 0L
+  counter
+}
+
+# ============================================================================
+# .muffle_replay_messages()
+# ============================================================================
+
+# Muffle and count the already-calibrated message that a calibration replay
+# emits inside a replicate loop.
+#
+# The grouped jackknife and the quasi-randomization bootstrap re-run the stored
+# calibration once per replicate. A replicate whose subsample already meets its
+# margins emits surveywts_message_already_calibrated. At 25 replicates that is
+# up to 25 identical lines, so this helper muffles each one and counts it.
+# .report_replay_messages() prints the count once after the loop.
+#
+# `expr` is a promise, so assignments inside it write to the caller's frame.
+# suppressMessages() behaves the same way.
+#
+# The count this handler produces is a per-replicate count by construction:
+# each replay reads a single calib_entry, and the already-calibrated branch
+# at R/calibrate-utils.R:985 returns early, so the second emitter at :1049 is
+# unreachable in the same call. Replaying two calibration entries per
+# replicate would break the "of N replicates" wording in
+# .report_replay_messages(), because the count would then track emissions,
+# not replicates.
+#
+# Arguments:
+#   expr    : the replicate body to evaluate
+#   counter : environment from .new_replay_counter()
+#
+# Returns: the value of expr
+.muffle_replay_messages <- function(expr, counter) {
+  withCallingHandlers(
+    expr,
+    surveywts_message_already_calibrated = function(m) {
+      counter$n <- counter$n + 1L
+      invokeRestart("muffleMessage")
+    }
+  )
+}
+
+# ============================================================================
+# .report_replay_messages()
+# ============================================================================
+
+# Print one line naming how many replicates already met their margins. Print
+# nothing when no replicate emitted the message.
+#
+# Arguments:
+#   counter    : environment from .new_replay_counter()
+#   replicates : integer(1) — the number of replicates the caller requested
+#
+# Returns: invisible(NULL); called for the message
+.report_replay_messages <- function(counter, replicates) {
+  if (counter$n == 0L) {
+    return(invisible(NULL))
+  }
+  cli::cli_inform(
+    c(
+      "i" = paste0(
+        "Raking converged in 1 sweep in {counter$n} of {replicates} ",
+        "replicate{?s}: those replicates already met their margins."
+      )
+    ),
+    class = "surveywts_message_replay_already_calibrated"
+  )
+  invisible(NULL)
 }

@@ -60,6 +60,27 @@
   quasi-randomization bootstrap has a separate defect with a different cause,
   fixed under #102 above.
 
+* The grouped jackknife and the quasi-randomization bootstrap replay a
+  stored calibration once per replicate (#111). Each replay that already met
+  its margins printed its own convergence line, so a call with
+  `replicates = 25` could print up to 25 identical lines.
+
+  The message comes from the calibration call, not from the replicate loop,
+  so the fix sits at the two replay sites instead of at the message's
+  source. Each replicate body now runs under a handler that catches and
+  counts `surveywts_message_already_calibrated`. One line after the loop
+  reports the count, under a new class,
+  `surveywts_message_replay_already_calibrated`. On `ns_wave1` weighted to
+  `npors_2025_clean` with 25 replicates, that line reads "Raking converged
+  in 1 sweep in 22 of 25 replicates: those replicates already met their
+  margins." A direct call to `calibrate_rake()` still prints the
+  per-replicate message on every call; only the two replay sites catch it.
+
+  **Compatibility note:** code that wrapped a replay call in
+  `withCallingHandlers()` or `tryCatch()`, matching on
+  `surveywts_message_already_calibrated`, no longer fires. The muffling
+  handler sits deeper in the call stack and runs first. This is intended.
+
 ## Internal
 
 * Add tests for `calibrate_to_survey()` and `calibrate_to_estimate()` edge

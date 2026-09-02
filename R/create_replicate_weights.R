@@ -95,6 +95,14 @@
 #' [create_gen_boot_weights()], [create_gen_rep_weights()], and
 #' [create_sdr_weights()].
 #'
+#' @section Messages:
+#'
+#' When the design carries a calibration, the replay re-runs it inside every
+#' replicate. Replicates that already meet their margins are counted and
+#' reported in one summary line, not announced one by one. A count close to
+#' `replicates` means the replay changed little, so the variance estimate
+#' may be near zero and deserves a look.
+#'
 #' @references
 #'   Ash, S. (2014). Using successive difference replication for estimating
 #'   variances. *Survey Methodology*, 40(1), 47--59.
@@ -161,8 +169,8 @@
 #' )
 #' ns_wave1_svy <- surveycore::as_survey_nonprob(ns_wave1, weights = weight)
 #' ns_wave1_cal <- calibrate_rake(ns_wave1_svy, targets = targets_a)
-#' # This path replays the calibration inside every replicate and announces
-#' # each one, so expect a block of convergence messages. Real analyses use
+#' # This path replays the calibration inside every replicate. Replicates that
+#' # already met their margins are named in one summary line. Real analyses use
 #' # more replicates; 25 keeps `R CMD check` fast.
 #' dagjk_rep <- create_replicate_weights(
 #'   ns_wave1_cal, method = "jackknife", type = "grouped",

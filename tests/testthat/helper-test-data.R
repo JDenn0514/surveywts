@@ -534,3 +534,64 @@ make_npors_taylor <- function() {
     strata = stratum
   )
 }
+
+# Designs that fire the calibration replay message (issue #111).
+#
+# control = list(improvement = 5) makes every replicate pass the raking
+# improvement threshold, so every replicate emits
+# surveywts_message_already_calibrated. That saturates the count and keeps the
+# assertions clear of borderline chi-square comparisons.
+#
+# Returns a list:
+#   ipw_cal  : ipw() then calibrate_rake(); fires on the IPW replay paths
+#   cal_only : calibrate_rake() only; fires on the calibration-only paths
+#   quiet    : same data, default threshold; fires on no bootstrap replicate
+#   ref      : the reference survey_taylor
+make_replay_message_datasets <- function() {
+  d <- make_dagjk_datasets()
+
+  targets <- list(
+    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30),
+    sex = c("M" = 0.48, "F" = 0.52)
+  )
+
+  ipw_fit <- suppressWarnings(surveywts::ipw(
+    data = d$A@data[, c("age_group", "sex")],
+    reference = d$ref,
+    selection = ~ age_group + sex,
+    estimating_eq = "mle",
+    adjust_reference = FALSE
+  ))
+  ipw_cal <- suppressMessages(suppressWarnings(surveywts::calibrate_rake(
+    ipw_fit,
+    targets = targets,
+    type = "prop",
+    control = list(improvement = 5)
+  )))
+
+  # A design sitting exactly on its margins, calibration only.
+  age <- rep(c("18-34", "35-54", "55+"), times = c(3L, 4L, 3L) * 100L)
+  set.seed(7L)
+  sex <- sample(rep(c("M", "F"), times = c(480L, 520L)))
+  df <- data.frame(
+    age_group = age,
+    sex = sex,
+    w = rep(1, 1000L),
+    stringsAsFactors = FALSE
+  )
+  svy <- surveycore::as_survey_nonprob(df, weights = w)
+
+  cal_only <- suppressMessages(suppressWarnings(surveywts::calibrate_rake(
+    svy,
+    targets = targets,
+    type = "prop",
+    control = list(improvement = 5)
+  )))
+  quiet <- suppressMessages(suppressWarnings(surveywts::calibrate_rake(
+    svy,
+    targets = targets,
+    type = "prop"
+  )))
+
+  list(ipw_cal = ipw_cal, cal_only = cal_only, quiet = quiet, ref = d$ref)
+}

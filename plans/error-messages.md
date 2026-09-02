@@ -213,3 +213,4 @@ templates (organized by function in subsections XII.A through XII.G).
 | Class | Thrown by | Condition |
 |-------|-----------|-----------|
 | `surveywts_message_already_calibrated` | `rake()` | `method = "anesrake"` and all raking variables pass the chi-square threshold in sweep 1 — no adjustment needed |
+| `surveywts_message_replay_already_calibrated` | `create_jackknife_weights()`, `create_bootstrap_weights()`, `create_replicate_weights()` | One or more replicates of a calibration replay already met their margins; replaces the per-replicate `surveywts_message_already_calibrated` |

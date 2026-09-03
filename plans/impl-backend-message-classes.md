@@ -89,7 +89,14 @@ fixture:
 | `"Horvitz-Thompson"` | errors: must use a PPS design | errors: must use a PPS design |
 | `"Yates-Grundy"` | errors: must use a PPS design | errors: must use a PPS design |
 | `"Stratified Multistage SRS"` | errors: must supply a matrix or data frame | same error |
-| `"Deville-1"`, `"Deville-2"` | run, but warn "not positive semidefinite" | same warning |
+| `"Deville-1"`, `"Deville-2"` | run, but report "not positive semidefinite" | same report |
+
+The "not positive semidefinite" line from the Deville estimators is a
+`message()` in `svrep:::get_design_quad_form.survey.design`, not a
+`warning()`. Since this branch classes every back-end message, those users
+now see it as `surveywts_message_backend_note`, prefixed with "The replicate
+weight back end reported:". Either way it is output the negative tests must
+not carry.
 
 Use `"Ultimate Cluster"`. It reads no row order, it is the natural estimator
 for this design, and it is the only clean option. `surveycore::as_survey()`

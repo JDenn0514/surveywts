@@ -95,12 +95,22 @@ Six functions call `.convert_and_call()`: `create_bootstrap_weights()`,
 `create_brr_weights()`, `create_jackknife_weights()`,
 `create_sdr_weights()`, `create_gen_boot_weights()`, and
 `create_gen_rep_weights()`. `create_replicate_weights()`, the seventh, is a
-dispatcher; it adds no back-end call of its own. Two paths do not pass
-through the wrap and do not need to:
-`create_jackknife_weights(type = "grouped")` and the quasi-randomization
-bootstrap build their replicates in surveywts loops. Those loops emit
-surveywts messages, which already carry a class, and #116 collapsed the one
-that repeated.
+dispatcher; it adds no back-end call of its own.
+
+Two paths do not pass through the wrap and do not need to. Both build their
+replicates in surveywts loops rather than in one back-end call:
+
+- `create_jackknife_weights(type = "grouped")` on a `survey_nonprob` design,
+  the delete-a-group jackknife.
+- The quasi-randomization bootstrap.
+
+The grouped jackknife on a `survey_taylor` design is not one of them. It
+reaches `svrep::as_random_group_jackknife_design()` through
+`.convert_and_call()` at `R/create_jackknife_weights.R:407`, so it passes
+through the wrap like the other five. It emits nothing at svrep 0.9.1.
+
+Those two loop paths emit surveywts messages, which already carry a class,
+and #116 collapsed the one that repeated.
 
 `withCallingHandlers()` on `message` collects each condition into a list,
 then calls `invokeRestart("muffleMessage")`. The report comes after the call
@@ -198,7 +208,9 @@ v Set `seed` to make the draw reproducible, or raise `max_replicates`.
 ```
 
 The natural count (68) is not available from the design, so the regex captures
-it out of svrep's text. The `v` bullet appears only when `seed` is `NULL`.
+it out of svrep's text. A `v` bullet always appears, and its advice depends
+on `seed`: without a seed it says to set one or raise `max_replicates`, and
+with a seed it says only to raise `max_replicates`.
 `.convert_and_call()` already takes `seed`, so the check needs no new
 argument.
 

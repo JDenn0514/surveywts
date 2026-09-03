@@ -258,12 +258,15 @@ In scope:
   `.Rd` files.
 - The `NEWS.md` entry.
 
-Out of scope. Each is worth its own issue:
+Out of scope:
 
 - Exposing `use_normal_hadamard` on `create_sdr_weights()`, which would make
-  the smaller Hadamard orders reachable: 20 in place of 32, 56 in place of 64.
-- The missing `rlang::check_dots_empty()` on all three functions. Each
-  declares `... Must be empty` and none enforces it.
+  the smaller Hadamard orders reachable: 20 in place of 32, 56 in place of 64,
+  104 in place of 128. Filed as
+  [#119](https://github.com/JDenn0514/surveywts/issues/119).
+- The missing `rlang::check_dots_empty()`. Five creators declare
+  `... Must be empty` and only `create_jackknife_weights()` enforces it.
+  Filed as [#120](https://github.com/JDenn0514/surveywts/issues/120).
 - Warnings. This spec covers messages only.
 
 ## 8. Tests

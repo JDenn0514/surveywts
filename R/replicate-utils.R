@@ -156,7 +156,14 @@
     svydesign_obj <- surveycore::as_svydesign(data)
   }
 
-  svyrep_obj <- backend_fn(svydesign_obj)
+  # svrep prints an unclassed message() on some successful calls. Collect them
+  # here and re-emit each one under a surveywts class below, once the
+  # replicate count is known (issue #114).
+  msg_store <- .new_backend_message_store()
+  svyrep_obj <- .collect_backend_messages(
+    backend_fn(svydesign_obj),
+    msg_store
+  )
 
   # Extract replicate weight matrix. Both `matrix` (svrep bootstrap, gen-boot,
   # gen-rep) and `repweights_compressed` (survey JKn/BRR, svrep random-group JK)
@@ -174,6 +181,7 @@
     rep_matrix <- rep_matrix * as.numeric(svyrep_obj$pweights)
   }
   n_rep <- ncol(rep_matrix)
+  .report_backend_messages(msg_store, n_rep, params, seed)
   rep_names <- paste0("rep_", seq_len(n_rep))
 
   base_data <- as.data.frame(svyrep_obj$variables)

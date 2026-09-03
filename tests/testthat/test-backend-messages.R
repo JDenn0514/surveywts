@@ -289,3 +289,194 @@ test_that(".report_backend_messages() returns invisible NULL", {
     )
   )
 })
+
+# ============================================================================
+# Integration: the six creators that call .convert_and_call()
+# ============================================================================
+
+make_gss_taylor <- function() {
+  surveycore::as_survey(
+    gss_2024,
+    weights = wtssps,
+    strata = vstrat,
+    ids = vpsu,
+    nest = TRUE
+  )
+}
+
+make_cps_taylor <- function() {
+  surveycore::as_survey(cps_2023, weights = wtfinl)
+}
+
+test_that("create_gen_boot_weights() classes the row-order message", {
+  expect_message(
+    create_gen_boot_weights(make_gss_taylor(), replicates = 20L, seed = 1L),
+    class = "surveywts_message_row_order_assumed"
+  )
+})
+
+test_that("create_gen_boot_weights() emits nothing unclassed", {
+  seen <- character()
+  withCallingHandlers(
+    create_gen_boot_weights(make_gss_taylor(), replicates = 20L, seed = 1L),
+    message = function(m) {
+      seen <<- c(seen, class(m)[[1]])
+      invokeRestart("muffleMessage")
+    }
+  )
+  expect_true(all(grepl("^surveywts_message_", seen)))
+})
+
+test_that("create_gen_boot_weights() names the estimator it was given", {
+  expect_message(
+    create_gen_boot_weights(make_gss_taylor(), replicates = 20L, seed = 1L),
+    "SD1",
+    class = "surveywts_message_row_order_assumed"
+  )
+})
+
+test_that("create_gen_boot_weights() stays quiet for an estimator that ignores row order", {
+  expect_no_message(
+    create_gen_boot_weights(
+      make_gss_taylor(),
+      replicates = 20L,
+      variance_estimator = "Horvitz-Thompson",
+      seed = 1L
+    )
+  )
+})
+
+test_that("create_gen_rep_weights() classes the row-order message", {
+  expect_message(
+    create_gen_rep_weights(make_gss_taylor(), seed = 1L),
+    class = "surveywts_message_row_order_assumed"
+  )
+})
+
+test_that("create_gen_rep_weights() classes both messages when max_replicates truncates", {
+  seen <- character()
+  withCallingHandlers(
+    create_gen_rep_weights(make_gss_taylor(), max_replicates = 20L),
+    message = function(m) {
+      seen <<- c(seen, class(m)[[1]])
+      invokeRestart("muffleMessage")
+    }
+  )
+  expect_identical(
+    seen,
+    c(
+      "surveywts_message_row_order_assumed",
+      "surveywts_message_replicates_subsampled"
+    )
+  )
+})
+
+test_that("create_gen_rep_weights() names the fully efficient count", {
+  # Read the subsample message on its own, with the row-order one muffled.
+  txt <- NULL
+  withCallingHandlers(
+    create_gen_rep_weights(make_gss_taylor(), max_replicates = 20L),
+    surveywts_message_replicates_subsampled = function(m) {
+      txt <<- conditionMessage(m)
+      invokeRestart("muffleMessage")
+    },
+    surveywts_message_row_order_assumed = function(m) {
+      invokeRestart("muffleMessage")
+    }
+  )
+  expect_match(txt, "68")
+  expect_match(txt, "seed")
+})
+
+test_that("create_gen_rep_weights() drops the seed advice when seed is given", {
+  txt <- NULL
+  withCallingHandlers(
+    create_gen_rep_weights(make_gss_taylor(), max_replicates = 20L, seed = 1L),
+    surveywts_message_replicates_subsampled = function(m) {
+      txt <<- conditionMessage(m)
+      invokeRestart("muffleMessage")
+    },
+    surveywts_message_row_order_assumed = function(m) {
+      invokeRestart("muffleMessage")
+    }
+  )
+  expect_no_match(txt, "seed")
+})
+
+test_that("create_gen_rep_weights() stays quiet at the default max_replicates for a non-SD estimator", {
+  expect_no_message(
+    create_gen_rep_weights(
+      make_gss_taylor(),
+      variance_estimator = "Horvitz-Thompson",
+      seed = 1L
+    )
+  )
+})
+
+test_that("create_sdr_weights() classes the rounding message and names both counts", {
+  txt <- NULL
+  design <- withCallingHandlers(
+    create_sdr_weights(make_cps_taylor(), replicates = 100L),
+    surveywts_message_replicates_rounded_up = function(m) {
+      txt <<- conditionMessage(m)
+      invokeRestart("muffleMessage")
+    }
+  )
+  expect_match(txt, "100")
+  expect_match(txt, "128")
+  expect_length(design@variables$repweights, 128L)
+})
+
+test_that("create_sdr_weights() stays quiet when the count matches the request", {
+  expect_no_message(create_sdr_weights(make_cps_taylor(), replicates = 128L))
+})
+
+test_that("create_sdr_weights() never mentions an argument it does not forward", {
+  txt <- NULL
+  withCallingHandlers(
+    create_sdr_weights(make_cps_taylor(), replicates = 100L),
+    surveywts_message_replicates_rounded_up = function(m) {
+      txt <<- conditionMessage(m)
+      invokeRestart("muffleMessage")
+    }
+  )
+  expect_no_match(txt, "use_normal_hadamard")
+})
+
+test_that("the three silent creators stay silent", {
+  gss <- make_gss_taylor()
+  expect_no_message(create_brr_weights(gss))
+  expect_no_message(create_jackknife_weights(gss, type = "jkn"))
+  expect_no_message(
+    create_bootstrap_weights(gss, replicates = 20L, seed = 1L)
+  )
+})
+
+test_that(".convert_and_call() classes a message no pattern matches", {
+  # The backend_fn mirrors create_sdr_weights(): it adds a .row_order column
+  # so svrep does not emit its own `sort_variable = NULL` note on top of the
+  # one this test raises. params carries `replicates = 32L`, the count svrep
+  # returns for 20, so the Hadamard message translates to NULL and only the
+  # unrecognised text reaches the caller.
+  expect_message(
+    .convert_and_call(
+      data = make_cps_taylor(),
+      backend_fn = function(d) {
+        message("A back end said something new.")
+        d$variables[[".row_order"]] <- seq_len(nrow(d$variables))
+        out <- svrep::as_sdr_design(
+          d,
+          replicates = 20L,
+          sort_variable = ".row_order",
+          mse = TRUE
+        )
+        out$variables[[".row_order"]] <- NULL
+        out
+      },
+      method = "successive-difference",
+      params = list(replicates = 32L, sort_var = NULL, mse = TRUE)
+    ),
+    "A back end said something new",
+    class = "surveywts_message_backend_note"
+  )
+})

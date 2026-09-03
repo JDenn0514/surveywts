@@ -15,6 +15,11 @@
 # .new_replay_counter()              — fresh counter for the replay message
 # .muffle_replay_messages()          — muffle & count the per-replicate message
 # .report_replay_messages()          — print one summary line after the loop
+# .new_backend_message_store()       — fresh store for the back-end messages
+# .collect_backend_messages()        — muffle & collect the svrep/survey messages
+# .translate_backend_message()       — one message -> a classed cli payload
+# .backend_note()                    — the generic payload for an unknown text
+# .report_backend_messages()         — re-emit each one under a surveywts class
 
 # ============================================================================
 # .validate_replicate_input()
@@ -1008,5 +1013,219 @@
     ),
     class = "surveywts_message_replay_already_calibrated"
   )
+  invisible(NULL)
+}
+
+# ============================================================================
+# .new_backend_message_store()
+# ============================================================================
+
+# Create a fresh store for the messages the replicate weight back end emits.
+# One store per call to .convert_and_call(), so a second call starts empty.
+#
+# Returns: an environment with $msgs set to list()
+.new_backend_message_store <- function() {
+  store <- new.env(parent = emptyenv())
+  store$msgs <- list()
+  store
+}
+
+# ============================================================================
+# .collect_backend_messages()
+# ============================================================================
+
+# Collect and muffle the messages svrep and survey print on a successful call.
+#
+# svrep raises them with message(), so they carry simpleMessage/message/
+# condition and nothing else. A caller who wanted to quiet one had to use a
+# blanket suppressMessages(), which also swallowed every surveywts message
+# (issue #114). This helper takes them out of the back end's hands, and
+# .report_backend_messages() re-emits each one under a surveywts class.
+#
+# `expr` is a promise, so it is evaluated inside the handler and assignments
+# in it write to the caller's frame. .muffle_replay_messages() behaves the
+# same way.
+#
+# A condition that already carries a surveywts_message_* class is left alone.
+# The handler returns without calling invokeRestart(), so the message prints
+# where it was raised. No surveywts code emits from inside backend_fn() today;
+# the branch keeps a later one from disappearing.
+#
+# Arguments:
+#   expr  : the back-end call to evaluate
+#   store : environment from .new_backend_message_store()
+#
+# Returns: the value of expr
+.collect_backend_messages <- function(expr, store) {
+  withCallingHandlers(
+    expr,
+    message = function(m) {
+      if (any(grepl("^surveywts_message_", class(m)))) {
+        return(invisible(NULL))
+      }
+      store$msgs <- c(store$msgs, list(m))
+      invokeRestart("muffleMessage")
+    }
+  )
+}
+
+# ============================================================================
+# .translate_backend_message()
+# ============================================================================
+
+# Turn one collected back-end message into a payload for cli::cli_inform().
+#
+# svrep emits plain message() calls, so there is no class to key on and the
+# match is on the message text. A wording change upstream stops the match and
+# the message arrives under surveywts_message_backend_note instead: still
+# visible, still classed, no longer rewritten. Nothing goes silent.
+#
+# The returned `data` list holds the values the bullets interpolate.
+# .report_backend_messages() binds them into the .envir it passes to
+# cli_inform(), because the bullets are built here and emitted there.
+#
+# Arguments:
+#   cnd    : a condition collected by .collect_backend_messages()
+#   n_rep  : integer(1) -- replicate columns the back end returned
+#   params : the params list .convert_and_call() received
+#   seed   : integer(1) or NULL -- the seed .convert_and_call() received
+#
+# Returns: list(bullets =, class =, data =), or NULL when the message carries
+#          nothing the caller needs
+.translate_backend_message <- function(cnd, n_rep, params, seed) {
+  txt <- trimws(conditionMessage(cnd))
+
+  # svrep:::get_design_quad_form.survey.design, for SD1 and SD2 only.
+  if (grepl("assumes rows of data are sorted", txt, fixed = TRUE)) {
+    return(list(
+      bullets = c(
+        "i" = paste0(
+          "{.arg variance_estimator} is {.val {estimator}}, which reads the ",
+          "row order of the data. It assumes the rows are still in the order ",
+          "the sample was drawn in."
+        ),
+        "v" = paste0(
+          "Sort the rows into selection order before you call this function."
+        )
+      ),
+      class = "surveywts_message_row_order_assumed",
+      data = list(
+        estimator = sub(".*variance_estimator='([^']+)'.*", "\\1", txt)
+      )
+    ))
+  }
+
+  # svrep:::make_sdr_replicate_factors. n_rep is authoritative, so the order
+  # is not read out of the text. Nothing is worth saying when the count the
+  # caller asked for is the count they got.
+  if (grepl("Using Hadamard matrix of order", txt, fixed = TRUE)) {
+    requested <- params$replicates
+    if (is.null(requested)) {
+      return(.backend_note(txt))
+    }
+    if (identical(as.integer(requested), as.integer(n_rep))) {
+      return(NULL)
+    }
+    return(list(
+      bullets = c(
+        "i" = paste0(
+          "{.arg replicates} is {requested}, and the result has {n_rep} ",
+          "replicate columns."
+        ),
+        "i" = paste0(
+          "Successive difference replication builds the columns from a ",
+          "Hadamard matrix, and {n_rep} is the smallest order that fits ",
+          "{requested} replicates."
+        )
+      ),
+      class = "surveywts_message_replicates_rounded_up",
+      data = list(
+        requested = as.integer(requested),
+        n_rep = as.integer(n_rep)
+      )
+    ))
+  }
+
+  # svrep:::as_fays_gen_rep_design.survey.design. The fully efficient count is
+  # not available from the design, so it is read out of the text.
+  if (grepl("fully efficient replication", txt, fixed = TRUE)) {
+    requested <- params$max_replicates
+    if (is.null(requested)) {
+      return(.backend_note(txt))
+    }
+    advice <- if (is.null(seed)) {
+      paste0(
+        "Set {.arg seed} to make the draw reproducible, or raise ",
+        "{.arg max_replicates}."
+      )
+    } else {
+      "Raise {.arg max_replicates} for the fully efficient count."
+    }
+    return(list(
+      bullets = c(
+        "i" = paste0(
+          "{.arg max_replicates} is {requested}, below the {natural} ",
+          "replicates that generalized replication needs to be fully ",
+          "efficient."
+        ),
+        "i" = paste0(
+          "The back end keeps a random sample of {requested} of the {natural}."
+        ),
+        "v" = advice
+      ),
+      class = "surveywts_message_replicates_subsampled",
+      data = list(
+        requested = as.integer(requested),
+        natural = as.integer(sub(".*replication is ([0-9]+).*", "\\1", txt))
+      )
+    ))
+  }
+
+  .backend_note(txt)
+}
+
+# The generic payload. Used for any text the three patterns above do not
+# match, and for a recognised text whose params are missing.
+.backend_note <- function(txt) {
+  list(
+    bullets = c("i" = "The replicate weight back end reported: {txt}"),
+    class = "surveywts_message_backend_note",
+    data = list(txt = txt)
+  )
+}
+
+# ============================================================================
+# .report_backend_messages()
+# ============================================================================
+
+# Re-emit every collected back-end message under a surveywts class. Emit
+# nothing when the store is empty.
+#
+# The .envir binds the payload's data values, because the bullets are built in
+# .translate_backend_message() and interpolated here. Its parent is this
+# frame, so cli's own lookups still resolve.
+#
+# Arguments:
+#   store  : environment from .new_backend_message_store()
+#   n_rep  : integer(1) -- replicate columns the back end returned
+#   params : the params list .convert_and_call() received
+#   seed   : integer(1) or NULL -- the seed .convert_and_call() received
+#
+# Returns: invisible(NULL); called for the messages
+.report_backend_messages <- function(store, n_rep, params, seed) {
+  for (cnd in store$msgs) {
+    payload <- .translate_backend_message(cnd, n_rep, params, seed)
+    if (is.null(payload)) {
+      next
+    }
+    cli::cli_inform(
+      payload$bullets,
+      class = payload$class,
+      .envir = list2env(
+        payload$data,
+        envir = new.env(parent = environment())
+      )
+    )
+  }
   invisible(NULL)
 }

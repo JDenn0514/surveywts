@@ -214,3 +214,7 @@ templates (organized by function in subsections XII.A through XII.G).
 |-------|-----------|-----------|
 | `surveywts_message_already_calibrated` | `rake()` | `method = "anesrake"` and all raking variables pass the chi-square threshold in sweep 1 — no adjustment needed |
 | `surveywts_message_replay_already_calibrated` | `create_jackknife_weights()`, `create_bootstrap_weights()`, `create_replicate_weights()` | One or more replicates of a calibration replay already met their margins; replaces the per-replicate `surveywts_message_already_calibrated` |
+| `surveywts_message_row_order_assumed` | `create_gen_boot_weights()`, `create_gen_rep_weights()` | `variance_estimator` is `"SD1"` or `"SD2"`, which read the row order of the data; replaces an unclassed svrep message |
+| `surveywts_message_replicates_rounded_up` | `create_sdr_weights()` | The Hadamard matrix order is above `replicates`, so the result carries more replicate columns than the caller asked for |
+| `surveywts_message_replicates_subsampled` | `create_gen_rep_weights()` | `max_replicates` is below the fully efficient replicate count, so the back end keeps a random sample of the replicates |
+| `surveywts_message_backend_note` | Any `create_*_weights()` that calls `.convert_and_call()` | The svrep or survey back end emitted a message this package does not recognise; re-emitted verbatim under a class |

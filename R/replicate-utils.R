@@ -1184,8 +1184,20 @@
   .backend_note(txt)
 }
 
-# The generic payload. Used for any text the three patterns above do not
-# match, and for a recognised text whose params are missing.
+# ============================================================================
+# .backend_note()
+# ============================================================================
+
+# Build the generic payload, for any text .translate_backend_message() does
+# not recognise and for a recognised text whose params are missing. The text
+# travels in `data` so cli interpolates it as a value: an upstream message
+# with braces in it is never re-parsed as markup.
+#
+# Arguments:
+#   txt : character(1) -- the back-end message text, already trimmed
+#
+# Returns: list(bullets =, class =, data =), the same shape as the three
+#          recognised payloads
 .backend_note <- function(txt) {
   list(
     bullets = c("i" = "The replicate weight back end reported: {txt}"),

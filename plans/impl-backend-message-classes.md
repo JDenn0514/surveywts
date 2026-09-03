@@ -591,7 +591,15 @@ Append to the end of `R/replicate-utils.R`:
   # caller asked for is the count they got.
   if (grepl("Using Hadamard matrix of order", txt, fixed = TRUE)) {
     requested <- params$replicates
-    if (is.null(requested) || identical(as.integer(requested), as.integer(n_rep))) {
+    # Two separate exits, not one. A missing `replicates` is an unrecognised
+    # shape and goes to the generic class, per spec section 5. Only a count
+    # that matches the request is dropped. Collapsing these into
+    # `is.null(requested) || identical(...)` sends missing params to NULL and
+    # contradicts the "params absent" test below.
+    if (is.null(requested)) {
+      return(.backend_note(txt))
+    }
+    if (identical(as.integer(requested), as.integer(n_rep))) {
       return(NULL)
     }
     return(list(

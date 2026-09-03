@@ -60,10 +60,12 @@ matches runs. The `survey_nonprob` and `survey_taylor` branches assert
 enforces. Only the `survey_replicate` branch asserts strict positivity, via
 `all(obj@data[[wt_col]] > 0)`.
 
-The `survey_nonprob` branch guards with `exists("survey_nonprob")` rather
-than testing `surveycore::survey_nonprob` directly. surveywts does not
-define or export `survey_nonprob`, so that guard is what keeps the branch
-from erroring when the bare name does not resolve.
+All three branches test the qualified class name:
+`surveycore::survey_nonprob`, `surveycore::survey_taylor`,
+`surveycore::survey_replicate`. Do not test a bare class name. surveywts
+does not define or re-export these classes, and `tests/testthat.R` attaches
+only `testthat` and `surveywts`, so a bare name resolves nowhere and the
+branch never fires.
 
 ---
 

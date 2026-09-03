@@ -102,6 +102,29 @@
 
 ## Internal
 
+* `test_invariants()` in `tests/testthat/helper-test-data.R` never checked a
+  `survey_nonprob` object (#117). The branch for that class tested a bare
+  class name behind a guard: `exists("survey_nonprob") &&
+  S7::S7_inherits(obj, survey_nonprob)`. surveywts does not re-export the
+  class, and `tests/testthat.R` attaches only `testthat` and `surveywts`, so
+  the bare name resolved nowhere and the guard was always `FALSE`. The parent
+  of `survey_nonprob` is the abstract `survey_base`, not `survey_taylor` or
+  `survey_replicate`, so no other branch caught the object either. 77 of the
+  282 calls registered zero expectations, most of them in the
+  non-probability code: `ipw()`, the DAGJK, the quasi-randomization
+  bootstrap, and propensity nonresponse.
+
+  The branch now tests `surveycore::survey_nonprob`, the form the other two
+  branches already use. Each of the 77 calls now asserts the four weight
+  invariants: the weight column name is a character scalar, the name is
+  present in `@data`, the column is numeric, and all values are `>= 0` with
+  at least one `> 0`. The suite goes from 3837 to 4145 passing expectations
+  and still reports zero failures, so no `survey_nonprob` object in the tests
+  was breaking a weight invariant.
+
+  `.claude/standards/testing-surveywts.md` recorded the guard as deliberate.
+  It now states that all three branches test the qualified class name.
+
 * The `surveywts_warning_class_near_empty` warning was built in three places,
   each with its own `cli_warn()` call: the `"propensity-cell"` method of
   `adjust_nonresponse()`, the `"weighting-class"` method of

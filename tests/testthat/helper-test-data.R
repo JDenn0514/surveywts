@@ -66,10 +66,7 @@ make_surveywts_data <- function(
 }
 
 test_invariants <- function(obj) {
-  if (
-    exists("survey_nonprob") &&
-      S7::S7_inherits(obj, survey_nonprob)
-  ) {
+  if (S7::S7_inherits(obj, surveycore::survey_nonprob)) {
     testthat::expect_true(is.character(obj@variables$weights))
     testthat::expect_true(obj@variables$weights %in% names(obj@data))
     testthat::expect_true(is.numeric(obj@data[[obj@variables$weights]]))

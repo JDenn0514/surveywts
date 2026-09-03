@@ -298,7 +298,7 @@ New file `tests/testthat/test-backend-messages.R`, next to
 |---|---|
 | `create_gen_boot_weights()` at the default estimator | Emits `surveywts_message_row_order_assumed` once |
 | `create_gen_rep_weights()` at the default estimator | Emits `surveywts_message_row_order_assumed` once |
-| `create_gen_boot_weights(variance_estimator = "Horvitz-Thompson")` | No row-order message |
+| `create_gen_boot_weights(variance_estimator = "Ultimate Cluster")` | No row-order message |
 | `create_sdr_weights(replicates = 100L)` | Emits `surveywts_message_replicates_rounded_up`; the result has 128 columns |
 | `create_sdr_weights(replicates = 128L)` | No rounding message |
 | `create_gen_rep_weights(max_replicates = 20L)` | Emits `surveywts_message_replicates_subsampled`; the `seed` bullet is present |

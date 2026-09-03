@@ -77,6 +77,26 @@ so the condition class is `simpleMessage/message/condition`.
 The row-order `message()` sits behind
 `if (variance_estimator %in% c("SD1", "SD2"))`. No other estimator reaches it.
 
+**Which non-SD estimator the fixtures accept**
+
+The negative tests need an estimator that is not `"SD1"` or `"SD2"` and that
+runs on `gss_2024` as a stratified multistage design. Measured on that
+fixture:
+
+| `variance_estimator` | `create_gen_boot_weights()` | `create_gen_rep_weights()` |
+|---|---|---|
+| `"Ultimate Cluster"` | 20 columns, 0 messages, 0 warnings | 68 columns, 0 messages, 0 warnings |
+| `"Horvitz-Thompson"` | errors: must use a PPS design | errors: must use a PPS design |
+| `"Yates-Grundy"` | errors: must use a PPS design | errors: must use a PPS design |
+| `"Stratified Multistage SRS"` | errors: must supply a matrix or data frame | same error |
+| `"Deville-1"`, `"Deville-2"` | run, but warn "not positive semidefinite" | same warning |
+
+Use `"Ultimate Cluster"`. It reads no row order, it is the natural estimator
+for this design, and it is the only clean option. `surveycore::as_survey()`
+has no `pps` argument, so nothing here can build the PPS design the
+Horvitz-Thompson family requires, and the Deville estimators break the
+pristine-output rule.
+
 **SDR replicate counts on `cps_2023`**
 
 | `replicates` | Columns returned | Order svrep names as reachable at `use_normal_hadamard = TRUE` |
@@ -835,7 +855,7 @@ test_that("create_gen_boot_weights() stays quiet for an estimator that ignores r
     create_gen_boot_weights(
       make_gss_taylor(),
       replicates = 20L,
-      variance_estimator = "Horvitz-Thompson",
+      variance_estimator = "Ultimate Cluster",
       seed = 1L
     )
   )
@@ -902,7 +922,7 @@ test_that("create_gen_rep_weights() stays quiet at the default max_replicates fo
   expect_no_message(
     create_gen_rep_weights(
       make_gss_taylor(),
-      variance_estimator = "Horvitz-Thompson",
+      variance_estimator = "Ultimate Cluster",
       seed = 1L
     )
   )

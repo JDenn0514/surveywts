@@ -340,7 +340,7 @@ test_that("create_gen_boot_weights() stays quiet for an estimator that ignores r
     create_gen_boot_weights(
       make_gss_taylor(),
       replicates = 20L,
-      variance_estimator = "Horvitz-Thompson",
+      variance_estimator = "Ultimate Cluster",
       seed = 1L
     )
   )
@@ -407,7 +407,7 @@ test_that("create_gen_rep_weights() stays quiet at the default max_replicates fo
   expect_no_message(
     create_gen_rep_weights(
       make_gss_taylor(),
-      variance_estimator = "Horvitz-Thompson",
+      variance_estimator = "Ultimate Cluster",
       seed = 1L
     )
   )

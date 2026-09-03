@@ -133,9 +133,9 @@ Verified by reading the three loop bodies.
 | `plans/error-messages.md` | Modify | Four rows in the `## Messages` table |
 | `R/replicate-utils.R` | Modify | The four helpers; the index block; the two lines in `.convert_and_call()` |
 | `tests/testthat/test-backend-messages.R` | Create | Unit tests for the helpers, integration tests for the six creators |
-| `R/create_gen_boot_weights.R` | Modify | One `@section Messages:` |
-| `R/create_gen_rep_weights.R` | Modify | One `@section Messages:`; the row-order note in `@details` |
-| `R/create_sdr_weights.R` | Modify | One `@section Messages:`; one example comment fix |
+| `R/create_gen_boot_weights.R` | Modify | Owns the one shared `@section Messages:` |
+| `R/create_gen_rep_weights.R` | Modify | One `@inheritSection` line; the row-order note in `@details`; the Ash (2014) reference |
+| `R/create_sdr_weights.R` | Modify | One `@inheritSection` line; one example comment fix |
 | `NEWS.md` | Modify | One entry under 0.2.1 |
 | `man/create_gen_boot_weights.Rd`, `man/create_gen_rep_weights.Rd`, `man/create_sdr_weights.Rd` | Regenerate | `devtools::document()` output |
 
@@ -1066,28 +1066,49 @@ Fixes #114"
 
 **Interfaces:**
 - Consumes: the four class names from Task 1.
-- Produces: no code names. Documentation only.
+- Produces: the Rd section `Messages` on topic `create_gen_boot_weights`, which the other two pages inherit by name. Documentation only.
 
-- [ ] **Step 1: Add the Messages section to `create_gen_boot_weights()`**
+- [ ] **Step 1: Add the one shared Messages section to `create_gen_boot_weights()`**
+
+`create_gen_boot_weights()` owns the section. The other two pages inherit it
+in Steps 2 and 3, so the text has to read correctly on all three: it covers
+the family, not this one function.
+
+Use the bulleted list below, not a markdown table.
+`Roxygen: list(markdown = TRUE)` is set in `DESCRIPTION`, but no roxygen
+block in this package uses a table yet and no `.Rd` file carries a
+`\tabular`. Bullets need no new machinery.
 
 In `R/create_gen_boot_weights.R`, insert this block after the
 `@section Choosing a target:` block and before `@references`:
 
 ```r
 #' @section Messages:
-#' At `variance_estimator = "SD1"` or `"SD2"` this function emits
-#' `surveywts_message_row_order_assumed`. Those two estimators read the
-#' row order of the data, and nothing here checks that order.
+#' The replicate weight creators re-emit the svrep back end's notices under
+#' their own classes, so you can quiet one without quieting the rest. Which
+#' message you see depends on the function and the arguments.
 #'
-#' Any other message the svrep back end emits arrives as
-#' `surveywts_message_backend_note`, with its text unchanged.
+#' - `surveywts_message_row_order_assumed` — from
+#'   [create_gen_boot_weights()] and [create_gen_rep_weights()], when
+#'   `variance_estimator` is `"SD1"` or `"SD2"`. Both estimators read the
+#'   row order of the data, and nothing here checks that order.
+#' - `surveywts_message_replicates_rounded_up` — from
+#'   [create_sdr_weights()], when the Hadamard matrix order is above
+#'   `replicates`. The result then carries more replicate columns than you
+#'   asked for: `replicates = 100` gives 128.
+#' - `surveywts_message_replicates_subsampled` — from
+#'   [create_gen_rep_weights()], when `max_replicates` is below the fully
+#'   efficient replicate count. The back end keeps a random sample of the
+#'   replicates, so set `seed` to make the draw reproducible.
+#' - `surveywts_message_backend_note` — from any of them, when the back end
+#'   emits a message this package does not recognise. The text is unchanged.
 #'
 #' To quiet one message and leave the rest alone:
 #'
 #' ```r
 #' withCallingHandlers(
-#'   create_gen_boot_weights(design, replicates = 100L),
-#'   surveywts_message_row_order_assumed = function(cnd) {
+#'   create_sdr_weights(design, replicates = 100L),
+#'   surveywts_message_replicates_rounded_up = function(cnd) {
 #'     invokeRestart("muffleMessage")
 #'   }
 #' )
@@ -1126,32 +1147,11 @@ pointing at another page for it:
 #' other `variance_estimator` does.
 ```
 
-Then insert this block after `@section Algorithm:` and before `@references`:
+Then insert this one line after `@section Algorithm:` and before
+`@references`, to pull in the shared section from Step 1:
 
 ```r
-#' @section Messages:
-#' At `variance_estimator = "SD2"` (the default) or `"SD1"` this function
-#' emits `surveywts_message_row_order_assumed`. Those two estimators read
-#' the row order of the data, and nothing here checks that order.
-#'
-#' When `max_replicates` is below the fully efficient replicate count, it
-#' also emits `surveywts_message_replicates_subsampled`. The back end then
-#' keeps a random sample of the replicates, so set `seed` to make the draw
-#' reproducible.
-#'
-#' Any other message the svrep back end emits arrives as
-#' `surveywts_message_backend_note`, with its text unchanged.
-#'
-#' To quiet one message and leave the rest alone:
-#'
-#' ```r
-#' withCallingHandlers(
-#'   create_gen_rep_weights(design, max_replicates = 20L, seed = 42L),
-#'   surveywts_message_replicates_subsampled = function(cnd) {
-#'     invokeRestart("muffleMessage")
-#'   }
-#' )
-#' ```
+#' @inheritSection create_gen_boot_weights Messages
 ```
 
 `Ash (2014)` is already in the `@references` of
@@ -1164,32 +1164,13 @@ Then insert this block after `@section Algorithm:` and before `@references`:
 #'   40(1), 47--59.
 ```
 
-- [ ] **Step 3: Add the Messages section to `create_sdr_weights()`**
+- [ ] **Step 3: Inherit the Messages section on `create_sdr_weights()`**
 
-In `R/create_sdr_weights.R`, insert this block after `@section Algorithm:`
-and before `@references`:
+In `R/create_sdr_weights.R`, insert this one line after
+`@section Algorithm:` and before `@references`:
 
 ```r
-#' @section Messages:
-#' When the Hadamard matrix order is above `replicates`, this function
-#' emits `surveywts_message_replicates_rounded_up` and names both counts.
-#' The result then carries more replicate columns than you asked for:
-#' `replicates = 100` gives 128. When the two counts match, it emits
-#' nothing.
-#'
-#' Any other message the svrep back end emits arrives as
-#' `surveywts_message_backend_note`, with its text unchanged.
-#'
-#' To quiet one message and leave the rest alone:
-#'
-#' ```r
-#' withCallingHandlers(
-#'   create_sdr_weights(design, replicates = 100L),
-#'   surveywts_message_replicates_rounded_up = function(cnd) {
-#'     invokeRestart("muffleMessage")
-#'   }
-#' )
-#' ```
+#' @inheritSection create_gen_boot_weights Messages
 ```
 
 - [ ] **Step 4: Fix the wrong count in the `create_sdr_weights()` example**
@@ -1255,6 +1236,17 @@ Expected: `man/create_gen_boot_weights.Rd`,
 `man/create_gen_rep_weights.Rd`, and `man/create_sdr_weights.Rd` change. No
 `NAMESPACE` change — none of the new helpers is exported.
 
+Then confirm the inherited section actually landed on all three pages.
+`@inheritSection` fails silently if the section name does not match, so check
+rather than assume:
+
+```bash
+grep -c "surveywts_message_replicates_rounded_up"   man/create_gen_boot_weights.Rd man/create_gen_rep_weights.Rd   man/create_sdr_weights.Rd
+```
+
+Expected: a non-zero count for each of the three files. A zero means the
+`@inheritSection create_gen_boot_weights Messages` line did not resolve.
+
 - [ ] **Step 7: Check that the examples run and print what the pages claim**
 
 Run:
@@ -1287,10 +1279,11 @@ Expected: `devtools::test()` PASS. `devtools::check()` reports 0 errors,
 ```bash
 air format R/create_gen_boot_weights.R R/create_gen_rep_weights.R R/create_sdr_weights.R
 git add R/create_gen_boot_weights.R R/create_gen_rep_weights.R R/create_sdr_weights.R man NEWS.md
-git commit -m "docs(replicate): document the back-end messages on each page
+git commit -m "docs(replicate): document the back-end messages
 
-Each of the three pages now has a Messages section naming the classes it
-emits and showing how to quiet one without quieting the rest.
+create_gen_boot_weights() carries one Messages section naming all four
+classes and showing how to quiet one without quieting the rest.
+create_gen_rep_weights() and create_sdr_weights() inherit it by name.
 
 create_gen_rep_weights() states the SD1/SD2 row-order precondition itself
 in place of pointing at create_gen_boot_weights() for it, and gains the
@@ -1317,7 +1310,7 @@ Refs #114"
 | §5 `surveywts_message_replicates_subsampled`, seed bullet conditional | 1 step 4, tested 1 step 2 and 2 step 1 |
 | §5 `surveywts_message_backend_note` | 1 step 4, tested 1 step 2 and 2 step 1 |
 | §5 the `sort_variable = NULL` note lands on the generic class | tested 1 step 2 |
-| §6 three `@section Messages:` blocks, written out, not inherited | 3 steps 1-3 |
+| §6 one shared `@section Messages:` on `create_gen_boot_weights()`, inherited by the other two | 3 steps 1-3, verified 3 step 6 |
 | §6 row-order note on the `create_gen_rep_weights()` page | 3 step 2 |
 | §6 the 50-versus-64 example fix | 3 step 4 |
 | §6 the NEWS entry | 3 step 5 |

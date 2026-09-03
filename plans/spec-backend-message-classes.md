@@ -229,8 +229,20 @@ today:
 
 ## 6. Documentation
 
-A `@section Messages:` on each of the three help pages. Each section names the
-classes for that page and shows the handler:
+One `@section Messages:`, owned by `create_gen_boot_weights()` and pulled into
+the other two pages with `@inheritSection create_gen_boot_weights Messages`.
+Decided 2026-09-03, overriding an earlier draft of this section that wrote the
+block out three times: the three copies would have differed only in which
+class each named, and the suppression recipe repeated verbatim.
+
+`@inheritSection` copies a section whole, so the shared text has to read
+correctly on all three pages. It therefore covers the family rather than one
+function: a bulleted list of the four classes, each naming the function that
+emits it and the condition that fires it, then the handler.
+
+Use a bulleted list, not a markdown table. `Roxygen: list(markdown = TRUE)` is
+set in `DESCRIPTION`, but no roxygen block in the package uses a table yet and
+no `.Rd` file carries a `\tabular`. Bullets need no new machinery.
 
 ```r
 withCallingHandlers(
@@ -241,15 +253,11 @@ withCallingHandlers(
 )
 ```
 
-Write the section out three times. Do not share it through
-`@inheritSection`. The issue's own complaint is that
-`create_gen_rep_weights()` defers to `create_gen_boot_weights()` in place of
-stating the row-order assumption on its own page, so each page stands alone
-here.
-
-For the same reason, `create_gen_rep_weights()` states the row-order
-precondition in its own `@details`, in place of the pointer to
-`@section Choosing a target` at `R/create_gen_boot_weights.R:55`.
+Separately, and still per page: `create_gen_rep_weights()` states the
+row-order precondition in its own `@details`, in place of the pointer to
+`@section Choosing a target` at `R/create_gen_boot_weights.R:55`. That is the
+part of #114 the shared section cannot carry, because it is about the
+statistical method rather than the message.
 
 One documentation bug to fix in the same file: the `create_sdr_weights()`
 example says "computed from the 50 replicate columns" for `replicates = 50L`.

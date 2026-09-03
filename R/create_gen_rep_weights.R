@@ -47,6 +47,13 @@
 #' [create_gen_boot_weights()]; note the defaults differ (`"SD2"`
 #' here, `"SD1"` there).
 #'
+#' **Row order.** The default `"SD2"` reads the row order of the data.
+#' It assumes the rows are still in the order the sample was drawn in
+#' (Ash 2014). Re-sorted rows give a different and incorrect answer, and
+#' no error is raised. Sort the rows into selection order before you
+#' call this function. `"SD1"` reads the row order in the same way; no
+#' other `variance_estimator` does.
+#'
 #' @section Algorithm:
 #' Generalized replication (GR) is a BRR extension that removes the
 #' requirement for exactly 2 PSUs per stratum. It constructs
@@ -56,6 +63,8 @@
 #' \deqn{\hat{V}_{GR} = \frac{1}{R} \sum_{r=1}^{R}
 #'   (\hat{\theta}^{(r)} - \hat{\theta})^2.}
 #' Delegates to [svrep::as_fays_gen_rep_design()].
+#'
+#' @inheritSection create_gen_boot_weights Messages
 #'
 #' @references
 #'   Fay, R.E. (1984). Some properties of estimates of variance based on
@@ -70,6 +79,10 @@
 #'   from complex samples with replicate weights. *Proceedings of the
 #'   Section on Survey Research Methods, American Statistical Association*,
 #'   489--494.
+#'
+#'   Ash, S. (2014). Using successive difference replication for
+#'   estimating variances. *Survey Methodology, Statistics Canada*,
+#'   40(1), 47--59.
 #'
 #' @examples
 #' # generalized replication with reproducible seed -----------------------

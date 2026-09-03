@@ -103,6 +103,8 @@
 #' `replicates` means the replay changed little, so the variance estimate
 #' may be near zero and deserves a look.
 #'
+#' @inheritSection create_gen_boot_weights Messages
+#'
 #' @references
 #'   Ash, S. (2014). Using successive difference replication for estimating
 #'   variances. *Survey Methodology*, 40(1), 47--59.

@@ -121,18 +121,30 @@ the message text. Section 5 covers what happens when svrep rewords a message.
 The report goes after `n_rep <- ncol(rep_matrix)` at `R/replicate-utils.R:171`,
 so the translation can compare `n_rep` against `params$replicates`.
 
-Three internal helpers go in `R/replicate-utils.R`, next to the replay-message
-helpers at lines 941 to 998. Add a row for each to the index block at lines 7
+Four internal helpers go in `R/replicate-utils.R`, next to the replay-message
+helpers at lines 934 to 1012. Add a row for each to the index block at lines 7
 to 17.
 
-- `.collect_backend_messages(expr)` — evaluates `expr`, collects each message
-  condition, muffles it, and returns both the value and the list. A condition
-  that already carries a `surveywts_message_*` class passes through unwrapped.
-- `.translate_backend_message(cnd, n_rep, params, seed)` — matches the text
-  against the three patterns and returns a classed message, or `NULL` when no
-  pattern matches.
-- `.report_backend_messages(msgs, n_rep, params, seed)` — emits the translated
-  messages. Emits nothing when the list is empty.
+They follow the shape `.new_replay_counter()` and
+`.muffle_replay_messages(expr, counter)` already set: a store built by one
+helper, and a second helper that takes `expr` as a promise and returns its
+value. The call site then reads as one assignment, with no list to unpack.
+
+- `.new_backend_message_store()` — returns an environment with `$msgs` set to
+  `list()`.
+- `.collect_backend_messages(expr, store)` — evaluates `expr`, appends each
+  message condition to `store$msgs`, muffles it, and returns the value of
+  `expr`. A condition that already carries a `surveywts_message_*` class is
+  left alone: the handler returns without muffling, so the message prints
+  where it was raised.
+- `.translate_backend_message(cnd, n_rep, params, seed)` — returns
+  `list(bullets = , class = )` for `cli::cli_inform()`. It returns the
+  generic payload of §5 when no pattern matches, and `NULL` only when the
+  message should be dropped, which happens for one case: the Hadamard message
+  when `n_rep` equals `params$replicates`.
+- `.report_backend_messages(store, n_rep, params, seed)` — loops over
+  `store$msgs`, calls `.translate_backend_message()`, and emits each non-`NULL`
+  payload. Emits nothing when the store is empty.
 
 ## 5. Message classes
 

@@ -483,6 +483,18 @@ test_that("the three silent creators stay silent", {
   )
 })
 
+test_that("create_jackknife_weights(type = 'grouped') on a Taylor design stays silent", {
+  # Every stratum in gss_2024 has exactly 2 PSUs, so replicates is capped at 2.
+  expect_no_message(
+    create_jackknife_weights(
+      make_gss_taylor(),
+      type = "grouped",
+      replicates = 2L,
+      seed = 1L
+    )
+  )
+})
+
 test_that(".convert_and_call() classes a message no pattern matches", {
   # The backend_fn mirrors create_sdr_weights(): it adds a .row_order column
   # so svrep does not emit its own `sort_variable = NULL` note on top of the

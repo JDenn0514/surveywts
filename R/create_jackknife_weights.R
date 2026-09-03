@@ -238,6 +238,8 @@
 #' `replicates` means the replay changed little, so the variance estimate
 #' may be near zero and deserves a look.
 #'
+#' @inheritSection create_gen_boot_weights Messages
+#'
 #' @references
 #'   Elliott, M.R. and Valliant, R. (2017). Inference for nonprobability
 #'   samples. *Statistical Science* **32**(2), 249--264.

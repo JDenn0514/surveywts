@@ -48,6 +48,8 @@
 #' (`rho > 0`) reduces variance instability from extreme replicate
 #' estimates.
 #'
+#' @inheritSection create_gen_boot_weights Messages
+#'
 #' @references
 #'   Fay, R.E. (1984). Some properties of estimates of variance based on
 #'   replication methods. *Proceedings of the Section on Survey Research

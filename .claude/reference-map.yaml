@@ -194,3 +194,5 @@ create_gen_rep_weights:
     file: ../analysis-sops/knowledge/raw/papers/fay_1989_replicate_weighting.md
   - citation: "Dippo, C., Fay, R.E. and Morganstein, D. (1984). Computing variances from complex samples with replicate weights. Proceedings of the Section on Survey Research Methods, American Statistical Association, 489-494."
     file: ../analysis-sops/knowledge/raw/papers/dippo_fay_morganstein_1984_replicate_weights.md
+  - citation: "Ash, S. (2014). Using successive difference replication for estimating variances. Survey Methodology, 40(1), 47-59."
+    file: ../analysis-sops/knowledge/raw/gray-literature/ash_2014_successive_difference_replication.md

@@ -132,6 +132,26 @@ test_that(".translate_backend_message() reads the estimator out of the text", {
   expect_identical(out$data$estimator, "SD2")
 })
 
+test_that(".translate_backend_message() prefers params$variance_estimator over the parsed text", {
+  out <- .translate_backend_message(
+    plain_message(svrep_row_order("SD1")),
+    n_rep = 68L,
+    params = list(variance_estimator = "SD2"),
+    seed = NULL
+  )
+  expect_identical(out$data$estimator, "SD2")
+})
+
+test_that(".translate_backend_message() falls back to the parsed text when params carries no estimator", {
+  out <- .translate_backend_message(
+    plain_message(svrep_row_order("SD1")),
+    n_rep = 68L,
+    params = list(replicates = 20L),
+    seed = NULL
+  )
+  expect_identical(out$data$estimator, "SD1")
+})
+
 test_that(".translate_backend_message() classes the Hadamard message", {
   out <- .translate_backend_message(
     plain_message(svrep_hadamard),
@@ -165,6 +185,17 @@ test_that(".translate_backend_message() classes the truncation message", {
   expect_identical(out$class, "surveywts_message_replicates_subsampled")
   expect_identical(out$data$natural, 68L)
   expect_identical(out$data$requested, 20L)
+})
+
+test_that(".translate_backend_message() routes a non-finite max_replicates to the generic class", {
+  out <- .translate_backend_message(
+    plain_message(svrep_truncated),
+    n_rep = 20L,
+    params = list(max_replicates = Inf),
+    seed = NULL
+  )
+  expect_identical(out$class, "surveywts_message_backend_note")
+  expect_false(anyNA(out$data))
 })
 
 test_that(".translate_backend_message() names seed only when seed is NULL", {

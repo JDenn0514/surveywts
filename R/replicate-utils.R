@@ -1105,6 +1105,14 @@
 
   # svrep:::get_design_quad_form.survey.design, for SD1 and SD2 only.
   if (grepl("assumes rows of data are sorted", txt, fixed = TRUE)) {
+    # params$variance_estimator is the value the caller actually passed, so
+    # it wins over the sub() parse below. The parse stays as a fallback: if
+    # svrep ever reformats this sentence, sub() returns txt unchanged, and
+    # {.val {estimator}} would then quote the whole sentence as a value.
+    estimator <- params$variance_estimator
+    if (is.null(estimator)) {
+      estimator <- sub(".*variance_estimator='([^']+)'.*", "\\1", txt)
+    }
     return(list(
       bullets = c(
         "i" = paste0(
@@ -1117,9 +1125,7 @@
         )
       ),
       class = "surveywts_message_row_order_assumed",
-      data = list(
-        estimator = sub(".*variance_estimator='([^']+)'.*", "\\1", txt)
-      )
+      data = list(estimator = estimator)
     ))
   }
 
@@ -1158,7 +1164,10 @@
   # not available from the design, so it is read out of the text.
   if (grepl("fully efficient replication", txt, fixed = TRUE)) {
     requested <- params$max_replicates
-    if (is.null(requested)) {
+    # A non-finite requested (the documented Inf default) would make
+    # as.integer(requested) return NA with a coercion warning below. Route it
+    # to the generic note instead, same as the missing-param case.
+    if (is.null(requested) || !is.finite(requested)) {
       return(.backend_note(txt))
     }
     advice <- if (is.null(seed)) {

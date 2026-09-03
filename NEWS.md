@@ -81,6 +81,25 @@
   `surveywts_message_already_calibrated`, no longer fires. The muffling
   handler sits deeper in the call stack and runs first. This is intended.
 
+* `create_gen_boot_weights()`, `create_gen_rep_weights()`, and
+  `create_sdr_weights()` printed an unclassed `svrep` message on every
+  successful call (#114). The messages were plain `message()` calls, so the
+  only way to quiet one was a blanket `suppressMessages()`, which also
+  swallowed every surveywts message.
+
+  All three now carry a class: `surveywts_message_row_order_assumed`,
+  `surveywts_message_replicates_rounded_up`, and
+  `surveywts_message_replicates_subsampled`. A message from the back end
+  that surveywts does not recognise keeps its text and arrives as
+  `surveywts_message_backend_note`.
+
+  Two of the texts changed. The `create_sdr_weights()` message named
+  `use_normal_hadamard`, which that function does not forward to
+  `svrep::as_sdr_design()`; it now names `replicates` and the real column
+  count, and it fires only when the two differ. `create_gen_rep_weights()`
+  now points at `seed` when it keeps a random sample of the replicates and
+  no seed was given.
+
 ## Internal
 
 * The `surveywts_warning_class_near_empty` warning was built in three places,

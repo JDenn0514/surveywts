@@ -44,6 +44,8 @@
 #' PSUs are in selection order (Ash, 2014; Fay & Train, 1995). Delegates
 #' to [svrep::as_sdr_design()].
 #'
+#' @inheritSection create_gen_boot_weights Messages
+#'
 #' @references
 #'   Ash, S. (2014). Using successive difference replication for
 #'   estimating variances. *Survey Methodology, Statistics Canada*,
@@ -58,9 +60,11 @@
 #' # apply SDR to a Taylor-linearization design ---------------------------
 #' # `cps_2023` carries no strata or PSU columns, so this design has neither.
 #' cps_design <- surveycore::as_survey(cps_2023, weights = wtfinl)
+#' # `replicates = 50L` returns 64 columns: the Hadamard matrix order sets
+#' # the count, and 64 is the smallest order that fits 50.
 #' sdr_design <- create_sdr_weights(cps_design, replicates = 50L)
 #' summarize_weights(sdr_design)
-#' # The confidence interval below is computed from the 50 replicate
+#' # The confidence interval below is computed from the 64 replicate
 #' # columns rather than by Taylor linearization.
 #' surveycore::get_means(sdr_design, age)
 #'

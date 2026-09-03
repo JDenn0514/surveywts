@@ -51,13 +51,48 @@ PSUs are in selection order (Ash, 2014; Fay & Train, 1995). Delegates
 to \code{\link[svrep:as_sdr_design]{svrep::as_sdr_design()}}.
 }
 
+\section{Messages}{
+
+The replicate weight creators re-emit the svrep back end's notices under
+their own classes, so you can quiet one without quieting the rest. Which
+message you see depends on the function and the arguments.
+\itemize{
+\item \code{surveywts_message_row_order_assumed} — from
+\code{\link[=create_gen_boot_weights]{create_gen_boot_weights()}} and \code{\link[=create_gen_rep_weights]{create_gen_rep_weights()}}, when
+\code{variance_estimator} is \code{"SD1"} or \code{"SD2"}. Both estimators read the
+row order of the data, and nothing here checks that order.
+\item \code{surveywts_message_replicates_rounded_up} — from
+\code{\link[=create_sdr_weights]{create_sdr_weights()}}, when the Hadamard matrix order is above
+\code{replicates}. The result then carries more replicate columns than you
+asked for: \code{replicates = 100} gives 128.
+\item \code{surveywts_message_replicates_subsampled} — from
+\code{\link[=create_gen_rep_weights]{create_gen_rep_weights()}}, when \code{max_replicates} is below the fully
+efficient replicate count. The back end keeps a random sample of the
+replicates, so set \code{seed} to make the draw reproducible.
+\item \code{surveywts_message_backend_note} — from any of them, when the back end
+emits a message this package does not recognise. The text is unchanged.
+}
+
+To quiet one message and leave the rest alone:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{withCallingHandlers(
+  create_sdr_weights(design, replicates = 100L),
+  surveywts_message_replicates_rounded_up = function(cnd) \{
+    invokeRestart("muffleMessage")
+  \}
+)
+}\if{html}{\out{</div>}}
+}
+
 \examples{
 # apply SDR to a Taylor-linearization design ---------------------------
 # `cps_2023` carries no strata or PSU columns, so this design has neither.
 cps_design <- surveycore::as_survey(cps_2023, weights = wtfinl)
+# `replicates = 50L` returns 64 columns: the Hadamard matrix order sets
+# the count, and 64 is the smallest order that fits 50.
 sdr_design <- create_sdr_weights(cps_design, replicates = 50L)
 summarize_weights(sdr_design)
-# The confidence interval below is computed from the 50 replicate
+# The confidence interval below is computed from the 64 replicate
 # columns rather than by Taylor linearization.
 surveycore::get_means(sdr_design, age)
 

@@ -63,6 +63,13 @@ sets the count, and \code{max_replicates} caps it. For choosing
 \code{variance_estimator}, see the \strong{Choosing a target} section of
 \code{\link[=create_gen_boot_weights]{create_gen_boot_weights()}}; note the defaults differ (\code{"SD2"}
 here, \code{"SD1"} there).
+
+\strong{Row order.} The default \code{"SD2"} reads the row order of the data.
+It assumes the rows are still in the order the sample was drawn in
+(Ash 2014). Re-sorted rows give a different and incorrect answer, and
+no error is raised. Sort the rows into selection order before you
+call this function. \code{"SD1"} reads the row order in the same way; no
+other \code{variance_estimator} does.
 }
 \section{Algorithm}{
 
@@ -74,6 +81,39 @@ weight that satisfies the BRR variance formula
 \deqn{\hat{V}_{GR} = \frac{1}{R} \sum_{r=1}^{R}
   (\hat{\theta}^{(r)} - \hat{\theta})^2.}
 Delegates to \code{\link[svrep:as_fays_gen_rep_design]{svrep::as_fays_gen_rep_design()}}.
+}
+
+\section{Messages}{
+
+The replicate weight creators re-emit the svrep back end's notices under
+their own classes, so you can quiet one without quieting the rest. Which
+message you see depends on the function and the arguments.
+\itemize{
+\item \code{surveywts_message_row_order_assumed} — from
+\code{\link[=create_gen_boot_weights]{create_gen_boot_weights()}} and \code{\link[=create_gen_rep_weights]{create_gen_rep_weights()}}, when
+\code{variance_estimator} is \code{"SD1"} or \code{"SD2"}. Both estimators read the
+row order of the data, and nothing here checks that order.
+\item \code{surveywts_message_replicates_rounded_up} — from
+\code{\link[=create_sdr_weights]{create_sdr_weights()}}, when the Hadamard matrix order is above
+\code{replicates}. The result then carries more replicate columns than you
+asked for: \code{replicates = 100} gives 128.
+\item \code{surveywts_message_replicates_subsampled} — from
+\code{\link[=create_gen_rep_weights]{create_gen_rep_weights()}}, when \code{max_replicates} is below the fully
+efficient replicate count. The back end keeps a random sample of the
+replicates, so set \code{seed} to make the draw reproducible.
+\item \code{surveywts_message_backend_note} — from any of them, when the back end
+emits a message this package does not recognise. The text is unchanged.
+}
+
+To quiet one message and leave the rest alone:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{withCallingHandlers(
+  create_sdr_weights(design, replicates = 100L),
+  surveywts_message_replicates_rounded_up = function(cnd) \{
+    invokeRestart("muffleMessage")
+  \}
+)
+}\if{html}{\out{</div>}}
 }
 
 \examples{
@@ -103,6 +143,10 @@ Dippo, C., Fay, R.E. and Morganstein, D. (1984). Computing variances
 from complex samples with replicate weights. \emph{Proceedings of the
 Section on Survey Research Methods, American Statistical Association},
 489--494.
+
+Ash, S. (2014). Using successive difference replication for
+estimating variances. \emph{Survey Methodology, Statistics Canada},
+40(1), 47--59.
 }
 \seealso{
 \code{\link[=create_bootstrap_weights]{create_bootstrap_weights()}}, \code{\link[=create_jackknife_weights]{create_jackknife_weights()}},

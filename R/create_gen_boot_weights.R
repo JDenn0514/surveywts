@@ -75,6 +75,37 @@
 #' svrep back end; see [svrep::as_gen_boot_design()] for their
 #' definitions.
 #'
+#' @section Messages:
+#' The replicate weight creators re-emit the svrep back end's notices under
+#' their own classes, so you can quiet one without quieting the rest. Which
+#' message you see depends on the function and the arguments.
+#'
+#' - `surveywts_message_row_order_assumed` — from
+#'   [create_gen_boot_weights()] and [create_gen_rep_weights()], when
+#'   `variance_estimator` is `"SD1"` or `"SD2"`. Both estimators read the
+#'   row order of the data, and nothing here checks that order.
+#' - `surveywts_message_replicates_rounded_up` — from
+#'   [create_sdr_weights()], when the Hadamard matrix order is above
+#'   `replicates`. The result then carries more replicate columns than you
+#'   asked for: `replicates = 100` gives 128.
+#' - `surveywts_message_replicates_subsampled` — from
+#'   [create_gen_rep_weights()], when `max_replicates` is below the fully
+#'   efficient replicate count. The back end keeps a random sample of the
+#'   replicates, so set `seed` to make the draw reproducible.
+#' - `surveywts_message_backend_note` — from any of them, when the back end
+#'   emits a message this package does not recognise. The text is unchanged.
+#'
+#' To quiet one message and leave the rest alone:
+#'
+#' ```r
+#' withCallingHandlers(
+#'   create_sdr_weights(design, replicates = 100L),
+#'   surveywts_message_replicates_rounded_up = function(cnd) {
+#'     invokeRestart("muffleMessage")
+#'   }
+#' )
+#' ```
+#'
 #' @references
 #'   Beaumont, J.-F. and Patak, Z. (2012). On the generalized bootstrap for
 #'   sample surveys with special attention to Poisson sampling.

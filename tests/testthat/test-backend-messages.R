@@ -335,10 +335,6 @@ make_gss_taylor <- function() {
   )
 }
 
-make_cps_taylor <- function() {
-  surveycore::as_survey(cps_2023, weights = wtfinl)
-}
-
 test_that("create_gen_boot_weights() classes the row-order message", {
   expect_message(
     create_gen_boot_weights(make_gss_taylor(), replicates = 20L, seed = 1L),
@@ -462,7 +458,7 @@ test_that("create_sdr_weights() stays quiet when the count matches the request",
   expect_no_message(create_sdr_weights(make_cps_taylor(), replicates = 128L))
 })
 
-test_that("create_sdr_weights() never mentions an argument it does not forward", {
+test_that("the rounded-up message names use_normal_hadamard", {
   txt <- NULL
   withCallingHandlers(
     create_sdr_weights(make_cps_taylor(), replicates = 100L),
@@ -471,7 +467,67 @@ test_that("create_sdr_weights() never mentions an argument it does not forward",
       invokeRestart("muffleMessage")
     }
   )
-  expect_no_match(txt, "use_normal_hadamard")
+  expect_match(txt, "use_normal_hadamard")
+})
+
+test_that("create_sdr_weights() rounds up on the normal Hadamard path too", {
+  txt <- NULL
+  design <- withCallingHandlers(
+    create_sdr_weights(
+      make_cps_taylor(),
+      replicates = 50L,
+      use_normal_hadamard = TRUE
+    ),
+    surveywts_message_replicates_rounded_up = function(m) {
+      txt <<- conditionMessage(m)
+      invokeRestart("muffleMessage")
+    }
+  )
+  expect_match(txt, "50")
+  expect_match(txt, "56")
+  expect_length(design@variables$repweights, 56L)
+})
+
+test_that("create_sdr_weights() stays quiet at replicates = 128 on the normal path", {
+  expect_no_message(
+    create_sdr_weights(
+      make_cps_taylor(),
+      replicates = 128L,
+      use_normal_hadamard = TRUE
+    )
+  )
+})
+
+test_that("create_sdr_weights() stays quiet at replicates = 20 on the normal path", {
+  expect_no_message(
+    create_sdr_weights(
+      make_cps_taylor(),
+      replicates = 20L,
+      use_normal_hadamard = TRUE
+    )
+  )
+})
+
+test_that("create_sdr_weights() stays quiet at replicates = 40 on the normal path", {
+  expect_no_message(
+    create_sdr_weights(
+      make_cps_taylor(),
+      replicates = 40L,
+      use_normal_hadamard = TRUE
+    )
+  )
+})
+
+test_that("the rounded-up message drops the smallest-order claim", {
+  txt <- NULL
+  withCallingHandlers(
+    create_sdr_weights(make_cps_taylor(), replicates = 100L),
+    surveywts_message_replicates_rounded_up = function(m) {
+      txt <<- conditionMessage(m)
+      invokeRestart("muffleMessage")
+    }
+  )
+  expect_no_match(txt, "smallest order")
 })
 
 test_that("the three silent creators stay silent", {

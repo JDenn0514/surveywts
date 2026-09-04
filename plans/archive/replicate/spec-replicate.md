@@ -1082,7 +1082,7 @@ surveywts expose?
 | `exact_vcov` | `as_gen_boot_design()` | Exact variance match (needs replicates > rank(Sigma)) | **Hide** — very advanced; use svrep directly |
 | `sort_var` (jackknife) | `as_random_group_jackknife_design()` | Sort before group assignment | **Hide** — rarely needed |
 | `var_strat` / `var_strat_frac` | `as_random_group_jackknife_design()` | Variance strata for FPC | **Hide** for Phase 1 |
-| `use_normal_hadamard` | `as_sdr_design()` | Normal vs power-of-4 Hadamard matrix | **Hide** — default `FALSE` is standard |
+| `use_normal_hadamard` | `as_sdr_design()` | Normal Hadamard matrix vs the default grid of four times a power of two | **Expose** — reversed 2026-09-03, #119; the default stays `FALSE` |
 
 **Your call:** Review the "Proposed" column. Override any you disagree with.
 

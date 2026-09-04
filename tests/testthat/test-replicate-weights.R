@@ -1,5 +1,19 @@
 # tests/testthat/test-replicate-weights.R
 
+# ---- SDR use_normal_hadamard forwarding (#119) ------------------------------
+
+test_that("create_sdr_weights() forwards use_normal_hadamard to the back end", {
+  skip_if_not_installed("svrep")
+  result <- suppressMessages(create_sdr_weights(
+    make_cps_taylor(),
+    replicates = 100L,
+    use_normal_hadamard = TRUE
+  ))
+  test_invariants(result)
+  # The finer Hadamard grid reaches 104; the default path reaches 128.
+  expect_length(result@variables$repweights, 104L)
+})
+
 # ---- Shared input-class errors (13a–13d) ------------------------------------
 
 test_that("create_bootstrap_weights() rejects data.frame input", {
@@ -1155,6 +1169,54 @@ test_that("create_sdr_weights() rejects survey_nonprob", {
   expect_snapshot(error = TRUE, create_sdr_weights(np))
 })
 
+test_that("create_sdr_weights() rejects use_normal_hadamard = NA", {
+  td <- make_taylor_design(seed = 1L)
+  expect_error(
+    create_sdr_weights(td, use_normal_hadamard = NA),
+    class = "surveywts_error_use_normal_hadamard_invalid"
+  )
+  expect_snapshot(
+    error = TRUE,
+    create_sdr_weights(td, use_normal_hadamard = NA)
+  )
+})
+
+test_that("create_sdr_weights() rejects a length-2 use_normal_hadamard", {
+  td <- make_taylor_design(seed = 1L)
+  expect_error(
+    create_sdr_weights(td, use_normal_hadamard = c(TRUE, TRUE)),
+    class = "surveywts_error_use_normal_hadamard_invalid"
+  )
+  expect_snapshot(
+    error = TRUE,
+    create_sdr_weights(td, use_normal_hadamard = c(TRUE, TRUE))
+  )
+})
+
+test_that("create_sdr_weights() rejects a character use_normal_hadamard", {
+  td <- make_taylor_design(seed = 1L)
+  expect_error(
+    create_sdr_weights(td, use_normal_hadamard = "TRUE"),
+    class = "surveywts_error_use_normal_hadamard_invalid"
+  )
+  expect_snapshot(
+    error = TRUE,
+    create_sdr_weights(td, use_normal_hadamard = "TRUE")
+  )
+})
+
+test_that("create_sdr_weights() rejects a numeric use_normal_hadamard", {
+  td <- make_taylor_design(seed = 1L)
+  expect_error(
+    create_sdr_weights(td, use_normal_hadamard = 1),
+    class = "surveywts_error_use_normal_hadamard_invalid"
+  )
+  expect_snapshot(
+    error = TRUE,
+    create_sdr_weights(td, use_normal_hadamard = 1)
+  )
+})
+
 # ---- Spec §XIII 11Ea: SDR equivalence with svrep ----------------------------
 
 test_that("create_sdr_weights() matches svrep::as_sdr_design() directly", {
@@ -1193,6 +1255,431 @@ test_that("create_sdr_weights() all-equal base weights succeeds", {
   td <- surveycore::as_survey(df, ids = id, weights = base_weight)
   result <- create_sdr_weights(td, replicates = 20L, sort_var = id)
   test_invariants(result)
+})
+
+# ---- SDR use_normal_hadamard properties (#119) ------------------------------
+
+# The rounded-up message is a message, not a failure; it is checked in
+# test-backend-messages.R and only adds noise here.
+sdr_quiet <- function(...) suppressMessages(create_sdr_weights(...))
+
+# survey::svrepdesign() warns that scale= and rscales= are ignored for
+# type = "successive-difference". The warning comes from
+# surveycore::as_svydesign(), not from create_sdr_weights().
+sdr_svydesign <- function(x) suppressWarnings(surveycore::as_svydesign(x))
+
+# A replicate column is inactive when its replicate factors all equal 1, so
+# the column equals the base weight at every row.
+sdr_n_inactive <- function(res) {
+  base_wt <- res@data[[res@variables$weights]]
+  sum(vapply(
+    res@variables$repweights,
+    function(col) isTRUE(all(abs(res@data[[col]] - base_wt) < 1e-10)),
+    logical(1)
+  ))
+}
+
+test_that("create_sdr_weights() column counts hold at the default setting", {
+  skip_if_not_installed("svrep")
+  cps <- make_cps_taylor()
+  first <- sdr_quiet(cps, replicates = 20L)
+  test_invariants(first)
+  expect_length(first@variables$repweights, 32L)
+  expect_length(sdr_quiet(cps, replicates = 40L)@variables$repweights, 64L)
+  expect_length(sdr_quiet(cps, replicates = 50L)@variables$repweights, 64L)
+  expect_length(sdr_quiet(cps, replicates = 100L)@variables$repweights, 128L)
+  expect_length(sdr_quiet(cps, replicates = 128L)@variables$repweights, 128L)
+})
+
+test_that("create_sdr_weights() column counts hold at use_normal_hadamard = TRUE", {
+  skip_if_not_installed("svrep")
+  cps <- make_cps_taylor()
+  unh <- function(r) {
+    sdr_quiet(cps, replicates = r, use_normal_hadamard = TRUE)
+  }
+  first <- unh(20L)
+  test_invariants(first)
+  expect_length(first@variables$repweights, 20L)
+  expect_length(unh(40L)@variables$repweights, 40L)
+  expect_length(unh(50L)@variables$repweights, 56L)
+  expect_length(unh(100L)@variables$repweights, 104L)
+  expect_length(unh(128L)@variables$repweights, 128L)
+})
+
+test_that("create_sdr_weights() inactive replicate count rises on a 20-PSU design", {
+  skip_if_not_installed("svrep")
+  td <- make_taylor_design()
+  normal <- function(r) {
+    sdr_quiet(td, replicates = r, use_normal_hadamard = TRUE)
+  }
+  first <- normal(20L)
+  test_invariants(first)
+  expect_identical(sdr_n_inactive(first), 1L)
+  expect_identical(sdr_n_inactive(normal(32L)), 1L)
+  expect_identical(sdr_n_inactive(normal(40L)), 2L)
+  expect_identical(sdr_n_inactive(normal(64L)), 2L)
+  expect_identical(sdr_n_inactive(normal(128L)), 4L)
+
+  expect_identical(sdr_n_inactive(sdr_quiet(td, replicates = 32L)), 0L)
+  expect_identical(sdr_n_inactive(sdr_quiet(td, replicates = 64L)), 0L)
+  expect_identical(sdr_n_inactive(sdr_quiet(td, replicates = 128L)), 0L)
+})
+
+test_that("create_sdr_weights() inactive replicate count stays low on a 9999-PSU design", {
+  skip_if_not_installed("svrep")
+  cps <- make_cps_taylor()
+  first <- sdr_quiet(cps, replicates = 100L, use_normal_hadamard = TRUE)
+  test_invariants(first)
+  expect_identical(sdr_n_inactive(first), 1L)
+  expect_identical(
+    sdr_n_inactive(
+      sdr_quiet(cps, replicates = 50L, use_normal_hadamard = TRUE)
+    ),
+    0L
+  )
+  expect_identical(sdr_n_inactive(sdr_quiet(cps, replicates = 100L)), 0L)
+})
+
+test_that("create_sdr_weights() matches svrep at use_normal_hadamard = TRUE", {
+  skip_if_not_installed("svrep")
+  td <- make_taylor_design(seed = 1L)
+
+  direct <- svrep::as_sdr_design(
+    surveycore::as_svydesign(td),
+    replicates = 40L,
+    sort_variable = "id",
+    use_normal_hadamard = TRUE,
+    mse = TRUE
+  )
+  result <- sdr_quiet(
+    td,
+    replicates = 40L,
+    sort_var = id,
+    use_normal_hadamard = TRUE
+  )
+  test_invariants(result)
+
+  expected <- unname(as.matrix(weights(direct, type = "analysis")))
+  actual <- unname(as.matrix(result@data[, result@variables$repweights]))
+  expect_equal(actual, expected, tolerance = 1e-10)
+})
+
+test_that("create_sdr_weights() gives one variance for a total at mse = TRUE", {
+  skip_if_not_installed("survey")
+  skip_if_not_installed("svrep")
+  td <- make_taylor_design()
+  test_invariants(sdr_quiet(td, replicates = 20L, use_normal_hadamard = FALSE))
+  var_total <- function(r, unh) {
+    d <- sdr_svydesign(
+      sdr_quiet(td, replicates = r, use_normal_hadamard = unh)
+    )
+    as.numeric(survey::SE(survey::svytotal(~y, d))^2)
+  }
+  for (r in c(20L, 32L, 64L, 128L)) {
+    expect_equal(var_total(r, FALSE), 742.9939387275, tolerance = 1e-8)
+    expect_equal(var_total(r, TRUE), 742.9939387275, tolerance = 1e-8)
+  }
+})
+
+test_that("create_sdr_weights() gives two variances for a mean at mse = TRUE", {
+  skip_if_not_installed("survey")
+  skip_if_not_installed("svrep")
+  td <- make_taylor_design()
+  test_invariants(sdr_quiet(td, replicates = 20L, use_normal_hadamard = FALSE))
+  var_mean <- function(r, unh) {
+    d <- sdr_svydesign(
+      sdr_quiet(td, replicates = r, use_normal_hadamard = unh)
+    )
+    as.numeric(survey::SE(survey::svymean(~y, d))^2)
+  }
+  normal_pin <- c("20" = 0.002537864713, "32" = 0.002549751870)
+  for (r in c(20L, 32L, 64L, 128L)) {
+    pin <- if (r == 20L) normal_pin[["20"]] else normal_pin[["32"]]
+    expect_equal(var_mean(r, FALSE), 0.002537678051, tolerance = 1e-8)
+    expect_equal(var_mean(r, TRUE), pin, tolerance = 1e-8)
+    expect_false(isTRUE(all.equal(var_mean(r, FALSE), var_mean(r, TRUE))))
+  }
+})
+
+test_that("create_sdr_weights() diverges on a total at mse = FALSE", {
+  skip_if_not_installed("survey")
+  skip_if_not_installed("svrep")
+  td <- make_taylor_design()
+  test_invariants(
+    sdr_quiet(td, replicates = 20L, use_normal_hadamard = FALSE, mse = FALSE)
+  )
+  var_total <- function(r, unh) {
+    d <- sdr_svydesign(
+      sdr_quiet(td, replicates = r, use_normal_hadamard = unh, mse = FALSE)
+    )
+    as.numeric(survey::SE(survey::svytotal(~y, d))^2)
+  }
+  for (r in c(20L, 32L, 64L, 128L)) {
+    expect_equal(var_total(r, FALSE), 742.9117643034, tolerance = 1e-8)
+    expect_equal(var_total(r, TRUE), 742.6073120709, tolerance = 1e-8)
+  }
+
+  expect_no_warning(
+    suppressMessages(create_sdr_weights(
+      td,
+      replicates = 64L,
+      use_normal_hadamard = TRUE,
+      mse = FALSE
+    ))
+  )
+})
+
+test_that("create_sdr_weights() reports one more degree of freedom at TRUE", {
+  skip_if_not_installed("survey")
+  skip_if_not_installed("svrep")
+  cps <- make_cps_taylor()
+  first <- sdr_quiet(
+    cps,
+    replicates = 64L,
+    use_normal_hadamard = FALSE,
+    mse = TRUE
+  )
+  test_invariants(first)
+  degf_at <- function(r, unh) {
+    survey::degf(sdr_svydesign(
+      sdr_quiet(cps, replicates = r, use_normal_hadamard = unh, mse = TRUE)
+    ))
+  }
+  d1 <- survey::degf(sdr_svydesign(first))
+  d2 <- degf_at(64L, TRUE)
+  d3 <- degf_at(128L, FALSE)
+  d4 <- degf_at(128L, TRUE)
+
+  expect_equal(as.numeric(d1), 62)
+  expect_equal(as.numeric(d2), 63)
+  expect_equal(as.numeric(d3), 126)
+  expect_equal(as.numeric(d4), 127)
+
+  expect_identical(as.integer(d2 - d1), 1L)
+  expect_identical(as.integer(d4 - d3), 1L)
+})
+
+test_that("create_sdr_weights() settings agree up to the smaller order across a PSU sweep", {
+  skip_if_not_installed("survey")
+  skip_if_not_installed("svrep")
+
+  test_invariants(sdr_quiet(
+    make_taylor_design(
+      n = 480L,
+      n_strata = 4L,
+      psus_per_stratum = 5L,
+      seed = 42L
+    ),
+    replicates = 50L,
+    use_normal_hadamard = FALSE,
+    mse = TRUE
+  ))
+
+  se_at <- function(k, unh) {
+    td <- make_taylor_design(
+      n = 480L,
+      n_strata = 4L,
+      psus_per_stratum = k,
+      seed = 42L
+    )
+    result <- sdr_quiet(
+      td,
+      replicates = 50L,
+      use_normal_hadamard = unh,
+      mse = TRUE
+    )
+    expect_length(result@variables$repweights, if (unh) 56L else 64L)
+    as.numeric(survey::SE(survey::svytotal(~y, sdr_svydesign(result))))
+  }
+
+  # psus_per_stratum k over four strata, so the PSU count is 4 * k.
+  default_se <- vapply(
+    c(5L, 10L, 20L, 40L, 60L, 120L),
+    se_at,
+    numeric(1),
+    FALSE
+  )
+  normal_se <- vapply(c(5L, 10L, 20L, 40L, 60L, 120L), se_at, numeric(1), TRUE)
+
+  expect_equal(
+    default_se,
+    c(
+      29.250458076,
+      27.108206217,
+      25.978664057,
+      24.381831086,
+      24.539916216,
+      26.646328099
+    ),
+    tolerance = 1e-8
+  )
+  expect_equal(
+    normal_se,
+    c(
+      29.250458076,
+      27.108206217,
+      25.433342307,
+      23.093512774,
+      23.794741245,
+      22.709445531
+    ),
+    tolerance = 1e-8
+  )
+
+  # 20 and 40 PSUs do not exceed the smaller order 56, so both settings agree.
+  expect_equal(default_se[1], normal_se[1], tolerance = 1e-8)
+  expect_equal(default_se[2], normal_se[2], tolerance = 1e-8)
+  # 80, 160, 240 and 480 PSUs exceed it, so the two diverge.
+  for (i in 3:6) {
+    expect_false(isTRUE(all.equal(default_se[i], normal_se[i])))
+  }
+})
+
+test_that("create_sdr_weights() keeps replicates reachable by position", {
+  skip_if_not_installed("svrep")
+  td <- make_taylor_design(seed = 1L)
+  positional <- sdr_quiet(td, 40L, sort_var = id)
+  named <- sdr_quiet(td, replicates = 40L, sort_var = id)
+  test_invariants(positional)
+  expect_length(positional@variables$repweights, 64L)
+  expect_identical(
+    as.matrix(positional@data[, positional@variables$repweights]),
+    as.matrix(named@data[, named@variables$repweights])
+  )
+})
+
+test_that("create_sdr_weights() records use_normal_hadamard in the history", {
+  skip_if_not_installed("svrep")
+  td <- make_taylor_design(seed = 1L)
+
+  default_result <- sdr_quiet(td, replicates = 40L)
+  test_invariants(default_result)
+  default_hist <- default_result@metadata@weighting_history
+  last_default <- default_hist[[length(default_hist)]]
+  expect_identical(last_default$operation, "replicate_creation")
+  expect_identical(last_default$parameters$use_normal_hadamard, FALSE)
+
+  normal_result <- sdr_quiet(td, replicates = 40L, use_normal_hadamard = TRUE)
+  normal_hist <- normal_result@metadata@weighting_history
+  last_normal <- normal_hist[[length(normal_hist)]]
+  expect_identical(last_normal$operation, "replicate_creation")
+  expect_identical(last_normal$parameters$use_normal_hadamard, TRUE)
+})
+
+test_that("create_sdr_weights() holds at the floor, a small design and an unreachable order", {
+  skip_if_not_installed("svrep")
+  td <- make_taylor_design(seed = 1L)
+
+  floor_default <- sdr_quiet(td, replicates = 4L)
+  test_invariants(floor_default)
+  expect_length(floor_default@variables$repweights, 4L)
+  expect_length(
+    sdr_quiet(
+      td,
+      replicates = 4L,
+      use_normal_hadamard = TRUE
+    )@variables$repweights,
+    4L
+  )
+
+  expect_error(
+    create_sdr_weights(td, replicates = 3L),
+    class = "surveywts_error_replicates_not_positive"
+  )
+  expect_error(
+    create_sdr_weights(td, replicates = 3L, use_normal_hadamard = TRUE),
+    class = "surveywts_error_replicates_not_positive"
+  )
+
+  # Fewer units than the Hadamard order is not an error on either setting.
+  small <- make_taylor_design(n = 10L, seed = 1L)
+  small_default <- sdr_quiet(small, replicates = 20L)
+  test_invariants(small_default)
+  small_normal <- sdr_quiet(small, replicates = 20L, use_normal_hadamard = TRUE)
+  test_invariants(small_normal)
+
+  # 52 is not a reachable order on the finer grid, so it still rounds up.
+  expect_message(
+    unreachable <- create_sdr_weights(
+      td,
+      replicates = 52L,
+      use_normal_hadamard = TRUE
+    ),
+    class = "surveywts_message_replicates_rounded_up"
+  )
+  expect_length(unreachable@variables$repweights, 56L)
+
+  expect_length(
+    sdr_quiet(
+      td,
+      replicates = 40L,
+      sort_var = id,
+      use_normal_hadamard = TRUE
+    )@variables$repweights,
+    40L
+  )
+})
+
+test_that("create_sdr_weights() emits no warning on either setting", {
+  skip_if_not_installed("svrep")
+  td <- make_taylor_design(seed = 1L)
+  test_invariants(sdr_quiet(td, replicates = 40L, mse = TRUE))
+  expect_no_warning(
+    suppressMessages(create_sdr_weights(td, replicates = 40L, mse = TRUE))
+  )
+  expect_no_warning(
+    suppressMessages(create_sdr_weights(
+      td,
+      replicates = 40L,
+      use_normal_hadamard = TRUE,
+      mse = TRUE
+    ))
+  )
+})
+
+test_that("the shipped SDR text carries none of the corrected claims", {
+  # Under R CMD check the tests run from the check directory and the package
+  # source tree is absent, so there is nothing to grep.
+  skip_if_not(dir.exists(test_path("..", "..", "man")))
+  root <- test_path("..", "..")
+
+  read_all <- function(paths) {
+    unlist(lapply(paths, readLines, warn = FALSE), use.names = FALSE)
+  }
+  src <- read_all(c(
+    list.files(file.path(root, "R"), pattern = "[.]R$", full.names = TRUE),
+    list.files(file.path(root, "man"), pattern = "[.]Rd$", full.names = TRUE)
+  ))
+  news <- readLines(file.path(root, "NEWS.md"), warn = FALSE)
+
+  hits <- function(lines, pattern) {
+    lines[grepl(pattern, lines, ignore.case = TRUE, perl = TRUE)]
+  }
+
+  # 1. The SDR scale factor is 4/R, never 1/(2R).
+  expect_identical(
+    hits(src, "frac\\{1\\}\\{2R\\}|1\\s*/\\s*\\(\\s*2R\\s*\\)"),
+    character(0)
+  )
+
+  # 2. The default path doubles from 4; it does not reach the powers of 4.
+  expect_identical(hits(src, "power of 4"), character(0))
+
+  # 3. The function forwards use_normal_hadamard now.
+  expect_identical(
+    hits(c(src, news), "does not forward|is not forwarded|never forwards"),
+    character(0)
+  )
+
+  # 4. The inactive replicate count is not capped at one.
+  expect_identical(
+    hits(src, "produces one inactive|at most one|only one inactive"),
+    character(0)
+  )
+
+  # 5. The order grid has no upper bound, so no closed list and no "only".
+  expect_identical(hits(src, "128,?\\s*(and\\s*)?256\\s*[.]"), character(0))
+  expect_identical(hits(src, "only.{0,60}4, 8, 16"), character(0))
 })
 
 # ============================================================================

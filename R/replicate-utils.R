@@ -1147,9 +1147,9 @@
           "replicate columns."
         ),
         "i" = paste0(
-          "Successive difference replication builds the columns from a ",
-          "Hadamard matrix, and {n_rep} is the smallest order that fits ",
-          "{requested} replicates."
+          "Successive difference replication takes the column count from the ",
+          "order of a Hadamard matrix, and {.arg use_normal_hadamard} controls ",
+          "which orders are reachable."
         )
       ),
       class = "surveywts_message_replicates_rounded_up",

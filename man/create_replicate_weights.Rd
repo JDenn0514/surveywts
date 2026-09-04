@@ -123,7 +123,8 @@ row order of the data, and nothing here checks that order.
 \item \code{surveywts_message_replicates_rounded_up} — from
 \code{\link[=create_sdr_weights]{create_sdr_weights()}}, when the Hadamard matrix order is above
 \code{replicates}. The result then carries more replicate columns than you
-asked for: \code{replicates = 100} gives 128.
+asked for, and \code{use_normal_hadamard} selects which orders are reachable:
+at the default, \code{replicates = 100} gives 128.
 \item \code{surveywts_message_replicates_subsampled} — from
 \code{\link[=create_gen_rep_weights]{create_gen_rep_weights()}}, when \code{max_replicates} is below the fully
 efficient replicate count. The back end keeps a random sample of the

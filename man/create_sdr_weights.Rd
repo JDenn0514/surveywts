@@ -4,7 +4,14 @@
 \alias{create_sdr_weights}
 \title{Generate successive difference replication weights}
 \usage{
-create_sdr_weights(data, replicates = 100L, ..., sort_var = NULL, mse = TRUE)
+create_sdr_weights(
+  data,
+  replicates = 100L,
+  ...,
+  sort_var = NULL,
+  use_normal_hadamard = FALSE,
+  mse = TRUE
+)
 }
 \arguments{
 \item{data}{A \code{survey_taylor} design. PSUs should be in systematic
@@ -18,6 +25,13 @@ selection order, or use \code{sort_var}.}
 \item{sort_var}{<\code{\link[tidyselect:language]{tidy-select}}> Bare column name
 giving the systematic selection order. Required for stratified designs
 (svrep >= 0.9.1); for non-stratified designs row order is used as fallback.}
+
+\item{use_normal_hadamard}{\code{logical(1)}, default \code{FALSE}. Selects which
+Hadamard orders the replicate count can take. \code{FALSE} gives orders that
+double from 4; \code{TRUE} gives a finer grid, so the count sits closer to
+\code{replicates}. The two settings give different variance estimates once the
+PSU count exceeds the smaller order — see the \strong{Hadamard order and the
+column count} part of the Algorithm section.}
 
 \item{mse}{\code{logical(1)}, default \code{TRUE}. Centers each replicate deviation
 on the full-sample estimate (\code{TRUE}; conservative) or on the mean of
@@ -38,17 +52,52 @@ the sample was drawn systematically from a sorted list and the rows
 still carry that order (Ash 2014). The row order is part of the
 method: re-sorted rows give a different and incorrect answer, and
 no error is raised. Pass \code{sort_var} to pin the order.
+
+This estimator targets the variance of a systematic random sample when
+PSUs are in selection order (Ash, 2014; Fay & Train, 1995). See the
+Algorithm section for when the match is exact.
 }
 \section{Algorithm}{
 
 Successive difference replication (SDR) pairs adjacent PSUs in
 systematic selection order. A Hadamard matrix of order \eqn{R} assigns
 each pair to a half-sample. The SDR variance estimator is:
-\deqn{\hat{V}_{SDR} = \frac{1}{2R} \sum_{r=1}^{R}
+\deqn{\hat{V}_{SDR} = \frac{4}{R} \sum_{r=1}^{R}
   (\hat{\theta}^{(r)} - \hat{\theta}_{\text{full}})^2.}
-This estimator matches the variance of a systematic random sample when
-PSUs are in selection order (Ash, 2014; Fay & Train, 1995). Delegates
-to \code{\link[svrep:as_sdr_design]{svrep::as_sdr_design()}}.
+The match to SD2 is exact only while the unit count does not exceed
+\eqn{R}. Above that the row assignment recycles row pairs, so SDR
+approximates SD2 rather than reproducing it. The bundled \code{cps_2023} example
+is in that regime.
+Delegates to \code{\link[svrep:as_sdr_design]{svrep::as_sdr_design()}}.
+
+\strong{Hadamard order and the column count.} The number of replicate columns is
+the order of the Hadamard matrix, not \code{replicates}. \code{use_normal_hadamard}
+selects which orders are reachable. At \code{FALSE}, the default, the order
+doubles from 4 — 4, 8, 16, 32, 64, 128, 256, 512 and so on — and the
+smallest such order at or above \code{replicates} is the one returned. At \code{TRUE}
+the order comes from \code{\link[survey:hadamard]{survey::hadamard()}}, which supplies a finer grid: 20,
+40, 56, 104 and 128 are all reachable, so the count sits closer to
+\code{replicates}. A request the finer grid cannot meet still rounds up — 52
+returns 56. At \code{TRUE} some replicates may be inactive: all of their
+replicate factors equal 1, so each equals the full sample. The count of
+them rises as the PSU count falls relative to the order, and it is not
+capped. An inactive replicate is valid. It contributes a zero term to the
+variance sum, and the scale \eqn{4/R} counts it, which is what keeps the
+estimator unbiased.
+
+The check to run is your PSU count against the order you would land on.
+While the PSU count does not exceed the smaller order, both settings give
+the same answer and the smaller order is free. Above that the two settings
+give different variance estimates, and the gap grows with the PSU count.
+Measured at \code{replicates = 50} on a design of 480 rows in four strata, the
+standard error moved by about 2\% at 80 PSUs, 5\% at 160 and 15\% at 480. Both
+estimates are valid. Keep the default \code{FALSE} to reproduce existing work.
+
+Two further differences. At the same order and \code{mse = TRUE}, the default,
+both settings give the same variance for a total, but a mean can differ,
+because a mean is a ratio whose denominator varies by replicate and the
+inactive replicates enter it. At \code{mse = FALSE} the two settings differ even
+at the same order, for the same reason.
 }
 
 \section{Messages}{
@@ -64,7 +113,8 @@ row order of the data, and nothing here checks that order.
 \item \code{surveywts_message_replicates_rounded_up} — from
 \code{\link[=create_sdr_weights]{create_sdr_weights()}}, when the Hadamard matrix order is above
 \code{replicates}. The result then carries more replicate columns than you
-asked for: \code{replicates = 100} gives 128.
+asked for, and \code{use_normal_hadamard} selects which orders are reachable:
+at the default, \code{replicates = 100} gives 128.
 \item \code{surveywts_message_replicates_subsampled} — from
 \code{\link[=create_gen_rep_weights]{create_gen_rep_weights()}}, when \code{max_replicates} is below the fully
 efficient replicate count. The back end keeps a random sample of the
@@ -88,13 +138,23 @@ To quiet one message and leave the rest alone:
 # apply SDR to a Taylor-linearization design ---------------------------
 # `cps_2023` carries no strata or PSU columns, so this design has neither.
 cps_design <- surveycore::as_survey(cps_2023, weights = wtfinl)
-# `replicates = 50L` returns 64 columns: the Hadamard matrix order sets
-# the count, and 64 is the smallest order that fits 50.
+# `replicates = 50L` returns 64 columns: the count is a Hadamard matrix
+# order, and the default path doubles from 4 until it reaches 50.
 sdr_design <- create_sdr_weights(cps_design, replicates = 50L)
 summarize_weights(sdr_design)
 # The confidence interval below is computed from the 64 replicate
 # columns rather than by Taylor linearization.
 surveycore::get_means(sdr_design, age)
+
+# ask for a count closer to `replicates` --------------------------------
+# The finer grid of Hadamard orders reaches 56, so the same request
+# returns 56 columns rather than 64.
+sdr_normal <- create_sdr_weights(
+  cps_design,
+  replicates = 50L,
+  use_normal_hadamard = TRUE
+)
+length(sdr_normal@variables$repweights)
 
 }
 \references{

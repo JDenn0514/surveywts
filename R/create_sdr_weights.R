@@ -21,6 +21,12 @@
 #' @param sort_var <[`tidy-select`][tidyselect::language]> Bare column name
 #'   giving the systematic selection order. Required for stratified designs
 #'   (svrep >= 0.9.1); for non-stratified designs row order is used as fallback.
+#' @param use_normal_hadamard `logical(1)`, default `FALSE`. Selects which
+#'   Hadamard orders the replicate count can take. `FALSE` gives orders that
+#'   double from 4; `TRUE` gives a finer grid, so the count sits closer to
+#'   `replicates`. The two settings give different variance estimates once the
+#'   PSU count exceeds the smaller order — see the **Hadamard order and the
+#'   column count** part of the Algorithm section.
 #' @param mse `logical(1)`, default `TRUE`. Centers each replicate deviation
 #'   on the full-sample estimate (`TRUE`; conservative) or on the mean of
 #'   the replicate estimates (`FALSE`).
@@ -34,15 +40,50 @@
 #' method: re-sorted rows give a different and incorrect answer, and
 #' no error is raised. Pass `sort_var` to pin the order.
 #'
+#' This estimator targets the variance of a systematic random sample when
+#' PSUs are in selection order (Ash, 2014; Fay & Train, 1995). See the
+#' Algorithm section for when the match is exact.
+#'
 #' @section Algorithm:
 #' Successive difference replication (SDR) pairs adjacent PSUs in
 #' systematic selection order. A Hadamard matrix of order \eqn{R} assigns
 #' each pair to a half-sample. The SDR variance estimator is:
-#' \deqn{\hat{V}_{SDR} = \frac{1}{2R} \sum_{r=1}^{R}
+#' \deqn{\hat{V}_{SDR} = \frac{4}{R} \sum_{r=1}^{R}
 #'   (\hat{\theta}^{(r)} - \hat{\theta}_{\text{full}})^2.}
-#' This estimator matches the variance of a systematic random sample when
-#' PSUs are in selection order (Ash, 2014; Fay & Train, 1995). Delegates
-#' to [svrep::as_sdr_design()].
+#' The match to SD2 is exact only while the unit count does not exceed
+#' \eqn{R}. Above that the row assignment recycles row pairs, so SDR
+#' approximates SD2 rather than reproducing it. The bundled `cps_2023` example
+#' is in that regime.
+#' Delegates to [svrep::as_sdr_design()].
+#'
+#' **Hadamard order and the column count.** The number of replicate columns is
+#' the order of the Hadamard matrix, not `replicates`. `use_normal_hadamard`
+#' selects which orders are reachable. At `FALSE`, the default, the order
+#' doubles from 4 — 4, 8, 16, 32, 64, 128, 256, 512 and so on — and the
+#' smallest such order at or above `replicates` is the one returned. At `TRUE`
+#' the order comes from [survey::hadamard()], which supplies a finer grid: 20,
+#' 40, 56, 104 and 128 are all reachable, so the count sits closer to
+#' `replicates`. A request the finer grid cannot meet still rounds up — 52
+#' returns 56. At `TRUE` some replicates may be inactive: all of their
+#' replicate factors equal 1, so each equals the full sample. The count of
+#' them rises as the PSU count falls relative to the order, and it is not
+#' capped. An inactive replicate is valid. It contributes a zero term to the
+#' variance sum, and the scale \eqn{4/R} counts it, which is what keeps the
+#' estimator unbiased.
+#'
+#' The check to run is your PSU count against the order you would land on.
+#' While the PSU count does not exceed the smaller order, both settings give
+#' the same answer and the smaller order is free. Above that the two settings
+#' give different variance estimates, and the gap grows with the PSU count.
+#' Measured at `replicates = 50` on a design of 480 rows in four strata, the
+#' standard error moved by about 2% at 80 PSUs, 5% at 160 and 15% at 480. Both
+#' estimates are valid. Keep the default `FALSE` to reproduce existing work.
+#'
+#' Two further differences. At the same order and `mse = TRUE`, the default,
+#' both settings give the same variance for a total, but a mean can differ,
+#' because a mean is a ratio whose denominator varies by replicate and the
+#' inactive replicates enter it. At `mse = FALSE` the two settings differ even
+#' at the same order, for the same reason.
 #'
 #' @inheritSection create_gen_boot_weights Messages
 #'
@@ -60,13 +101,23 @@
 #' # apply SDR to a Taylor-linearization design ---------------------------
 #' # `cps_2023` carries no strata or PSU columns, so this design has neither.
 #' cps_design <- surveycore::as_survey(cps_2023, weights = wtfinl)
-#' # `replicates = 50L` returns 64 columns: the Hadamard matrix order sets
-#' # the count, and 64 is the smallest order that fits 50.
+#' # `replicates = 50L` returns 64 columns: the count is a Hadamard matrix
+#' # order, and the default path doubles from 4 until it reaches 50.
 #' sdr_design <- create_sdr_weights(cps_design, replicates = 50L)
 #' summarize_weights(sdr_design)
 #' # The confidence interval below is computed from the 64 replicate
 #' # columns rather than by Taylor linearization.
 #' surveycore::get_means(sdr_design, age)
+#'
+#' # ask for a count closer to `replicates` --------------------------------
+#' # The finer grid of Hadamard orders reaches 56, so the same request
+#' # returns 56 columns rather than 64.
+#' sdr_normal <- create_sdr_weights(
+#'   cps_design,
+#'   replicates = 50L,
+#'   use_normal_hadamard = TRUE
+#' )
+#' length(sdr_normal@variables$repweights)
 #'
 #' @seealso [create_bootstrap_weights()], [create_jackknife_weights()],
 #'   [create_brr_weights()], [create_gen_boot_weights()],
@@ -81,6 +132,7 @@ create_sdr_weights <- function(
   replicates = 100L,
   ...,
   sort_var = NULL,
+  use_normal_hadamard = FALSE,
   mse = TRUE
 ) {
   .validate_replicate_input(data)
@@ -97,6 +149,27 @@ create_sdr_weights <- function(
   }
 
   replicates <- .validate_replicates_arg(replicates, min_val = 4L)
+
+  if (
+    !is.logical(use_normal_hadamard) ||
+      length(use_normal_hadamard) != 1L ||
+      is.na(use_normal_hadamard)
+  ) {
+    cli::cli_abort(
+      c(
+        "x" = "{.arg use_normal_hadamard} must be TRUE or FALSE.",
+        "i" = paste0(
+          "Got {.cls {class(use_normal_hadamard)}} of ",
+          "length {length(use_normal_hadamard)}."
+        ),
+        "v" = paste0(
+          "Set {.code use_normal_hadamard = FALSE} (default) or ",
+          "{.code use_normal_hadamard = TRUE}."
+        )
+      ),
+      class = "surveywts_error_use_normal_hadamard_invalid"
+    )
+  }
 
   sort_quo <- rlang::enquo(sort_var)
   sort_col <- if (rlang::quo_is_null(sort_quo)) {
@@ -131,12 +204,18 @@ create_sdr_weights <- function(
         d,
         replicates = replicates,
         sort_variable = effective_sort,
+        use_normal_hadamard = use_normal_hadamard,
         mse = mse
       )
       result$variables[[".row_order"]] <- NULL
       result
     },
     method = "successive-difference",
-    params = list(replicates = replicates, sort_var = sort_col, mse = mse)
+    params = list(
+      replicates = replicates,
+      sort_var = sort_col,
+      mse = mse,
+      use_normal_hadamard = use_normal_hadamard
+    )
   )
 }

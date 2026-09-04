@@ -89,7 +89,7 @@ from the most recent `"replicate_creation"` entry.
 | `exact_vcov` | **Hide** |
 | `sort_var` (jackknife) | **Hide** |
 | `var_strat` / `var_strat_frac` | **Hide** |
-| `use_normal_hadamard` | **Hide** |
+| `use_normal_hadamard` | **Expose** on create_sdr_weights() — reversed 2026-09-03, #119 |
 
 ---
 

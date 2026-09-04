@@ -2,6 +2,36 @@
 
 ## Bug fixes
 
+* `create_sdr_weights()` did not forward `use_normal_hadamard` to
+  `svrep::as_sdr_design()` (#119), so the back end always ran at the svrep
+  default `FALSE`. On that path the Hadamard order doubles from 4 — 4, 8, 16,
+  32, 64, 128, 256 and on up — so a request for 50 returned 64.
+
+  `use_normal_hadamard` is now an argument, with the same default `FALSE`. No
+  existing call changes. At `TRUE` the order comes from a finer grid, so a
+  request for 50 returns 56 and a request for 20 returns 20. The finer grid
+  costs inactive replicates — columns whose replicate factors all equal 1. The
+  count rises as the PSU count falls relative to the order. An inactive
+  replicate is valid for variance estimation.
+
+  The two settings give different variance estimates once the PSU count
+  exceeds the smaller order, and the gap grows with the PSU count. Both are
+  valid. Keep the default to reproduce existing results. The Algorithm section
+  of `?create_sdr_weights` gives the check to run and the measured sizes.
+
+  Two further differences at the same order. For a total both settings give
+  the same variance at `mse = TRUE`; for a mean they can differ. At
+  `mse = FALSE` they differ for a total as well.
+
+  This reverses decision Q8 of the replicate phase, which hid the argument.
+
+* The SDR variance formula in the `create_sdr_weights()` help page printed the
+  scale factor as `1 / (2R)`. The scale factor is `4 / R`, which is what the
+  function has always computed. The published formula understated the variance
+  by a factor of 8, so a reader who reimplemented it, or who checked surveywts
+  against it, got a standard error too small by a factor of about 2.83. No
+  computed result changes; only the documented formula does.
+
 * Both propensity methods of `adjust_nonresponse()` warned "non-integer
   #successes in a binomial glm!" on every call (#110). The fits passed
   `family = binomial` to `stats::glm()` with the survey weights as case
@@ -93,12 +123,10 @@
   that surveywts does not recognise keeps its text and arrives as
   `surveywts_message_backend_note`.
 
-  Two of the texts changed. The `create_sdr_weights()` message named
-  `use_normal_hadamard`, which that function does not forward to
-  `svrep::as_sdr_design()`; it now names `replicates` and the real column
-  count, and it fires only when the two differ. `create_gen_rep_weights()`
-  now points at `seed` when it keeps a random sample of the replicates and
-  no seed was given.
+  Two of the texts changed. The `create_sdr_weights()` message now names
+  `replicates` and the real column count, and it fires only when the two
+  differ. `create_gen_rep_weights()` now points at `seed` when it keeps a
+  random sample of the replicates and no seed was given.
 
 ## Internal
 

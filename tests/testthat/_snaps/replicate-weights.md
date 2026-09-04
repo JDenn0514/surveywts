@@ -473,6 +473,46 @@
       i <survey_nonprob> has no PSU or stratum structure required by SDR.
       v Use `create_bootstrap_weights()` for non-probability designs.
 
+# create_sdr_weights() rejects use_normal_hadamard = NA
+
+    Code
+      create_sdr_weights(td, use_normal_hadamard = NA)
+    Condition
+      Error in `create_sdr_weights()`:
+      x `use_normal_hadamard` must be TRUE or FALSE.
+      i Got <logical> of length 1.
+      v Set `use_normal_hadamard = FALSE` (default) or `use_normal_hadamard = TRUE`.
+
+# create_sdr_weights() rejects a length-2 use_normal_hadamard
+
+    Code
+      create_sdr_weights(td, use_normal_hadamard = c(TRUE, TRUE))
+    Condition
+      Error in `create_sdr_weights()`:
+      x `use_normal_hadamard` must be TRUE or FALSE.
+      i Got <logical> of length 2.
+      v Set `use_normal_hadamard = FALSE` (default) or `use_normal_hadamard = TRUE`.
+
+# create_sdr_weights() rejects a character use_normal_hadamard
+
+    Code
+      create_sdr_weights(td, use_normal_hadamard = "TRUE")
+    Condition
+      Error in `create_sdr_weights()`:
+      x `use_normal_hadamard` must be TRUE or FALSE.
+      i Got <character> of length 1.
+      v Set `use_normal_hadamard = FALSE` (default) or `use_normal_hadamard = TRUE`.
+
+# create_sdr_weights() rejects a numeric use_normal_hadamard
+
+    Code
+      create_sdr_weights(td, use_normal_hadamard = 1)
+    Condition
+      Error in `create_sdr_weights()`:
+      x `use_normal_hadamard` must be TRUE or FALSE.
+      i Got <numeric> of length 1.
+      v Set `use_normal_hadamard = FALSE` (default) or `use_normal_hadamard = TRUE`.
+
 # bootstrap overwrite warning message text is unchanged after refactor
 
     Code

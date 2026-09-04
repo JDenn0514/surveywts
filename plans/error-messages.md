@@ -141,6 +141,7 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_error_jackknife_replicates_required` | `create_jackknife_weights()` | `type = "grouped"` and `replicates = NULL` (both `survey_taylor` and `survey_nonprob` inputs) |
 | `surveywts_error_nonprob_requires_probability_design` | `create_gen_boot_weights()`, `create_gen_rep_weights()`, `create_sdr_weights()` | `data` is `survey_nonprob` |
 | `surveywts_error_sort_var_has_na` | `create_sdr_weights()` | `sort_var` column contains `NA` |
+| `surveywts_error_use_normal_hadamard_invalid` | `create_sdr_weights()` | `use_normal_hadamard` is not a single non-NA `TRUE` or `FALSE` (wrong type, length ≠ 1, or `NA`) |
 | `surveywts_error_variance_estimator_requires_aux` | `create_gen_boot_weights()`, `create_gen_rep_weights()` | `variance_estimator = "Deville-Tille"` but `aux_var_names = NULL` |
 | `surveywts_error_no_taylor_structure` | `as_taylor_design()` | No `"replicate_creation"` entry in history |
 | `surveywts_error_taylor_from_calibrated_replicate` | `as_taylor_design()` | Post-creation weight adjustment in history |

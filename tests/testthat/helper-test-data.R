@@ -515,6 +515,11 @@ make_gss_taylor <- function() {
   )
 }
 
+make_cps_taylor <- function() {
+  data(cps_2023, package = "surveywts", envir = environment())
+  surveycore::as_survey(cps_2023, weights = wtfinl)
+}
+
 make_ns_nonprob <- function() {
   data(ns_wave1, package = "surveywts", envir = environment())
   surveycore::survey_nonprob(

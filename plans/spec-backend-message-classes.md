@@ -184,15 +184,18 @@ function has a `sort_var`. Only `create_sdr_weights()` does.
 From `create_sdr_weights()`.
 
 ```
-i `replicates = 100` gives 128 replicate columns. Successive difference
-  replication builds the columns from a Hadamard matrix, and 128 is the
-  smallest order that fits 100 replicates.
+i `replicates` is 100, and the result has 128 replicate columns.
+i Successive difference replication takes the column count from the order of
+  a Hadamard matrix, and `use_normal_hadamard` controls which orders are
+  reachable.
 ```
 
 Two changes from svrep's text:
 
-- It names `replicates`, the argument the caller has, in place of
-  `use_normal_hadamard`, which `create_sdr_weights()` does not forward.
+- It names `replicates`, the argument the caller has, and states the
+  mechanism in place of svrep's claim about the smallest order. Reworded
+  again on 2026-09-03 (#119), once `create_sdr_weights()` gained
+  `use_normal_hadamard`, so the second bullet names that argument.
 - It fires only when `n_rep` differs from `params$replicates`. svrep prints
   the message on every call. At `replicates = 128` this one prints nothing.
 

@@ -87,7 +87,8 @@
 #' - `surveywts_message_replicates_rounded_up` — from
 #'   [create_sdr_weights()], when the Hadamard matrix order is above
 #'   `replicates`. The result then carries more replicate columns than you
-#'   asked for: `replicates = 100` gives 128.
+#'   asked for, and `use_normal_hadamard` selects which orders are reachable:
+#'   at the default, `replicates = 100` gives 128.
 #' - `surveywts_message_replicates_subsampled` — from
 #'   [create_gen_rep_weights()], when `max_replicates` is below the fully
 #'   efficient replicate count. The back end keeps a random sample of the

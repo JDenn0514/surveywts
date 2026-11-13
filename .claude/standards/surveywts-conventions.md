@@ -15,8 +15,8 @@ with surveywts-specific examples and detailed guidance.
 | Warning prefix | `surveywts_warning_*` | `surveywts_warning_no_weights_trimmed` |
 | Internal constructor return | Visible (the new object) | `.make_history_entry()` |
 | Internal validator return | `invisible(TRUE)` on success | `.validate_weights()` |
-| Print method return | `invisible(x)` | `S7::method(print, surveycore::survey_nonprob)`, `S7::method(print, surveycore::survey_replicate)` |
 | Diagnostic function return | Visible named scalar or tibble | `effective_sample_size()` |
+| Getter return | Visible tibble | `weighting_history()` |
 
 ---
 
@@ -65,7 +65,6 @@ Use `@family calibration`, `@family sample-calibration`, `@family nonresponse`, 
 | File | Purpose |
 |------|---------|
 | `utils.R` | Cross-family internal helpers |
-| `methods-print.R` | All print methods — two `S7::method(print, ...)` registrations for surveycore classes |
 | `zzz.R` | `.onLoad()` / `.onAttach()` hooks |
 | `data.R` | `@docType data` documentation stubs |
 | `surveywts-package.R` | Package-level documentation |
@@ -110,6 +109,7 @@ Use `@family calibration`, `@family sample-calibration`, `@family nonresponse`, 
 | `summarize_weights.R` | `summarize_weights()` |
 | `trim_weights.R` | `trim_weights()` |
 | `weight_variability.R` | `weight_variability()` |
+| `weighting_history.R` | `weighting_history()` |
 
 ---
 
@@ -122,7 +122,7 @@ Use `@family calibration`, `@family sample-calibration`, `@family nonresponse`, 
 | `ipw()` — always returns `survey_nonprob` regardless of input class | Visible (`survey_nonprob`) |
 | Diagnostic functions | Visible (named scalar or tibble) |
 | Internal constructors (`.make_*()`) | Visible (the new object) |
-| Print / summary methods | `invisible(x)` |
+| Getters (`weighting_history()`) | Visible (tibble) |
 | Internal validators (`.validate_*()`) | `invisible(TRUE)` on success |
 
 ---
@@ -130,12 +130,13 @@ Use `@family calibration`, `@family sample-calibration`, `@family nonresponse`, 
 ## 5. Export Policy
 
 ### What to export
-- User-facing functions only. `NAMESPACE` holds 23 `export()` entries and
+- User-facing functions only. `NAMESPACE` holds 24 `export()` entries and
   nothing else: `calibrate()`, `calibrate_linear()`, `calibrate_logit()`,
   `calibrate_rake()`, `poststratify()`, `calibrate_to_survey()`,
   `calibrate_to_estimate()`, `adjust_nonresponse()`, `redistribute_weights()`,
   `trim_weights()`, `rescale_weights()`, `effective_sample_size()`,
-  `weight_variability()`, `summarize_weights()`, `ipw()`, `as_taylor_design()`,
+  `weight_variability()`, `summarize_weights()`, `weighting_history()`,
+  `ipw()`, `as_taylor_design()`,
   `create_replicate_weights()`, `create_bootstrap_weights()`,
   `create_brr_weights()`, `create_jackknife_weights()`,
   `create_gen_boot_weights()`, `create_gen_rep_weights()`,
@@ -157,13 +158,9 @@ works with — `survey_base`, `survey_taylor`, `survey_nonprob`,
 `survey_replicate` — is defined and exported by **surveycore**, in
 `surveycore/R/core-classes.R`. surveywts consumes them; it does not own them.
 
-What surveywts does own, on the S7 side, is two print methods:
-
-```r
-# R/methods-print.R — registered by S7::methods_register() in .onLoad()
-S7::method(print, surveycore::survey_nonprob)   <- function(x, n = 10, ...) { }
-S7::method(print, surveycore::survey_replicate) <- function(x, ...) { }
-```
+surveywts registers no methods on these classes either. surveycore's
+`print()` runs for every design. The weighting history, which surveycore's
+print does not show, is read with `weighting_history()` (issue #131).
 
 ### `survey_nonprob` (defined in surveycore)
 

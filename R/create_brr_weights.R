@@ -83,6 +83,8 @@
 #' fay_design <- create_brr_weights(gss_svy, rho = 0.5)
 #' summarize_weights(fay_design)
 #'
+#' @seealso [weighting_history()] to list the weighting steps recorded on
+#'   the result.
 #' @seealso [create_bootstrap_weights()], [create_jackknife_weights()],
 #'   [create_gen_boot_weights()], [create_gen_rep_weights()],
 #'   [create_sdr_weights()], [create_replicate_weights()], [as_taylor_design()].

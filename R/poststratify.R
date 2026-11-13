@@ -117,6 +117,8 @@
 #'   resampling methods for complex surveys. *Survey Methodology*,
 #'   18(2), 209--217.
 #'
+#' @seealso [weighting_history()] to list the weighting steps recorded on
+#'   the result.
 #' @seealso [calibrate()], [calibrate_rake()], [calibrate_linear()],
 #'   [calibrate_logit()]. For the class system, the standard workflows, and
 #'   a glossary of terms, see the [Getting started

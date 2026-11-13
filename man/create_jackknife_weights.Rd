@@ -366,6 +366,9 @@ Wolter, K.M. (2007). \emph{Introduction to Variance Estimation} (2nd ed.).
 Springer.
 }
 \seealso{
+\code{\link[=weighting_history]{weighting_history()}} to list the weighting steps recorded on
+the result.
+
 \code{\link[=create_bootstrap_weights]{create_bootstrap_weights()}} for bootstrap replicate weights;
 \code{\link[=create_brr_weights]{create_brr_weights()}} for balanced repeated replication;
 \code{\link[=create_gen_boot_weights]{create_gen_boot_weights()}} for generalized bootstrap;

@@ -476,6 +476,8 @@
 #' or checking for extreme covariate imbalance. Scores from the last iterate
 #' are returned; inspect them before use.
 #'
+#' @seealso [weighting_history()] to list the weighting steps recorded on
+#'   the result.
 #' @seealso
 #'   [adjust_nonresponse()] for unit nonresponse adjustment via weighting
 #'   class methods, which can serve as the IPW step in a doubly robust pipeline

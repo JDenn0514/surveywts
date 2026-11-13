@@ -135,11 +135,12 @@ test_that("ipw() trim=TRUE sets history trim=TRUE; n_trimmed >= 0; test_invarian
   expect_true(entry$n_trimmed >= 0L)
 })
 
-test_that("ipw() print snapshot matches survey_nonprob format with ipw step", {
+test_that("ipw() weighting history snapshot shows the ipw step", {
   nps <- .make_ipw_nps()
   ref <- .make_ipw_ref()
   result <- ipw(nps, ref, selection = ~ age_group + sex)
-  expect_snapshot(print(.pin_ts(result)))
+  test_invariants(result)
+  expect_snapshot(print(weighting_history(.pin_ts(result)), width = Inf))
 })
 
 test_that("ipw() missing_method='omit' drops rows with NA; nrow < original; test_invariants passes", {

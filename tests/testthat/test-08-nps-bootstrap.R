@@ -260,10 +260,10 @@ test_that("create_bootstrap_weights() Level A and Level B produce different repw
 })
 
 # ============================================================================
-# Block 8: print snapshot with repweights
+# Block 8: weighting history with repweights
 # ============================================================================
 
-test_that("print(survey_nonprob) includes bootstrap replicates line when repweights present", {
+test_that("weighting_history() records the bootstrap step after the pipeline", {
   skip_if_not_installed("svrep")
   lev_a <- suppressWarnings(make_nps_level_a(seed = 1))
   result <- suppressWarnings(create_bootstrap_weights(
@@ -272,16 +272,19 @@ test_that("print(survey_nonprob) includes bootstrap replicates line when repweig
     replicates = 10L,
     seed = 1L
   ))
-  expect_snapshot(print(.pin_ts(result)))
+  test_invariants(result)
+  expect_length(result@variables$repweights, 10L)
+  expect_snapshot(print(weighting_history(.pin_ts(result)), width = Inf))
 })
 
 # ============================================================================
-# Block 9: print snapshot without repweights
+# Block 9: weighting history without repweights
 # ============================================================================
 
-test_that("print(survey_nonprob) unchanged when no repweights", {
+test_that("weighting_history() without repweights has no bootstrap step", {
   lev_a <- suppressWarnings(make_nps_level_a(seed = 1))
-  expect_snapshot(print(.pin_ts(lev_a)))
+  test_invariants(lev_a)
+  expect_snapshot(print(weighting_history(.pin_ts(lev_a)), width = Inf))
 })
 
 # ============================================================================

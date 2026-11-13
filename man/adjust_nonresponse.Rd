@@ -206,6 +206,9 @@ summarize_weights(result_p)
 
 }
 \seealso{
+\code{\link[=weighting_history]{weighting_history()}} to list the weighting steps recorded on
+the result.
+
 \code{\link[=redistribute_weights]{redistribute_weights()}}, \code{\link[=ipw]{ipw()}}. For the class system, the
 standard workflows, and a glossary of terms, see the \href{https://jdenn0514.github.io/surveywts/articles/getting-started.html}{Getting started article}.
 

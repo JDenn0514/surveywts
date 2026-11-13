@@ -138,6 +138,9 @@ Opsomer, J.D. and Erciulescu, A. (2021). Replication variance estimation
 after sample-based calibration. \emph{Survey Methodology}, 47, 265--277.
 }
 \seealso{
+\code{\link[=weighting_history]{weighting_history()}} to list the weighting steps recorded on
+the result.
+
 \code{\link[=calibrate_to_survey]{calibrate_to_survey()}}. For the class system, the standard
 workflows, and a glossary of terms, see the \href{https://jdenn0514.github.io/surveywts/articles/getting-started.html}{Getting started article}.
 

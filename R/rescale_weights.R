@@ -41,6 +41,8 @@
 #' per group `n_h / W_h`. Each row's replicate values are multiplied by the
 #' same scalar (global) or per-group scalar that was applied to the main weight.
 #'
+#' @seealso [weighting_history()] to list the weighting steps recorded on
+#'   the result.
 #' @seealso [trim_weights()]. For the class system, the standard
 #'   workflows, and a glossary of terms, see the [Getting started
 #'   article](https://jdenn0514.github.io/surveywts/articles/getting-started.html).

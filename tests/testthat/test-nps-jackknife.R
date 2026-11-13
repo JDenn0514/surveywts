@@ -743,14 +743,14 @@ test_that("create_jackknife_weights() type='grouped' warns when repweights alrea
     class = "surveywts_warning_jackknife_repweights_overwritten"
   )
   expect_snapshot(
-    .pin_ts(
+    weighting_history(.pin_ts(
       create_jackknife_weights(
         r1,
         replicates = 10L,
         type = "grouped",
         seed = 2L
       )
-    )
+    ))
   )
 })
 
@@ -772,7 +772,7 @@ test_that("create_jackknife_weights() type='grouped' warns when average group si
   )
   expect_true(saw_small_groups)
   expect_snapshot(
-    .pin_ts(withCallingHandlers(
+    weighting_history(.pin_ts(withCallingHandlers(
       create_jackknife_weights(
         datasets$A,
         replicates = 200L,
@@ -784,7 +784,7 @@ test_that("create_jackknife_weights() type='grouped' warns when average group si
           invokeRestart("muffleWarning")
         }
       }
-    ))
+    )))
   )
 })
 
@@ -830,14 +830,14 @@ test_that("create_jackknife_weights() type='grouped' warns when > 10% of replica
     tolerance = 1e-12
   )
   expect_snapshot(
-    .pin_ts(
+    weighting_history(.pin_ts(
       create_jackknife_weights(
         tiny_ipw2,
         replicates = 5L,
         type = "grouped",
         seed = 7L
       )
-    )
+    ))
   )
 })
 

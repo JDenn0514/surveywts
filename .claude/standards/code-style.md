@@ -99,14 +99,14 @@ meta@weighting_history <- c(history, list(new_entry))
 data@metadata <- meta
 ```
 
-### Print method registration
+### No methods on surveycore classes
 
-Print methods for `survey_nonprob` and `survey_replicate` live in
-`R/methods-print.R`. They register through `S7::methods_register()`, called
-from `.onLoad()` in `R/zzz.R` — see `surveywts-conventions.md` §3 and §6 for
-the file and the registration code. When you add a new print method, add it
-to `methods-print.R`. Confirm `.onLoad()` still calls
-`S7::methods_register()`.
+Do not register a `print()` method, or any other method, on a class that
+surveycore defines. S7 keeps one method per generic and class, so a
+surveywts method replaces surveycore's for every design of that class once
+surveywts is loaded. surveycore's `print()` runs for every surveycore class.
+To show something surveycore's print does not, add an exported getter, as
+`weighting_history()` does for the weighting history (issue #131).
 
 ### Class membership testing
 Always use **`S7::S7_inherits(x, ClassName)`** with the class object — never a string.
@@ -358,7 +358,6 @@ is always explicit via `S7::S7_inherits()` or `inherits()`.
 |-----------|-----|
 | Type checking a surveycore S7 object | `S7::S7_inherits(x, surveycore::survey_nonprob)` |
 | Type checking a genuinely S3 class (e.g. `formula`) | `inherits(x, "formula")` |
-| Registering a print method for a surveycore class | `S7::method(print, surveycore::survey_nonprob) <- function(x, ...) { }` in `methods-print.R` |
 
 Never use `UseMethod()` in surveywts — S3 dispatch does not work for S7 objects.
 

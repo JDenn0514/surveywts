@@ -78,6 +78,8 @@
 #'   weights in sample surveys. *Proceedings of the Joint Statistical
 #'   Meetings, Section on Survey Research Methods*, 2707--2719.
 #'
+#' @seealso [weighting_history()] to list the weighting steps recorded on
+#'   the result.
 #' @seealso [rescale_weights()]. For the class system, the standard
 #'   workflows, and a glossary of terms, see the [Getting started
 #'   article](https://jdenn0514.github.io/surveywts/articles/getting-started.html).

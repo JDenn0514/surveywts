@@ -457,6 +457,9 @@ Wu, C. (2022). \emph{Statistical inference with non-probability survey samples}.
 \emph{Survey Methodology} \strong{48}(2), 283--311.
 }
 \seealso{
+\code{\link[=weighting_history]{weighting_history()}} to list the weighting steps recorded on
+the result.
+
 \code{\link[=adjust_nonresponse]{adjust_nonresponse()}} for unit nonresponse adjustment via weighting
 class methods, which can serve as the IPW step in a doubly robust pipeline
 when the nonresponse mechanism is modeled.

@@ -1,28 +1,34 @@
-# print(survey_nonprob) includes bootstrap replicates line when repweights present
+# weighting_history() records the bootstrap step after the pipeline
 
     Code
-      print(.pin_ts(result))
+      print(weighting_history(.pin_ts(result)), width = Inf)
     Output
-      # A calibrated survey design: 500 observations, 17 variables
-      # Variance: model-assisted (SRS assumption)
-      # IDs: ~1 | Strata: NULL | Weights: ipw_weight 
-      # Weighting history: 3 steps 
-      #   Step 1 [2025-01-15]: ipw [~age_group + sex, logit, n_ref=1000, N_hat=612] 
-      #   Step 2 [2025-01-15]: raking (targets: age_group, sex) 
-      #   Step 3 [2025-01-15]: bootstrap_weights 
-      # Bootstrap replicates: 10 (quasi-randomization, level A)
+      # A tibble: 3 x 4
+         step timestamp           operation        
+        <int> <dttm>              <chr>            
+      1     1 2025-01-15 10:00:00 ipw              
+      2     2 2025-01-15 10:00:00 calibrate_rake   
+      3     3 2025-01-15 10:00:00 bootstrap_weights
+        description                                         
+        <chr>                                               
+      1 ipw [~age_group + sex, logit, n_ref=1000, N_hat=612]
+      2 raking (targets: age_group, sex)                    
+      3 bootstrap_weights                                   
 
-# print(survey_nonprob) unchanged when no repweights
+# weighting_history() without repweights has no bootstrap step
 
     Code
-      print(.pin_ts(lev_a))
+      print(weighting_history(.pin_ts(lev_a)), width = Inf)
     Output
-      # A calibrated survey design: 500 observations, 7 variables
-      # Variance: model-assisted (SRS assumption)
-      # IDs: ~1 | Strata: NULL | Weights: ipw_weight 
-      # Weighting history: 2 steps 
-      #   Step 1 [2025-01-15]: ipw [~age_group + sex, logit, n_ref=1000, N_hat=612] 
-      #   Step 2 [2025-01-15]: raking (targets: age_group, sex) 
+      # A tibble: 2 x 4
+         step timestamp           operation     
+        <int> <dttm>              <chr>         
+      1     1 2025-01-15 10:00:00 ipw           
+      2     2 2025-01-15 10:00:00 calibrate_rake
+        description                                         
+        <chr>                                               
+      1 ipw [~age_group + sex, logit, n_ref=1000, N_hat=612]
+      2 raking (targets: age_group, sex)                    
 
 # create_bootstrap_weights() rejects survey_taylor with quasi-randomization
 

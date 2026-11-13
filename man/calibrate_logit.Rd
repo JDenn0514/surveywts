@@ -181,6 +181,9 @@ raking procedures in survey sampling. \emph{Journal of the American
 Statistical Association}, 88(423), 1013--1020.
 }
 \seealso{
+\code{\link[=weighting_history]{weighting_history()}} to list the weighting steps recorded on
+the result.
+
 \code{\link[=calibrate]{calibrate()}}, \code{\link[=calibrate_rake]{calibrate_rake()}}, \code{\link[=calibrate_linear]{calibrate_linear()}},
 \code{\link[=poststratify]{poststratify()}}. For the class system, the standard workflows, and a
 glossary of terms, see the \href{https://jdenn0514.github.io/surveywts/articles/getting-started.html}{Getting started article}.

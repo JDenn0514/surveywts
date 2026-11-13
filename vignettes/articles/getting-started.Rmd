@@ -168,6 +168,9 @@ weights come first so calibration can be replayed onto them; on a
 non-probability sample they come last because the replicate creator
 replays the pipeline itself.
 
+Each weighting function records a step on the design it returns.
+`weighting_history(nps_rep)` lists the steps in order, one row per step.
+
 ## Choosing a method
 
 Each family's functions carry a "When to use" paragraph in their help

@@ -18,16 +18,6 @@
       i Got <matrix>.
       v Use `surveycore::as_survey_nonprob()`, `surveycore::as_survey()`, or `surveycore::as_survey_replicate()` to construct a survey object.
 
-# adjust_nonresponse() rejects empty survey design (SE-2)
-
-    Code
-      adjust_nonresponse(design_empty, response_status = responded)
-    Condition
-      Error in `adjust_nonresponse()`:
-      x `data` has 0 rows.
-      i This operation is undefined on empty data.
-      v Ensure `data` has at least one row.
-
 # adjust_nonresponse() rejects survey_replicate input (SE-3)
 
     Code
@@ -206,16 +196,6 @@
       x <survey_replicate> objects are not supported by `redistribute_weights()`.
       i Replicate-weight support for weight redistribution is not yet available.
       v Use a <survey_taylor> or <survey_nonprob> design.
-
-# redistribute_weights() errors for 0-row survey design
-
-    Code
-      redistribute_weights(empty_design, reduce_if = reduce_col, increase_if = increase_col)
-    Condition
-      Error in `redistribute_weights()`:
-      x `data` has 0 rows.
-      i This operation is undefined on empty data.
-      v Ensure `data` has at least one row.
 
 # redistribute_weights() errors when wt_name is not character(1)
 

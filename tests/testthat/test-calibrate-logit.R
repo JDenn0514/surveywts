@@ -347,18 +347,13 @@ test_that("E1: calibrate_logit() throws surveywts_error_not_survey_base for bad 
 # E2: Error — empty data
 # ---------------------------------------------------------------------------
 
-test_that("E2: calibrate_logit() throws surveywts_error_empty_data for 0-row input", {
+test_that("E2: 0-row input for calibrate_logit() is rejected by surveycore", {
+  # surveycore >= 1.2.0 rejects 0-row data when it builds the design, so the
+  # surveywts_error_empty_data check in calibrate_logit() is unreachable.
   empty_df <- make_surveywts_data(seed = 2)[0, ]
-  empty_taylor <- .make_test_taylor_logit(empty_df)
-  targets <- list(age_group = c("18-34" = 1.0))
-
   expect_error(
-    calibrate_logit(empty_taylor, targets = targets),
-    class = "surveywts_error_empty_data"
-  )
-  expect_snapshot(
-    error = TRUE,
-    calibrate_logit(empty_taylor, targets = targets)
+    .make_test_taylor_logit(empty_df),
+    class = "surveycore_error_empty_data"
   )
 })
 

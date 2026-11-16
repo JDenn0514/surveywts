@@ -210,6 +210,9 @@ poststratify <- function(
   data_df <- data@data
 
   # ---- 5. Empty data check ------------------------------------------------
+  # nocov start
+  # Unreachable via public API: surveycore >= 1.2.0 S7 validators reject
+  # 0-row data.
   if (nrow(data_df) == 0L) {
     cli::cli_abort(
       c(
@@ -220,6 +223,7 @@ poststratify <- function(
       class = "surveywts_error_empty_data"
     )
   }
+  # nocov end
 
   # ---- 6. Check strata variable names exist in data -----------------------
   missing_vars <- setdiff(strata_names, names(data_df))

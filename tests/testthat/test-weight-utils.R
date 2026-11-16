@@ -344,7 +344,7 @@ test_that("trim_weights() rejects list input", {
 
 test_that("trim_weights() surveywts_error_empty_data: S7 class invariant prevents 0-row survey_nonprob", {
   # The surveycore survey_nonprob S7 class validator rejects @data assignment
-  # when the resulting weight column is empty (0 rows => all-NA weights => error).
+  # when the result has 0 rows (surveycore >= 1.2.0: surveycore_error_empty_data).
   # A 0-row survey_nonprob with repweights is therefore unrepresentable; the
   # surveywts_error_empty_data path in trim_weights() for this combination is
   # structurally unreachable via the public API.
@@ -369,7 +369,7 @@ test_that("trim_weights() surveywts_error_empty_data: S7 class invariant prevent
     {
       nonprob_rep_local@data <- nonprob_rep_local@data[integer(0), ]
     },
-    class = "surveycore_error_weights_all_zero"
+    class = "surveycore_error_empty_data"
   )
 })
 
@@ -722,15 +722,16 @@ test_that("trim_weights() step number is correct when chained after calibrate_li
 
 # 6. Edge cases — trim_weights() --------------------------------------------
 
-test_that("trim_weights() works on single-row survey_taylor", {
-  one_row <- data.frame(x = 1, w = 2.5)
-  design_one <- .make_test_taylor_wt(one_row, weight_col = "w")
+test_that("trim_weights() works on 2-row survey_taylor", {
+  # surveycore >= 1.2.0 rejects 1-row data, so 2 rows is the smallest design.
+  two_row <- data.frame(x = 1:2, w = c(2.5, 2.5))
+  design_two <- .make_test_taylor_wt(two_row, weight_col = "w")
   expect_warning(
-    result <- trim_weights(design_one),
+    result <- trim_weights(design_two),
     class = "surveywts_warning_no_weights_trimmed"
   )
   expect_true(S7::S7_inherits(result, surveycore::survey_taylor))
-  expect_equal(nrow(result@data), 1L)
+  expect_equal(nrow(result@data), 2L)
 })
 
 test_that("trim_weights() warns and is a no-op when all weights are equal", {
@@ -1009,7 +1010,7 @@ test_that("rescale_weights() rejects wt_name = ''", {
 
 test_that("rescale_weights() surveywts_error_empty_data: S7 class invariant prevents 0-row survey_nonprob", {
   # The surveycore survey_nonprob S7 class validator rejects @data assignment
-  # when the resulting weight column is empty (0 rows => all-NA weights => error).
+  # when the result has 0 rows (surveycore >= 1.2.0: surveycore_error_empty_data).
   # A 0-row survey_nonprob with repweights is therefore unrepresentable; the
   # surveywts_error_empty_data path in rescale_weights() for this combination
   # is structurally unreachable via the public API.
@@ -1034,7 +1035,7 @@ test_that("rescale_weights() surveywts_error_empty_data: S7 class invariant prev
     {
       nonprob_rep_local@data <- nonprob_rep_local@data[integer(0), ]
     },
-    class = "surveycore_error_weights_all_zero"
+    class = "surveycore_error_empty_data"
   )
 })
 
@@ -1092,11 +1093,16 @@ test_that("rescale_weights() no-op when weights already sum to n", {
   )
 })
 
-test_that("rescale_weights() single-row data: weight set to 1", {
-  one_row <- data.frame(x = 1, w = 5.0)
-  taylor_one <- .make_test_taylor_wt(one_row, weight_col = "w")
-  result <- rescale_weights(taylor_one)
-  expect_equal(result@data[[result@variables$weights]], 1.0, tolerance = 1e-10)
+test_that("rescale_weights() 2-row data with equal weights: weights set to 1", {
+  # surveycore >= 1.2.0 rejects 1-row data, so 2 rows is the smallest design.
+  two_row <- data.frame(x = 1:2, w = c(5.0, 5.0))
+  taylor_two <- .make_test_taylor_wt(two_row, weight_col = "w")
+  result <- rescale_weights(taylor_two)
+  expect_equal(
+    result@data[[result@variables$weights]],
+    c(1.0, 1.0),
+    tolerance = 1e-10
+  )
 })
 
 test_that("rescale_weights() by with one group: equivalent to global stabilization", {

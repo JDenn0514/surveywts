@@ -18,16 +18,6 @@
       i Got <list>.
       v Use `surveycore::as_survey_nonprob()`, `surveycore::as_survey()`, or `surveycore::as_survey_replicate()` to construct a survey object.
 
-# poststratify() rejects 0-row survey_taylor (SE-3)
-
-    Code
-      poststratify(design0, targets = pop, type = "count")
-    Condition
-      Error in `poststratify()`:
-      x `data` has 0 rows.
-      i This operation is undefined on empty data.
-      v Ensure `data` has at least one row.
-
 # poststratify() rejects non-character wt_name
 
     Code

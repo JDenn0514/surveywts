@@ -36,6 +36,25 @@
   survey designs with 0 rows or 1 row when it builds them, so the 0-row
   checks in the weighting functions no longer run for survey objects.
 
+* The grouped jackknife now stores `@variables$type = "JK1"`, and the
+  Rao-Wu and Preston bootstraps store `"bootstrap"`. They stored svrep's
+  strings `"Random-groups jackknife"`, `"subbootstrap"` and
+  `"mrbbootstrap"`, which `survey::svrepdesign()` does not accept. The
+  scale, rscales, replicate weights and standard errors do not change
+  (#136).
+
+## Bug fixes
+
+* surveycore's `as_svydesign()` now exports designs from
+  `create_brr_weights(rho = )` (Fay), `create_jackknife_weights(type =
+  "grouped")`, and `create_bootstrap_weights(type = "Rao-Wu")` and
+  `type = "Preston"`. Fay designs now record `@variables$rho` (#136).
+
+* `create_bootstrap_weights(type = "Preston")` no longer passes on survey's
+  untyped warning "Design is sampled with replacement: only first stage
+  used". With no FPC, the first stage carries the full with-replacement
+  variance, so the warning named nothing to change (#136).
+
 # surveywts 0.3.0
 
 ## New features

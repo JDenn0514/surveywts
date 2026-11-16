@@ -18,6 +18,8 @@
 # .new_backend_message_store()       — fresh store for the back-end messages
 # .collect_backend_messages()        — muffle & collect the svrep/survey messages
 # .is_backend_fpc_warning()          — match a back end's untyped FPC-drop warning
+# .is_backend_wr_stage_warning()     — match survey's untyped first-stage warning
+# .svrep_type_map                    — back-end type -> a type survey accepts
 # .fpc_applied_map                   — method/type -> @variables$fpc_applied
 # .warn_fpc_not_applied()            — raise surveywts_warning_fpc_not_applied
 # .translate_backend_message()       — one message -> a classed cli payload
@@ -208,10 +210,15 @@
   names(rep_df) <- rep_names
   combined <- cbind(base_data, rep_df)
 
+  rep_type <- if (!is.null(type_override)) type_override else svyrep_obj$type
+  if (rep_type %in% names(.svrep_type_map)) {
+    rep_type <- .svrep_type_map[[rep_type]]
+  }
+
   variables <- list(
     weights = data@variables$weights,
     repweights = rep_names,
-    type = if (!is.null(type_override)) type_override else svyrep_obj$type,
+    type = rep_type,
     scale = svyrep_obj$scale,
     rscales = svyrep_obj$rscales,
     fpc = data@variables$fpc,
@@ -223,6 +230,13 @@
     fpc_applied = fpc_record,
     mse = isTRUE(svyrep_obj$mse)
   )
+  # surveycore's as_svydesign() exports a Fay design only when @variables$rho
+  # holds Fay's shrinkage factor (issue #136). survey::as.svrepdesign(type =
+  # "Fay") keeps it in $rho. BRR also carries $rho (0), so copy it for Fay
+  # only: survey_replicate stores rho for Fay designs alone.
+  if (identical(rep_type, "Fay")) {
+    variables$rho <- svyrep_obj$rho
+  }
 
   result <- surveycore::survey_replicate(
     data = combined,
@@ -1082,7 +1096,10 @@
 # The handler also muffles the two untyped warnings the back ends raise when
 # they drop the source design's FPC (issue #130). .convert_and_call() raises
 # surveywts_warning_fpc_not_applied in their place, from .fpc_applied_map, so
-# the text is not stored. Every other warning passes through unchanged.
+# the text is not stored. It also muffles survey's untyped first-stage
+# warning for the Preston bootstrap, with no replacement; see
+# .is_backend_wr_stage_warning(). Every other warning passes through
+# unchanged.
 #
 # Arguments:
 #   expr  : the back-end call to evaluate
@@ -1100,7 +1117,7 @@
       invokeRestart("muffleMessage")
     },
     warning = function(w) {
-      if (.is_backend_fpc_warning(w)) {
+      if (.is_backend_fpc_warning(w) || .is_backend_wr_stage_warning(w)) {
         invokeRestart("muffleWarning")
       }
     }
@@ -1133,6 +1150,68 @@
   ) ||
     grepl("Ignoring finite population corrections in", txt, fixed = TRUE)
 }
+
+# ============================================================================
+# .is_backend_wr_stage_warning()
+# ============================================================================
+
+# TRUE for the untyped warning survey:::mrbweights() raises for a Preston
+# bootstrap (svrep type = "Preston") on a design with no FPC (issue #136):
+#   "Design is sampled with replacement: only first stage used"
+#
+# The handler muffles it and raises nothing in its place. With no FPC,
+# mrbweights() sets every population size to Inf and resamples the first
+# stage only. A zero sampling fraction at every stage is the
+# with-replacement assumption, and under it the first-stage (ultimate
+# cluster) variance already includes the variance of the later stages, as
+# it does for a Taylor design with no FPC. The result is the standard
+# estimate, and the warning names no step the user can take: the warning
+# fires on a one-stage design too. A design that has an FPC does not raise
+# it. A wording change upstream stops the match, and the warning then
+# reaches the user unchanged. Nothing goes silent.
+#
+# Arguments:
+#   w : a warning condition
+#
+# Returns: logical(1)
+.is_backend_wr_stage_warning <- function(w) {
+  grepl(
+    "Design is sampled with replacement: only first stage used",
+    conditionMessage(w),
+    fixed = TRUE
+  )
+}
+
+# ============================================================================
+# .svrep_type_map
+# ============================================================================
+
+# Back-end type strings that survey::svrepdesign() does not accept, mapped
+# to the survey type to store in @variables$type (issue #136). survey's own
+# as.svrepdesign() and svrep return these strings, but svrepdesign() takes
+# only "BRR", "Fay", "JK1", "JKn", "bootstrap", "ACS",
+# "successive-difference", "JK2" and "other". Both surveycore's
+# as_svydesign() and .to_svyrep() pass @variables$type to svrepdesign(), so
+# a design with one of these strings could not be exported or calibrated.
+#
+# Each design's scale and rscales already hold its full variance multiplier,
+# and .convert_and_call() stores them unchanged:
+#   - "Random-groups jackknife" -> "JK1": scale (R - 1) / R, rscales 1. This
+#     is the JK1 formula.
+#   - "subbootstrap" (Rao-Wu)   -> "bootstrap": scale 1 / (R - 1),
+#     rscales 1.
+#   - "mrbbootstrap" (Preston)  -> "bootstrap": scale 1,
+#     rscales 1 / (R - 1).
+# surveycore's replicate variance reads scale, rscales and mse, not type.
+# svrepdesign() keeps a supplied scale and rscales for "JK1" and
+# "bootstrap" and computes its own only when they are NULL. So the change
+# moves no standard error, in surveycore or in survey. test-fpc-applied.R
+# pins this for each of the three methods.
+.svrep_type_map <- c(
+  `Random-groups jackknife` = "JK1",
+  subbootstrap = "bootstrap",
+  mrbbootstrap = "bootstrap"
+)
 
 # ============================================================================
 # .fpc_applied_map

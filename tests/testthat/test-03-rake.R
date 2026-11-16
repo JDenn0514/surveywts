@@ -333,35 +333,30 @@ test_that("calibrate_rake() no longer rejects survey_replicate at class-check ga
 })
 
 # ---------------------------------------------------------------------------
-# 13. Error — surveywts_error_empty_data
+# 13. Error — 0-row data (Layer 1: surveycore validator)
 # ---------------------------------------------------------------------------
 
-test_that("calibrate_rake() rejects 0-row survey_taylor", {
+test_that("0-row survey_taylor for calibrate_rake() is rejected by surveycore", {
+  # surveycore >= 1.2.0 rejects 0-row data when it builds the design, so the
+  # surveywts_error_empty_data check in calibrate_rake() is unreachable.
   empty_df <- data.frame(
     age_group = character(0),
     sex = character(0),
     base_weight = numeric(0),
     stringsAsFactors = FALSE
   )
-  empty_design <- surveycore::survey_taylor(
-    data = empty_df,
-    variables = list(
-      ids = NULL,
-      strata = NULL,
-      fpc = NULL,
-      weights = "base_weight",
-      nest = FALSE
-    )
-  )
-  targets <- .make_targets_rake()
-
   expect_error(
-    calibrate_rake(empty_design, targets = targets),
-    class = "surveywts_error_empty_data"
-  )
-  expect_snapshot(
-    error = TRUE,
-    calibrate_rake(empty_design, targets = targets)
+    surveycore::survey_taylor(
+      data = empty_df,
+      variables = list(
+        ids = NULL,
+        strata = NULL,
+        fpc = NULL,
+        weights = "base_weight",
+        nest = FALSE
+      )
+    ),
+    class = "surveycore_error_empty_data"
   )
 })
 

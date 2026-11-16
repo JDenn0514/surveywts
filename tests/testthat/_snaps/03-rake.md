@@ -18,16 +18,6 @@
       i Got <list>.
       v Use `surveycore::as_survey_nonprob()`, `surveycore::as_survey()`, or `surveycore::as_survey_replicate()` to construct a survey object.
 
-# calibrate_rake() rejects 0-row survey_taylor
-
-    Code
-      calibrate_rake(empty_design, targets = targets)
-    Condition
-      Error in `calibrate_rake()`:
-      x `data` has 0 rows.
-      i This operation is undefined on empty data.
-      v Ensure `data` has at least one row.
-
 # calibrate_rake() rejects wt_name = c('a', 'b')
 
     Code

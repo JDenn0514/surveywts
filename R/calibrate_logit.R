@@ -226,6 +226,9 @@ calibrate_logit <- function(
 
   # ---- 2. Empty data check -------------------------------------------------
   data_df <- data@data
+  # nocov start
+  # Unreachable via public API: surveycore >= 1.2.0 S7 validators reject
+  # 0-row data.
   if (nrow(data_df) == 0L) {
     cli::cli_abort(
       c(
@@ -236,6 +239,7 @@ calibrate_logit <- function(
       class = "surveywts_error_empty_data"
     )
   }
+  # nocov end
 
   # ---- 3. Parse targets to Format A ----------------------------------------
   targets_a <- .parse_margins(targets)

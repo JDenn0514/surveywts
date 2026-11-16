@@ -408,18 +408,13 @@ test_that("E1: calibrate_linear() throws surveywts_error_not_survey_base for bad
 # E2: Error — empty data
 # ---------------------------------------------------------------------------
 
-test_that("E2: calibrate_linear() throws surveywts_error_empty_data for 0-row input", {
+test_that("E2: 0-row input for calibrate_linear() is rejected by surveycore", {
+  # surveycore >= 1.2.0 rejects 0-row data when it builds the design, so the
+  # surveywts_error_empty_data check in calibrate_linear() is unreachable.
   empty_df <- make_surveywts_data(seed = 2)[0, ]
-  empty_taylor <- .make_test_taylor_linear(empty_df)
-  targets <- list(age_group = c("18-34" = 1.0))
-
   expect_error(
-    calibrate_linear(empty_taylor, targets = targets),
-    class = "surveywts_error_empty_data"
-  )
-  expect_snapshot(
-    error = TRUE,
-    calibrate_linear(empty_taylor, targets = targets)
+    .make_test_taylor_linear(empty_df),
+    class = "surveycore_error_empty_data"
   )
 })
 
@@ -950,27 +945,16 @@ test_that("W4: calibrate_linear() emits surveywts_warning_replicate_calibration_
   expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
 })
 
-# ---------------------------------------------------------------------------
-# EC1: Edge case — nrow(data) == 0 throws error before computation
-# ---------------------------------------------------------------------------
-
-test_that("EC1: empty survey_taylor triggers surveywts_error_empty_data", {
-  empty_df <- make_surveywts_data(seed = 1)[0, ]
-  empty_taylor <- .make_test_taylor_linear(empty_df)
-  targets <- list(age_group = c("18-34" = 1.0))
-
-  expect_error(
-    calibrate_linear(empty_taylor, targets = targets),
-    class = "surveywts_error_empty_data"
-  )
-})
+# EC1: Removed — 0-row data cannot reach calibrate_linear(): surveycore
+# >= 1.2.0 rejects it when it builds the design (see E2).
 
 # ---------------------------------------------------------------------------
-# EC2: Edge case — single-row data
+# EC2: Edge case — smallest design (2 rows)
 # ---------------------------------------------------------------------------
 
-test_that("EC2: single-row survey_taylor with single-level variable proceeds without error", {
-  df <- data.frame(grp = "A", wt = 1, stringsAsFactors = FALSE)
+test_that("EC2: 2-row survey_taylor with single-level variable proceeds without error", {
+  # surveycore >= 1.2.0 rejects 1-row data, so 2 rows is the smallest design.
+  df <- data.frame(grp = c("A", "A"), wt = c(1, 1), stringsAsFactors = FALSE)
   design_ec2 <- surveycore::survey_taylor(
     data = df,
     variables = list(
@@ -2029,13 +2013,14 @@ test_that("RL-5: absolute-bounds replicate calibration: all weights in every col
 })
 
 # ---------------------------------------------------------------------------
-# EC-1: Edge case — single-row data with q = 2
+# EC-1: Edge case — smallest design (2 rows) with q = 2
 # ---------------------------------------------------------------------------
 
-test_that("EC-1: single-row data with q = 2 produces valid calibrated weight", {
+test_that("EC-1: 2-row data with q = 2 produces valid calibrated weights", {
+  # surveycore >= 1.2.0 rejects 1-row data, so 2 rows is the smallest design.
   df_1 <- data.frame(
-    age_group = "18-34",
-    base_weight = 1.5,
+    age_group = c("18-34", "18-34"),
+    base_weight = c(1.5, 1.5),
     stringsAsFactors = FALSE
   )
   design_1 <- surveycore::survey_taylor(
@@ -2054,11 +2039,11 @@ test_that("EC-1: single-row data with q = 2 produces valid calibrated weight", {
     design_1,
     targets = targets_1,
     type = "count",
-    unit_scale = 2.0
+    unit_scale = c(2.0, 2.0)
   )
 
   test_invariants(result)
-  expect_true(is.finite(result@data[[result@variables$weights]]))
+  expect_true(all(is.finite(result@data[[result@variables$weights]])))
 })
 
 # ---------------------------------------------------------------------------

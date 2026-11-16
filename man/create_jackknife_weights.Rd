@@ -256,6 +256,11 @@ If one or more DAGJK replicate weight values are negative after calibration
 (which can occur with the extended formula when \eqn{n_h = 2}, or with
 extreme calibration targets), a warning is emitted. Variance estimates
 using negative replicate weights should be interpreted cautiously.
+
+If a \code{survey_taylor} input has a finite population correction and
+\code{type = "grouped"}, a warning says the standard errors do not include it.
+\code{var_strat_frac} sets the correction for this type instead. See the
+\strong{Finite population correction} section.
 }
 
 \section{Messages}{
@@ -298,6 +303,38 @@ To quiet one message and leave the rest alone:
   \}
 )
 }\if{html}{\out{</div>}}
+}
+
+\section{Finite population correction}{
+
+When the source design has a finite population correction (\code{fpc}), the
+returned design keeps the column name in \verb{@variables$fpc} and records in
+\verb{@variables$fpc_applied} where the correction went:\tabular{ll}{
+   Function and \code{type} \tab \code{fpc_applied} \cr
+   \code{create_jackknife_weights()}, \code{"jkn"} and \code{"jk1"} \tab \code{"rscales"} \cr
+   \code{create_jackknife_weights()}, \code{"grouped"} \tab \code{"none"} \cr
+   \code{create_bootstrap_weights()}, \code{"Rao-Wu-Yue-Beaumont"}, \code{"Preston"}, \code{"Canty-Davison"} \tab \code{"repweights"} \cr
+   \code{create_bootstrap_weights()}, \code{"Rao-Wu"}, \code{"Antal-Tille"} \tab \code{"none"} \cr
+   \code{create_gen_boot_weights()}, \code{create_gen_rep_weights()}, \code{create_sdr_weights()} \tab \code{"repweights"} \cr
+   \code{create_brr_weights()}, BRR and Fay \tab \code{"none"} \cr
+}
+
+
+\code{"rscales"} means the correction is in the variance scale factors.
+\code{"repweights"} means it is built into the replicate weight columns.
+\code{"none"} means the method does not apply it: the standard errors do not
+include the correction, and the function warns. To apply it, use
+\code{create_jackknife_weights(type = "jkn")} or
+\code{create_bootstrap_weights(type = "Rao-Wu-Yue-Beaumont")}.
+
+The Rao-Wu-Yue-Beaumont bootstrap and some generalized estimators
+(\code{"Deville-1"}, \code{"Deville-2"}, \code{"Beaumont-Emond"},
+\code{"Poisson Horvitz-Thompson"}) read the sampling fraction from
+1 / weight, not from the \code{fpc} column. The two agree when the weights
+are design weights.
+
+When the source design has no \code{fpc}, both \verb{@variables$fpc} and
+\verb{@variables$fpc_applied} are \code{NULL}.
 }
 
 \examples{

@@ -50,6 +50,8 @@
 #'
 #' @inheritSection create_gen_boot_weights Messages
 #'
+#' @inheritSection create_replicate_weights Finite population correction
+#'
 #' @references
 #'   Fay, R.E. (1984). Some properties of estimates of variance based on
 #'   replication methods. *Proceedings of the Section on Survey Research
@@ -171,7 +173,9 @@ create_brr_weights <- function(data, ..., rho = 0, mse = TRUE) {
         survey::as.svrepdesign(d, type = "BRR", mse = mse)
       },
       method = "brr",
-      params = list(rho = 0, mse = mse)
+      params = list(rho = 0, mse = mse),
+      fpc_applied = .fpc_applied_map[["BRR"]],
+      fpc_call = "create_brr_weights()"
     )
   } else {
     .convert_and_call(
@@ -180,7 +184,9 @@ create_brr_weights <- function(data, ..., rho = 0, mse = TRUE) {
         survey::as.svrepdesign(d, type = "Fay", fay.rho = rho, mse = mse)
       },
       method = "brr",
-      params = list(rho = rho, mse = mse)
+      params = list(rho = rho, mse = mse),
+      fpc_applied = .fpc_applied_map[["Fay"]],
+      fpc_call = paste0("create_brr_weights(rho = ", rho, ")")
     )
   }
 }

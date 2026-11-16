@@ -66,6 +66,8 @@
 #'
 #' @inheritSection create_gen_boot_weights Messages
 #'
+#' @inheritSection create_replicate_weights Finite population correction
+#'
 #' @references
 #'   Fay, R.E. (1984). Some properties of estimates of variance based on
 #'   replication methods. *Proceedings of the Section on Survey Research
@@ -188,6 +190,8 @@ create_gen_rep_weights <- function(
       balanced = balanced,
       mse = mse
     ),
+    fpc_applied = .fpc_applied_map[["generalized-replicate"]],
+    fpc_call = "create_gen_rep_weights()",
     seed = seed
   )
 }

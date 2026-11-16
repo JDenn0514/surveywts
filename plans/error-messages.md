@@ -206,6 +206,7 @@ templates (organized by function in subsections XII.A through XII.G).
 | `surveywts_warning_jackknife_negative_replicate_weights` | `create_jackknife_weights()` | One or more replicate weight values are negative after calibration |
 | `surveywts_warning_jackknife_mse_overridden` | `create_jackknife_weights()` | `mse = FALSE` with `type = "grouped"` and `survey_nonprob`; overridden to `TRUE` |
 | `surveywts_warning_jackknife_svrep_args_ignored` | `create_jackknife_weights()` | Any non-default svrep arg (`var_strat`, `var_strat_frac`, `sort_var`, `adj_method`, `scale_method`) passed with `survey_nonprob` input; emitted once for all non-default args collectively |
+| `surveywts_warning_fpc_not_applied` | `create_brr_weights()`, `create_bootstrap_weights()`, `create_jackknife_weights()` (via `.convert_and_call()`) | The source design has an `fpc` and the method does not apply it: BRR, Fay, `type = "Rao-Wu"`, `type = "Antal-Tille"`, `type = "grouped"`. The design records `@variables$fpc_applied = "none"`. Replaces `survey`'s untyped "Finite population correction dropped in conversion" (BRR, Fay) and svrep's untyped "Ignoring finite population corrections in `design`" (grouped) |
 
 ## Messages
 

@@ -230,6 +230,11 @@
 #' extreme calibration targets), a warning is emitted. Variance estimates
 #' using negative replicate weights should be interpreted cautiously.
 #'
+#' If a `survey_taylor` input has a finite population correction and
+#' `type = "grouped"`, a warning says the standard errors do not include it.
+#' `var_strat_frac` sets the correction for this type instead. See the
+#' **Finite population correction** section.
+#'
 #' @section Messages:
 #'
 #' When the design carries a calibration, the replay re-runs it inside every
@@ -239,6 +244,8 @@
 #' may be near zero and deserves a look.
 #'
 #' @inheritSection create_gen_boot_weights Messages
+#'
+#' @inheritSection create_replicate_weights Finite population correction
 #'
 #' @references
 #'   Elliott, M.R. and Valliant, R. (2017). Inference for nonprobability
@@ -400,6 +407,8 @@ create_jackknife_weights <- function(
       },
       method = "jackknife",
       params = list(type = type, mse = mse),
+      fpc_applied = .fpc_applied_map[[type]],
+      fpc_call = paste0("create_jackknife_weights(type = \"", type, "\")"),
       seed = NULL
     ))
   }
@@ -433,6 +442,8 @@ create_jackknife_weights <- function(
         adj_method = adj_method,
         scale_method = scale_method
       ),
+      fpc_applied = .fpc_applied_map[["grouped"]],
+      fpc_call = "create_jackknife_weights(type = \"grouped\")",
       seed = seed
     ))
   }

@@ -87,6 +87,8 @@
 #'
 #' @inheritSection create_gen_boot_weights Messages
 #'
+#' @inheritSection create_replicate_weights Finite population correction
+#'
 #' @references
 #'   Ash, S. (2014). Using successive difference replication for
 #'   estimating variances. *Survey Methodology, Statistics Canada*,
@@ -218,6 +220,8 @@ create_sdr_weights <- function(
       sort_var = sort_col,
       mse = mse,
       use_normal_hadamard = use_normal_hadamard
-    )
+    ),
+    fpc_applied = .fpc_applied_map[["successive-difference"]],
+    fpc_call = "create_sdr_weights()"
   )
 }

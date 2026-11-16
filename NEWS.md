@@ -6,6 +6,23 @@
   a tibble, with one row per step and the columns `step`, `timestamp`,
   `operation`, and `description`.
 
+* Every `create_*_weights()` function now records where the source design's
+  finite population correction went, in `@variables$fpc_applied`:
+  `"rscales"` (JKn, JK1), `"repweights"` (the Rao-Wu-Yue-Beaumont, Preston
+  and Canty-Davison bootstraps, the generalized bootstrap, generalized
+  replication, and successive difference replication), or `"none"`. With no
+  `fpc` on the source, `@variables$fpc` and `@variables$fpc_applied` are
+  both `NULL`. surveycore's `as_svydesign()` no longer warns that it dropped
+  the FPC from these designs (#130).
+
+* BRR, Fay, the Rao-Wu and Antal-Tille bootstraps, and the grouped
+  jackknife do not apply a finite population correction. When the source
+  design has one, these methods now raise the classed warning
+  `surveywts_warning_fpc_not_applied`. It replaces the untyped warnings from
+  `survey` (BRR, Fay) and `svrep` (grouped jackknife), and the silence from
+  Rao-Wu and Antal-Tille. No replicate weight, scale, or standard error
+  changes (#130).
+
 ## Breaking changes
 
 * surveywts no longer replaces surveycore's `print()` for `survey_replicate`

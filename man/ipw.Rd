@@ -112,8 +112,9 @@ columns from \code{data} plus a new column named \code{wt_name} holding the
 NA in any selection variable are excluded from \verb{@data}. The
 \verb{@reference_sample} slot holds the supplied \code{reference} design. A new
 entry with \code{operation = "ipw"} is appended to the weighting history. The
-\code{estimated_population_size} field in the history entry always equals
-\code{sum(w)} before trimming, regardless of \code{trim}.
+\code{estimated_population_size} field in the history entry equals
+\code{population_size} when you supply it. Otherwise it equals \code{sum(w)} before
+trimming, regardless of \code{trim}.
 }
 \description{
 Constructs inverse probability weights for a non-probability sample (NPS)

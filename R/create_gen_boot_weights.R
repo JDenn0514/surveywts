@@ -143,6 +143,8 @@
 #' # columns, which is what the replicate weights are for.
 #' surveycore::get_means(gen_boot_design, age)
 #'
+#' @seealso [weighting_history()] to list the weighting steps recorded on
+#'   the result.
 #' @seealso [create_bootstrap_weights()], [create_jackknife_weights()],
 #'   [create_brr_weights()], [create_gen_rep_weights()],
 #'   [create_sdr_weights()], [create_replicate_weights()], [as_taylor_design()].

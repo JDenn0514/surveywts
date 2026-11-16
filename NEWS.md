@@ -1,5 +1,20 @@
 # surveywts (development version)
 
+## New features
+
+* `weighting_history()` returns the weighting steps recorded on a design as
+  a tibble, with one row per step and the columns `step`, `timestamp`,
+  `operation`, and `description`.
+
+## Breaking changes
+
+* surveywts no longer replaces surveycore's `print()` for `survey_replicate`
+  and `survey_nonprob` designs. `print()` on these designs now shows
+  surveycore's layout, with its `design_info` and `weights_info` arguments,
+  the FPC line, `rho`, and the data preview. The weighting history section
+  that surveywts' print used to show is gone; call `weighting_history()`
+  instead.
+
 * surveywts now requires surveycore >= 1.2.0. surveycore 1.2.0 rejects
   survey designs with 0 rows or 1 row when it builds them, so the 0-row
   checks in the weighting functions no longer run for survey objects.

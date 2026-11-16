@@ -221,6 +221,9 @@ Wu, C. (2022). Statistical inference with non-probability survey
 samples. \emph{Survey Methodology}, 48(2), 283--311.
 }
 \seealso{
+\code{\link[=weighting_history]{weighting_history()}} to list the weighting steps recorded on
+the result.
+
 \code{\link[=create_bootstrap_weights]{create_bootstrap_weights()}}, \code{\link[=create_jackknife_weights]{create_jackknife_weights()}},
 \code{\link[=create_brr_weights]{create_brr_weights()}}, \code{\link[=create_gen_boot_weights]{create_gen_boot_weights()}},
 \code{\link[=create_gen_rep_weights]{create_gen_rep_weights()}}, \code{\link[=create_sdr_weights]{create_sdr_weights()}}, \code{\link[=as_taylor_design]{as_taylor_design()}}.

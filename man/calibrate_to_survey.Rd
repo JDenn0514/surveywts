@@ -271,6 +271,9 @@ Fuller, W.A. (1998). Replication variance estimation for two-phase
 samples. \emph{Statistica Sinica}, 8, 1153--1164.
 }
 \seealso{
+\code{\link[=weighting_history]{weighting_history()}} to list the weighting steps recorded on
+the result.
+
 \code{\link[=calibrate_to_estimate]{calibrate_to_estimate()}}. For the class system, the standard
 workflows, and a glossary of terms, see the \href{https://jdenn0514.github.io/surveywts/articles/getting-started.html}{Getting started article}.
 

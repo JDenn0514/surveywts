@@ -4,8 +4,8 @@
 # All functions are unexported and .-prefixed.
 #
 # Contents:
-#   .format_history_step()            — formats one history entry as display line
-#                                       (moved here from classes.R in PR 4)
+#   .history_operation()              — reads the operation of one history entry
+#   .history_step_label()             — describes one history entry
 #   .get_weight_col_name()            — returns weight column name as character
 #   .validate_wt_name()              — validates wt_name argument (scalar string)
 #   .validate_reference_design()      — validates reference_design argument (survey_taylor or NULL)
@@ -28,17 +28,28 @@
 # every history entry requires a step field (spec §IV.5).
 
 # ============================================================================
-# .format_history_step()
+# .history_operation() / .history_step_label()
 # ============================================================================
 
-# Format one history entry as a single display line.
-# Used by the S7 print method for survey_nonprob (methods-print.R).
-.format_history_step <- function(entry) {
+# Returns the operation of one history entry as character(1), or NA when the
+# entry has no usable operation. Used by weighting_history() and
+# .history_step_label().
+.history_operation <- function(entry) {
   op <- entry$operation
-  params <- entry$parameters
-  ts <- entry$timestamp
+  if (is.character(op) && length(op) == 1L) op else NA_character_
+}
 
-  label <- switch(
+# Describes one history entry, for example "raking (targets: age, sex)".
+# Returns NA when the entry has no usable operation; an operation with no
+# case below returns the operation name. Used by weighting_history().
+.history_step_label <- function(entry) {
+  op <- .history_operation(entry)
+  if (is.na(op)) {
+    return(NA_character_)
+  }
+  params <- entry$parameters
+
+  switch(
     op,
     "calibrate_rake" = ,
     "raking" = {
@@ -86,7 +97,7 @@
       )
     },
     "ipw" = {
-      fml_str <- deparse(entry$formula)
+      fml_str <- paste(deparse(entry$formula), collapse = " ")
       paste0(
         "ipw [",
         fml_str,
@@ -101,9 +112,6 @@
     },
     op # default: just the operation name
   )
-
-  date_str <- format(ts, "%Y-%m-%d")
-  paste0("#   Step ", entry$step, " [", date_str, "]: ", label)
 }
 
 # ============================================================================

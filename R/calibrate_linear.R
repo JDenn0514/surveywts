@@ -154,6 +154,8 @@
 #'   raking procedures in survey sampling. *Journal of the American
 #'   Statistical Association*, 88(423), 1013--1020.
 #'
+#' @seealso [weighting_history()] to list the weighting steps recorded on
+#'   the result.
 #' @seealso [calibrate()], [calibrate_rake()], [calibrate_logit()],
 #'   [poststratify()]. For the class system, the standard workflows, and a
 #'   glossary of terms, see the [Getting started

@@ -110,48 +110,47 @@
 # create_jackknife_weights() type='grouped' warns when repweights already populated
 
     Code
-      .pin_ts(create_jackknife_weights(r1, replicates = 10L, type = "grouped", seed = 2L))
+      weighting_history(.pin_ts(create_jackknife_weights(r1, replicates = 10L, type = "grouped",
+        seed = 2L)))
     Condition
       Warning:
       ! Overwriting 10 existing replicate weight column(s) in `data`.
       i A previous call to `create_jackknife_weights()` already produced 10 replicate column(s). They will be replaced.
       v Inspect the previous replicates before overwriting if needed.
     Output
-      # A calibrated survey design: 80 observations, 13 variables
-      # Variance: model-assisted (SRS assumption)
-      # IDs: ~1 | Strata: NULL | Weights: ipw_weight 
-      # Weighting history: 3 steps 
-      #   Step 1 [2025-01-15]: ipw [~age_group + sex, logit, n_ref=500, N_hat=501] 
-      #   Step 2 [2025-01-15]: jackknife_weights 
-      #   Step 3 [2025-01-15]: jackknife_weights 
+      # A tibble: 3 x 4
+         step timestamp           operation         description                       
+        <int> <dttm>              <chr>             <chr>                             
+      1     1 2025-01-15 10:00:00 ipw               ipw [~age_group + sex, logit, n_r~
+      2     2 2025-01-15 10:00:00 jackknife_weights jackknife_weights                 
+      3     3 2025-01-15 10:00:00 jackknife_weights jackknife_weights                 
 
 # create_jackknife_weights() type='grouped' warns when average group size < 5
 
     Code
-      .pin_ts(withCallingHandlers(create_jackknife_weights(datasets$A, replicates = 200L,
-      type = "grouped", seed = 1L), warning = function(w) {
+      weighting_history(.pin_ts(withCallingHandlers(create_jackknife_weights(datasets$
+        A, replicates = 200L, type = "grouped", seed = 1L), warning = function(w) {
         if (!inherits(w, "surveywts_warning_jackknife_small_groups")) {
           invokeRestart("muffleWarning")
         }
-      }))
+      })))
     Condition
       Warning:
       ! Average group size is 2 unit(s) (580 combined / 200 groups).
       i Groups with fewer than 5 units may cause the logistic model to fail to converge in some replicates.
       v Reduce `replicates` or ensure the combined NPS + reference dataset is large enough relative to the number of groups.
     Output
-      # A calibrated survey design: 80 observations, 203 variables
-      # Variance: model-assisted (SRS assumption)
-      # IDs: ~1 | Strata: NULL | Weights: ipw_weight 
-      # Weighting history: 2 steps 
-      #   Step 1 [2025-01-15]: ipw [~age_group + sex, logit, n_ref=500, N_hat=501] 
-      #   Step 2 [2025-01-15]: jackknife_weights 
+      # A tibble: 2 x 4
+         step timestamp           operation         description                       
+        <int> <dttm>              <chr>             <chr>                             
+      1     1 2025-01-15 10:00:00 ipw               ipw [~age_group + sex, logit, n_r~
+      2     2 2025-01-15 10:00:00 jackknife_weights jackknife_weights                 
 
 # create_jackknife_weights() type='grouped' warns when > 10% of replicates fail
 
     Code
-      .pin_ts(create_jackknife_weights(tiny_ipw2, replicates = 5L, type = "grouped",
-        seed = 7L))
+      weighting_history(.pin_ts(create_jackknife_weights(tiny_ipw2, replicates = 5L,
+        type = "grouped", seed = 7L)))
     Condition
       Warning:
       ! Average group size is 2 unit(s) (12 combined / 5 groups).
@@ -162,10 +161,9 @@
       i A replicate fails when the logistic model does not converge or produces degenerate propensity scores in the reduced dataset.
       v Reduce `replicates` or inspect the data for extreme covariate imbalance.
     Output
-      # A calibrated survey design: 6 observations, 6 variables
-      # Variance: model-assisted (SRS assumption)
-      # IDs: ~1 | Strata: NULL | Weights: ipw_weight 
-      # Weighting history: 2 steps 
-      #   Step 1 [2025-01-15]: ipw [~age_group, logit, n_ref=6, N_hat=600] 
-      #   Step 2 [2025-01-15]: jackknife_weights 
+      # A tibble: 2 x 4
+         step timestamp           operation         description                       
+        <int> <dttm>              <chr>             <chr>                             
+      1     1 2025-01-15 10:00:00 ipw               ipw [~age_group, logit, n_ref=6, ~
+      2     2 2025-01-15 10:00:00 jackknife_weights jackknife_weights                 
 

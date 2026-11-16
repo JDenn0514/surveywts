@@ -34,7 +34,7 @@ only what is specific to surveywts.
 | `R/trim_weights.R`, `R/rescale_weights.R`, `R/weight-utils.R` | `tests/testthat/test-weight-utils.R` |
 | `R/create_bootstrap_weights.R`, and other `create_*_weights.R`, `R/replicate-utils.R` | `tests/testthat/test-replicate-weights.R` |
 | `R/create_replicate_weights.R`, `R/as_taylor_design.R` | `tests/testthat/test-replicate-dispatch.R` |
-| `R/methods-print.R` | `tests/testthat/test-replicate-print.R` |
+| `R/weighting_history.R` | `tests/testthat/test-weighting-history.R` |
 | `R/ipw.R` | `tests/testthat/test-nonprob-ipw.R` |
 | `R/jackknife-dagjk-utils.R` | `tests/testthat/test-nps-jackknife.R` |
 | `R/replicate-utils.R` — quasi-randomization bootstrap | `tests/testthat/test-08-nps-bootstrap.R` |
@@ -185,11 +185,14 @@ the relevant `test_that()` block (never at file level).
 
 ## Test File Section Templates
 
-### Print method test file (`test-replicate-print.R`)
+### Weighting history test file (`test-weighting-history.R`)
 ```
-# 1. survey_nonprob — print snapshot
-# 2. survey_replicate — print snapshot
-# 3. Weighting history rendering — pin timestamps with .pin_ts() first
+# 1. Happy path — pin timestamps with .pin_ts() before a snapshot
+# 2. One description per operation family
+# 3. Empty history
+# 4. Incomplete and unknown entries
+# 5. Error paths
+# 6. surveycore's print() runs for surveycore classes
 ```
 
 ### Calibration / nonresponse function test files (`test-02-*.R` through `test-05-*.R`)

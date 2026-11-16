@@ -115,6 +115,8 @@
 #'
 #' summarize_weights(result)
 #'
+#' @seealso [weighting_history()] to list the weighting steps recorded on
+#'   the result.
 #' @seealso [calibrate_to_survey()]. For the class system, the standard
 #'   workflows, and a glossary of terms, see the [Getting started
 #'   article](https://jdenn0514.github.io/surveywts/articles/getting-started.html).

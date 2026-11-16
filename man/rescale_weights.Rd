@@ -78,6 +78,9 @@ mean(surveycore::survey_data(cps_svy)$repwtp1)
 mean(surveycore::survey_data(result_rep)$repwtp1)
 }
 \seealso{
+\code{\link[=weighting_history]{weighting_history()}} to list the weighting steps recorded on
+the result.
+
 \code{\link[=trim_weights]{trim_weights()}}. For the class system, the standard
 workflows, and a glossary of terms, see the \href{https://jdenn0514.github.io/surveywts/articles/getting-started.html}{Getting started article}.
 

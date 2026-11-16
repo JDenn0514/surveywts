@@ -84,3 +84,4 @@ reference:
       - effective_sample_size
       - weight_variability
       - summarize_weights
+      - weighting_history

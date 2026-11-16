@@ -136,6 +136,8 @@
 #'   known (estimated from the data), not as true population propensities; this
 #'   understates variance and should be accounted for in downstream analysis.
 #'
+#' @seealso [weighting_history()] to list the weighting steps recorded on
+#'   the result.
 #' @seealso [redistribute_weights()], [ipw()]. For the class system, the
 #'   standard workflows, and a glossary of terms, see the [Getting started
 #'   article](https://jdenn0514.github.io/surveywts/articles/getting-started.html).

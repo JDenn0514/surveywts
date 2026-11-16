@@ -181,6 +181,8 @@
 #' summarize_weights(dagjk_rep)
 #'
 #' @family replicate-weights
+#' @seealso [weighting_history()] to list the weighting steps recorded on
+#'   the result.
 #' @seealso [create_bootstrap_weights()], [create_jackknife_weights()],
 #'   [create_brr_weights()], [create_gen_boot_weights()],
 #'   [create_gen_rep_weights()], [create_sdr_weights()], [as_taylor_design()].

@@ -167,6 +167,8 @@
 #'   Kott, P.S. (2003). An overview of calibration weighting. 2003 Joint
 #'   Statistical Meetings — Section on Survey Research Methods.
 #'
+#' @seealso [weighting_history()] to list the weighting steps recorded on
+#'   the result.
 #' @seealso [calibrate()], [calibrate_linear()], [calibrate_logit()],
 #'   [poststratify()]. For the class system, the standard workflows, and a
 #'   glossary of terms, see the [Getting started

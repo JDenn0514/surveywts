@@ -1763,8 +1763,9 @@ test_that("bootstrap overwrite warning message text is unchanged after refactor"
     ),
     class = "surveywts_warning_repweights_overwritten"
   )
+  # invisible(): the warning text is the point, not the returned design.
   expect_snapshot(
-    withCallingHandlers(
+    invisible(withCallingHandlers(
       surveywts:::.handle_repweights_overwrite(
         rep,
         fn_name = "create_bootstrap_weights",
@@ -1774,7 +1775,7 @@ test_that("bootstrap overwrite warning message text is unchanged after refactor"
         message(conditionMessage(w))
         invokeRestart("muffleWarning")
       }
-    )
+    ))
   )
 })
 

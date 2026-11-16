@@ -214,6 +214,9 @@ Kott, P.S. (2003). An overview of calibration weighting. 2003 Joint
 Statistical Meetings — Section on Survey Research Methods.
 }
 \seealso{
+\code{\link[=weighting_history]{weighting_history()}} to list the weighting steps recorded on
+the result.
+
 \code{\link[=calibrate]{calibrate()}}, \code{\link[=calibrate_linear]{calibrate_linear()}}, \code{\link[=calibrate_logit]{calibrate_logit()}},
 \code{\link[=poststratify]{poststratify()}}. For the class system, the standard workflows, and a
 glossary of terms, see the \href{https://jdenn0514.github.io/surveywts/articles/getting-started.html}{Getting started article}.

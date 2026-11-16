@@ -263,6 +263,8 @@
 #'   Wolter, K.M. (2007). *Introduction to Variance Estimation* (2nd ed.).
 #'   Springer.
 #'
+#' @seealso [weighting_history()] to list the weighting steps recorded on
+#'   the result.
 #' @seealso
 #'   [create_bootstrap_weights()] for bootstrap replicate weights;
 #'   [create_brr_weights()] for balanced repeated replication;

@@ -17,6 +17,9 @@
 # .report_replay_messages()          — print one summary line after the loop
 # .new_backend_message_store()       — fresh store for the back-end messages
 # .collect_backend_messages()        — muffle & collect the svrep/survey messages
+# .is_backend_fpc_warning()          — match a back end's untyped FPC-drop warning
+# .fpc_applied_map                   — method/type -> @variables$fpc_applied
+# .warn_fpc_not_applied()            — raise surveywts_warning_fpc_not_applied
 # .translate_backend_message()       — one message -> a classed cli payload
 # .backend_note()                    — the generic payload for an unknown text
 # .report_backend_messages()         — re-emit each one under a surveywts class
@@ -130,11 +133,19 @@
 #   seed          : integer(1) or NULL -- if non-NULL, withr::local_seed() is used
 #   type_override : character(1) or NULL -- overrides svyrep_obj$type when set;
 #                   used for gen-boot/gen-rep which return type = "other" from svrep
+#   fpc_applied   : character(1) -- where this method puts the source design's
+#                   FPC: a value of .fpc_applied_map. Recorded only when the
+#                   source design has an fpc (issue #130).
+#   fpc_call      : character(1) -- the call to name in the
+#                   surveywts_warning_fpc_not_applied message, e.g.
+#                   'create_brr_weights()'
 .convert_and_call <- function(
   data,
   backend_fn,
   method,
   params,
+  fpc_applied,
+  fpc_call,
   seed = NULL,
   type_override = NULL
 ) {
@@ -184,6 +195,14 @@
   .report_backend_messages(msg_store, n_rep, params, seed)
   rep_names <- paste0("rep_", seq_len(n_rep))
 
+  # Record where the source design's FPC went (issue #130). With no fpc on
+  # the source, both keys stay NULL. survey_nonprob has no fpc key, so the
+  # simple-random-sample path above always lands here.
+  fpc_record <- if (is.null(data@variables$fpc)) NULL else fpc_applied
+  if (identical(fpc_record, "none")) {
+    .warn_fpc_not_applied(fpc_call, data@variables$fpc)
+  }
+
   base_data <- as.data.frame(svyrep_obj$variables)
   rep_df <- as.data.frame(rep_matrix)
   names(rep_df) <- rep_names
@@ -201,6 +220,7 @@
     } else {
       "fraction"
     },
+    fpc_applied = fpc_record,
     mse = isTRUE(svyrep_obj$mse)
   )
 
@@ -1059,6 +1079,11 @@
 # where it was raised. No surveywts code emits from inside backend_fn() today;
 # the branch keeps a later one from disappearing.
 #
+# The handler also muffles the two untyped warnings the back ends raise when
+# they drop the source design's FPC (issue #130). .convert_and_call() raises
+# surveywts_warning_fpc_not_applied in their place, from .fpc_applied_map, so
+# the text is not stored. Every other warning passes through unchanged.
+#
 # Arguments:
 #   expr  : the back-end call to evaluate
 #   store : environment from .new_backend_message_store()
@@ -1073,8 +1098,113 @@
       }
       store$msgs <- c(store$msgs, list(m))
       invokeRestart("muffleMessage")
+    },
+    warning = function(w) {
+      if (.is_backend_fpc_warning(w)) {
+        invokeRestart("muffleWarning")
+      }
     }
   )
+}
+
+# ============================================================================
+# .is_backend_fpc_warning()
+# ============================================================================
+
+# TRUE for the untyped warning a back end raises when it drops the source
+# design's FPC. Neither warning has a class, so the match is on the text:
+#   - survey::as.svrepdesign(type = "BRR" or "Fay"):
+#     "Finite population correction dropped in conversion"
+#   - svrep::as_random_group_jackknife_design():
+#     "Ignoring finite population corrections in `design`. ..."
+# A wording change upstream stops the match, and the back-end warning then
+# reaches the user next to the typed one. Nothing goes silent.
+#
+# Arguments:
+#   w : a warning condition
+#
+# Returns: logical(1)
+.is_backend_fpc_warning <- function(w) {
+  txt <- conditionMessage(w)
+  grepl(
+    "Finite population correction dropped in conversion",
+    txt,
+    fixed = TRUE
+  ) ||
+    grepl("Ignoring finite population corrections in", txt, fixed = TRUE)
+}
+
+# ============================================================================
+# .fpc_applied_map
+# ============================================================================
+
+# Where each create_*_weights() method puts the source design's finite
+# population correction, as a value for surveycore's
+# @variables$fpc_applied (issue #130):
+#   "rscales"    -- in the variance scale factors (survey's jackknife)
+#   "repweights" -- in the replicate weight columns, built in when the
+#                   weights are drawn
+#   "none"       -- the method does not apply it
+# Every row is pinned by a test in test-fpc-applied.R that compares the
+# standard error with and without the FPC under the same seed.
+#
+# Two notes from those measurements:
+#   - JK1 puts the correction in the single `scale`, not in `rscales`.
+#     "rscales" is the nearest of surveycore's three values, and both
+#     multiply the variance.
+#   - Rao-Wu-Yue-Beaumont, and the generalized estimators Deville-1,
+#     Deville-2, Beaumont-Emond and Poisson Horvitz-Thompson, read the
+#     sampling fraction from 1 / weight, not from the fpc column. The
+#     correction is in the replicate weights, and it matches the fpc column
+#     when the weights are design weights (N_h / n_h).
+.fpc_applied_map <- c(
+  jkn = "rscales",
+  jk1 = "rscales",
+  grouped = "none",
+  `Rao-Wu-Yue-Beaumont` = "repweights",
+  Preston = "repweights",
+  `Canty-Davison` = "repweights",
+  `Rao-Wu` = "none",
+  `Antal-Tille` = "none",
+  `generalized-bootstrap` = "repweights",
+  `generalized-replicate` = "repweights",
+  `successive-difference` = "repweights",
+  BRR = "none",
+  Fay = "none"
+)
+
+# ============================================================================
+# .warn_fpc_not_applied()
+# ============================================================================
+
+# Raise surveywts_warning_fpc_not_applied: the source design has an fpc and
+# the method does not apply it.
+#
+# Arguments:
+#   fpc_call : character(1) -- the call to name, e.g. 'create_brr_weights()'
+#   fpc_col  : character(1) -- the source design's fpc column
+#
+# Returns: invisible(NULL); called for the warning
+.warn_fpc_not_applied <- function(fpc_call, fpc_col) {
+  cli::cli_warn(
+    c(
+      "!" = paste0(
+        "{.code {fpc_call}} does not apply the finite population ",
+        "correction in {.field {fpc_col}}."
+      ),
+      "i" = paste0(
+        "Standard errors from the returned design do not include this ",
+        "correction."
+      ),
+      "i" = paste0(
+        "To apply it, use ",
+        "{.code create_jackknife_weights(type = \"jkn\")} or ",
+        "{.code create_bootstrap_weights(type = \"Rao-Wu-Yue-Beaumont\")}."
+      )
+    ),
+    class = "surveywts_warning_fpc_not_applied"
+  )
+  invisible(NULL)
 }
 
 # ============================================================================

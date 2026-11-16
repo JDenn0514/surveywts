@@ -107,6 +107,8 @@
 #' )
 #' ```
 #'
+#' @inheritSection create_replicate_weights Finite population correction
+#'
 #' @references
 #'   Beaumont, J.-F. and Patak, Z. (2012). On the generalized bootstrap for
 #'   sample surveys with special attention to Poisson sampling.
@@ -235,6 +237,8 @@ create_gen_boot_weights <- function(
       tau = tau,
       mse = mse
     ),
+    fpc_applied = .fpc_applied_map[["generalized-bootstrap"]],
+    fpc_call = "create_gen_boot_weights()",
     seed = seed,
     type_override = "bootstrap"
   )

@@ -118,6 +118,8 @@
 #'
 #' @inheritSection create_gen_boot_weights Messages
 #'
+#' @inheritSection create_replicate_weights Finite population correction
+#'
 #' @references
 #'   Elliott, M.R. and Valliant, R. (2017). Inference for nonprobability
 #'   samples. *Statistical Science* **32**(2), 249--264.
@@ -347,6 +349,8 @@ create_bootstrap_weights <- function(
       },
       method = "bootstrap",
       params = list(type = type, replicates = replicates, mse = mse_logical),
+      fpc_applied = .fpc_applied_map[[type]],
+      fpc_call = paste0("create_bootstrap_weights(type = \"", type, "\")"),
       seed = seed
     )
   }

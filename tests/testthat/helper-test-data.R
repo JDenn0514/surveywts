@@ -195,6 +195,76 @@ make_paired_design <- function(n_strata = 3L, obs_per_psu = 10L, seed = 42L) {
   )
 }
 
+# FPC helpers (issue #130) ------------------------------------------------------
+
+# A stratified, clustered survey_taylor, built twice from the same rows: once
+# with an FPC and once without. `N` holds the population count of PSUs in
+# each stratum, and the weight is N / psus_per_stratum, the design weight of
+# a simple random sample of PSUs. The weight must agree with `N`: the
+# Rao-Wu-Yue-Beaumont bootstrap reads the sampling fraction from 1 / weight,
+# not from the fpc column. psus_per_stratum = 2L gives the paired design BRR
+# needs. strata = FALSE drops the strata, for type = "jk1".
+# Returns: list(fpc = survey_taylor, none = survey_taylor)
+make_fpc_designs <- function(
+  n_strata = 8L,
+  psus_per_stratum = 4L,
+  units_per_psu = 3L,
+  N = NULL,
+  strata = TRUE,
+  seed = 1L
+) {
+  set.seed(seed)
+  if (is.null(N)) {
+    N <- 2L * psus_per_stratum
+  }
+  n_psus <- n_strata * psus_per_stratum
+  st <- rep(seq_len(n_strata), each = psus_per_stratum * units_per_psu)
+  psu <- rep(seq_len(n_psus), each = units_per_psu)
+  N_unit <- rep_len(N, n_strata)[st]
+  df <- data.frame(
+    st = st,
+    psu = psu,
+    y = rnorm(length(psu)) + rnorm(n_psus)[psu] + st / 3,
+    w = N_unit / psus_per_stratum,
+    N = N_unit
+  )
+  if (strata) {
+    list(
+      fpc = surveycore::as_survey(
+        df,
+        ids = psu,
+        strata = st,
+        weights = w,
+        fpc = N
+      ),
+      none = surveycore::as_survey(df, ids = psu, strata = st, weights = w)
+    )
+  } else {
+    list(
+      fpc = surveycore::as_survey(df, ids = psu, weights = w, fpc = N),
+      none = surveycore::as_survey(df, ids = psu, weights = w)
+    )
+  }
+}
+
+# Replicate standard error of the weighted total of `y`, by hand from
+# @variables: scale * sum(rscales * (t_r - t)^2), centred on the full-sample
+# total when mse is TRUE and on the replicate mean otherwise.
+rep_se_total <- function(design) {
+  v <- design@variables
+  y <- design@data$y
+  t_full <- sum(design@data[[v$weights]] * y)
+  t_rep <- vapply(v$repweights, function(r) sum(design@data[[r]] * y), 0)
+  rscales <- if (is.null(v$rscales)) rep(1, length(t_rep)) else v$rscales
+  centre <- if (isTRUE(v$mse)) t_full else mean(t_rep)
+  sqrt(v$scale * sum(rscales * (t_rep - centre)^2))
+}
+
+# Taylor-series standard error of the weighted total of `y`, from survey.
+taylor_se_total <- function(design) {
+  as.numeric(survey::SE(survey::svytotal(~y, surveycore::as_svydesign(design))))
+}
+
 # NPS bootstrap helpers -------------------------------------------------------
 
 make_nps_ref <- function(seed = 42) {

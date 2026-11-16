@@ -335,12 +335,16 @@ test_that("print(design_info = TRUE) on a JKn design shows surveycore's FPC line
   )
   jk <- create_jackknife_weights(td, type = "jkn")
   test_invariants(jk)
-  # Before surveywts records fpc_applied (issue #130) the line reads
-  # "application not recorded"; after, "applied in replicate scales".
+  # surveywts records fpc_applied = "rscales" for JKn (issue #130), so
+  # surveycore's line reads "applied in replicate scales".
   # surveycore writes the design section through cli (as messages) and the
   # data preview to stdout; keep the cli lines and drop the preview.
   utils::capture.output(
     cli_lines <- cli::cli_fmt(print(jk, design_info = TRUE))
   )
-  expect_true(any(grepl("FPC: fpc", cli_lines, fixed = TRUE)))
+  expect_true(any(grepl(
+    "FPC: fpc (applied in replicate scales)",
+    cli_lines,
+    fixed = TRUE
+  )))
 })

@@ -95,6 +95,36 @@
 #' [create_gen_boot_weights()], [create_gen_rep_weights()], and
 #' [create_sdr_weights()].
 #'
+#' @section Finite population correction:
+#' When the source design has a finite population correction (`fpc`), the
+#' returned design keeps the column name in `@variables$fpc` and records in
+#' `@variables$fpc_applied` where the correction went:
+#'
+#' | Function and `type` | `fpc_applied` |
+#' |---|---|
+#' | `create_jackknife_weights()`, `"jkn"` and `"jk1"` | `"rscales"` |
+#' | `create_jackknife_weights()`, `"grouped"` | `"none"` |
+#' | `create_bootstrap_weights()`, `"Rao-Wu-Yue-Beaumont"`, `"Preston"`, `"Canty-Davison"` | `"repweights"` |
+#' | `create_bootstrap_weights()`, `"Rao-Wu"`, `"Antal-Tille"` | `"none"` |
+#' | `create_gen_boot_weights()`, `create_gen_rep_weights()`, `create_sdr_weights()` | `"repweights"` |
+#' | `create_brr_weights()`, BRR and Fay | `"none"` |
+#'
+#' `"rscales"` means the correction is in the variance scale factors.
+#' `"repweights"` means it is built into the replicate weight columns.
+#' `"none"` means the method does not apply it: the standard errors do not
+#' include the correction, and the function warns. To apply it, use
+#' `create_jackknife_weights(type = "jkn")` or
+#' `create_bootstrap_weights(type = "Rao-Wu-Yue-Beaumont")`.
+#'
+#' The Rao-Wu-Yue-Beaumont bootstrap and some generalized estimators
+#' (`"Deville-1"`, `"Deville-2"`, `"Beaumont-Emond"`,
+#' `"Poisson Horvitz-Thompson"`) read the sampling fraction from
+#' 1 / weight, not from the `fpc` column. The two agree when the weights
+#' are design weights.
+#'
+#' When the source design has no `fpc`, both `@variables$fpc` and
+#' `@variables$fpc_applied` are `NULL`.
+#'
 #' @section Messages:
 #'
 #' When the design carries a calibration, the replay re-runs it inside every

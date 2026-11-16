@@ -248,8 +248,9 @@
 #'   NA in any selection variable are excluded from `@data`. The
 #'   `@reference_sample` slot holds the supplied `reference` design. A new
 #'   entry with `operation = "ipw"` is appended to the weighting history. The
-#'   `estimated_population_size` field in the history entry always equals
-#'   `sum(w)` before trimming, regardless of `trim`.
+#'   `estimated_population_size` field in the history entry equals
+#'   `population_size` when you supply it. Otherwise it equals `sum(w)` before
+#'   trimming, regardless of `trim`.
 #'
 #' @details
 #' **Variance estimation — refit required:** Naive variance estimates from

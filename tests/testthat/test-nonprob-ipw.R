@@ -341,7 +341,9 @@ test_that("ipw() estimates match nonprobsvy at tolerance 1e-6 [numerical cross-v
   N_ref <- sum(ref@data[[ref@variables$weights]])
   ipw_mean <- sum(nps$base_weight * result@data$ipw_weight) / N_ref
 
-  # nonprobsvy estimate — target = ~base_weight required by current API
+  # nonprobsvy estimate — target = ~base_weight required by current API.
+  # pop_size = N_ref makes nonprobsvy use the HT mean. Without it,
+  # nonprobsvy >= 0.3.0 uses the Hajek mean (divides by sum of IPW weights).
   ref_svy <- survey::svydesign(
     ids = ~1,
     weights = ~base_weight,
@@ -352,7 +354,8 @@ test_that("ipw() estimates match nonprobsvy at tolerance 1e-6 [numerical cross-v
     target = ~base_weight,
     data = nps,
     svydesign = ref_svy,
-    method_selection = "logit"
+    method_selection = "logit",
+    pop_size = N_ref
   )
   nonprobsvy_mean <- np_res$output["base_weight", "mean"]
 

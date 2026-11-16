@@ -229,6 +229,9 @@ adjust_nonresponse <- function(
   data_df <- data@data
 
   # ---- 3. Empty data check --------------------------------------------------
+  # nocov start
+  # Unreachable via public API: surveycore >= 1.2.0 S7 validators reject
+  # 0-row data.
   if (nrow(data_df) == 0L) {
     cli::cli_abort(
       c(
@@ -239,6 +242,7 @@ adjust_nonresponse <- function(
       class = "surveywts_error_empty_data"
     )
   }
+  # nocov end
 
   # ---- 4. Weight column name ------------------------------------------------
   weight_col <- .get_weight_col_name(data, weights_quo)

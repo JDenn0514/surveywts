@@ -256,20 +256,16 @@ test_that("poststratify() no longer rejects survey_replicate at class-check gate
 })
 
 # ---------------------------------------------------------------------------
-# 13. Error — surveywts_error_empty_data (SE-3)
+# 13. Error — 0-row data (SE-3; Layer 1: surveycore validator)
 # ---------------------------------------------------------------------------
 
-test_that("poststratify() rejects 0-row survey_taylor (SE-3)", {
+test_that("0-row survey_taylor for poststratify() is rejected by surveycore (SE-3)", {
+  # surveycore >= 1.2.0 rejects 0-row data when it builds the design, so the
+  # surveywts_error_empty_data check in poststratify() is unreachable.
   df0 <- make_surveywts_data(seed = 1)[0, ]
-  design0 <- .make_test_taylor_ps(df0)
-  pop <- .make_targets_ps()
   expect_error(
-    poststratify(design0, targets = pop, type = "count"),
-    class = "surveywts_error_empty_data"
-  )
-  expect_snapshot(
-    error = TRUE,
-    poststratify(design0, targets = pop, type = "count")
+    .make_test_taylor_ps(df0),
+    class = "surveycore_error_empty_data"
   )
 })
 
@@ -561,28 +557,18 @@ test_that("poststratify() rejects targets cells absent from data", {
   )
 })
 
-# ---------------------------------------------------------------------------
-# 31. Edge — 0-row data fires empty_data before weights_not_found
-# ---------------------------------------------------------------------------
-
-test_that("poststratify() empty_data fires before weights_not_found", {
-  df0 <- make_surveywts_data(seed = 1)[0, ]
-  design0 <- .make_test_taylor_ps(df0)
-  pop <- .make_targets_ps()
-  expect_error(
-    poststratify(design0, targets = pop, weights = no_such_col, type = "count"),
-    class = "surveywts_error_empty_data"
-  )
-})
+# 31. Removed — 0-row data cannot reach poststratify(): surveycore >= 1.2.0
+# rejects it when it builds the design (see section 13).
 
 # ---------------------------------------------------------------------------
-# 32. Edge — 1-row data, 1-cell targets
+# 32. Edge — smallest design (2 rows), 1-cell targets
 # ---------------------------------------------------------------------------
 
-test_that("poststratify() works with 1-row data and 1-cell targets", {
+test_that("poststratify() works with 2-row data and 1-cell targets", {
+  # surveycore >= 1.2.0 rejects 1-row data, so 2 rows is the smallest design.
   df_1 <- data.frame(
-    age_group = "18-34",
-    base_weight = 1.0,
+    age_group = c("18-34", "18-34"),
+    base_weight = c(1.0, 1.0),
     stringsAsFactors = FALSE
   )
   design_1 <- .make_test_taylor_ps(df_1)

@@ -18,16 +18,6 @@
       i Got <list>.
       v Use `surveycore::as_survey_nonprob()`, `surveycore::as_survey()`, or `surveycore::as_survey_replicate()` to construct a survey object.
 
-# E2: calibrate_logit() throws surveywts_error_empty_data for 0-row input
-
-    Code
-      calibrate_logit(empty_taylor, targets = targets)
-    Condition
-      Error in `calibrate_logit()`:
-      x `data` has 0 rows.
-      i This operation is undefined on empty data.
-      v Ensure `data` has at least one row.
-
 # E3: calibrate_logit() throws surveywts_error_wt_name_not_scalar
 
     Code

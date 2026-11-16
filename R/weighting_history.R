@@ -69,10 +69,8 @@ weighting_history <- function(x) {
     )
   }
 
+  # surveycore types weighting_history as <list>, so it is always a list.
   history <- x@metadata@weighting_history
-  if (!is.list(history)) {
-    history <- list()
-  }
   # An entry that is not a list has no fields to read; treat it as empty.
   history <- lapply(history, function(e) if (is.list(e)) e else list())
   idx <- seq_along(history)

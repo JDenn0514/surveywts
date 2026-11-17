@@ -103,7 +103,7 @@ to the weighting history.
 
 \strong{\code{type = "grouped"} with \code{survey_nonprob}:} A \code{survey_nonprob} with
 \code{G_success} replicate weight columns named \code{repwt_1} through
-\verb{repwt_\{G_success\}}; \verb{@variables$type} set to \code{"group-jackknife"};
+\verb{repwt_\{G_success\}}; \verb{@variables$type} set to \code{"JK1"};
 \verb{@variables$scale} set to \code{(G_success - 1) / G_success};
 \verb{@variables$rscales} set to \code{rep(1, G_success)}; \verb{@variables$mse} set to
 \code{TRUE}. A new entry with \code{operation = "jackknife_weights"} is appended to

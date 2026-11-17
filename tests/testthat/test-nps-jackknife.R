@@ -26,7 +26,7 @@ test_that("create_jackknife_weights() type='grouped' returns survey_nonprob with
   expect_equal(result@variables$scale, 9 / 10, tolerance = 1e-12)
   expect_identical(result@variables$rscales, rep(1, 10L))
   expect_true(isTRUE(result@variables$mse))
-  expect_identical(result@variables$type, "group-jackknife")
+  expect_identical(result@variables$type, "JK1")
 })
 
 test_that("create_jackknife_weights() type='grouped' each row has exactly 1 zero across replicate cols", {
@@ -980,7 +980,7 @@ test_that("create_jackknife_weights() type='grouped' uses_level_b = TRUE (target
   test_invariants(result)
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
   expect_length(result@variables$repweights, 10L)
-  expect_identical(result@variables$type, "group-jackknife")
+  expect_identical(result@variables$type, "JK1")
 })
 
 # ============================================================================
@@ -1062,7 +1062,7 @@ test_that("create_jackknife_weights() calibration-only DAGJK Level A (no referen
 
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
   expect_length(result@variables$repweights, 10L)
-  expect_identical(result@variables$type, "group-jackknife")
+  expect_identical(result@variables$type, "JK1")
   rep_mat <- sapply(result@variables$repweights, function(col) {
     result@data[[col]]
   })
@@ -1128,7 +1128,7 @@ test_that("create_jackknife_weights() calibration-only DAGJK Level B (with refer
 
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
   expect_length(result@variables$repweights, 10L)
-  expect_identical(result@variables$type, "group-jackknife")
+  expect_identical(result@variables$type, "JK1")
   rep_mat <- sapply(result@variables$repweights, function(col) {
     result@data[[col]]
   })
@@ -1361,4 +1361,66 @@ test_that("create_jackknife_weights() DAGJK Level B replays calibrate_logit() wi
   )
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
   expect_length(result@variables$repweights, 10L)
+})
+
+# ============================================================================
+# Replicate type "JK1": survey export and unchanged standard errors (#136)
+# ============================================================================
+
+test_that("DAGJK SEs are unchanged by the switch from 'group-jackknife' to 'JK1'", {
+  result <- create_jackknife_weights(
+    datasets$A,
+    replicates = 10L,
+    type = "grouped",
+    seed = 42L
+  )
+  # Reference values from surveywts at commit 54af50d, which stored
+  # @variables$type = "group-jackknife" for this design.
+  se_before_groups <- c(47.9600959137758, 60.1266604505419, 49.9323366369116)
+  se_before_total <- 152.693562923567
+
+  by_group <- suppressWarnings(
+    surveycore::get_totals(result, age_group, variance = "se")
+  )
+  overall <- surveycore::get_totals(result, variance = "se")
+
+  expect_equal(by_group$se, se_before_groups, tolerance = 1e-10)
+  expect_equal(overall$se, se_before_total, tolerance = 1e-10)
+})
+
+test_that(".to_svyrep() converts a DAGJK design and survey gives the same SE", {
+  result <- create_jackknife_weights(
+    datasets$A,
+    replicates = 10L,
+    type = "grouped",
+    seed = 42L
+  )
+  svyrep <- surveywts:::.to_svyrep(result)
+
+  expect_s3_class(svyrep, "svyrep.design")
+  expect_identical(svyrep$type, "JK1")
+
+  ones <- rep(1, nrow(result@data))
+  se_survey <- unname(survey::SE(survey::svytotal(~ones, svyrep)))
+  se_surveycore <- surveycore::get_totals(result, variance = "se")$se
+  expect_equal(se_survey, se_surveycore, tolerance = 1e-10)
+})
+
+test_that("calibrate_to_estimate() accepts a DAGJK design", {
+  skip_if_not_installed("svrep")
+  result <- create_jackknife_weights(
+    datasets$A,
+    replicates = 10L,
+    type = "grouped",
+    seed = 42L
+  )
+  n <- nrow(result@data)
+  targets <- list(sex = c("F" = 0.52 * n, "M" = 0.48 * n))
+  vcov_est <- diag(c(25, 25))
+
+  cal <- suppressMessages(calibrate_to_estimate(result, targets, vcov_est))
+
+  test_invariants(cal)
+  expect_true(S7::S7_inherits(cal, surveycore::survey_nonprob))
+  expect_identical(cal@variables$type, "JK1")
 })

@@ -88,7 +88,7 @@
 #'
 #' **`type = "grouped"` with `survey_nonprob`:** A `survey_nonprob` with
 #' `G_success` replicate weight columns named `repwt_1` through
-#' `repwt_{G_success}`; `@variables$type` set to `"group-jackknife"`;
+#' `repwt_{G_success}`; `@variables$type` set to `"JK1"`;
 #' `@variables$scale` set to `(G_success - 1) / G_success`;
 #' `@variables$rscales` set to `rep(1, G_success)`; `@variables$mse` set to
 #' `TRUE`. A new entry with `operation = "jackknife_weights"` is appended to
@@ -804,7 +804,7 @@ create_jackknife_weights <- function(
   data@variables$scale <- (G_success - 1L) / G_success
   data@variables$rscales <- rep(1, G_success)
   data@variables$mse <- TRUE
-  data@variables$type <- "group-jackknife"
+  data@variables$type <- "JK1"
 
   # Append history entry
   meta <- data@metadata

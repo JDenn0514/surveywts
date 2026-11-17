@@ -55,6 +55,13 @@
   used". With no FPC, the first stage carries the full with-replacement
   variance, so the warning named nothing to change (#136).
 
+* `create_jackknife_weights(type = "grouped")` on a `survey_nonprob` (the
+  delete-a-group jackknife) now stores `@variables$type = "JK1"` in place of
+  `"group-jackknife"`, a type that `survey::svrepdesign()` does not accept.
+  `calibrate_to_survey()` and `calibrate_to_estimate()` now accept these
+  designs. The scale `(G - 1) / G` and the `rscales` of 1 are the JK1
+  formula and do not change, so no standard error changes (#136).
+
 # surveywts 0.3.0
 
 ## New features

@@ -527,11 +527,15 @@ calibrate_logit <- function(
             # a bootstrap draw did not select it). Its per-unit bounds
             # abs / rep_wt would be Inf, and the logit F-function would
             # give NaN. So the engine runs on the units with rep_wt != 0
-            # only, and units with rep_wt = 0 keep a weight of 0. The
-            # result is the same as with survey::calibrate(bounds.const =
-            # TRUE), which leaves the bound of a unit with weight 0 as
-            # given: that unit adds 0 to every total and to the Jacobian,
-            # so its bound has no effect (issue #139).
+            # only, and units with rep_wt = 0 keep a weight of 0. A unit
+            # with weight 0 adds 0 to every total and to the Jacobian, so
+            # leaving it out does not change the other units (issue #139).
+            #
+            # survey has no equivalent: survey::calibrate.svyrep.design()
+            # (survey 4.5) accepts bounds.const but does not use it, so it
+            # applies `bounds` as g-ratio bounds to every replicate. The
+            # full-sample absolute path matches survey::calibrate(bounds.const
+            # = TRUE) on a non-replicate design (test HG-7).
             #
             # The logit F-function needs L_k < 1 < U_k for each unit. A
             # unit with rep_wt >= abs_U has U_k = abs_U / rep_wt <= 1, and a

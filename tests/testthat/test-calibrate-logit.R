@@ -1726,7 +1726,7 @@ test_that("RL-4: replicate logit with unit_scale = NULL and rep(1,n) produce ide
 # RL-6: Replicate — absolute-bounds logit constraint + all base weights in (L, U)
 # ---------------------------------------------------------------------------
 
-test_that("RL-6: absolute-bounds replicate logit: constraint holds and base weights strictly in (L_abs, U_abs)", {
+test_that("RL-6: absolute-bounds replicate logit: full sample and every replicate meet constraints; zero replicate weights stay 0", {
   # df_200 (seed=7) has weights in [0.406, 2.716]; use abs_L=0.3 so all d_k in (0.3, 3.0).
   abs_L <- 0.3
   abs_U <- 3.0
@@ -1735,16 +1735,24 @@ test_that("RL-6: absolute-bounds replicate logit: constraint holds and base weig
   )
 
   taylor <- .make_test_taylor_logit(df_200)
-  rep_design <- create_bootstrap_weights(taylor, replicates = 10L)
+  # Fixed seed: with seed 42, every replicate has units with weight 0 and
+  # every replicate calibrates (issue #139).
+  rep_design <- withr::with_seed(
+    42L,
+    create_bootstrap_weights(taylor, replicates = 10L)
+  )
 
   # Ensure all base weights are strictly within (L_abs, U_abs)
   stopifnot(all(df_200$base_weight > abs_L & df_200$base_weight < abs_U))
 
-  result <- calibrate_logit(
-    rep_design,
-    targets = targets,
-    bounds = c(abs_L, abs_U),
-    bounds_scale = "absolute"
+  expect_no_warning(
+    result <- calibrate_logit(
+      rep_design,
+      targets = targets,
+      bounds = c(abs_L, abs_U),
+      bounds_scale = "absolute"
+    ),
+    class = "surveywts_warning_replicate_calibration_failed"
   )
 
   test_invariants(result)
@@ -1766,6 +1774,39 @@ test_that("RL-6: absolute-bounds replicate logit: constraint holds and base weig
     all(df_200$base_weight > abs_L & df_200$base_weight < abs_U),
     label = "RL-6: all base weights strictly in (0.3, 3.0)"
   )
+
+  # Replicate weights: every replicate calibrates, meets its margins, keeps
+  # its zero weights at 0, and keeps its other weights in [L_abs, U_abs].
+  repwt_cols <- result@variables$repweights
+  expect_identical(
+    unname(result@calibration$replicate_converged),
+    rep(TRUE, length(repwt_cols))
+  )
+  for (col in repwt_cols) {
+    before <- rep_design@data[[col]]
+    after <- result@data[[col]]
+    out_of_rep <- before == 0
+    expect_true(any(out_of_rep), label = paste0("RL-6: ", col, " has zeros"))
+    expect_identical(
+      after[out_of_rep],
+      rep(0, sum(out_of_rep)),
+      label = paste0("RL-6: ", col, " zero weights stay 0")
+    )
+    expect_true(
+      all(after[!out_of_rep] >= abs_L - 1e-8) &&
+        all(after[!out_of_rep] <= abs_U + 1e-8),
+      label = paste0("RL-6: ", col, " weights in [L_abs, U_abs]")
+    )
+    total_rep <- sum(after)
+    for (lev in names(targets$age_group)) {
+      expect_equal(
+        sum(after[x_full == lev]) / total_rep,
+        targets$age_group[[lev]],
+        tolerance = 1e-6,
+        label = paste0("RL-6: ", col, " constraint age_group=", lev)
+      )
+    }
+  }
 })
 
 # ---------------------------------------------------------------------------

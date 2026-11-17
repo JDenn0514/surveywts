@@ -45,6 +45,14 @@
 
 ## Bug fixes
 
+* `calibrate_logit(bounds_scale = "absolute")` now calibrates the replicate
+  weights of designs that have replicate weights of 0, such as bootstrap
+  designs. Before, every such replicate failed with
+  `surveywts_warning_replicate_calibration_failed` and kept its
+  uncalibrated weights. Units with a replicate weight of 0 now stay at 0
+  and do not take part in that replicate's calibration. Full-sample weights
+  and replicates without zero weights do not change (#139).
+
 * surveycore's `as_svydesign()` now exports designs from
   `create_brr_weights(rho = )` (Fay), `create_jackknife_weights(type =
   "grouped")`, and `create_bootstrap_weights(type = "Rao-Wu")` and

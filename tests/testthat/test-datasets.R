@@ -238,9 +238,7 @@ test_that("cps_2023 can be used as survey_replicate reference in ipw()", {
     cps_2023,
     weights = "wtfinl",
     repweights = paste0("repwtp", 1:160),
-    type = "successive-difference",
-    scale = 4 / 160,
-    rscales = rep(1, 160)
+    type = "successive-difference"
   )
   result <- suppressWarnings(
     ipw(ns_wave1, cps_ref, selection = ~ sex + age_f3 + race_f4)

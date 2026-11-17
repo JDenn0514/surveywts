@@ -1283,7 +1283,7 @@ test_that("HL-2: unbounded linear with q_unequal matches survey::calibrate(varia
   )
   pop_totals <- c(
     `(Intercept)` = total_w,
-    age_group3554 = targets$age_group[["35-54"]] * total_w,
+    `age_group35-54` = targets$age_group[["35-54"]] * total_w,
     `age_group55+` = targets$age_group[["55+"]] * total_w,
     sexM = targets$sex[["M"]] * total_w
   )
@@ -1330,7 +1330,7 @@ test_that("HL-3: multiplicative-bounded linear with q_unequal matches survey::ca
   )
   pop_totals <- c(
     `(Intercept)` = total_w,
-    age_group3554 = targets$age_group[["35-54"]] * total_w,
+    `age_group35-54` = targets$age_group[["35-54"]] * total_w,
     `age_group55+` = targets$age_group[["55+"]] * total_w,
     sexM = targets$sex[["M"]] * total_w
   )
@@ -1376,7 +1376,7 @@ test_that("HL-4: unbounded linear with q_all_twos matches survey::calibrate(vari
   )
   pop_totals <- c(
     `(Intercept)` = total_w,
-    age_group3554 = targets$age_group[["35-54"]] * total_w,
+    `age_group35-54` = targets$age_group[["35-54"]] * total_w,
     `age_group55+` = targets$age_group[["55+"]] * total_w,
     sexM = targets$sex[["M"]] * total_w
   )
@@ -1521,7 +1521,7 @@ test_that("HL-8: absolute-bounds linear matches survey::calibrate(bounds.const=T
   )
   pop_totals <- c(
     `(Intercept)` = total_w,
-    age_group3554 = targets$age_group[["35-54"]] * total_w,
+    `age_group35-54` = targets$age_group[["35-54"]] * total_w,
     `age_group55+` = targets$age_group[["55+"]] * total_w
   )
   svy_cal <- survey::calibrate(
@@ -1624,7 +1624,7 @@ test_that("HL-10: absolute-bounds with unequal d_k differs from old mean-based a
   x_mat <- stats::model.matrix(~age_group, data = x_df)
   pop_totals_vec <- c(
     `(Intercept)` = total_w,
-    age_group3554 = targets$age_group[["35-54"]] * total_w,
+    `age_group35-54` = targets$age_group[["35-54"]] * total_w,
     `age_group55+` = targets$age_group[["55+"]] * total_w
   )
   calfun_old <- surveywts:::.make_calfun_linear(L = abs_L, U = abs_U)
@@ -1682,7 +1682,7 @@ test_that("HL-11: absolute-bounds + unit_scale=q_unequal[1:200] matches survey::
   )
   pop_totals <- c(
     `(Intercept)` = total_w,
-    age_group3554 = targets$age_group[["35-54"]] * total_w,
+    `age_group35-54` = targets$age_group[["35-54"]] * total_w,
     `age_group55+` = targets$age_group[["55+"]] * total_w
   )
   svy_cal <- survey::calibrate(

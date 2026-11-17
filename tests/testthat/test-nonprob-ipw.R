@@ -14,8 +14,23 @@
   make_surveywts_data(n = 200L, seed = seed)
 }
 
-.make_ipw_ref <- function(seed = 99L) {
-  make_nps_reference(n = 1000L, seed = seed)
+# The default weight_scale = 10 gives N_hat of about 10,800, so a 200-row NPS
+# is under 2% of N_hat and ipw() does not adjust the reference weights (that
+# needs n_NPS / N_hat > 5%). The scaled weights go in a new column,
+# `ref_weight`, so the `base_weight` covariate keeps its range. Tests of the
+# adjustment pass weight_scale = 1: the unscaled design, N_hat about 1,080
+# (about 18%).
+.make_ipw_ref <- function(seed = 99L, weight_scale = 10) {
+  ref <- make_nps_reference(n = 1000L, seed = seed)
+  if (weight_scale == 1) {
+    return(ref)
+  }
+  ref_df <- ref@data
+  ref_df$ref_weight <- ref_df$base_weight * weight_scale
+  surveycore::survey_taylor(
+    data = ref_df,
+    variables = list(weights = "ref_weight")
+  )
 }
 
 # ---------------------------------------------------------------------------
@@ -228,12 +243,16 @@ test_that("ipw() missing_method='impute' with numeric predictor NA uses numeric 
   nps$base_weight[1L:3L] <- NA_real_
   ref <- .make_ipw_ref()
 
-  result <- ipw(
-    nps,
-    ref,
-    selection = ~ age_group + base_weight,
-    missing_method = "impute",
-    mice_args = list(seed = 42L)
+  # NPS base_weight values fall outside the reference range.
+  expect_warning(
+    result <- ipw(
+      nps,
+      ref,
+      selection = ~ age_group + base_weight,
+      missing_method = "impute",
+      mice_args = list(seed = 42L)
+    ),
+    class = "surveywts_warning_ipw_covariate_range_extrapolation"
   )
 
   test_invariants(result)
@@ -247,7 +266,7 @@ test_that("ipw() reference NAs excluded from fitting; surveywts_warning_ipw_refe
   ref_df$age_group[1L:2L] <- NA_character_
   ref_na <- surveycore::survey_taylor(
     data = ref_df,
-    variables = list(weights = "base_weight")
+    variables = list(weights = "ref_weight")
   )
 
   expect_warning(
@@ -346,7 +365,7 @@ test_that("ipw() estimates match nonprobsvy at tolerance 1e-6 [numerical cross-v
   # nonprobsvy >= 0.3.0 uses the Hajek mean (divides by sum of IPW weights).
   ref_svy <- survey::svydesign(
     ids = ~1,
-    weights = ~base_weight,
+    weights = stats::reformulate(ref@variables$weights),
     data = ref@data
   )
   np_res <- nonprobsvy::nonprob(
@@ -451,7 +470,7 @@ test_that("ipw() errors when reference has a zero design weight", {
   # validates weights > 0) so we can test ipw()'s own check.
   ref_zero <- ref_valid
   bad_data <- ref_valid@data
-  bad_data$base_weight[1L] <- 0
+  bad_data[[ref_valid@variables$weights]][1L] <- 0
   attr(ref_zero, "data") <- bad_data
 
   expect_error(
@@ -469,7 +488,7 @@ test_that("ipw() errors when reference has a negative design weight", {
   ref_valid <- .make_ipw_ref()
   ref_neg <- ref_valid
   bad_data <- ref_valid@data
-  bad_data$base_weight[1L] <- -1
+  bad_data[[ref_valid@variables$weights]][1L] <- -1
   attr(ref_neg, "data") <- bad_data
 
   expect_error(
@@ -518,7 +537,7 @@ test_that("ipw() errors when selection variable missing from reference@data", {
   ref_df$sex <- NULL
   ref_no_sex <- surveycore::survey_taylor(
     data = ref_df,
-    variables = list(weights = "base_weight")
+    variables = list(weights = "ref_weight")
   )
 
   expect_error(
@@ -552,14 +571,19 @@ test_that("ipw() errors when missing_method='separate' and a numeric selection v
   nps$base_weight[1L] <- NA_real_
   ref <- .make_ipw_ref()
 
-  expect_error(
-    ipw(
-      nps,
-      ref,
-      selection = ~ age_group + base_weight,
-      missing_method = "separate"
+  # NPS base_weight values fall outside the reference range, so the range
+  # warning fires before the error.
+  expect_warning(
+    expect_error(
+      ipw(
+        nps,
+        ref,
+        selection = ~ age_group + base_weight,
+        missing_method = "separate"
+      ),
+      class = "surveywts_error_separate_numeric_na"
     ),
-    class = "surveywts_error_separate_numeric_na"
+    class = "surveywts_warning_ipw_covariate_range_extrapolation"
   )
   expect_snapshot(
     error = TRUE,
@@ -843,7 +867,7 @@ test_that("ipw() warns when reference@data has NAs in selection variable; warnin
   ref_df$age_group[1L] <- NA_character_
   ref_na <- surveycore::survey_taylor(
     data = ref_df,
-    variables = list(weights = "base_weight")
+    variables = list(weights = "ref_weight")
   )
 
   expect_warning(
@@ -968,13 +992,14 @@ test_that("ipw() works with small NPS (n = 5)", {
 })
 
 test_that("ipw() works when NPS has more rows than the reference", {
-  # n_nps=200 > n_ref=2, but large design weights (base_weight=500) make the
-  # effective reference total (~1000) >> n_nps, so score equations are feasible.
+  # n_nps=200 > n_ref=2, but large design weights (base_weight=5000) make the
+  # effective reference total (10000) >> n_nps, so score equations are
+  # feasible and n_nps / N_hat (2%) stays under the 5% adjustment threshold.
   nps_large <- .make_ipw_nps(seed = 11L) # n=200
   ref_tiny <- surveycore::survey_taylor(
     data = data.frame(
       sex = c("M", "F"),
-      base_weight = c(500, 500),
+      base_weight = c(5000, 5000),
       stringsAsFactors = FALSE
     ),
     variables = list(weights = "base_weight")
@@ -1333,9 +1358,9 @@ test_that("population_size = Inf → error", {
 
 test_that("adjust_reference = TRUE warns and adjusts when nps_fraction > 0.05", {
   # Construct data where n_nps / n_hat will exceed 5%.
-  # n_nps = 200, reference base_weight = 1 → n_hat ≈ 1000 → fraction = 20%.
+  # n_nps = 200, unscaled reference weights → n_hat ≈ 1080 → fraction ≈ 18%.
   nps <- .make_ipw_nps(seed = 42L) # n = 200
-  ref <- .make_ipw_ref(seed = 42L) # n = 1000, base_weight = 1 → n_hat = 1000
+  ref <- .make_ipw_ref(seed = 42L, weight_scale = 1)
 
   expect_warning(
     result <- ipw(
@@ -1362,7 +1387,7 @@ test_that("adjust_reference = TRUE warns and adjusts when nps_fraction > 0.05", 
 
 test_that("adjust_reference = FALSE warns but does not adjust when nps_fraction > 0.05", {
   nps <- .make_ipw_nps(seed = 42L)
-  ref <- .make_ipw_ref(seed = 42L)
+  ref <- .make_ipw_ref(seed = 42L, weight_scale = 1)
 
   expect_warning(
     result <- ipw(
@@ -1460,7 +1485,7 @@ test_that("adjust_reference = NA is rejected", {
 
 test_that("nps_fraction is correctly recorded in history entry", {
   nps <- .make_ipw_nps(seed = 42L)
-  ref <- .make_ipw_ref(seed = 42L) # n = 1000, base_weight = 1
+  ref <- .make_ipw_ref(seed = 42L)
 
   result <- suppressWarnings(
     ipw(nps, ref, selection = ~ age_group + sex)
@@ -1470,7 +1495,7 @@ test_that("nps_fraction is correctly recorded in history entry", {
   hist <- result@metadata@weighting_history[[1L]]
   expect_true(is.numeric(hist$nps_fraction))
   expect_length(hist$nps_fraction, 1L)
-  # nps_fraction = nrow(nps) / sum(ref_weights_for_fit) = 200 / 1000
+  # nps_fraction = nrow(nps) / sum(ref_weights_for_fit)
   ref_weights <- ref@data[[ref@variables$weights]]
   n_hat_expected <- sum(ref_weights)
   nps_fraction_expected <- nrow(nps) / n_hat_expected
@@ -1603,13 +1628,16 @@ test_that("reference factor levels absent from NPS warns (Rule 8c)", {
   )
 
   expect_warning(
-    result <- ipw(
-      nps_no_other,
-      ref_with_other,
-      selection = ~ age_group + sex,
-      estimating_eq = "mle"
+    expect_warning(
+      result <- ipw(
+        nps_no_other,
+        ref_with_other,
+        selection = ~ age_group + sex,
+        estimating_eq = "mle"
+      ),
+      class = "surveywts_warning_ipw_reference_levels_absent_from_nps"
     ),
-    class = "surveywts_warning_ipw_reference_levels_absent_from_nps"
+    class = "surveywts_warning_propensity_nr_no_convergence"
   )
   expect_snapshot(
     expect_warning(
@@ -1676,16 +1704,30 @@ test_that("range and reverse-factor warnings can both fire (M-1 block 5)", {
     variables = list(weights = "base_weight")
   )
 
+  # Each call raises the range warning, the reverse-factor warning, and a
+  # solver non-convergence warning. Each call asserts all three classes.
   # Range warning fires (NPS age outside ref range)
   expect_warning(
-    ipw(nps_wide_age, ref_narrow_other, selection = ~ age + sex),
-    class = "surveywts_warning_ipw_covariate_range_extrapolation"
+    expect_warning(
+      expect_warning(
+        ipw(nps_wide_age, ref_narrow_other, selection = ~ age + sex),
+        class = "surveywts_warning_ipw_covariate_range_extrapolation"
+      ),
+      class = "surveywts_warning_ipw_reference_levels_absent_from_nps"
+    ),
+    class = "surveywts_warning_propensity_nr_no_convergence"
   )
 
   # Reverse-factor warning fires ("Other" in reference but not in NPS)
   expect_warning(
-    ipw(nps_wide_age, ref_narrow_other, selection = ~ age + sex),
-    class = "surveywts_warning_ipw_reference_levels_absent_from_nps"
+    expect_warning(
+      expect_warning(
+        ipw(nps_wide_age, ref_narrow_other, selection = ~ age + sex),
+        class = "surveywts_warning_ipw_reference_levels_absent_from_nps"
+      ),
+      class = "surveywts_warning_ipw_covariate_range_extrapolation"
+    ),
+    class = "surveywts_warning_propensity_nr_no_convergence"
   )
 })
 

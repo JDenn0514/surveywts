@@ -812,14 +812,18 @@ test_that("create_jackknife_weights() type='grouped' warns when > 10% of replica
     )
   )
 
+  # 6 units in 5 groups also gives groups smaller than the minimum size.
   expect_warning(
-    result <- create_jackknife_weights(
-      tiny_ipw2,
-      replicates = 5L,
-      type = "grouped",
-      seed = 7L
+    expect_warning(
+      result <- create_jackknife_weights(
+        tiny_ipw2,
+        replicates = 5L,
+        type = "grouped",
+        seed = 7L
+      ),
+      class = "surveywts_warning_jackknife_replicates_failed"
     ),
-    class = "surveywts_warning_jackknife_replicates_failed"
+    class = "surveywts_warning_jackknife_small_groups"
   )
   expect_true(S7::S7_inherits(result, surveycore::survey_nonprob))
   expect_true(length(result@variables$repweights) < 5L)

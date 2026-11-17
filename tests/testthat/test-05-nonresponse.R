@@ -2188,14 +2188,22 @@ test_that("adjust_nonresponse() warns when a cell has fewer than min_cell respon
   design <- .make_test_taylor_nr(df)
 
   # min_cell = 9999 guarantees all cells trigger (each has far fewer respondents);
-  # max_adjust = Inf disables the max_adjust condition so only min_cell triggers
+  # max_adjust = Inf disables the max_adjust condition so only min_cell triggers.
+  # The warning fires once per cell (3 cells), so three expect_warning() calls
+  # catch one each.
   expect_warning(
-    adjust_nonresponse(
-      design,
-      response_status = responded,
-      formula = ~age_group,
-      method = "propensity-cell",
-      control = list(n_cells = 5, max_adjust = Inf, min_cell = 9999)
+    expect_warning(
+      expect_warning(
+        adjust_nonresponse(
+          design,
+          response_status = responded,
+          formula = ~age_group,
+          method = "propensity-cell",
+          control = list(n_cells = 5, max_adjust = Inf, min_cell = 9999)
+        ),
+        class = "surveywts_warning_class_near_empty"
+      ),
+      class = "surveywts_warning_class_near_empty"
     ),
     class = "surveywts_warning_class_near_empty"
   )
@@ -2209,14 +2217,22 @@ test_that("adjust_nonresponse() warns when adjustment factor exceeds max_adjust 
   df <- make_surveywts_data(n = 500, seed = 65, include_nonrespondents = TRUE)
   design <- .make_test_taylor_nr(df)
 
-  # max_adjust = 1.1 is below the actual adj_factor (~1.25 with ~20% nonresponse)
+  # max_adjust = 1.1 is below the actual adj_factor (~1.25 with ~20% nonresponse).
+  # The warning fires once per cell (3 cells), so three expect_warning() calls
+  # catch one each.
   expect_warning(
-    adjust_nonresponse(
-      design,
-      response_status = responded,
-      formula = ~age_group,
-      method = "propensity-cell",
-      control = list(n_cells = 5, max_adjust = 1.1, min_cell = 0L)
+    expect_warning(
+      expect_warning(
+        adjust_nonresponse(
+          design,
+          response_status = responded,
+          formula = ~age_group,
+          method = "propensity-cell",
+          control = list(n_cells = 5, max_adjust = 1.1, min_cell = 0L)
+        ),
+        class = "surveywts_warning_class_near_empty"
+      ),
+      class = "surveywts_warning_class_near_empty"
     ),
     class = "surveywts_warning_class_near_empty"
   )
@@ -2606,14 +2622,18 @@ test_that("adjust_nonresponse(propensity) warns on extreme scores < 0.01", {
     )
   )
 
+  # The low score also gives an adjustment factor above max_adjust.
   expect_warning(
-    result <- adjust_nonresponse(
-      design_extreme,
-      response_status = responded,
-      formula = ~x_pred,
-      method = "propensity"
+    expect_warning(
+      result <- adjust_nonresponse(
+        design_extreme,
+        response_status = responded,
+        formula = ~x_pred,
+        method = "propensity"
+      ),
+      class = "surveywts_warning_extreme_propensity_scores"
     ),
-    class = "surveywts_warning_extreme_propensity_scores"
+    class = "surveywts_warning_extreme_propensity_adjustment"
   )
 
   test_invariants(result)
@@ -2666,14 +2686,18 @@ test_that("adjust_nonresponse(propensity) warns when GLM does not converge", {
     )
   )
 
+  # Perfect separation also pushes the scores toward 0 and 1.
   expect_warning(
-    result <- adjust_nonresponse(
-      design_conv,
-      response_status = responded,
-      formula = ~x_pred,
-      method = "propensity"
+    expect_warning(
+      result <- adjust_nonresponse(
+        design_conv,
+        response_status = responded,
+        formula = ~x_pred,
+        method = "propensity"
+      ),
+      class = "surveywts_warning_propensity_glm_convergence"
     ),
-    class = "surveywts_warning_propensity_glm_convergence"
+    class = "surveywts_warning_extreme_propensity_scores"
   )
 
   test_invariants(result)

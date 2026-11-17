@@ -15,6 +15,7 @@
 # .new_replay_counter()              — fresh counter for the replay message
 # .muffle_replay_messages()          — muffle & count the per-replicate message
 # .report_replay_messages()          — print one summary line after the loop
+# .muffle_draw_repeat_warnings()     — muffle ipw() warnings a QR draw repeats
 # .new_backend_message_store()       — fresh store for the back-end messages
 # .collect_backend_messages()        — muffle & collect the svrep/survey messages
 # .is_backend_fpc_warning()          — match a back end's untyped FPC-drop warning
@@ -560,8 +561,10 @@
               ref_data_b <- NULL
             }
 
-            # Step 3: re-run ipw()
-            ipw_result_b <- surveywts::ipw(
+            # Step 3: re-run ipw(). The full-sample ipw() call already
+            # raised the reference-size warnings; see
+            # .muffle_draw_repeat_warnings() for why a draw drops them.
+            ipw_result_b <- .muffle_draw_repeat_warnings(surveywts::ipw(
               data = S_A_b,
               reference = ref_b,
               selection = ipw_entry$formula,
@@ -571,7 +574,7 @@
               adjust_reference = ipw_entry$adjust_reference,
               trim = ipw_entry$trim,
               wt_name = data@variables$weights
-            )
+            ))
 
             # Step 4: re-run calibration (if calibration entry present)
             if (!is.null(calib_entry)) {
@@ -1056,6 +1059,49 @@
     class = "surveywts_message_replay_already_calibrated"
   )
   invisible(NULL)
+}
+
+# ============================================================================
+# .muffle_draw_repeat_warnings()
+# ============================================================================
+
+# Muffle the ipw() warnings that a quasi-randomization bootstrap draw repeats
+# from the full-sample ipw() call (issue #138).
+#
+# The QR bootstrap refits ipw() once per draw. Without this handler, one
+# create_bootstrap_weights() call with 30 draws repeats the full-sample
+# warning 30 times.
+#
+# Decision: muffle the repeats and put nothing in their place. No summary
+# warning and no new class. Both muffled classes report the size of the NPS
+# against the reference N_hat, and what ipw() did about it under
+# adjust_reference:
+#
+#   - surveywts_warning_ipw_reference_weight_adjusted
+#   - surveywts_warning_ipw_reference_unadjusted_large_nps
+#
+# SRSWR keeps the NPS size fixed in each draw. N_hat changes only when the
+# reference is resampled (Level B), and then only by resampling noise. A
+# draw therefore says nothing that the full-sample call did not, and the
+# user's remedy (set adjust_reference) is the same.
+#
+# Every other warning passes through unchanged. For example,
+# surveywts_warning_propensity_nr_no_convergence depends on the resampled
+# data and is not a repeat, so the user still sees it for each draw.
+# The DAGJK path wraps its refit in a blanket suppressWarnings(); this
+# helper does not, so it cannot hide a warning that is not a repeat.
+#
+# Arguments:
+#   expr : the per-draw ipw() call to evaluate
+#
+# Returns: the value of expr
+.muffle_draw_repeat_warnings <- function(expr) {
+  muffle <- function(w) invokeRestart("muffleWarning")
+  withCallingHandlers(
+    expr,
+    surveywts_warning_ipw_reference_weight_adjusted = muffle,
+    surveywts_warning_ipw_reference_unadjusted_large_nps = muffle
+  )
 }
 
 # ============================================================================

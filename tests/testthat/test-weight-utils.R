@@ -348,37 +348,6 @@ test_that("trim_weights() rejects list input", {
 # is now enforced by the S7 class validator at construction time; these errors
 # are no longer reachable via the public API.
 
-test_that("trim_weights() surveywts_error_empty_data: S7 class invariant prevents 0-row survey_nonprob", {
-  # The surveycore survey_nonprob S7 class validator rejects @data assignment
-  # when the result has 0 rows (surveycore >= 1.2.0: surveycore_error_empty_data).
-  # A 0-row survey_nonprob with repweights is therefore unrepresentable; the
-  # surveywts_error_empty_data path in trim_weights() for this combination is
-  # structurally unreachable via the public API.
-  # This test documents that constraint and verifies the S7 rejection itself.
-  n <- 10L
-  n_rep <- 3L
-  set.seed(99)
-  df <- make_surveywts_data(n = n, seed = 99)
-  for (i in seq_len(n_rep)) {
-    df[[paste0("rep_", i)]] <- abs(stats::rnorm(n, 1, 0.2))
-  }
-  nonprob_rep_local <- surveycore::as_survey_nonprob(
-    data = df,
-    weights = base_weight,
-    repweights = tidyselect::starts_with("rep_"),
-    type = "bootstrap",
-    scale = 1 / n_rep,
-    mse = TRUE
-  )
-  # Assigning 0-row data triggers surveycore class validator, not surveywts
-  expect_error(
-    {
-      nonprob_rep_local@data <- nonprob_rep_local@data[integer(0), ]
-    },
-    class = "surveycore_error_empty_data"
-  )
-})
-
 test_that("trim_weights() fires surveywts_error_weights_nonpositive for survey_nonprob with repweights and weight <= 0", {
   # Build inline to avoid depending on the later-defined helper
   n <- 10L
@@ -1011,37 +980,6 @@ test_that("rescale_weights() rejects wt_name = ''", {
   expect_snapshot(
     error = TRUE,
     rescale_weights(taylor, wt_name = "")
-  )
-})
-
-test_that("rescale_weights() surveywts_error_empty_data: S7 class invariant prevents 0-row survey_nonprob", {
-  # The surveycore survey_nonprob S7 class validator rejects @data assignment
-  # when the result has 0 rows (surveycore >= 1.2.0: surveycore_error_empty_data).
-  # A 0-row survey_nonprob with repweights is therefore unrepresentable; the
-  # surveywts_error_empty_data path in rescale_weights() for this combination
-  # is structurally unreachable via the public API.
-  # This test documents that constraint and verifies the S7 rejection itself.
-  n <- 10L
-  n_rep <- 3L
-  set.seed(99)
-  df <- make_surveywts_data(n = n, seed = 99)
-  for (i in seq_len(n_rep)) {
-    df[[paste0("rep_", i)]] <- abs(stats::rnorm(n, 1, 0.2))
-  }
-  nonprob_rep_local <- surveycore::as_survey_nonprob(
-    data = df,
-    weights = base_weight,
-    repweights = tidyselect::starts_with("rep_"),
-    type = "bootstrap",
-    scale = 1 / n_rep,
-    mse = TRUE
-  )
-  # Assigning 0-row data triggers surveycore class validator, not surveywts
-  expect_error(
-    {
-      nonprob_rep_local@data <- nonprob_rep_local@data[integer(0), ]
-    },
-    class = "surveycore_error_empty_data"
   )
 })
 

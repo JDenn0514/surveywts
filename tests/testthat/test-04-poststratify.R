@@ -256,20 +256,6 @@ test_that("poststratify() no longer rejects survey_replicate at class-check gate
 })
 
 # ---------------------------------------------------------------------------
-# 13. Error — 0-row data (SE-3; Layer 1: surveycore validator)
-# ---------------------------------------------------------------------------
-
-test_that("0-row survey_taylor for poststratify() is rejected by surveycore (SE-3)", {
-  # surveycore >= 1.2.0 rejects 0-row data when it builds the design, so the
-  # surveywts_error_empty_data check in poststratify() is unreachable.
-  df0 <- make_surveywts_data(seed = 1)[0, ]
-  expect_error(
-    .make_test_taylor_ps(df0),
-    class = "surveycore_error_empty_data"
-  )
-})
-
-# ---------------------------------------------------------------------------
 # SE-4 through SE-7 removed — weights_not_found, weights_not_numeric,
 # weights_nonpositive, weights_na are not reachable after the refactor:
 # - S7 enforces positive, non-NA, numeric weights at construction time (SE-6, SE-7)

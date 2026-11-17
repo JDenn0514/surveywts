@@ -137,21 +137,9 @@ trim_weights <- function(
   # Step 0: validate wt_name
   .validate_wt_name(wt_name)
 
-  # Step 1: validate class, extract data_df, check nrow
+  # Step 1: validate class and extract data_df
   .check_weight_utils_class(data)
   data_df <- data@data
-  # nocov start
-  # Unreachable via public API: surveycore S7 validators prevent 0-row objects.
-  if (nrow(data_df) == 0L) {
-    cli::cli_abort(
-      c(
-        "x" = "{.arg data} has 0 rows.",
-        "i" = "Weight trimming requires at least one observation."
-      ),
-      class = "surveywts_error_empty_data"
-    )
-  }
-  # nocov end
 
   # Step 2: validate type and bounds (fail fast, before weight extraction)
   type <- match.arg(type)

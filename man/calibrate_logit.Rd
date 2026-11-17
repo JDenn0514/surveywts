@@ -72,7 +72,11 @@ constrain the g-weight ratio \code{g_k = w_k / d_k} in the open interval
 \verb{(L, U)}. \code{"absolute"}: \code{bounds} constrain the final calibrated weight
 \code{w_k} directly. Matched with \code{rlang::arg_match()}. For
 \code{"multiplicative"}: requires \verb{L < 1 < U}. For \code{"absolute"}: requires
-\verb{0 < L < U}.}
+\verb{0 < L < U}. For \code{"absolute"} on a \code{survey_replicate}, the bounds also
+apply to each replicate weight. A replicate weight of 0 stays 0. A
+non-zero replicate weight at or above \code{U} is set to \code{U}, and one at or
+below \code{L} is set to \code{L}. The other units in that replicate are
+calibrated so that the replicate still meets the targets.}
 
 \item{unit_scale}{\code{NULL} (default) or a positive numeric vector of length
 \code{nrow(data)}. Per-unit scaling factors \code{q_k} for the calibration distance

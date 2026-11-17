@@ -1810,6 +1810,99 @@ test_that("RL-6: absolute-bounds replicate logit: full sample and every replicat
 })
 
 # ---------------------------------------------------------------------------
+# RL-7: Replicate — absolute-bounds logit with replicate weights >= U_abs
+# ---------------------------------------------------------------------------
+
+test_that("RL-7: absolute-bounds replicate logit holds replicate weights >= U_abs at U_abs; every engine unit has L_k < 1 < U_k", {
+  abs_L <- 0.3
+  abs_U <- 3.0
+  targets <- list(
+    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30)
+  )
+
+  taylor <- .make_test_taylor_logit(df_200)
+  rep_design <- withr::with_seed(
+    42L,
+    create_bootstrap_weights(taylor, replicates = 10L)
+  )
+  repwt_cols <- rep_design@variables$repweights
+
+  # Precondition: every replicate has units drawn more than once, so their
+  # replicate weight is at or above U_abs (issue #144).
+  for (col in repwt_cols) {
+    stopifnot(any(rep_design@data[[col]] >= abs_U))
+  }
+
+  # Record the per-unit g-bounds of every logit F-function that is built.
+  calls <- list()
+  orig_make_calfun_logit <- .make_calfun_logit
+  local_mocked_bindings(
+    .make_calfun_logit = function(L, U) {
+      calls[[length(calls) + 1L]] <<- list(L = L, U = U)
+      orig_make_calfun_logit(L = L, U = U)
+    }
+  )
+
+  expect_no_warning(
+    result <- calibrate_logit(
+      rep_design,
+      targets = targets,
+      bounds = c(abs_L, abs_U),
+      bounds_scale = "absolute"
+    ),
+    class = "surveywts_warning_replicate_calibration_failed"
+  )
+
+  test_invariants(result)
+
+  # Full sample plus one F-function per replicate.
+  expect_identical(length(calls), length(repwt_cols) + 1L)
+  for (i in seq_along(calls)) {
+    expect_true(
+      all(calls[[i]]$L < 1) && all(calls[[i]]$U > 1),
+      label = paste0("RL-7: F-function ", i, " has L_k < 1 < U_k")
+    )
+  }
+
+  expect_identical(
+    unname(result@calibration$replicate_converged),
+    rep(TRUE, length(repwt_cols))
+  )
+
+  x_full <- rep_design@data$age_group
+  for (col in repwt_cols) {
+    before <- rep_design@data[[col]]
+    after <- result@data[[col]]
+    at_upper <- before >= abs_U
+    expect_identical(
+      after[at_upper],
+      rep(abs_U, sum(at_upper)),
+      label = paste0("RL-7: ", col, " weights >= U_abs held at U_abs")
+    )
+    expect_identical(
+      after[before == 0],
+      rep(0, sum(before == 0)),
+      label = paste0("RL-7: ", col, " zero weights stay 0")
+    )
+    in_rep <- before != 0
+    expect_true(
+      all(after[in_rep] >= abs_L - 1e-8) &&
+        all(after[in_rep] <= abs_U + 1e-8),
+      label = paste0("RL-7: ", col, " weights in [L_abs, U_abs]")
+    )
+    total_rep <- sum(after)
+    for (lev in names(targets$age_group)) {
+      expect_equal(
+        sum(after[x_full == lev]) / total_rep,
+        targets$age_group[[lev]],
+        tolerance = 1e-6,
+        label = paste0("RL-7: ", col, " constraint age_group=", lev)
+      )
+    }
+  }
+})
+
+# ---------------------------------------------------------------------------
 # EC-7: Edge case — logit g-weights in open interval (L, U)
 # ---------------------------------------------------------------------------
 

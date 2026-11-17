@@ -77,7 +77,11 @@
 #'   `(L, U)`. `"absolute"`: `bounds` constrain the final calibrated weight
 #'   `w_k` directly. Matched with `rlang::arg_match()`. For
 #'   `"multiplicative"`: requires `L < 1 < U`. For `"absolute"`: requires
-#'   `0 < L < U`.
+#'   `0 < L < U`. For `"absolute"` on a `survey_replicate`, the bounds also
+#'   apply to each replicate weight. A replicate weight of 0 stays 0. A
+#'   non-zero replicate weight at or above `U` is set to `U`, and one at or
+#'   below `L` is set to `L`. The other units in that replicate are
+#'   calibrated so that the replicate still meets the targets.
 #' @param unit_scale `NULL` (default) or a positive numeric vector of length
 #'   `nrow(data)`. Per-unit scaling factors `q_k` for the calibration distance
 #'   function (Deville & Sarndal 1992 eq. 2.2). `NULL` is equivalent to
@@ -528,22 +532,40 @@ calibrate_logit <- function(
             # TRUE), which leaves the bound of a unit with weight 0 as
             # given: that unit adds 0 to every total and to the Jacobian,
             # so its bound has no effect (issue #139).
+            #
+            # The logit F-function needs L_k < 1 < U_k for each unit. A
+            # unit with rep_wt >= abs_U has U_k = abs_U / rep_wt <= 1, and a
+            # non-zero unit with rep_wt <= abs_L has L_k >= 1. For such a
+            # unit, F has a pole and is not a defined distance. Bootstrap
+            # units drawn more than once often have rep_wt >= abs_U. The
+            # bound applies to the replicate weight itself, so these units
+            # are held at the nearest bound (abs_U or abs_L). Their fixed
+            # contribution is taken off the population totals, and the
+            # engine calibrates the other units (issue #144).
             in_rep <- rep_wt != 0
+            at_upper <- in_rep & rep_wt >= abs_U
+            at_lower <- in_rep & rep_wt <= abs_L
+            free <- in_rep & !at_upper & !at_lower
+            new_rep_wt <- numeric(length(rep_wt))
+            new_rep_wt[at_upper] <- abs_U
+            new_rep_wt[at_lower] <- abs_L
+            held <- at_upper | at_lower
+            free_pop_vec <- rep_pop_vec -
+              colSums(x_matrix[held, , drop = FALSE] * new_rep_wt[held])
             rep_calfun <- .make_calfun_logit(
-              L = abs_L / rep_wt[in_rep],
-              U = abs_U / rep_wt[in_rep]
+              L = abs_L / rep_wt[free],
+              U = abs_U / rep_wt[free]
             )
             rep_engine <- .calibrate_nr_engine(
-              x_matrix = x_matrix[in_rep, , drop = FALSE],
-              weights_vec = rep_wt[in_rep],
+              x_matrix = x_matrix[free, , drop = FALSE],
+              weights_vec = rep_wt[free],
               calfun = rep_calfun,
-              population = rep_pop_vec,
+              population = free_pop_vec,
               epsilon = control$epsilon,
               maxit = as.integer(control$maxit),
-              q_weights = q_for_engine[in_rep]
+              q_weights = q_for_engine[free]
             )
-            new_rep_wt <- numeric(length(rep_wt))
-            new_rep_wt[in_rep] <- rep_engine$weights
+            new_rep_wt[free] <- rep_engine$weights
             data@data[[repwt_col]] <- new_rep_wt
           } else {
             rep_engine <- .calibrate_nr_engine(

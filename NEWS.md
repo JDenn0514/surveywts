@@ -43,6 +43,15 @@
   scale, rscales, replicate weights and standard errors do not change
   (#136).
 
+* `calibrate_logit(bounds_scale = "absolute")` now sets a non-zero
+  replicate weight at or above the upper bound `U` to `U`, and one at or
+  below the lower bound `L` to `L`. The other units in the replicate are
+  calibrated to meet the targets. Before, these units got per-unit logit
+  bounds outside the range that the logit distance allows, and some ended
+  at the opposite bound. Replicate weights and standard errors change for
+  designs with such units, which includes most bootstrap and BRR designs.
+  Full-sample weights do not change (#144).
+
 ## Bug fixes
 
 * `calibrate_logit(bounds_scale = "absolute")` now calibrates the replicate

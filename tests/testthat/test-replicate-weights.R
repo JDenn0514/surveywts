@@ -2625,13 +2625,88 @@ test_that("create_jackknife_weights() type = 'grouped' returns survey_replicate 
   )
   test_invariants(result)
   expect_true(S7::S7_inherits(result, surveycore::survey_replicate))
-  # svrep sets type to "Random-groups jackknife" (the raw svrep type string)
-  expect_true(grepl(
-    "jackknife|random",
-    result@variables$type,
-    ignore.case = TRUE
-  ))
+  # svrep returns "Random-groups jackknife"; .svrep_type_map stores "JK1",
+  # a type survey::svrepdesign() accepts (issue #136).
+  expect_identical(result@variables$type, "JK1")
   expect_identical(length(result@variables$repweights), 4L)
+})
+
+# ---- Back-end types survey does not accept (issue #136) --------------------
+
+test_that("grouped, Rao-Wu and Preston store a survey type and keep every SE", {
+  skip_if_not_installed("survey")
+  d <- make_taylor_design(n = 100L, seed = 42L)
+  cases <- list(
+    grouped = list(
+      design = create_jackknife_weights(
+        d,
+        type = "grouped",
+        replicates = 4L,
+        seed = 3L
+      ),
+      backend_type = "Random-groups jackknife",
+      type = "JK1"
+    ),
+    rao_wu = list(
+      design = create_bootstrap_weights(
+        d,
+        type = "Rao-Wu",
+        replicates = 20L,
+        seed = 1L
+      ),
+      backend_type = "subbootstrap",
+      type = "bootstrap"
+    ),
+    preston = list(
+      design = create_bootstrap_weights(
+        d,
+        type = "Preston",
+        replicates = 20L,
+        seed = 1L
+      ),
+      backend_type = "mrbbootstrap",
+      type = "bootstrap"
+    )
+  )
+  for (nm in names(cases)) {
+    after <- cases[[nm]]$design
+    test_invariants(after)
+    expect_identical(after@variables$type, cases[[nm]]$type)
+    # The same design with the type string the back end returned, as
+    # .convert_and_call() stored it before issue #136.
+    before <- after
+    before@variables$type <- cases[[nm]]$backend_type
+    se_before <- surveycore::get_totals(before, y, variance = "se")$se
+    se_after <- surveycore::get_totals(after, y, variance = "se")$se
+    expect_equal(se_after, se_before, tolerance = 1e-10)
+    # survey keeps the stored scale and rscales for "JK1" and "bootstrap",
+    # so the exported design gives surveycore's SE.
+    se_survey <- as.numeric(survey::SE(
+      survey::svytotal(~y, surveycore::as_svydesign(after))
+    ))
+    expect_equal(se_survey, se_after, tolerance = 1e-8)
+  }
+})
+
+test_that("create_brr_weights(rho = 0.3) records rho and exports to survey", {
+  skip_if_not_installed("survey")
+  dp <- make_paired_design(seed = 42L)
+  result <- create_brr_weights(dp, rho = 0.3)
+  test_invariants(result)
+  expect_identical(result@variables$type, "Fay")
+  expect_identical(result@variables$rho, 0.3)
+  se_core <- surveycore::get_totals(result, y, variance = "se")$se
+  se_survey <- as.numeric(survey::SE(
+    survey::svytotal(~y, surveycore::as_svydesign(result))
+  ))
+  expect_equal(se_survey, se_core, tolerance = 1e-8)
+})
+
+test_that("create_brr_weights() without rho records no rho", {
+  dp <- make_paired_design(seed = 42L)
+  result <- create_brr_weights(dp)
+  test_invariants(result)
+  expect_null(result@variables[["rho"]])
 })
 
 # ---- Numerical oracles -----------------------------------------------------

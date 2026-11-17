@@ -178,15 +178,11 @@ test_that("Rao-Wu-Yue-Beaumont, Preston, gen-boot, gen-rep and SDR apply the FPC
       )
     },
     preston = function(x) {
-      # Without an FPC, survey warns "Design is sampled with replacement: only
-      # first stage used" (untyped, not part of issue #130).
-      suppressWarnings(
-        create_bootstrap_weights(
-          x,
-          type = "Preston",
-          replicates = 200L,
-          seed = 3L
-        )
+      create_bootstrap_weights(
+        x,
+        type = "Preston",
+        replicates = 200L,
+        seed = 3L
       )
     },
     gen_boot = function(x) {
@@ -299,10 +295,7 @@ test_that("every create_*_weights() leaves fpc and fpc_applied NULL without an F
     create_jackknife_weights(d1$none, type = "jk1"),
     create_jackknife_weights(d$none, type = "grouped", replicates = 4L),
     create_bootstrap_weights(d$none, replicates = 20L, seed = 1L),
-    # survey's untyped "only first stage used" warning; see section 2.
-    suppressWarnings(
-      create_bootstrap_weights(d$none, type = "Preston", replicates = 20L)
-    ),
+    create_bootstrap_weights(d$none, type = "Preston", replicates = 20L),
     create_bootstrap_weights(d$none, type = "Canty-Davison", replicates = 20L),
     create_gen_boot_weights(d$none, replicates = 20L, seed = 1L),
     create_gen_rep_weights(d$none, seed = 1L),
@@ -316,7 +309,7 @@ test_that("every create_*_weights() leaves fpc and fpc_applied NULL without an F
   }
 })
 
-test_that("BRR, Fay, Rao-Wu and Antal-Tille raise no warning without an FPC", {
+test_that("BRR, Fay, Rao-Wu, Antal-Tille and Preston raise no warning without an FPC", {
   d <- make_fpc_designs()
   dp <- make_fpc_designs(psus_per_stratum = 2L)
   expect_no_warning(result <- create_brr_weights(dp$none))
@@ -327,6 +320,12 @@ test_that("BRR, Fay, Rao-Wu and Antal-Tille raise no warning without an FPC", {
   )
   expect_no_warning(
     create_bootstrap_weights(d$none, type = "Antal-Tille", replicates = 20L)
+  )
+  # survey:::mrbweights() warns "Design is sampled with replacement: only
+  # first stage used" here, untyped. .collect_backend_messages() muffles it
+  # with no replacement (issue #136).
+  expect_no_warning(
+    create_bootstrap_weights(d$none, type = "Preston", replicates = 20L)
   )
 })
 
@@ -450,15 +449,27 @@ test_that("as_svydesign() raises no FPC warning on a design built from an FPC so
   dp <- make_fpc_designs(psus_per_stratum = 2L)
   # surveycore 1.2.0 warns only when fpc is set and fpc_applied is NULL. For
   # "none" it raises nothing either: nothing was applied, so nothing drops.
-  # Four designs are left out because as_svydesign() fails on them with or
-  # without an FPC, for reasons unrelated to it. Fay: surveywts does not
-  # store @variables$rho, and surveycore 1.2.0 refuses to export a Fay design
-  # without it. Grouped, Rao-Wu and Preston: their types ("Random-groups
-  # jackknife", "subbootstrap", "mrbbootstrap") are not types
-  # survey::svrepdesign() accepts.
   designs <- suppressWarnings(suppressMessages(list(
     jkn = create_jackknife_weights(d$fpc, type = "jkn"),
+    grouped = create_jackknife_weights(
+      d$fpc,
+      type = "grouped",
+      replicates = 4L,
+      seed = 1L
+    ),
     rwyb = create_bootstrap_weights(d$fpc, replicates = 20L, seed = 1L),
+    rao_wu = create_bootstrap_weights(
+      d$fpc,
+      type = "Rao-Wu",
+      replicates = 20L,
+      seed = 1L
+    ),
+    preston = create_bootstrap_weights(
+      d$fpc,
+      type = "Preston",
+      replicates = 20L,
+      seed = 1L
+    ),
     antal_tille = create_bootstrap_weights(
       d$fpc,
       type = "Antal-Tille",
@@ -472,7 +483,8 @@ test_that("as_svydesign() raises no FPC warning on a design built from an FPC so
     gen_boot = create_gen_boot_weights(d$fpc, replicates = 20L, seed = 1L),
     gen_rep = create_gen_rep_weights(d$fpc, seed = 1L),
     sdr = create_sdr_weights(d$fpc, replicates = 20L),
-    brr = create_brr_weights(dp$fpc)
+    brr = create_brr_weights(dp$fpc),
+    fay = create_brr_weights(dp$fpc, rho = 0.3)
   )))
   for (nm in names(designs)) {
     test_invariants(designs[[nm]])

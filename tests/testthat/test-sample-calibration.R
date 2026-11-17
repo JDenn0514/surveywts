@@ -1909,6 +1909,7 @@ test_that(
     skip_if_not_installed("svrep")
     nps_df <- make_surveywts_data(n = 100L, seed = 1L)
     ref_df <- make_surveywts_data(n = 500L, seed = 101L)
+    ref_df$base_weight <- ref_df$base_weight * NPS_REF_WEIGHT_SCALE
     ref <- surveycore::as_survey(ref_df, weights = base_weight)
     nps <- ipw(data = nps_df, reference = ref, selection = ~ sex + age_group)
 
@@ -1935,6 +1936,7 @@ test_that(
     skip_if_not_installed("svrep")
     nps_df <- make_surveywts_data(n = 100L, seed = 1L)
     ref_df <- make_surveywts_data(n = 500L, seed = 101L)
+    ref_df$base_weight <- ref_df$base_weight * NPS_REF_WEIGHT_SCALE
     ref <- surveycore::as_survey(ref_df, weights = base_weight)
     nps <- ipw(data = nps_df, reference = ref, selection = ~ sex + age_group)
 

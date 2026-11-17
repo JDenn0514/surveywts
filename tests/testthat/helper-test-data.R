@@ -267,8 +267,19 @@ taylor_se_total <- function(design) {
 
 # NPS bootstrap helpers -------------------------------------------------------
 
-make_nps_ref <- function(seed = 42) {
+# Scale for reference-sample weights in the NPS fixtures. The raw
+# make_surveywts_data() weights sum to about the sample size, so N_hat would
+# be about 1,000 and a 200-unit NPS would be about 18% of it. ipw() then
+# warns (surveywts_warning_ipw_reference_weight_adjusted). With this scale,
+# N_hat is about 100 times the reference sample size and the NPS is well
+# under 5% of N_hat, as in a real population. Tests that need a large NPS
+# fraction on purpose pass weight_scale = 1 to make_nps_ref() or
+# make_nps_level_b().
+NPS_REF_WEIGHT_SCALE <- 100
+
+make_nps_ref <- function(seed = 42, weight_scale = NPS_REF_WEIGHT_SCALE) {
   ref_df <- make_surveywts_data(n = 1000, seed = seed)
+  ref_df$base_weight <- ref_df$base_weight * weight_scale
   surveycore::as_survey(ref_df, weights = base_weight)
 }
 
@@ -292,8 +303,12 @@ make_nps_level_a <- function(seed = 1, n = 500) {
 }
 
 # Level B: calibration margins derived from the reference design.
-make_nps_level_b <- function(seed = 2, n = 500) {
-  ref <- make_nps_ref(seed = seed + 100)
+make_nps_level_b <- function(
+  seed = 2,
+  n = 500,
+  weight_scale = NPS_REF_WEIGHT_SCALE
+) {
+  ref <- make_nps_ref(seed = seed + 100, weight_scale = weight_scale)
   nps_df <- make_surveywts_data(n = n, seed = seed)
   ipw_result <- surveywts::ipw(
     data = nps_df,
@@ -545,6 +560,7 @@ make_nonprob_replicate_design <- function(n = 200L, R = 30L, seed = 1L) {
   set.seed(seed)
   nps_df <- make_surveywts_data(n = n, seed = seed)
   ref_df <- make_surveywts_data(n = n * 5L, seed = seed + 100L)
+  ref_df$base_weight <- ref_df$base_weight * NPS_REF_WEIGHT_SCALE
   ref <- surveycore::as_survey(ref_df, weights = base_weight)
   nps <- ipw(data = nps_df, reference = ref, selection = ~ sex + age_group)
   result <- create_bootstrap_weights(
@@ -568,6 +584,7 @@ make_nonprob_no_repweights <- function(n = 200L, seed = 1L) {
   set.seed(seed)
   nps_df <- make_surveywts_data(n = n, seed = seed)
   ref_df <- make_surveywts_data(n = n * 5L, seed = seed + 100L)
+  ref_df$base_weight <- ref_df$base_weight * NPS_REF_WEIGHT_SCALE
   ref <- surveycore::as_survey(ref_df, weights = base_weight)
   ipw(data = nps_df, reference = ref, selection = ~ sex + age_group)
 }

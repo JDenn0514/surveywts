@@ -2585,6 +2585,102 @@ test_that("doubly-robust Level B path still works after routing refactor", {
   expect_true(length(result@variables$repweights) > 0L)
 })
 
+# QR bootstrap — per-draw ipw() warnings (issue #138) ------------------------
+#
+# Each draw refits ipw(). The reference-size warnings repeat the full-sample
+# call, so the draws muffle them. Other warnings still reach the user.
+
+# Evaluate expr, muffle every warning, and return the first class of each
+# warning.
+.warning_classes <- function(expr) {
+  classes <- character(0)
+  withCallingHandlers(
+    expr,
+    warning = function(w) {
+      classes <<- c(classes, class(w)[[1L]])
+      invokeRestart("muffleWarning")
+    }
+  )
+  classes
+}
+
+test_that("ipw() + QR bootstrap raise ipw_reference_weight_adjusted exactly once", {
+  skip_if_not_installed("svrep")
+
+  nps_df <- make_surveywts_data(n = 500L, seed = 1L)
+  ref <- make_nps_ref(seed = 101L)
+
+  classes <- .warning_classes({
+    nps <- ipw(nps_df, ref, selection = ~ age_group + sex)
+    create_bootstrap_weights(
+      nps,
+      replicates = 30L,
+      type = "quasi-randomization",
+      seed = 1L
+    )
+  })
+
+  expect_identical(
+    sum(classes == "surveywts_warning_ipw_reference_weight_adjusted"),
+    1L
+  )
+})
+
+test_that("ipw() + QR bootstrap raise ipw_reference_unadjusted_large_nps exactly once", {
+  skip_if_not_installed("svrep")
+
+  nps_df <- make_surveywts_data(n = 500L, seed = 1L)
+  ref <- make_nps_ref(seed = 101L)
+
+  classes <- .warning_classes({
+    nps <- ipw(
+      nps_df,
+      ref,
+      selection = ~ age_group + sex,
+      adjust_reference = FALSE
+    )
+    create_bootstrap_weights(
+      nps,
+      replicates = 30L,
+      type = "quasi-randomization",
+      seed = 1L
+    )
+  })
+
+  expect_identical(
+    sum(classes == "surveywts_warning_ipw_reference_unadjusted_large_nps"),
+    1L
+  )
+})
+
+test_that("QR bootstrap draws still pass through warnings that are not repeats", {
+  skip_if_not_installed("svrep")
+
+  nps <- suppressWarnings(make_nps_level_b())
+
+  # With this fixture and seed, 8 of the 30 Level B draws do not converge.
+  # Each draw's non-convergence warning is draw-specific, so it is not
+  # muffled. The resampled reference changes N_hat in each draw, but the
+  # reference-size warning is still muffled.
+  classes <- .warning_classes(
+    create_bootstrap_weights(
+      nps,
+      replicates = 30L,
+      type = "quasi-randomization",
+      seed = 1L
+    )
+  )
+
+  expect_identical(
+    sum(classes == "surveywts_warning_propensity_nr_no_convergence"),
+    8L
+  )
+  expect_identical(
+    sum(classes == "surveywts_warning_ipw_reference_weight_adjusted"),
+    0L
+  )
+})
+
 # ============================================================================
 # New unified jackknife API (PR 2 — type = "jkn" | "jk1" | "grouped")
 # ============================================================================

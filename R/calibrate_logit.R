@@ -518,23 +518,33 @@ calibrate_logit <- function(
       failed <- tryCatch(
         {
           if (identical(bounds_scale, "absolute")) {
-            # D6 replicate: per-unit bounds for this replicate's base weights
-            rep_L_vec <- abs_L / rep_wt
-            rep_U_vec <- abs_U / rep_wt
-            rep_calfun <- .make_calfun_logit(L = rep_L_vec, U = rep_U_vec)
-            rep_engine <- tryCatch(
-              .calibrate_nr_engine(
-                x_matrix = x_matrix,
-                weights_vec = rep_wt,
-                calfun = rep_calfun,
-                population = rep_pop_vec,
-                epsilon = control$epsilon,
-                maxit = as.integer(control$maxit),
-                q_weights = q_for_engine
-              ),
-              error = function(e) stop(e)
+            # D6 replicate: per-unit bounds for this replicate's base weights.
+            # A unit with rep_wt = 0 is out of this replicate (for example,
+            # a bootstrap draw did not select it). Its per-unit bounds
+            # abs / rep_wt would be Inf, and the logit F-function would
+            # give NaN. So the engine runs on the units with rep_wt != 0
+            # only, and units with rep_wt = 0 keep a weight of 0. The
+            # result is the same as with survey::calibrate(bounds.const =
+            # TRUE), which leaves the bound of a unit with weight 0 as
+            # given: that unit adds 0 to every total and to the Jacobian,
+            # so its bound has no effect (issue #139).
+            in_rep <- rep_wt != 0
+            rep_calfun <- .make_calfun_logit(
+              L = abs_L / rep_wt[in_rep],
+              U = abs_U / rep_wt[in_rep]
             )
-            data@data[[repwt_col]] <- rep_engine$weights
+            rep_engine <- .calibrate_nr_engine(
+              x_matrix = x_matrix[in_rep, , drop = FALSE],
+              weights_vec = rep_wt[in_rep],
+              calfun = rep_calfun,
+              population = rep_pop_vec,
+              epsilon = control$epsilon,
+              maxit = as.integer(control$maxit),
+              q_weights = q_for_engine[in_rep]
+            )
+            new_rep_wt <- numeric(length(rep_wt))
+            new_rep_wt[in_rep] <- rep_engine$weights
+            data@data[[repwt_col]] <- new_rep_wt
           } else {
             rep_engine <- .calibrate_nr_engine(
               x_matrix = x_matrix,

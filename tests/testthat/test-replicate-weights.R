@@ -2140,7 +2140,7 @@ test_that("calibration-only QR bootstrap (Level A) sets @variables$mse = FALSE w
 test_that("IPW-path QR bootstrap sets @variables$scale to 1/draws_used", {
   skip_if_not_installed("svrep")
 
-  nps <- suppressWarnings(make_nps_level_a(seed = 1L, n = 200L))
+  nps <- make_nps_level_a(seed = 1L, n = 200L)
 
   result <- create_bootstrap_weights(
     nps,
@@ -2536,7 +2536,7 @@ test_that("calibration-only QR bootstrap errors when all draws fail", {
 test_that("IPW-only path still works after routing refactor", {
   skip_if_not_installed("svrep")
 
-  nps <- suppressWarnings(make_nonprob_no_repweights(n = 200L, seed = 1L))
+  nps <- make_nonprob_no_repweights(n = 200L, seed = 1L)
   ref <- make_nps_ref(seed = 42L)
 
   result <- create_bootstrap_weights(
@@ -2554,7 +2554,7 @@ test_that("IPW-only path still works after routing refactor", {
 test_that("doubly-robust Level A path still works after routing refactor", {
   skip_if_not_installed("svrep")
 
-  nps <- suppressWarnings(make_nps_level_a(seed = 1L, n = 200L))
+  nps <- make_nps_level_a(seed = 1L, n = 200L)
 
   result <- create_bootstrap_weights(
     nps,
@@ -2570,7 +2570,7 @@ test_that("doubly-robust Level A path still works after routing refactor", {
 test_that("doubly-robust Level B path still works after routing refactor", {
   skip_if_not_installed("svrep")
 
-  nps <- suppressWarnings(make_nps_level_b(seed = 2L, n = 200L))
+  nps <- make_nps_level_b(seed = 2L, n = 200L)
   ref <- make_nps_ref(seed = 102L)
 
   result <- create_bootstrap_weights(
@@ -2662,7 +2662,12 @@ test_that("QR bootstrap draws still pass through warnings that are not repeats",
 
   # weight_scale = 1 makes each draw's reference-size warning fire, so this
   # test can show that the bootstrap still muffles it.
-  nps <- suppressWarnings(make_nps_level_b(weight_scale = 1))
+  nps <- withCallingHandlers(
+    make_nps_level_b(weight_scale = 1),
+    surveywts_warning_ipw_reference_weight_adjusted = function(w) {
+      invokeRestart("muffleWarning")
+    }
+  )
 
   # With this fixture and seed, 8 of the 30 Level B draws do not converge.
   # Each draw's non-convergence warning is draw-specific, so it is not

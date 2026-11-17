@@ -133,8 +133,8 @@
 # create_bootstrap_weights() errors when all draws fail
 
     Code
-      suppressWarnings(create_bootstrap_weights(nps_raked, type = "quasi-randomization",
-        replicates = 10L, seed = 8L))
+      muffle_classes(create_bootstrap_weights(nps_raked, type = "quasi-randomization",
+        replicates = 10L, seed = 8L), TINY_NPS_DRAW_WARNINGS)
     Condition
       Error in `.quasi_randomization_bootstrap()`:
       x All 10 bootstrap draws failed; no replicate weights could be produced.

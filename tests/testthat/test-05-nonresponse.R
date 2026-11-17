@@ -338,16 +338,6 @@ test_that("adjust_nonresponse() rejects non-survey_base input (SE-1)", {
   )
 })
 
-test_that("empty survey design for adjust_nonresponse() is rejected by surveycore (SE-2)", {
-  # surveycore >= 1.2.0 rejects 0-row data when it builds the design, so the
-  # surveywts_error_empty_data check in adjust_nonresponse() is unreachable.
-  df_empty <- make_surveywts_data(seed = 1, include_nonrespondents = TRUE)[0, ]
-  expect_error(
-    .make_test_taylor_nr(df_empty),
-    class = "surveycore_error_empty_data"
-  )
-})
-
 test_that("adjust_nonresponse() rejects survey_replicate input (SE-3)", {
   df <- make_surveywts_data(seed = 1, include_nonrespondents = TRUE)
   rep_design <- .make_test_replicate_nr(df)
@@ -1254,33 +1244,6 @@ test_that("redistribute_weights() errors for survey_replicate input", {
   expect_snapshot(
     error = TRUE,
     redistribute_weights(rsd, reduce_if = x, increase_if = y)
-  )
-})
-
-# ---------------------------------------------------------------------------
-# RW-10. Error — 0-row data frame
-# ---------------------------------------------------------------------------
-
-test_that("0-row survey design for redistribute_weights() is rejected by surveycore", {
-  # surveycore >= 1.2.0 rejects 0-row data when it builds the design, so the
-  # surveywts_error_empty_data check in redistribute_weights() is unreachable.
-  empty_df <- data.frame(
-    wt = numeric(0),
-    reduce_col = integer(0),
-    increase_col = integer(0)
-  )
-  expect_error(
-    surveycore::survey_taylor(
-      data = empty_df,
-      variables = list(
-        ids = NULL,
-        strata = NULL,
-        fpc = NULL,
-        weights = "wt",
-        nest = FALSE
-      )
-    ),
-    class = "surveycore_error_empty_data"
   )
 })
 

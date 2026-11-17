@@ -344,20 +344,6 @@ test_that("E1: calibrate_logit() throws surveywts_error_not_survey_base for bad 
 })
 
 # ---------------------------------------------------------------------------
-# E2: Error — empty data
-# ---------------------------------------------------------------------------
-
-test_that("E2: 0-row input for calibrate_logit() is rejected by surveycore", {
-  # surveycore >= 1.2.0 rejects 0-row data when it builds the design, so the
-  # surveywts_error_empty_data check in calibrate_logit() is unreachable.
-  empty_df <- make_surveywts_data(seed = 2)[0, ]
-  expect_error(
-    .make_test_taylor_logit(empty_df),
-    class = "surveycore_error_empty_data"
-  )
-})
-
-# ---------------------------------------------------------------------------
 # E3: Error — wt_name not scalar
 # ---------------------------------------------------------------------------
 

@@ -95,7 +95,10 @@ test_that("trim_weights() default upper_abs = median(w) + 5 * IQR(w), lower_abs 
   df <- make_surveywts_data(seed = 6)
   w <- df$base_weight
   taylor <- .make_test_taylor_wt(df)
-  result <- trim_weights(taylor)
+  expect_warning(
+    result <- trim_weights(taylor),
+    class = "surveywts_warning_no_weights_trimmed"
+  )
   hist_entry <- result@metadata@weighting_history[[1]]
   expect_equal(
     hist_entry$parameters$upper_abs,
@@ -109,7 +112,10 @@ test_that("trim_weights() k = 6 produces upper_abs = median(w) + 6 * IQR(w)", {
   df <- make_surveywts_data(seed = 7)
   w <- df$base_weight
   taylor <- .make_test_taylor_wt(df)
-  result <- trim_weights(taylor, k = 6)
+  expect_warning(
+    result <- trim_weights(taylor, k = 6),
+    class = "surveywts_warning_no_weights_trimmed"
+  )
   hist_entry <- result@metadata@weighting_history[[1]]
   expect_equal(
     hist_entry$parameters$upper_abs,
@@ -1333,7 +1339,10 @@ test_that("trim_weights() clips a single replicate column for survey_nonprob wit
   )
   # Set rep values high so clipping fires
   nonprob_rep@data[[first_rep_col]] <- rep(100, nrow(nonprob_rep@data))
-  result <- trim_weights(nonprob_rep, upper = 5)
+  expect_warning(
+    result <- trim_weights(nonprob_rep, upper = 5),
+    class = "surveywts_warning_no_weights_trimmed"
+  )
   expect_true(all(result@data[[first_rep_col]] <= 5 + .Machine$double.eps * 10))
 })
 

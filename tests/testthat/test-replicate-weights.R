@@ -1730,10 +1730,13 @@ test_that(".handle_repweights_overwrite() is an internal helper that handles ove
   )
 
   # Call the helper directly and check it returns a modified survey_nonprob
-  result <- surveywts:::.handle_repweights_overwrite(
-    rep,
-    fn_name = "create_bootstrap_weights",
-    warning_class = "surveywts_warning_repweights_overwritten"
+  expect_warning(
+    result <- surveywts:::.handle_repweights_overwrite(
+      rep,
+      fn_name = "create_bootstrap_weights",
+      warning_class = "surveywts_warning_repweights_overwritten"
+    ),
+    class = "surveywts_warning_repweights_overwritten"
   )
 
   # The returned object must have cleared repweights

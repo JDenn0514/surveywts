@@ -2607,8 +2607,10 @@ test_that("doubly-robust Level B path still works after routing refactor", {
 test_that("ipw() + QR bootstrap raise ipw_reference_weight_adjusted exactly once", {
   skip_if_not_installed("svrep")
 
+  # weight_scale = 1 keeps N_hat near 1,000, so the 500-unit NPS is a large
+  # fraction of it and ipw() warns.
   nps_df <- make_surveywts_data(n = 500L, seed = 1L)
-  ref <- make_nps_ref(seed = 101L)
+  ref <- make_nps_ref(seed = 101L, weight_scale = 1)
 
   classes <- .warning_classes({
     nps <- ipw(nps_df, ref, selection = ~ age_group + sex)
@@ -2629,8 +2631,10 @@ test_that("ipw() + QR bootstrap raise ipw_reference_weight_adjusted exactly once
 test_that("ipw() + QR bootstrap raise ipw_reference_unadjusted_large_nps exactly once", {
   skip_if_not_installed("svrep")
 
+  # weight_scale = 1 keeps N_hat near 1,000, so the 500-unit NPS is a large
+  # fraction of it and ipw() warns.
   nps_df <- make_surveywts_data(n = 500L, seed = 1L)
-  ref <- make_nps_ref(seed = 101L)
+  ref <- make_nps_ref(seed = 101L, weight_scale = 1)
 
   classes <- .warning_classes({
     nps <- ipw(
@@ -2656,7 +2660,9 @@ test_that("ipw() + QR bootstrap raise ipw_reference_unadjusted_large_nps exactly
 test_that("QR bootstrap draws still pass through warnings that are not repeats", {
   skip_if_not_installed("svrep")
 
-  nps <- suppressWarnings(make_nps_level_b())
+  # weight_scale = 1 makes each draw's reference-size warning fire, so this
+  # test can show that the bootstrap still muffles it.
+  nps <- suppressWarnings(make_nps_level_b(weight_scale = 1))
 
   # With this fixture and seed, 8 of the 30 Level B draws do not converge.
   # Each draw's non-convergence warning is draw-specific, so it is not

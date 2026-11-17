@@ -9,11 +9,11 @@
       1     1 2025-01-15 10:00:00 ipw              
       2     2 2025-01-15 10:00:00 calibrate_rake   
       3     3 2025-01-15 10:00:00 bootstrap_weights
-        description                                         
-        <chr>                                               
-      1 ipw [~age_group + sex, logit, n_ref=1000, N_hat=612]
-      2 raking (targets: age_group, sex)                    
-      3 bootstrap_weights                                   
+        description                                            
+        <chr>                                                  
+      1 ipw [~age_group + sex, logit, n_ref=1000, N_hat=111164]
+      2 raking (targets: age_group, sex)                       
+      3 bootstrap_weights                                      
 
 # weighting_history() without repweights has no bootstrap step
 
@@ -25,10 +25,10 @@
         <int> <dttm>              <chr>         
       1     1 2025-01-15 10:00:00 ipw           
       2     2 2025-01-15 10:00:00 calibrate_rake
-        description                                         
-        <chr>                                               
-      1 ipw [~age_group + sex, logit, n_ref=1000, N_hat=612]
-      2 raking (targets: age_group, sex)                    
+        description                                            
+        <chr>                                                  
+      1 ipw [~age_group + sex, logit, n_ref=1000, N_hat=111164]
+      2 raking (targets: age_group, sex)                       
 
 # create_bootstrap_weights() rejects survey_taylor with quasi-randomization
 

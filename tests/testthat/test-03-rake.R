@@ -1515,6 +1515,43 @@ test_that("calibrate_rake() nr with type='count' conserves weight sum to target 
 })
 
 # ---------------------------------------------------------------------------
+# EC6b. classic_ipf with type = "count" sums to the target total, on the
+#       full sample and on each replicate (the same rule as the nr path).
+#       Full sample sums to N; replicate r sums to
+#       N * sum(rep_wt_r) / sum(base_wt).
+#       sum(base_wt) != N and != nrow, so a sum of n or of sum(base_wt)
+#       cannot pass by chance.
+# ---------------------------------------------------------------------------
+
+test_that("calibrate_rake() classic_ipf type='count' sums to N on full sample and replicates", {
+  design <- make_replicate_design(n = 200L, R = 3L, seed = 7L)
+  base_wt <- design@data[[design@variables$weights]]
+  n_total <- round(1.5 * sum(base_wt))
+  targets <- list(
+    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30) * n_total
+  )
+  repwt_cols <- design@variables$repweights
+  rep_before <- vapply(repwt_cols, function(c) sum(design@data[[c]]), 0)
+
+  result <- calibrate_rake(design, targets = targets, type = "count")
+
+  test_invariants(result)
+  w <- result@data[[result@variables$weights]]
+  expect_equal(sum(w), n_total, tolerance = 1e-8)
+  expect_equal(
+    as.numeric(tapply(w, result@data$age_group, sum)[names(targets$age_group)]),
+    unname(targets$age_group),
+    tolerance = 1e-6
+  )
+  rep_after <- vapply(repwt_cols, function(c) sum(result@data[[c]]), 0)
+  expect_equal(
+    rep_after,
+    n_total * rep_before / sum(base_wt),
+    tolerance = 1e-8
+  )
+})
+
+# ---------------------------------------------------------------------------
 # EC7. NR @calibration$method == "raking" (not "raking_nr")
 # ---------------------------------------------------------------------------
 

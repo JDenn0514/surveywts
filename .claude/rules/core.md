@@ -58,6 +58,12 @@ never exported.
 - Valid scopes: `calibration`, `weights`, `utils`, `validators`, `replicate`,
   `propensity`, `diagnostics`, `data`, `docs`, `plans`, `pipeline`, `ci`,
   `description`.
+- A PR records its change in a changelog file,
+  `changelog/{feature}/{branch-name}.md` (format in
+  `.claude/skills/changelog-workflow.md`). A PR never edits `NEWS.md`. The
+  `NEWS.md` entries are written from the changelog files when `develop`
+  merges to `main` (`/merge-main`). This applies also when an issue asks for
+  "a NEWS entry".
 
 ## 7. Document and check cadence
 

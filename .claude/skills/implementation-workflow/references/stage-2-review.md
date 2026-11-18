@@ -81,7 +81,7 @@ For every PR, check that all required files are listed:
 
 - `R/[function].R` — implementation file
 - `tests/testthat/test-[function].R` — test file
-- `changelog/phase-{X}/feature-[name].md` — changelog entry
+- `changelog/{feature}/feature-[name].md` — changelog entry
 - NAMESPACE and man/ (implicitly via `devtools::document()` criterion)
 - `plans/error-messages.md` update (if new error classes are introduced)
 - `tests/testthat/helper-test-data.R` update (if new test helpers are needed)

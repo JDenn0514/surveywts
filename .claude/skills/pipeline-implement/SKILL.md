@@ -93,7 +93,8 @@ Run these 5 lenses:
 4. **Spec Coverage lens** — does the union of all PR acceptance criteria
    cover every item in `spec-{id}.md §Function contracts`?
 5. **File Completeness lens** — does the union of all write surfaces include
-   every file implied by the spec (source, tests, NAMESPACE, man/, NEWS.md)?
+   every file implied by the spec (source, tests, NAMESPACE, man/, the
+   `changelog/` file)? A PR never edits `NEWS.md`.
 
 If you fan the lenses out to subagents instead of running them inline, pass
 `model: "sonnet"` on every lens dispatch. A lens agent scans one document

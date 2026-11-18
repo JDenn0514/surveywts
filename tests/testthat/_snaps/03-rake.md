@@ -217,15 +217,15 @@
       # A tibble: 500 x 6
             id age_group sex   education region    base_weight
          <int> <chr>     <chr> <chr>     <chr>           <dbl>
-       1     1 55+       F     College   South           0.650
-       2     2 18-34     M     College   Midwest         0.781
-       3     3 55+       F     Graduate  West            0.805
-       4     4 55+       M     <HS       Midwest         0.694
-       5     5 18-34     M     Graduate  Midwest         0.790
-       6     6 55+       M     College   Northeast       0.876
-       7     7 18-34     M     <HS       West            0.594
-       8     8 35-54     F     <HS       Midwest         1.18 
-       9     9 18-34     F     HS        Northeast       0.699
-      10    10 35-54     F     Graduate  Northeast       0.751
+       1     1 55+       F     College   South           0.704
+       2     2 18-34     M     College   Midwest         0.846
+       3     3 55+       F     Graduate  West            0.872
+       4     4 55+       M     <HS       Midwest         0.751
+       5     5 18-34     M     Graduate  Midwest         0.855
+       6     6 55+       M     College   Northeast       0.949
+       7     7 18-34     M     <HS       West            0.644
+       8     8 35-54     F     <HS       Midwest         1.28 
+       9     9 18-34     F     HS        Northeast       0.757
+      10    10 35-54     F     Graduate  Northeast       0.813
       # i 490 more rows
 

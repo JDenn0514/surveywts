@@ -643,6 +643,7 @@
     }
     n_A <- nrow(data@data)
     wt_col <- data@variables$weights
+    start_wt <- .replay_start_weight(calib_entry, data@data[[wt_col]])
     failed_draws <- 0L
     repwt_list <- list()
 
@@ -654,10 +655,13 @@
             idx <- sample(n_A, size = n_A, replace = TRUE)
             S_A_b <- data@data[idx, , drop = FALSE]
 
-            # Step 3 (calibration-only): assign equal initial weight = 1.
+            # Step 3 (calibration-only): assign an equal initial weight.
             # SRSWR gives each NPS unit equal selection probability per replicate;
             # carrying forward the original calibrated weights would double-count.
-            S_A_b[[wt_col]] <- 1
+            # The value is the mean weight that the full-sample calibration
+            # started from (see .replay_start_weight()), so each draw starts
+            # at the same weight scale as the main sample.
+            S_A_b[[wt_col]] <- start_wt
 
             # Wrap as survey_nonprob for dispatch
             nps_b <- surveycore::survey_nonprob(
@@ -786,6 +790,38 @@
   data@metadata <- meta
 
   data
+}
+
+# ============================================================================
+# .replay_start_weight()
+# ============================================================================
+
+# Equal starting weight for one calibration-only QR bootstrap draw.
+#
+# The value is the mean of the weights that the full-sample calibration
+# started from (weight_stats$before$mean in the history entry). For
+# type = "prop", calibration keeps the weight total, so this mean equals
+# sum(main_wt) / n and each draw sums to sum(main_wt). Bounds see the same
+# weight scale as in the full-sample run: an absolute bound applies to
+# weights of the same size, and a multiplicative bound to the same g-ratio.
+# An entry without weight_stats falls back to mean(main_wt).
+#
+# Arguments:
+#   calib_entry : the calibration history entry
+#   main_wt     : numeric vector of the current full-sample weights
+#
+# Returns: numeric(1)
+.replay_start_weight <- function(calib_entry, main_wt) {
+  before_mean <- calib_entry$weight_stats$before$mean
+  if (
+    is.numeric(before_mean) &&
+      length(before_mean) == 1L &&
+      is.finite(before_mean) &&
+      before_mean > 0
+  ) {
+    return(before_mean)
+  }
+  mean(main_wt)
 }
 
 # ============================================================================

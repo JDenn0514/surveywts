@@ -45,6 +45,15 @@
 
 ## Bug fixes
 
+* `calibrate_linear()` and `calibrate_logit()` with `type = "count"` on a
+  `survey_replicate` now give each replicate the population counts scaled
+  by `sum(replicate weights) / sum(base weights)`, with the same level mix
+  as the targets. Before, when the base weights did not sum to N, the
+  replicate intercept was `sum(replicate weights)` and the first level of
+  each variable took the difference, so replicate standard errors were
+  wrong. `poststratify()` with `type = "count"` now uses the same scaling
+  for its replicates; before, it used the unscaled counts (#148).
+
 * `calibrate_logit(bounds_scale = "absolute")` now calibrates the replicate
   weights of designs that have replicate weights of 0, such as bootstrap
   designs. Before, every such replicate failed with

@@ -33,7 +33,10 @@
 #' @param data A `survey_nonprob`, `survey_taylor`, or `survey_replicate`. Any
 #'   other class -> error. When `data` is a `survey_replicate`,
 #'   post-stratification is applied independently to every replicate weight
-#'   column using the same population `targets`. Replicate columns where any
+#'   column using the same population `targets`. For `type = "count"`, each
+#'   replicate's targets are scaled by `sum(replicate weights) / sum(base
+#'   weights)`, the same rule as the `calibrate_*()` functions. Replicate
+#'   columns where any
 #'   cell has zero or negative total weight fail calibration; a
 #'   `surveywts_warning_replicate_calibration_failed` warning is emitted and
 #'   the original replicate weights are kept.
@@ -402,7 +405,9 @@ poststratify <- function(
       if (type == "prop") {
         rep_target_vals <- targets[["target"]] * rep_total_w
       } else {
-        rep_target_vals <- target_vals
+        # type = "count": scale by sum(rep_wt) / sum(base_wt), the same rule
+        # as calibrate_linear(), calibrate_logit(), and calibrate_rake().
+        rep_target_vals <- target_vals * (rep_total_w / total_w)
       }
 
       failed <- tryCatch(

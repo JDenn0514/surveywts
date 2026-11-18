@@ -70,5 +70,6 @@ artifact set so parallel dispatch doesn't collide.
 
 - Production code (lives in `R/`, `tests/testthat/`)
 - Roxygen docs (inline in source)
-- `NEWS.md` entries (committed)
+- Changelog entries (committed under `changelog/`; `NEWS.md` is written
+  only at release)
 - CRAN submission docs (`cran-comments.md`, committed)

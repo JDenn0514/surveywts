@@ -123,9 +123,9 @@ re-run `devtools::test()` + `devtools::check()`.
 
 Read `.claude/skills/changelog-workflow.md` for the canonical format.
 
-Create `changelog/phase-{X}/{branch-name}.md`. Derive the Changes bullets
-from `git log develop..HEAD --oneline`. Phase number comes from the branch
-name or plan context.
+Create `changelog/{feature}/{branch-name}.md`. Derive the Changes bullets
+from `git log develop..HEAD --oneline`. `{feature}` comes from the branch
+name or plan context. Do not edit `NEWS.md`.
 
 ---
 
@@ -138,7 +138,7 @@ Always include:
 - New/modified test files
 - `plans/error-messages.md` (if modified)
 - `_pkgdown.yml` (if modified)
-- `changelog/phase-{X}/{branch-name}.md`
+- `changelog/{feature}/{branch-name}.md`
 
 Do NOT include the implementation plan file — the orchestrator marks `[x]`
 on develop after the merge.

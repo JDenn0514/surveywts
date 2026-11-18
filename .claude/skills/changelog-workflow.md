@@ -8,13 +8,20 @@ changelog format enforced by `commit-and-pr`.
 ## Location and Timing
 
 ```
-Location:  changelog/phase-{X}/{branch-name}.md
+Location:  changelog/{feature}/{branch-name}.md
 Timing:    Created LAST on the branch, BEFORE opening the PR
 Populated: From git log develop..HEAD --oneline
 ```
 
-Where `{X}` is the current phase number (e.g., `1` for Phase 1). If unsure,
-check the branch name or ask the user.
+- `{feature}` is a short kebab-case name for the feature or fix, for example
+  `fpc-applied` or `replicate-count-totals`. PRs for the same feature share
+  one folder. Do not use phase folders (`phase-{X}`).
+- `{branch-name}` is the branch name with `/` replaced by `-`. The branch
+  `fix/replicate-count-totals` gives `fix-replicate-count-totals.md`.
+
+The changelog file is the only record of the change in the PR. Do not edit
+`NEWS.md` in a PR. `/merge-main` reads every changelog file added since the
+last release tag and writes the `NEWS.md` section from them.
 
 ---
 
@@ -25,7 +32,7 @@ check the branch name or ask the user.
 
 **Date**: YYYY-MM-DD
 **Branch**: feature/[name]
-**Phase**: Phase X
+**Issue**: JDenn0514/surveywts#[number] (if there is one)
 
 ## Changes
 
@@ -54,7 +61,7 @@ issue can be one bullet).
 
 These are enforced by `commit-and-pr` before a PR is opened:
 
-1. File must exist at `changelog/phase-{X}/{branch-name}.md`
+1. File must exist at `changelog/{feature}/{branch-name}.md`
 2. File must not be empty or a stub (no `<!-- TODO -->` placeholders)
 3. `## Changes` section must have at least one bullet
 4. `## Files Modified` section must list at least one file
@@ -64,14 +71,14 @@ These are enforced by `commit-and-pr` before a PR is opened:
 
 ## Example
 
-For a branch `feature/variance-twophase` in Phase 0.75:
+For a branch `feature/variance-twophase`, the file is
+`changelog/variance-twophase/feature-variance-twophase.md`:
 
 ```markdown
 # feat(variance): implement two-phase Taylor variance estimation
 
 **Date**: 2026-02-23
 **Branch**: feature/variance-twophase
-**Phase**: Phase 0.75
 
 ## Changes
 

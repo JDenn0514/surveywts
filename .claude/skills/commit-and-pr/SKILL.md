@@ -25,7 +25,7 @@ If you notice code that should change, add a `TODO:` note to the PR body
 describing the issue, and report it to the user. Do NOT touch the code.
 
 **The ONLY files you may create or edit:**
-- `changelog/phase-{X}/{branch-name}.md` — the changelog entry for this branch
+- `changelog/{feature}/{branch-name}.md` — the changelog entry for this branch
 
 If you find yourself about to use the Edit or Write tool on a `.R` file,
 **stop immediately and tell the user what you found**. Ask them whether to
@@ -78,12 +78,16 @@ TaskUpdate:
 
 Read `.claude/skills/changelog-workflow.md` for the canonical format.
 
-The changelog file lives at: `changelog/phase-{X}/{branch-name}.md`
+The changelog file lives at: `changelog/{feature}/{branch-name}.md`
+
+Do not edit `NEWS.md`. `/merge-main` writes it from the changelog files at
+release time.
 
 Steps:
-1. Determine the phase from the branch name (e.g., `feature/calibration-core`
-   suggests Phase 0) — ask the user if unclear
-2. Check if `changelog/phase-{X}/{branch-name}.md` exists
+1. Determine `{feature}` from the branch name (e.g., `fix/replicate-count-totals`
+   gives `replicate-count-totals`). Use an existing folder if the feature
+   already has one.
+2. Check if `changelog/{feature}/{branch-name}.md` exists
 3. **If it does not exist:** create it following `changelog-workflow.md`,
    using `git log develop..HEAD --oneline` to populate the `## Changes` section
 4. **If it exists:** verify it is populated — not empty, no `<!-- TODO -->`
@@ -94,7 +98,7 @@ Steps:
 ```
 No changelog entry found for this branch.
 
-Expected: changelog/phase-{X}/{branch-name}.md
+Expected: changelog/{feature}/{branch-name}.md
 
 The changelog entry must be created before opening the PR.
 ```
@@ -270,7 +274,7 @@ The only next step is `/r-implement` for the next plan section.
 | Action | Allowed? |
 |---|---|
 | Read `.R` files to understand what was implemented | Yes |
-| Create `changelog/phase-{X}/{branch-name}.md` | Yes |
+| Create `changelog/{feature}/{branch-name}.md` | Yes |
 | Run `devtools::check()` and `devtools::test()` | Yes |
 | Stage and commit files | Yes |
 | Push the branch | Yes |

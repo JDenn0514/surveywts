@@ -2295,6 +2295,19 @@ test_that("calibration-only QR bootstrap (Level A): draws start at the main weig
   }
 })
 
+test_that(".replay_start_weight() uses the before mean, else mean(main_wt)", {
+  main_wt <- c(2, 4, 6)
+  entry <- list(weight_stats = list(before = list(mean = 1.5)))
+  expect_identical(.replay_start_weight(entry, main_wt), 1.5)
+
+  # Legacy entry without weight_stats, and entries with unusable values
+  expect_identical(.replay_start_weight(list(), main_wt), 4)
+  bad <- list(weight_stats = list(before = list(mean = NA_real_)))
+  expect_identical(.replay_start_weight(bad, main_wt), 4)
+  zero <- list(weight_stats = list(before = list(mean = 0)))
+  expect_identical(.replay_start_weight(zero, main_wt), 4)
+})
+
 test_that("calibration-only QR bootstrap (Level A): replicates = 2L (minimum) returns 2 repweights", {
   skip_if_not_installed("svrep")
 

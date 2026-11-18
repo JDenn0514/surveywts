@@ -17,7 +17,9 @@ poststratify(
 \item{data}{A \code{survey_nonprob}, \code{survey_taylor}, or \code{survey_replicate}. Any
 other class -> error. When \code{data} is a \code{survey_replicate},
 post-stratification is applied independently to every replicate weight
-column using the same population \code{targets}. Replicate columns where any
+column using the same population \code{targets}. For \code{type = "count"}, each
+replicate's targets are scaled by \verb{sum(replicate weights) / sum(base weights)}, the same rule as the \verb{calibrate_*()} functions. Replicate
+columns where any
 cell has zero or negative total weight fail calibration; a
 \code{surveywts_warning_replicate_calibration_failed} warning is emitted and
 the original replicate weights are kept.}

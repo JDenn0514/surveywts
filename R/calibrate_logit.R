@@ -494,7 +494,10 @@ calibrate_logit <- function(
 
       # Build rep population totals vector
       rep_pop_vec <- stats::setNames(numeric(n_cols), colnames(x_matrix))
-      rep_pop_vec["(Intercept)"] <- rep_total_w
+      # Intercept = the replicate's scaled population total, so it agrees with
+      # the level totals: rep_total_w for "prop", N_pop * scale_ratio for
+      # "count".
+      rep_pop_vec["(Intercept)"] <- sum(rep_pop_counts[[variable_names[[1L]]]])
       for (v in multi_level_vars) {
         lvls <- names(rep_pop_counts[[v]])
         for (lev in lvls[-1L]) {

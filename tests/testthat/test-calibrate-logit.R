@@ -1762,12 +1762,14 @@ test_that("RL-6: absolute-bounds replicate logit: full sample and every replicat
   )
 
   # Replicate weights: every replicate calibrates, meets its margins, keeps
-  # its zero weights at 0, and keeps its other weights in [L_abs, U_abs].
+  # its zero weights at 0, and keeps each other weight a_k * d_k in
+  # [a_k * L_abs, a_k * U_abs], with a_k = rep_wt / d_k (issue #149).
   repwt_cols <- result@variables$repweights
   expect_identical(
     unname(result@calibration$replicate_converged),
     rep(TRUE, length(repwt_cols))
   )
+  above_u_abs <- 0L
   for (col in repwt_cols) {
     before <- rep_design@data[[col]]
     after <- result@data[[col]]
@@ -1778,11 +1780,18 @@ test_that("RL-6: absolute-bounds replicate logit: full sample and every replicat
       rep(0, sum(out_of_rep)),
       label = paste0("RL-6: ", col, " zero weights stay 0")
     )
+    a_k <- before[!out_of_rep] / df_200$base_weight[!out_of_rep]
+    g_rep <- after[!out_of_rep] / before[!out_of_rep]
     expect_true(
-      all(after[!out_of_rep] >= abs_L - 1e-8) &&
-        all(after[!out_of_rep] <= abs_U + 1e-8),
-      label = paste0("RL-6: ", col, " weights in [L_abs, U_abs]")
+      all(g_rep > abs_L / df_200$base_weight[!out_of_rep]) &&
+        all(g_rep < abs_U / df_200$base_weight[!out_of_rep]),
+      label = paste0("RL-6: ", col, " g-weights in full-sample (L/d, U/d)")
     )
+    expect_true(
+      all(after[!out_of_rep] < a_k * abs_U + 1e-8),
+      label = paste0("RL-6: ", col, " weights below a_k * U_abs")
+    )
+    above_u_abs <- above_u_abs + sum(after > abs_U)
     total_rep <- sum(after)
     for (lev in names(targets$age_group)) {
       expect_equal(
@@ -1793,6 +1802,71 @@ test_that("RL-6: absolute-bounds replicate logit: full sample and every replicat
       )
     }
   }
+  # Bounds apply per draw: a unit drawn more than once can go above U_abs.
+  expect_gt(above_u_abs, 0L, label = "RL-6: replicate weights above U_abs")
+})
+
+# ---------------------------------------------------------------------------
+# RL-7: Replicate — absolute bounds use the full-sample g-bounds in BRR
+# ---------------------------------------------------------------------------
+
+test_that("RL-7: absolute-bounds BRR replicate equals a logit calibration with the full-sample g-bounds", {
+  # Every BRR replicate weight is 0 or 2 * d_k, so units with d_k > 1.5 have
+  # rep_wt >= U_abs = 3. With bounds per draw they keep the g-bounds
+  # (0.3 / d_k, 3 / d_k) of the full sample (issue #149).
+  abs_L <- 0.3
+  abs_U <- 3.0
+  targets <- list(
+    age_group = c("18-34" = 0.30, "35-54" = 0.40, "55+" = 0.30)
+  )
+  set.seed(11)
+  df <- data.frame(
+    stratum = rep(1:4, each = 50),
+    psu = rep(1:8, each = 25),
+    age_group = sample(c("18-34", "35-54", "55+"), 200, replace = TRUE),
+    base_weight = runif(200, 0.5, 2.5)
+  )
+  taylor <- surveycore::as_survey(
+    df,
+    ids = psu,
+    strata = stratum,
+    weights = base_weight
+  )
+  rep_design <- create_brr_weights(taylor)
+  col <- rep_design@variables$repweights[[1L]]
+  rep_wt <- rep_design@data[[col]]
+  stopifnot(any(rep_wt >= abs_U))
+
+  result <- calibrate_logit(
+    rep_design,
+    targets = targets,
+    bounds = c(abs_L, abs_U),
+    bounds_scale = "absolute"
+  )
+  test_invariants(result)
+  expect_true(result@calibration$replicate_converged[[col]])
+
+  # Oracle: the engine on the in-replicate units with g-bounds abs / d_k
+  in_rep <- rep_wt != 0
+  x <- stats::model.matrix(
+    ~age_group,
+    data.frame(age_group = factor(df$age_group, names(targets$age_group)))
+  )
+  pop <- c(1, 0.40, 0.30) * sum(rep_wt)
+  expected <- numeric(200)
+  expected[in_rep] <- .calibrate_nr_engine(
+    x_matrix = x[in_rep, , drop = FALSE],
+    weights_vec = rep_wt[in_rep],
+    calfun = .make_calfun_logit(
+      L = abs_L / df$base_weight[in_rep],
+      U = abs_U / df$base_weight[in_rep]
+    ),
+    population = pop,
+    q_weights = rep(1, sum(in_rep))
+  )$weights
+
+  expect_equal(result@data[[col]], expected, tolerance = 1e-10)
+  expect_true(any(result@data[[col]] > abs_U))
 })
 
 # ---------------------------------------------------------------------------

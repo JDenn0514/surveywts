@@ -77,7 +77,11 @@
 #'   `(L, U)`. `"absolute"`: `bounds` constrain the final calibrated weight
 #'   `w_k` directly. Matched with `rlang::arg_match()`. For
 #'   `"multiplicative"`: requires `L < 1 < U`. For `"absolute"`: requires
-#'   `0 < L < U`.
+#'   `0 < L < U`. For `"absolute"` on a `survey_replicate`, the bounds apply
+#'   to each draw, not to the replicate weight: every replicate uses the
+#'   full-sample g-weight bounds `L / d_k` and `U / d_k`. A replicate weight
+#'   `a_k * d_k` (for example, `a_k = 2` in BRR) can therefore be as large
+#'   as `a_k * U`. A replicate weight of 0 stays 0.
 #' @param unit_scale `NULL` (default) or a positive numeric vector of length
 #'   `nrow(data)`. Per-unit scaling factors `q_k` for the calibration distance
 #'   function (Deville & Sarndal 1992 eq. 2.2). `NULL` is equivalent to
@@ -504,20 +508,26 @@ calibrate_logit <- function(
       failed <- tryCatch(
         {
           if (identical(bounds_scale, "absolute")) {
-            # D6 replicate: per-unit bounds for this replicate's base weights.
-            # A unit with rep_wt = 0 is out of this replicate (for example,
-            # a bootstrap draw did not select it). Its per-unit bounds
-            # abs / rep_wt would be Inf, and the logit F-function would
-            # give NaN. So the engine runs on the units with rep_wt != 0
-            # only, and units with rep_wt = 0 keep a weight of 0. The
-            # result is the same as with survey::calibrate(bounds.const =
-            # TRUE), which leaves the bound of a unit with weight 0 as
-            # given: that unit adds 0 to every total and to the Jacobian,
-            # so its bound has no effect (issue #139).
+            # D6 replicate. A unit with rep_wt = 0 is out of this replicate
+            # (for example, a bootstrap draw did not select it). It adds 0
+            # to every total and to the Jacobian, so the engine runs on the
+            # units with rep_wt != 0 only, and units with rep_wt = 0 keep a
+            # weight of 0 (issue #139).
+            #
+            # Each replicate uses the full-sample per-unit g-bounds
+            # abs_L / d_k and abs_U / d_k, so the absolute bounds apply to
+            # each draw: a replicate weight a_k * d_k (a_k = rep_wt / d_k)
+            # can reach a_k * abs_U. The replicate estimator is then the
+            # full-sample estimator applied to the replicate. A fixed cap at
+            # abs_U on the replicate weight gave replicate SEs 1.7 to 2.2
+            # times too large for bootstrap and BRR when the bounds bind
+            # (plans/sim-logit-replicate-bounds.md, issue #149). The
+            # full-sample check above makes sure that abs_L < d_k < abs_U,
+            # so every unit has L_k < 1 < U_k (issue #144).
             in_rep <- rep_wt != 0
             rep_calfun <- .make_calfun_logit(
-              L = abs_L / rep_wt[in_rep],
-              U = abs_U / rep_wt[in_rep]
+              L = L_vec[in_rep],
+              U = U_vec[in_rep]
             )
             rep_engine <- .calibrate_nr_engine(
               x_matrix = x_matrix[in_rep, , drop = FALSE],

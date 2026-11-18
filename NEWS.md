@@ -45,6 +45,13 @@
 
 ## Bug fixes
 
+* `calibrate_rake(algorithm = "classic_ipf", type = "count")` now returns
+  weights that sum to the population total N. Before, the full-sample
+  weights and every replicate summed to the number of rows. Each replicate
+  now sums to `N * sum(rep_wt) / sum(base_wt)`, the rule that
+  `algorithm = "nr"` already used. Weighted proportions and the `cap`
+  ratio do not change; weighted totals do.
+
 * `calibrate_logit(bounds_scale = "absolute")` on a replicate design now
   applies the bounds to each draw: every replicate uses the full-sample
   g-weight bounds `L / d_k` and `U / d_k`. Before, the bounds applied to

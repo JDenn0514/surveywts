@@ -1035,6 +1035,54 @@ test_that("create_jackknife_weights() type='grouped' refits the logistic model p
 #   Level A — calibrate_rake() without reference_design (targets_from_reference = FALSE)
 #   Level B — calibrate_rake() with reference_design    (targets_from_reference = TRUE)
 
+test_that("calibration-only DAGJK: classic_ipf prop replicate totals match the nr path", {
+  # Replicate g starts from a_g * main_wt on the kept rows, so a type = "prop"
+  # replay keeps that total: a_g * sum(main_wt[kept]). sum(base_wt) != n,
+  # so a total of n (the engine's own scale) cannot pass by chance.
+  df <- make_surveywts_data(n = 200L, seed = 7L)
+  nps_base <- surveycore::survey_nonprob(
+    data = df,
+    variables = list(weights = "base_weight"),
+    metadata = surveycore::survey_metadata()
+  )
+  targets <- list(
+    age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+    sex = c("M" = 0.49, "F" = 0.51)
+  )
+  cal_ipf <- calibrate_rake(nps_base, targets = targets, type = "prop")
+  cal_nr <- calibrate_rake(
+    nps_base,
+    targets = targets,
+    type = "prop",
+    algorithm = "nr"
+  )
+
+  rep_sums <- function(cal) {
+    res <- create_jackknife_weights(
+      cal,
+      replicates = 5L,
+      type = "grouped",
+      seed = 1L
+    )
+    main_wt <- cal@data[[cal@variables$weights]]
+    n <- length(main_wt)
+    vapply(
+      res@variables$repweights,
+      function(col) {
+        rw <- res@data[[col]]
+        kept <- rw > 0
+        c(sum(rw), n / sum(kept) * sum(main_wt[kept]))
+      },
+      numeric(2)
+    )
+  }
+  ipf <- rep_sums(cal_ipf)
+  nr <- rep_sums(cal_nr)
+
+  expect_equal(ipf[1, ], ipf[2, ], tolerance = 1e-8)
+  expect_equal(ipf[1, ], nr[1, ], tolerance = 1e-6)
+})
+
 test_that("create_jackknife_weights() calibration-only DAGJK Level A (no reference)", {
   set.seed(101L)
   nps_df <- data.frame(

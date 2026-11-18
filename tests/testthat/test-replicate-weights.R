@@ -2251,6 +2251,50 @@ test_that("calibration-only QR bootstrap (Level A) weight conservation: repwt_1 
   expect_equal(repwt1_sum, main_sum, tolerance = 1e-6)
 })
 
+test_that("calibration-only QR bootstrap (Level A): draws start at the main weight scale", {
+  skip_if_not_installed("svrep")
+
+  # Base weights average about 27, so 1 is outside the absolute bounds.
+  # A draw that starts at weight 1 cannot meet them; a draw that starts at
+  # mean(base_wt) can, and every draw then sums to sum(main_wt).
+  df <- make_surveywts_data(n = 200L, seed = 7L)
+  df$base_weight <- df$base_weight * 25
+  nps_base <- surveycore::survey_nonprob(
+    data = df,
+    variables = list(weights = "base_weight"),
+    metadata = surveycore::survey_metadata()
+  )
+  targets <- list(
+    age_group = c("18-34" = 0.35, "35-54" = 0.40, "55+" = 0.25),
+    sex = c("M" = 0.49, "F" = 0.51)
+  )
+  nps_logit <- calibrate_logit(
+    nps_base,
+    targets = targets,
+    type = "prop",
+    bounds = c(5, 150),
+    bounds_scale = "absolute"
+  )
+  nps_rake <- calibrate_rake(nps_base, targets = targets, type = "prop")
+
+  for (nps_calib in list(nps_logit, nps_rake)) {
+    result <- create_bootstrap_weights(
+      nps_calib,
+      replicates = 5L,
+      type = "quasi-randomization",
+      seed = 1L
+    )
+    main_sum <- sum(nps_calib@data[[nps_calib@variables$weights]])
+    rep_sums <- vapply(
+      result@variables$repweights,
+      function(col) sum(result@data[[col]]),
+      0
+    )
+    expect_length(rep_sums, 5L)
+    expect_equal(unname(rep_sums), rep(main_sum, 5L), tolerance = 1e-6)
+  }
+})
+
 test_that("calibration-only QR bootstrap (Level A): replicates = 2L (minimum) returns 2 repweights", {
   skip_if_not_installed("svrep")
 

@@ -413,13 +413,12 @@ calibrate_rake <- function(
     )
 
     # The anesrake engine works on proportions and returns weights that sum
-    # to nrow(plain_df). For type = "count", rescale to the target total N.
+    # to nrow(plain_df). Rescale to the target total: N for type = "count",
+    # sum(base_wt) for type = "prop" (the same total as the nr path).
     # The cap is on w / mean(w), so a uniform rescale keeps it.
     new_weights <- engine_result$weights
-    if (type == "count") {
-      ipf_target_total <- sum(targets_counts[[target_var_names[[1L]]]])
-      new_weights <- new_weights * (ipf_target_total / sum(new_weights))
-    }
+    ipf_target_total <- sum(targets_counts[[target_var_names[[1L]]]])
+    new_weights <- new_weights * (ipf_target_total / sum(new_weights))
     convergence <- engine_result$convergence
     nr_lambda <- NULL
   } else {
@@ -621,15 +620,14 @@ calibrate_rake <- function(
                 calibration_spec = rep_cal_spec,
                 control = control_resolved
               )
-              # Same rescale as the full sample. For type = "count", the
-              # target total is N * sum(rep_wt) / sum(base_wt).
+              # Same rescale as the full sample. The target total is
+              # N * sum(rep_wt) / sum(base_wt) for type = "count" and
+              # sum(rep_wt) for type = "prop".
               rep_new <- rep_engine$weights
-              if (type == "count") {
-                rep_target_total <- sum(
-                  rep_targets_counts[[target_var_names[[1L]]]]
-                )
-                rep_new <- rep_new * (rep_target_total / sum(rep_new))
-              }
+              rep_target_total <- sum(
+                rep_targets_counts[[target_var_names[[1L]]]]
+              )
+              rep_new <- rep_new * (rep_target_total / sum(rep_new))
               data@data[[repwt_col]] <- rep_new
             } else {
               # "nr": build rep pop_totals then call .calibrate_nr_engine()

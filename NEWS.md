@@ -45,17 +45,6 @@
 
 ## Bug fixes
 
-* `calibrate_logit(bounds_scale = "absolute")` on a replicate design now
-  applies the bounds to each draw: every replicate uses the full-sample
-  g-weight bounds `L / d_k` and `U / d_k`. Before, the bounds applied to
-  the replicate weight itself. Units with a replicate weight at or above
-  `U` got undefined logit bounds (#144), and replicates often could not
-  meet the targets, so they kept their uncalibrated weights. In a
-  simulation, replicate SEs were 1.7 to 2.2 times too large for bootstrap
-  and BRR when the bounds bind. A replicate weight can now be as large as
-  `(rep_wt / d_k) * U`. Replicate weights change when the bounds bind;
-  full-sample weights do not change (#149).
-
 * `calibrate_logit(bounds_scale = "absolute")` now calibrates the replicate
   weights of designs that have replicate weights of 0, such as bootstrap
   designs. Before, every such replicate failed with
